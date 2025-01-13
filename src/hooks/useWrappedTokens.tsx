@@ -26,7 +26,7 @@ const wrappedTokenConfig: {
     tokenWrapperContractAddress: string;
   }>;
 } = {
-  [CustomMarket.proto_testnet_v3]: [],
+  [CustomMarket.proto_flow_v3]: [],
 };
 
 export const useWrappedTokens = () => {
