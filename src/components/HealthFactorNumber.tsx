@@ -64,11 +64,11 @@ export const HealthFactorNumber = ({
         </Button>
       )}
 
-      {HALIntegrationComponent && (
+      {/* {HALIntegrationComponent && (
         <Box ml={{ xs: 0, xsm: 2 }} mt={{ xs: 1, xsm: 0 }}>
           {HALIntegrationComponent}
         </Box>
-      )}
+      )} */}
     </Box>
   );
 };
