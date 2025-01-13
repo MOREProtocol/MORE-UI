@@ -148,7 +148,7 @@ export const TOKEN_LIST: TokenList = {
       logoURI: 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png',
     },
     {
-      chainId: ChainIds.flowEVMTestnet,
+      chainId: ChainIds.flowEVMMainnet,
       address: '0xA0197b2044D28b08Be34d98b23c9312158Ea9A18',
       name: 'Coinbase Wrapped BTC',
       symbol: 'cbBTC',

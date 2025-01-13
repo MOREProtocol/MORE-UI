@@ -98,7 +98,7 @@ export function getDefaultChainId() {
 }
 
 export function getSupportedChainIds(): number[] {
-  return [ChainIds.flowEVMTestnet, ChainIds.flowEVMMainnet];
+  return [ChainIds.flowEVMMainnet];
 }
 
 /**
