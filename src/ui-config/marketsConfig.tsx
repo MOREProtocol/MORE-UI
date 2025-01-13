@@ -89,7 +89,7 @@ export const marketsData: {
       UI_POOL_DATA_PROVIDER: '0x2148e6253b23122Ee78B3fa6DcdDbefae426EB78',
     },
     halIntegration: {
-      URL: 'https://app.hal.xyz/recipes/aave-v3-track-health-factor',
+      URL: 'https://app.hal.xyz/recipes/more-track-health-factor',
       marketName: 'MoreMarkets',
     },
   },
