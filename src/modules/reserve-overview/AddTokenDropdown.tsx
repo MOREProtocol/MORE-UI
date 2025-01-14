@@ -72,7 +72,7 @@ export const AddTokenDropdown = ({
 
   return (
     <>
-      {/* Load base64 token symbol for adding underlying and aTokens to wallet */}
+      {/* Load base64 token symbol for adding underlying and mTokens to wallet */}
       {poolReserve?.symbol && !/_/.test(poolReserve.symbol) && (
         <>
           <Base64Token
@@ -163,12 +163,12 @@ export const AddTokenDropdown = ({
           <Box>
             <Box sx={{ px: 4, pt: 3, pb: 2 }}>
               <Typography variant="secondary12" color="text.secondary">
-                <Trans>Aave aToken</Trans>
+                <Trans>More mToken</Trans>
               </Typography>
             </Box>
             <MenuItem
-              key="atoken"
-              value="atoken"
+              key="mtoken"
+              value="mtoken"
               onClick={() => {
                 if (currentChainId !== connectedChainId) {
                   switchNetwork(currentChainId).then(() => {
