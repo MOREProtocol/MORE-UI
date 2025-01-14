@@ -112,8 +112,8 @@ msgid "APY, variable"
 msgstr "APY, variable"
 
 #: src/ui-config/errorMapping.tsx
-msgid "AToken supply is not zero"
-msgstr "AToken supply is not zero"
+msgid "MToken supply is not zero"
+msgstr "MToken supply is not zero"
 
 #: src/modules/governance/GovernanceTopPanel.tsx
 msgid "Aave Governance"
@@ -121,8 +121,8 @@ msgstr "Aave Governance"
 
 #: src/modules/reserve-overview/AddTokenDropdown.tsx
 #: src/modules/reserve-overview/TokenLinkDropdown.tsx
-msgid "Aave aToken"
-msgstr "Aave aToken"
+msgid "More mToken"
+msgstr "More mToken"
 
 #: src/modules/reserve-overview/TokenLinkDropdown.tsx
 msgid "Aave debt token"
@@ -2473,8 +2473,8 @@ msgid "The app is running in testnet mode. Learn how it works in"
 msgstr "The app is running in testnet mode. Learn how it works in"
 
 #: src/ui-config/errorMapping.tsx
-msgid "The caller of the function is not an AToken"
-msgstr "The caller of the function is not an AToken"
+msgid "The caller of the function is not an MToken"
+msgstr "The caller of the function is not an MToken"
 
 #: src/ui-config/errorMapping.tsx
 msgid "The caller of this function must be a pool"
