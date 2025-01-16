@@ -23,6 +23,7 @@ export const GENERAL = {
 };
 
 export const DASHBOARD = {
+  AGREE_POLICY: 'Agree privacy and policy',
   CHANGE_MARKET: 'Change market on dashboard', //done
   VIEW_MARKETS: 'View markets on dashboard', // can be viewed in PAGEVIEW
   VIEW_RISK_DETAILS: 'View risk details on dashboard', // done
