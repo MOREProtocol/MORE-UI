@@ -60,7 +60,8 @@ export const ReserveTopDetailsWrapper = ({ underlyingAsset }: ReserveTopDetailsP
             onError={() => setTokenSymbol('default')}
             width="40px"
             height="40px"
-            alt=""
+            alt="token-svg"
+            style={{ borderRadius: '50%' }}
           />
         )}
       </Box>

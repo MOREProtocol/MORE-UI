@@ -16,7 +16,12 @@ export const WelcomeModal = () => {
   const [value, setValue] = useState(false);
 
   return (
-    <BasicModal open={type === ModalType.Welcome} setOpen={close} contentMaxWidth={450}>
+    <BasicModal
+      open={type === ModalType.Welcome}
+      setOpen={close}
+      withCloseButton={false}
+      contentMaxWidth={450}
+    >
       <TxModalTitle title={<Trans>Welcome to MORE Markets!</Trans>} />
       <Box>
         <Typography sx={{ mb: 1 }} color="text.secondary">
@@ -59,6 +64,7 @@ export const WelcomeModal = () => {
         variant="contained"
         onClick={() => close()}
         size="large"
+        disabled={!value}
       >
         <Typography variant="description">Continue</Typography>
       </Button>
