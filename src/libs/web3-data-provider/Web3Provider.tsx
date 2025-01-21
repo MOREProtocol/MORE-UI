@@ -72,6 +72,8 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
   const [readOnlyMode, setReadOnlyMode] = useState(false);
   const [triedLedger, setTriedLedger] = useState(false);
   const [switchNetworkError, setSwitchNetworkError] = useState<Error>();
+  // const [flowProvider, setFlowProvider] = useState({} as any);
+  // const [flowWalletProvider, setFlowWalletProvider] = useState(null);
   const [setAccount, currentChainId] = useRootStore((store) => [
     store.setAccount,
     store.currentChainId,
@@ -146,6 +148,8 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
 
         if (wallet === WalletType.INJECTED) {
           await activateMetaMask(connector);
+        } else if (wallet === WalletType.FLOW_WALLET) {
+          await activateFlowWallet();
         } else {
           await activate(connector, undefined, true);
         }
@@ -210,6 +214,17 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
     };
 
     await activateFn(connector, 1);
+  };
+
+  const activateFlowWallet = async () => {
+    // window.addEventListener('eip6963:announceProvider', ((event: CustomEvent) => {
+    //   const { info, provider } = event.detail;
+    //   flowProvider[info.rdns] = { info, provider };
+    //   setFlowProvider(providers);
+    //   if (info.rdns == 'com.flowfoundation.wallet') {
+    //     setFlowWalletProvider(provider);
+    //   }
+    // }) as EventListener);
   };
 
   const activateInjectedProvider = (providerName: string | 'MetaMask' | 'CoinBase') => {

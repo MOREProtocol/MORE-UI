@@ -14,6 +14,7 @@ import { WalletConnectConnector } from './WalletConnectConnector';
 
 export enum WalletType {
   INJECTED = 'injected',
+  FLOW_WALLET = 'flow_wallet',
   WALLET_CONNECT = 'wallet_connect',
   WALLET_LINK = 'wallet_link',
   TORUS = 'torus',
@@ -23,8 +24,8 @@ export enum WalletType {
   READ_ONLY_MODE = 'read_only_mode',
 }
 
-const APP_NAME = 'Aave';
-const APP_LOGO_URL = 'https://aave.com/favicon.ico';
+const APP_NAME = 'MoreMarkets';
+const APP_LOGO_URL = 'https://app.more.markets/favicon.ico';
 
 const mockProvider = {
   request: Promise.resolve(null),
@@ -84,6 +85,8 @@ export const getWallet = (
     //   return new LedgerHQFrameConnector({});
     case WalletType.INJECTED:
       return new InjectedConnector({});
+    // case WalletType.FLOW_WALLET:
+    //   return new InjectedConnector({});
     case WalletType.WALLET_LINK:
       const networkConfig = getNetworkConfig(chainId);
       return new WalletLinkConnector({

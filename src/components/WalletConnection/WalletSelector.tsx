@@ -43,6 +43,15 @@ const WalletRow = ({ walletName, walletType }: WalletRowProps) => {
             alt={`browser wallet icon`}
           />
         );
+      case WalletType.FLOW_WALLET:
+        return (
+          <img
+            src={`/icons/wallets/flowwallet.svg`}
+            width="24px"
+            height="24px"
+            alt={`flow wallet icon`}
+          />
+        );
       case WalletType.WALLET_LINK:
         return (
           <img
@@ -193,6 +202,7 @@ export const WalletSelector = () => {
         walletName="Browser wallet"
         walletType={WalletType.INJECTED}
       />
+      <WalletRow key="flow_wallet" walletName="Flow wallet" walletType={WalletType.FLOW_WALLET} />
       <WalletRow
         key="walletconnect_wallet"
         walletName="WalletConnect"
