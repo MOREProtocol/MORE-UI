@@ -89,6 +89,11 @@ export function AppFooter() {
         setAnalyticsConfigOpen(true);
       },
     },
+    {
+      href: 'https://deprecated.more.markets/',
+      label: <>Deprecated</>,
+      key: 'Deprecated',
+    },
   ];
 
   return (

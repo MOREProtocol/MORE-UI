@@ -1,11 +1,10 @@
-import { InformationCircleIcon, SwitchHorizontalIcon } from '@heroicons/react/outline';
+import { InformationCircleIcon } from '@heroicons/react/outline';
 import { Trans } from '@lingui/macro';
 import {
-  Badge,
+  // Badge,
   Button,
-  NoSsr,
   Slide,
-  styled,
+  // styled,
   SvgIcon,
   Typography,
   useMediaQuery,
@@ -16,7 +15,7 @@ import Box from '@mui/material/Box';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { ContentWithTooltip } from 'src/components/ContentWithTooltip';
-import { useModalContext } from 'src/hooks/useModal';
+// import { useModalContext } from 'src/hooks/useModal';
 import { useRootStore } from 'src/store/root';
 import { ENABLE_TESTNET, FORK_ENABLED } from 'src/utils/marketsAndNetworksConfig';
 
@@ -32,38 +31,38 @@ interface Props {
   children: React.ReactElement;
 }
 
-const StyledBadge = styled(Badge)(({ theme }) => ({
-  '& .MuiBadge-badge': {
-    top: '2px',
-    right: '2px',
-    borderRadius: '20px',
-    width: '10px',
-    height: '10px',
-    backgroundColor: `${theme.palette.secondary.main}`,
-    color: `${theme.palette.secondary.main}`,
-    '&::after': {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      borderRadius: '50%',
-      animation: 'ripple 1.2s infinite ease-in-out',
-      border: '1px solid currentColor',
-      content: '""',
-    },
-  },
-  '@keyframes ripple': {
-    '0%': {
-      transform: 'scale(.8)',
-      opacity: 1,
-    },
-    '100%': {
-      transform: 'scale(2.4)',
-      opacity: 0,
-    },
-  },
-}));
+// const StyledBadge = styled(Badge)(({ theme }) => ({
+//   '& .MuiBadge-badge': {
+//     top: '2px',
+//     right: '2px',
+//     borderRadius: '20px',
+//     width: '10px',
+//     height: '10px',
+//     backgroundColor: `${theme.palette.secondary.main}`,
+//     color: `${theme.palette.secondary.main}`,
+//     '&::after': {
+//       position: 'absolute',
+//       top: 0,
+//       left: 0,
+//       width: '100%',
+//       height: '100%',
+//       borderRadius: '50%',
+//       animation: 'ripple 1.2s infinite ease-in-out',
+//       border: '1px solid currentColor',
+//       content: '""',
+//     },
+//   },
+//   '@keyframes ripple': {
+//     '0%': {
+//       transform: 'scale(.8)',
+//       opacity: 1,
+//     },
+//     '100%': {
+//       transform: 'scale(2.4)',
+//       opacity: 0,
+//     },
+//   },
+// }));
 
 function HideOnScroll({ children }: Props) {
   const { breakpoints } = useTheme();
@@ -77,24 +76,24 @@ function HideOnScroll({ children }: Props) {
   );
 }
 
-const SWITCH_VISITED_KEY = 'switchVisited';
+// const SWITCH_VISITED_KEY = 'switchVisited';
 
 export function AppHeader() {
   const { breakpoints } = useTheme();
   const md = useMediaQuery(breakpoints.down('md'));
   const sm = useMediaQuery(breakpoints.down('sm'));
 
-  const [visitedSwitch, setVisitedSwitch] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return Boolean(localStorage.getItem(SWITCH_VISITED_KEY));
-  });
+  // const [visitedSwitch, setVisitedSwitch] = useState(() => {
+  //   if (typeof window === 'undefined') return true;
+  //   return Boolean(localStorage.getItem(SWITCH_VISITED_KEY));
+  // });
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useRootStore((state) => [
     state.mobileDrawerOpen,
     state.setMobileDrawerOpen,
   ]);
 
-  const { openSwitch } = useModalContext();
+  // const { openSwitch } = useModalContext();
 
   const { currentMarketData } = useProtocolDataContext();
   const [walletWidgetOpen, setWalletWidgetOpen] = useState(false);
@@ -138,11 +137,11 @@ export function AppHeader() {
     window.location.href = '/';
   };
 
-  const handleSwitchClick = () => {
-    localStorage.setItem(SWITCH_VISITED_KEY, 'true');
-    setVisitedSwitch(true);
-    openSwitch();
-  };
+  // const handleSwitchClick = () => {
+  //   localStorage.setItem(SWITCH_VISITED_KEY, 'true');
+  //   setVisitedSwitch(true);
+  //   openSwitch();
+  // };
 
   const testnetTooltip = (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: 1 }}>
@@ -261,7 +260,7 @@ export function AppHeader() {
         </Box>
 
         <Box sx={{ flexGrow: 1 }} />
-        <NoSsr>
+        {/* <NoSsr>
           <StyledBadge
             invisible={visitedSwitch}
             variant="dot"
@@ -285,7 +284,7 @@ export function AppHeader() {
               </SvgIcon>
             </Button>
           </StyledBadge>
-        </NoSsr>
+        </NoSsr> */}
 
         {!mobileMenuOpen && (
           <WalletWidget
