@@ -175,7 +175,7 @@ export const WalletSelector = () => {
         walletName="Browser wallet"
         walletType={WalletType.INJECTED}
       />
-      <WalletRow key="flow_wallet" walletName="Flow wallet" walletType={WalletType.FLOW_WALLET} />
+      {/* <WalletRow key="flow_wallet" walletName="Flow wallet" walletType={WalletType.FLOW_WALLET} /> */}
       <WalletRow
         key="walletconnect_wallet"
         walletName="WalletConnect"
