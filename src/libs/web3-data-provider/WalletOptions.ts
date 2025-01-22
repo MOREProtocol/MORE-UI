@@ -1,13 +1,7 @@
 import { ChainId } from '@aave/contract-helpers';
-import { SafeAppConnector } from '@gnosis.pm/safe-apps-web3-react';
 import { AbstractConnector } from '@web3-react/abstract-connector';
-import { UnsupportedChainIdError } from '@web3-react/core';
-import { FrameConnector } from '@web3-react/frame-connector';
 import { InjectedConnector } from '@web3-react/injected-connector';
-import { TorusConnector } from '@web3-react/torus-connector';
 import { ConnectorUpdate } from '@web3-react/types';
-import { WalletLinkConnector } from '@web3-react/walletlink-connector';
-import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
 
 // import { LedgerHQFrameConnector } from 'web3-ledgerhq-frame-connector';
 import { WalletConnectConnector } from './WalletConnectConnector';
@@ -16,16 +10,8 @@ export enum WalletType {
   INJECTED = 'injected',
   FLOW_WALLET = 'flow_wallet',
   WALLET_CONNECT = 'wallet_connect',
-  WALLET_LINK = 'wallet_link',
-  TORUS = 'torus',
-  FRAME = 'frame',
-  GNOSIS = 'gnosis',
-  LEDGER = 'ledger',
   READ_ONLY_MODE = 'read_only_mode',
 }
-
-const APP_NAME = 'MoreMarkets';
-const APP_LOGO_URL = 'https://app.more.markets/favicon.ico';
 
 const mockProvider = {
   request: Promise.resolve(null),
@@ -75,7 +61,6 @@ export class ReadOnlyModeConnector extends AbstractConnector {
 
 export const getWallet = (
   wallet: WalletType,
-  chainId: ChainId = ChainId.mainnet,
   currentChainId: ChainId = ChainId.mainnet
 ): AbstractConnector => {
   switch (wallet) {
@@ -85,40 +70,8 @@ export const getWallet = (
     //   return new LedgerHQFrameConnector({});
     case WalletType.INJECTED:
       return new InjectedConnector({});
-    // case WalletType.FLOW_WALLET:
-    //   return new InjectedConnector({});
-    case WalletType.WALLET_LINK:
-      const networkConfig = getNetworkConfig(chainId);
-      return new WalletLinkConnector({
-        appName: APP_NAME,
-        appLogoUrl: APP_LOGO_URL,
-        url: networkConfig.privateJsonRPCUrl || networkConfig.publicJsonRPCUrl[0],
-      });
     case WalletType.WALLET_CONNECT:
       return new WalletConnectConnector(currentChainId);
-    case WalletType.GNOSIS:
-      if (window) {
-        return new SafeAppConnector();
-      }
-      throw new Error('Safe app not working');
-    case WalletType.TORUS:
-      return new TorusConnector({
-        chainId,
-        initOptions: {
-          network: {
-            host: chainId === ChainId.polygon ? 'matic' : chainId,
-          },
-          showTorusButton: false,
-          enableLogging: false,
-          enabledVerifiers: false,
-        },
-      });
-    case WalletType.FRAME: {
-      if (chainId !== ChainId.mainnet) {
-        throw new UnsupportedChainIdError(chainId, [1]);
-      }
-      return new FrameConnector({ supportedChainIds: [1] });
-    }
     default: {
       throw new Error(`unsupported wallet`);
     }

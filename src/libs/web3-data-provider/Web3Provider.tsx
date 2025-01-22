@@ -7,8 +7,6 @@ import {
 } from '@ethersproject/providers';
 import { AbstractConnector } from '@web3-react/abstract-connector';
 import { useWeb3React } from '@web3-react/core';
-import { TorusConnector } from '@web3-react/torus-connector';
-import { WalletLinkConnector } from '@web3-react/walletlink-connector';
 import { BigNumber, PopulatedTransaction, providers } from 'ethers';
 import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { useRootStore } from 'src/store/root';
@@ -18,6 +16,7 @@ import { hexToAscii } from 'src/utils/utils';
 // import { isLedgerDappBrowserProvider } from 'web3-ledgerhq-frame-connector';
 import { Web3Context } from '../hooks/useWeb3Context';
 import { WalletConnectConnector } from './WalletConnectConnector';
+import { FlowWalletConnector } from './FlowWalletConnector';
 import { getWallet, ReadOnlyModeConnector, WalletType } from './WalletOptions';
 
 export type ERC20TokenType = {
@@ -65,15 +64,10 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
   // const [provider, setProvider] = useState<JsonRpcProvider>();
   const [connector, setConnector] = useState<AbstractConnector>();
   const [loading, setLoading] = useState(false);
-  const [tried, setTried] = useState(false);
-  const [deactivated, setDeactivated] = useState(false);
-  const [triedGnosisSafe, setTriedGnosisSafe] = useState(false);
-  const [triedCoinbase, setTriedCoinbase] = useState(false);
   const [readOnlyMode, setReadOnlyMode] = useState(false);
-  const [triedLedger, setTriedLedger] = useState(false);
   const [switchNetworkError, setSwitchNetworkError] = useState<Error>();
-  // const [flowProvider, setFlowProvider] = useState({} as any);
-  // const [flowWalletProvider, setFlowWalletProvider] = useState(null);
+  const [flowProvider, setFlowProvider] = useState({} as any);
+  const [flowWalletProvider, setFlowWalletProvider] = useState<any>(null);
   const [setAccount, currentChainId] = useRootStore((store) => [
     store.setAccount,
     store.currentChainId,
@@ -93,18 +87,6 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
   const cleanConnectorStorage = useCallback((): void => {
     if (connector instanceof WalletConnectConnector) {
       localStorage.removeItem('walletconnect');
-    } else if (connector instanceof WalletLinkConnector) {
-      localStorage.removeItem('-walletlink:https://www.walletlink.org:version');
-      localStorage.removeItem('-walletlink:https://www.walletlink.org:session:id');
-      localStorage.removeItem('-walletlink:https://www.walletlink.org:session:secret');
-      localStorage.removeItem('-walletlink:https://www.walletlink.org:session:linked');
-      localStorage.removeItem('-walletlink:https://www.walletlink.org:AppVersion');
-      localStorage.removeItem('-walletlink:https://www.walletlink.org:Addresses');
-      localStorage.removeItem('-walletlink:https://www.walletlink.org:walletUsername');
-    } else if (connector instanceof TorusConnector) {
-      localStorage.removeItem('loglevel:torus.js');
-      localStorage.removeItem('loglevel:torus-embed');
-      localStorage.removeItem('loglevel:http-helpers');
     }
   }, [connector]);
 
@@ -120,7 +102,6 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
     }
     setWalletType(undefined);
     setLoading(false);
-    setDeactivated(true);
     setSwitchNetworkError(undefined);
   }, [provider, connector]);
 
@@ -134,7 +115,10 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
     async (wallet: WalletType) => {
       setLoading(true);
       try {
-        const connector: AbstractConnector = getWallet(wallet, chainId, currentChainId);
+        const connector: AbstractConnector =
+          wallet == WalletType.FLOW_WALLET
+            ? new FlowWalletConnector(flowWalletProvider)
+            : getWallet(wallet, currentChainId);
 
         if (connector instanceof ReadOnlyModeConnector) {
           setReadOnlyMode(true);
@@ -148,8 +132,6 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
 
         if (wallet === WalletType.INJECTED) {
           await activateMetaMask(connector);
-        } else if (wallet === WalletType.FLOW_WALLET) {
-          await activateFlowWallet();
         } else {
           await activate(connector, undefined, true);
         }
@@ -158,17 +140,15 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
         setSwitchNetworkError(undefined);
         setWalletType(wallet);
         localStorage.setItem('walletProvider', wallet.toString());
-        setDeactivated(false);
         setLoading(false);
       } catch (e) {
-        console.log('error on activation', e);
         setError(e);
         setWalletType(undefined);
         // disconnectWallet();
         setLoading(false);
       }
     },
-    [disconnectWallet, currentChainId]
+    [disconnectWallet, currentChainId, flowWalletProvider]
   );
 
   const activateMetaMask = async (connector: AbstractConnector) => {
@@ -215,165 +195,6 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
 
     await activateFn(connector, 1);
   };
-
-  const activateFlowWallet = async () => {
-    // window.addEventListener('eip6963:announceProvider', ((event: CustomEvent) => {
-    //   const { info, provider } = event.detail;
-    //   flowProvider[info.rdns] = { info, provider };
-    //   setFlowProvider(providers);
-    //   if (info.rdns == 'com.flowfoundation.wallet') {
-    //     setFlowWalletProvider(provider);
-    //   }
-    // }) as EventListener);
-  };
-
-  const activateInjectedProvider = (providerName: string | 'MetaMask' | 'CoinBase') => {
-    // @ts-expect-error ethereum doesn't necessarily exist
-    const { ethereum } = window;
-
-    if (!ethereum?.providers) {
-      return true;
-    }
-
-    let provider;
-    switch (providerName) {
-      case 'CoinBase':
-        provider = ethereum.providers.find(
-          //@ts-expect-error no type
-          ({ isCoinbaseWallet, isCoinbaseBrowser }) => isCoinbaseWallet || isCoinbaseBrowser
-        );
-        break;
-      case 'MetaMask':
-        //@ts-expect-error no type
-        provider = ethereum.providers.find(({ isMetaMask }) => isMetaMask);
-        break;
-      default:
-        return false;
-    }
-
-    if (provider) {
-      ethereum.setSelectedProvider(provider);
-      return true;
-    }
-
-    return false;
-  };
-
-  // third, try connecting to ledger
-  useEffect(() => {
-    if (!triedLedger && triedGnosisSafe && triedCoinbase) {
-      // check if the DApp is hosted within Ledger iframe
-      // const canConnectToLedger = isLedgerDappBrowserProvider();
-      if (false) {
-        // TODO check if we want to support
-        connectWallet(WalletType.LEDGER).finally(() => setTriedLedger(true));
-      } else {
-        setTriedLedger(true);
-      }
-    }
-  }, [connectWallet, triedGnosisSafe, triedCoinbase, triedLedger, setTriedLedger]);
-
-  // second, try connecting to coinbase
-  useEffect(() => {
-    if (!triedCoinbase) {
-      // do check if condition applies to try and connect directly to coinbase
-      if (triedGnosisSafe) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const injectedProvider = (window as any)?.ethereum;
-        if (injectedProvider?.isCoinbaseBrowser) {
-          const canConnectToCoinbase = activateInjectedProvider('CoinBase');
-          if (canConnectToCoinbase) {
-            connectWallet(WalletType.INJECTED)
-              .then(() => {
-                setTriedCoinbase(true);
-              })
-              .catch(() => {
-                setTriedCoinbase(true);
-              });
-          } else {
-            // @ts-expect-error ethereum might not be in window
-            const { ethereum } = window;
-
-            if (ethereum) {
-              activateInjectedProvider('CoinBase');
-              ethereum.request({ method: 'eth_requestAccounts' });
-            }
-
-            setTriedCoinbase(true);
-          }
-        } else {
-          setTriedCoinbase(true);
-        }
-      }
-    }
-  }, [connectWallet, triedGnosisSafe, setTriedCoinbase, triedCoinbase]);
-
-  // first, try connecting to a gnosis safe
-  useEffect(() => {
-    if (!triedGnosisSafe) {
-      const gnosisConnector = getWallet(WalletType.GNOSIS);
-      // @ts-expect-error isSafeApp not in abstract connector type
-      gnosisConnector.isSafeApp().then((loadedInSafe) => {
-        if (loadedInSafe) {
-          connectWallet(WalletType.GNOSIS)
-            .then(() => {
-              setTriedGnosisSafe(true);
-            })
-            .catch(() => {
-              setTriedGnosisSafe(true);
-            });
-        } else {
-          setTriedGnosisSafe(true);
-        }
-      });
-    }
-  }, [connectWallet, setTriedGnosisSafe, triedGnosisSafe]);
-
-  // handle logic to eagerly connect to the injected ethereum provider,
-  // if it exists and has granted access already
-  useEffect(() => {
-    const lastWalletProvider = localStorage.getItem('walletProvider');
-    if (!active && !deactivated && triedGnosisSafe && triedCoinbase && triedLedger) {
-      if (!!lastWalletProvider) {
-        connectWallet(lastWalletProvider as WalletType).catch(() => {
-          setTried(true);
-        });
-      } else {
-        setTried(true);
-        // For now we will not eagerly connect to injected provider
-        // const injected = getWallet(WalletType.INJECTED);
-        // // @ts-expect-error isAuthorized not in AbstractConnector type. But method is there for
-        // // injected provider
-        // injected.isAuthorized().then((isAuthorized: boolean) => {
-        //   if (isAuthorized) {
-        //     connectWallet(WalletType.INJECTED).catch(() => {
-        //       setTried(true);
-        //     });
-        //   } else {
-        //     setTried(true);
-        //   }
-        // });
-      }
-    }
-  }, [
-    activate,
-    setTried,
-    active,
-    connectWallet,
-    deactivated,
-    triedGnosisSafe,
-    triedCoinbase,
-    triedLedger,
-  ]);
-
-  // if the connection worked, wait until we get confirmation of that to flip the flag
-  useEffect(() => {
-    if (!tried && active) {
-      setTried(true);
-    }
-  }, [tried, active]);
-
-  // Tx methods
 
   // TODO: we use from instead of currentAccount because of the mock wallet.
   // If we used current account then the tx could get executed
@@ -504,6 +325,22 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
   useEffect(() => {
     setAccountLoading(loading);
   }, [loading]);
+
+  const setupEventListeners = () => {
+    // 监听钱包公告事件
+    window.addEventListener('eip6963:announceProvider', ((event: CustomEvent) => {
+      const { info, provider } = event.detail;
+      flowProvider[info.rdns] = { info, provider };
+      setFlowProvider(flowProvider);
+      if (info.rdns == 'com.flowfoundation.wallet') {
+        setFlowWalletProvider(provider);
+      }
+    }) as EventListener);
+  };
+
+  useEffect(() => {
+    setupEventListeners();
+  }, []);
 
   return (
     <Web3Context.Provider
