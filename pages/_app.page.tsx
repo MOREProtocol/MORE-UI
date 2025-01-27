@@ -1,7 +1,9 @@
 import '/public/fonts/inter/inter.css';
 import '/src/styles/variables.css';
+import '@rainbow-me/rainbowkit/styles.css';
 
 import { CacheProvider, EmotionCache } from '@emotion/react';
+import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Web3ReactProvider } from '@web3-react/core';
@@ -11,9 +13,6 @@ import { AppProps } from 'next/app';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { ReactNode, useEffect, useState } from 'react';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-import { WagmiConfig } from 'wagmi';
-
 import { AddressBlocked } from 'src/components/AddressBlocked';
 import { Meta } from 'src/components/Meta';
 import { TransactionEventHandler } from 'src/components/TransactionEventHandler';
@@ -23,13 +22,12 @@ import { ModalContextProvider } from 'src/hooks/useModal';
 import { Web3ContextProvider } from 'src/libs/web3-data-provider/Web3Provider';
 import { useRootStore } from 'src/store/root';
 import { SharedDependenciesProvider } from 'src/ui-config/SharedDependenciesProvider';
+import { chains, wagmiClient } from 'src/utils/wagmi';
+import { WagmiConfig } from 'wagmi';
 
 import createEmotionCache from '../src/createEmotionCache';
 import { AppGlobalStyles } from '../src/layouts/AppGlobalStyles';
 import { LanguageProvider } from '../src/libs/LanguageProvider';
-import { wagmiClient, chains } from 'src/utils/wagmi';
-
-import '@rainbow-me/rainbowkit/styles.css';
 
 const WelcomeModal = dynamic(() =>
   import('src/components/transactions/Welcome/WelcomeModal').then((module) => module.WelcomeModal)
