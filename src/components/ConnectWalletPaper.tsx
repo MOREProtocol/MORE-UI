@@ -4,7 +4,7 @@ import { ReactNode } from 'react';
 
 import LoveMore from '/public/loveMore.svg';
 
-import { ConnectWalletButton } from './WalletConnection/ConnectWalletButton';
+import { ConnectWalletButton } from './WalletConnection/ConnectWalletButton1';
 
 interface ConnectWalletPaperProps extends PaperProps {
   loading?: boolean;

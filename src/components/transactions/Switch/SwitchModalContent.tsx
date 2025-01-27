@@ -7,7 +7,7 @@ import React, { useMemo, useState } from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { Row } from 'src/components/primitives/Row';
 import { Warning } from 'src/components/primitives/Warning';
-import { ConnectWalletButton } from 'src/components/WalletConnection/ConnectWalletButton';
+import { ConnectWalletButton } from 'src/components/WalletConnection/ConnectWalletButton1';
 import { TokenInfoWithBalance } from 'src/hooks/generic/useTokensBalance';
 import { useParaswapSellRates } from 'src/hooks/paraswap/useParaswapRates';
 import { useIsWrongNetwork } from 'src/hooks/useIsWrongNetwork';
