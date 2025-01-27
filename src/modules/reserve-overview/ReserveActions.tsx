@@ -19,7 +19,7 @@ import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { Warning } from 'src/components/primitives/Warning';
 import { StyledTxModalToggleButton } from 'src/components/StyledToggleButton';
 import { StyledTxModalToggleGroup } from 'src/components/StyledToggleButtonGroup';
-import { ConnectWalletButton } from 'src/components/WalletConnection/ConnectWalletButton';
+import { ConnectWalletButton } from 'src/components/WalletConnection/ConnectWalletButton1';
 import {
   ComputedReserveData,
   useAppDataContext,

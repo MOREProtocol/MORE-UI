@@ -19,11 +19,12 @@ import {
   useTheme,
 } from '@mui/material';
 import React, { useState } from 'react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { AvatarSize } from 'src/components/Avatar';
 import { CompactMode } from 'src/components/CompactableTypography';
 import { Warning } from 'src/components/primitives/Warning';
 import { UserDisplay } from 'src/components/UserDisplay';
-import { WalletModal } from 'src/components/WalletConnection/WalletModal';
+// import { WalletModal } from 'src/components/WalletConnection/WalletModal';
 import { useWalletModalContext } from 'src/hooks/useWalletModal';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
@@ -357,7 +358,8 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
         </Menu>
       )}
 
-      <WalletModal />
+      {/* <WalletModal /> */}
+      <ConnectButton />
     </>
   );
 }

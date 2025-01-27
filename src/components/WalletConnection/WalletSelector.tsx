@@ -9,7 +9,6 @@ import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { UserRejectedRequestError } from 'src/libs/web3-data-provider/WalletConnectConnector';
 import { WalletType } from 'src/libs/web3-data-provider/WalletOptions';
 import { useRootStore } from 'src/store/root';
-import { getENSProvider } from 'src/utils/marketsAndNetworksConfig';
 import { AUTH } from 'src/utils/mixPanelEvents';
 
 import { Warning } from '../primitives/Warning';
@@ -89,12 +88,11 @@ export enum ErrorType {
 }
 
 export const WalletSelector = () => {
-  const { error, connectReadOnlyMode } = useWeb3Context();
+  const { error } = useWeb3Context();
   const [inputMockWalletAddress, setInputMockWalletAddress] = useState('');
   const [validAddressError, setValidAddressError] = useState<boolean>(false);
   const { breakpoints } = useTheme();
   const sm = useMediaQuery(breakpoints.down('sm'));
-  const mainnetProvider = getENSProvider();
   const [unsTlds] = useState<string[]>([]);
   const trackEvent = useRootStore((store) => store.trackEvent);
 
@@ -128,36 +126,14 @@ export const WalletSelector = () => {
 
   const handleReadAddress = async (inputMockWalletAddress: string): Promise<void> => {
     if (validAddressError) setValidAddressError(false);
-    if (utils.isAddress(inputMockWalletAddress)) {
-      connectReadOnlyMode(inputMockWalletAddress);
+
+    // Check if address could be valid ENS before trying to resolve
+    if (inputMockWalletAddress.slice(-4) === '.eth') {
+      setValidAddressError(true);
+    } else if (unsTlds.includes(inputMockWalletAddress.split('.').pop() as string)) {
+      setValidAddressError(true);
     } else {
-      // Check if address could be valid ENS before trying to resolve
-      if (inputMockWalletAddress.slice(-4) === '.eth') {
-        // Attempt to resolve ENS name and use resolved address if valid
-        const resolvedAddress = await mainnetProvider.resolveName(inputMockWalletAddress);
-        if (resolvedAddress && utils.isAddress(resolvedAddress)) {
-          connectReadOnlyMode(resolvedAddress);
-        } else {
-          setValidAddressError(true);
-        }
-      } else if (unsTlds.includes(inputMockWalletAddress.split('.').pop() as string)) {
-        // Handle UNS names
-        const url = 'https://resolve.unstoppabledomains.com/domains/' + inputMockWalletAddress;
-        const options = {
-          method: 'GET',
-          headers: { Authorization: 'Bearer 01f60ca8-2dc3-457d-b12e-95ac2a7fb517' },
-        };
-        const response = await fetch(url, options);
-        const data = await response.json();
-        const resolvedAddress = data['meta']['owner'];
-        if (resolvedAddress && utils.isAddress(resolvedAddress)) {
-          connectReadOnlyMode(resolvedAddress);
-        } else {
-          setValidAddressError(true);
-        }
-      } else {
-        setValidAddressError(true);
-      }
+      setValidAddressError(true);
     }
   };
 
