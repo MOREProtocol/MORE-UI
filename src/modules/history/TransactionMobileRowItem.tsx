@@ -1,4 +1,4 @@
-import { Trans } from '@lingui/macro';
+import { Trans } from "@lingui/react/macro";
 import ArrowOutward from '@mui/icons-material/ArrowOutward';
 import { Box, Button, SvgIcon, Typography, useTheme } from '@mui/material';
 import React, { useEffect, useState } from 'react';

@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { SwitchHorizontalIcon } from '@heroicons/react/outline';
 import { EyeIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import {
   Box,
   Button,

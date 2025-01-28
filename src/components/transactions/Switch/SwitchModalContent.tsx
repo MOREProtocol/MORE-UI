@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { normalize, normalizeBN } from '@aave/math-utils';
 import { SwitchVerticalIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { Box, CircularProgress, IconButton, SvgIcon, Typography } from '@mui/material';
 import { debounce } from 'lodash';
 import React, { useMemo, useState } from 'react';

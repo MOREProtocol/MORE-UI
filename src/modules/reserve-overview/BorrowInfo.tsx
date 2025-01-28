@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { valueToBigNumber } from '@aave/math-utils';
-import { Trans } from '@lingui/macro';
 import { Box, Typography } from '@mui/material';
 import { BigNumber } from 'bignumber.js';
 import { CapsCircularStatus } from 'src/components/caps/CapsCircularStatus';
@@ -46,7 +46,7 @@ export const BorrowInfo = ({
   ).toNumber();
 
   return (
-    <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
+    (<Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
       <Box
         sx={{
           display: 'flex',
@@ -56,7 +56,7 @@ export const BorrowInfo = ({
       >
         {showBorrowCapStatus ? (
           // With a borrow cap
-          <>
+          (<>
             <CapsCircularStatus
               value={borrowCap.percentUsed}
               tooltipContent={
@@ -130,10 +130,10 @@ export const BorrowInfo = ({
                 <ReserveSubheader value={reserve.borrowCapUSD} />
               </Box>
             </PanelItem>
-          </>
+          </>)
         ) : (
           // Without a borrow cap
-          <PanelItem
+          (<PanelItem
             title={
               <Box display="flex" alignItems="center">
                 <Trans>Total borrowed</Trans>
@@ -142,7 +142,7 @@ export const BorrowInfo = ({
           >
             <FormattedNumber value={reserve.totalDebt} variant="main16" />
             <ReserveSubheader value={reserve.totalDebtUSD} />
-          </PanelItem>
+          </PanelItem>)
         )}
         <PanelItem
           title={
@@ -199,6 +199,6 @@ export const BorrowInfo = ({
           reserveAsset={reserve.underlyingAsset}
         />
       )}
-    </Box>
+    </Box>)
   );
 };

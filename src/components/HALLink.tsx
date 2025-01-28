@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { valueToBigNumber } from '@aave/math-utils';
-import { Trans } from '@lingui/macro';
 import { Button, Link, Popper, Stack, styled, SvgIcon, Tooltip, Typography } from '@mui/material';
 import BigNumber from 'bignumber.js';
 import { useMemo } from 'react';

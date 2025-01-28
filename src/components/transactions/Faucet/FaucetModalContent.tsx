@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { mintAmountsPerToken, valueToWei } from '@aave/contract-helpers';
 import { normalize } from '@aave/math-utils';
-import { Trans } from '@lingui/macro';
 import { useModalContext } from 'src/hooks/useModal';
 
 import { GasEstimationError } from '../FlowCommons/GasEstimationError';

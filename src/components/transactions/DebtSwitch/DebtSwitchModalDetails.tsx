@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { valueToBigNumber } from '@aave/math-utils';
 import { ArrowNarrowRightIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import { Box, Skeleton, Stack, SvgIcon, Typography } from '@mui/material';
 import React, { JSX } from 'react';
 import { FixedAPYTooltip } from 'src/components/infoTooltips/FixedAPYTooltip';

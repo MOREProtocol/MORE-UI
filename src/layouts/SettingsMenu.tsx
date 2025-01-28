@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { CogIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import { Button, Menu, MenuItem, SvgIcon, Typography } from '@mui/material';
 import React, { useState } from 'react';
 import { DEFAULT_LOCALE } from 'src/libs/LanguageProvider';

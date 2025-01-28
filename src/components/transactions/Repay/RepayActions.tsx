@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { gasLimitRecommendations, InterestRate, ProtocolAction } from '@aave/contract-helpers';
-import { Trans } from '@lingui/macro';
 import { BoxProps } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { parseUnits } from 'ethers/lib/utils';

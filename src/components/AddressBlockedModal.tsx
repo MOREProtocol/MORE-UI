@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ExclamationCircleIcon, LogoutIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { Box, Button, SvgIcon, Typography } from '@mui/material';
 
 import { BasicModal } from './primitives/BasicModal';

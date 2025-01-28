@@ -1,10 +1,10 @@
+import { Trans } from "@lingui/react/macro";
 import {
   ApproveDelegationType,
   gasLimitRecommendations,
   ProtocolAction,
 } from '@aave/contract-helpers';
 import { SignatureLike } from '@ethersproject/bytes';
-import { Trans } from '@lingui/macro';
 import { BoxProps } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { parseUnits } from 'ethers/lib/utils';

@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ExternalLinkIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { Button, SvgIcon, Typography } from '@mui/material';
 import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
 

@@ -1,10 +1,10 @@
+import { Trans } from "@lingui/react/macro";
 import {
   API_ETH_MOCK_ADDRESS,
   gasLimitRecommendations,
   ProtocolAction,
 } from '@aave/contract-helpers';
 import { SignatureLike } from '@ethersproject/bytes';
-import { Trans } from '@lingui/macro';
 import { BoxProps } from '@mui/material';
 import { useParaSwapTransactionHandler } from 'src/helpers/useParaSwapTransactionHandler';
 import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';

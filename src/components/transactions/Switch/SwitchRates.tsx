@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { normalizeBN, valueToBigNumber } from '@aave/math-utils';
 import { SwitchHorizontalIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { Box, ButtonBase, SvgIcon, Typography } from '@mui/material';
 import { OptimalRate } from '@paraswap/sdk';
 import { useMemo, useState } from 'react';
