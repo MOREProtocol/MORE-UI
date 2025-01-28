@@ -11,14 +11,14 @@ import {
 } from 'src/components/isolationMode/IsolatedBadge';
 import { Row } from 'src/components/primitives/Row';
 import { CollateralType } from 'src/helpers/types';
-
+import { IProps } from 'src/helpers/types';
 import { HealthFactorNumber } from '../../HealthFactorNumber';
 import { IncentivesButton } from '../../incentives/IncentivesButton';
 import { FormattedNumber, FormattedNumberProps } from '../../primitives/FormattedNumber';
 import { TokenIcon } from '../../primitives/TokenIcon';
 import { GasStation } from '../GasStation/GasStation';
 
-export interface TxModalDetailsProps {
+export interface TxModalDetailsProps extends IProps {
   gasLimit?: string;
   slippageSelector?: ReactNode;
   skipLoad?: boolean;

@@ -2,13 +2,13 @@ import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { API_ETH_MOCK_ADDRESS, ERC20Service, transactionType } from '@aave/contract-helpers';
 import { SignatureLike } from '@ethersproject/bytes';
 import { TransactionResponse, Provider } from '@ethersproject/providers';
-import { useAccount, useProvider, useSigner, useSwitchNetwork, useChainId } from 'wagmi';
+import { useAccount, usePublicClient, useSwitchChain, useChainId } from 'wagmi';
 import { useWeb3React } from '@web3-react/core';
 import { BigNumber, PopulatedTransaction, providers } from 'ethers';
 import { useRootStore } from 'src/store/root';
 import { hexToAscii } from 'src/utils/utils';
 import { Web3Context } from 'src/libs/hooks/useWeb3Context';
-import { WalletType } from './WalletOptions';
+import { WalletType } from 'src/helpers/types';
 
 export type ERC20TokenType = {
   address: string;
@@ -41,17 +41,23 @@ export type Web3Data = {
 
 export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ children }) => {
   const chainId = useChainId();
-  const provider = useProvider();
-  const { data: signer } = useSigner();
+  const publicClient = usePublicClient();
   const { address, isConnected } = useAccount();
-  const { switchNetwork: switchNetworkFunc } = useSwitchNetwork();
+  const { switchChainAsync: switchNetworkFunc } = useSwitchChain();
 
   const { error } = useWeb3React<providers.Web3Provider>();
 
   const [loading, setLoading] = useState(false);
+  // const [signer, setSigner] = useState<Signer | undefined>(undefined);
   const [switchNetworkError, setSwitchNetworkError] = useState<Error>();
   const [setAccount] = useRootStore((store) => [store.setAccount]);
   const setAccountLoading = useRootStore((store) => store.setAccountLoading);
+
+  // Convert viem public client to ethers.js provider
+  const provider = publicClient
+    ? new providers.JsonRpcProvider(publicClient.transport.url)
+    : undefined;
+  const signer = provider ? provider.getSigner(address) : undefined;
 
   // TODO: we use from instead of currentAccount because of the mock wallet.
   // If we used current account then the tx could get executed
@@ -82,7 +88,7 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
   const switchNetwork = async (newChainId: number) => {
     if (provider && switchNetworkFunc) {
       try {
-        switchNetworkFunc(newChainId);
+        await switchNetworkFunc({ chainId: newChainId });
         setSwitchNetworkError(undefined);
       } catch (switchError) {
         setSwitchNetworkError(switchError);
@@ -93,8 +99,15 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
   const getTxError = async (txHash: string): Promise<string> => {
     if (provider) {
       const tx = await provider.getTransaction(txHash);
-      // @ts-expect-error TODO: need think about "tx" type
-      const code = await provider.call(tx, tx.blockNumber);
+      const code = await provider.call(
+        {
+          from: tx.from,
+          to: tx.to,
+          data: tx.data,
+          value: tx.value,
+        },
+        tx.blockNumber
+      );
       const error = hexToAscii(code.substr(138));
       return error;
     }

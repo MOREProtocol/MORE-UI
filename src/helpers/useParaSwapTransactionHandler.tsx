@@ -77,7 +77,10 @@ export const useParaSwapTransactionHandler = ({
     asset: string;
     amount: string;
   }
-  const [previousDeps, setPreviousDeps] = useState<Dependency>({ asset: deps[0], amount: deps[1] });
+  const [previousDeps, setPreviousDeps] = useState<Dependency>({
+    asset: deps[0] as string,
+    amount: deps[1] as string,
+  });
   const [usePermit, setUsePermit] = useState(false);
   const mounted = useRef(false);
   const queryClient = useQueryClient();
@@ -291,7 +294,7 @@ export const useParaSwapTransactionHandler = ({
           if (Number(deps[1]) < Number(previousDeps.amount)) {
             setTxError(undefined);
           }
-          setPreviousDeps({ asset: deps[0], amount: deps[1] });
+          setPreviousDeps({ asset: deps[0] as string, amount: deps[1] as string });
           if (approval && preferPermit) {
             setUsePermit(true);
             setMainTxState({
