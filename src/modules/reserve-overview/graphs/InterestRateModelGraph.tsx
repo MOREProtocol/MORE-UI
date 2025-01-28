@@ -418,82 +418,80 @@ export const InterestRateModelGraph = withTooltip<AreaProps, TooltipData>(
 
         {/* Tooltip Info */}
         {tooltipData && (
-          <div>
-            <TooltipWithBounds
-              top={20}
-              left={tooltipLeft + 40}
-              style={theme.palette.mode === 'light' ? tooltipStyles : tooltipStylesDark}
-            >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="main12" color="primary" sx={{ mr: 2 }}>
-                  <Trans>Utilization Rate</Trans>
-                </Typography>
-                <Typography variant="main12" color="primary">
-                  {tooltipData.utilization}%
-                </Typography>
-              </Box>
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          <TooltipWithBounds
+            top={20}
+            left={tooltipLeft + 40}
+            style={theme.palette.mode === 'light' ? tooltipStyles : tooltipStylesDark}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="main12" color="primary" sx={{ mr: 2 }}>
+                <Trans>Utilization Rate</Trans>
+              </Typography>
+              <Typography variant="main12" color="primary">
+                {tooltipData.utilization}%
+              </Typography>
+            </Box>
 
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  width: isMobile ? '180px' : '100%',
-                  mb: 2,
-                }}
-              >
-                {(tooltipData.utilization / 100) * parseFloat(reserve.totalLiquidityUSD) -
-                  parseFloat(reserve.totalDebtUSD) >
-                0 ? (
-                  <>
-                    <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
-                      <Trans>Borrow amount to reach {tooltipData.utilization}% utilization</Trans>
-                    </Typography>
-                    <Typography variant="main12" color="primary">
-                      $
-                      {new Intl.NumberFormat('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      }).format(
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                width: isMobile ? '180px' : '100%',
+                mb: 2,
+              }}
+            >
+              {(tooltipData.utilization / 100) * parseFloat(reserve.totalLiquidityUSD) -
+                parseFloat(reserve.totalDebtUSD) >
+              0 ? (
+                <>
+                  <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
+                    <Trans>Borrow amount to reach {tooltipData.utilization}% utilization</Trans>
+                  </Typography>
+                  <Typography variant="main12" color="primary">
+                    $
+                    {new Intl.NumberFormat('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }).format(
+                      (tooltipData.utilization / 100) * parseFloat(reserve.totalLiquidityUSD) -
+                        parseFloat(reserve.totalDebtUSD)
+                    )}
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
+                    <Trans>Repayment amount to reach {tooltipData.utilization}% utilization</Trans>
+                  </Typography>
+                  <Typography variant="main12" color="primary">
+                    $
+                    {new Intl.NumberFormat('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }).format(
+                      Math.abs(
                         (tooltipData.utilization / 100) * parseFloat(reserve.totalLiquidityUSD) -
                           parseFloat(reserve.totalDebtUSD)
-                      )}
-                    </Typography>
-                  </>
-                ) : (
-                  <>
-                    <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
-                      <Trans>
-                        Repayment amount to reach {tooltipData.utilization}% utilization
-                      </Trans>
-                    </Typography>
-                    <Typography variant="main12" color="primary">
-                      $
-                      {new Intl.NumberFormat('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      }).format(
-                        Math.abs(
-                          (tooltipData.utilization / 100) * parseFloat(reserve.totalLiquidityUSD) -
-                            parseFloat(reserve.totalDebtUSD)
-                        )
-                      )}
-                    </Typography>
-                  </>
-                )}
-              </Box>
+                      )
+                    )}
+                  </Typography>
+                </>
+              )}
+            </Box>
 
-              {fields.map((field) => (
-                <Box key={field.name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
-                    {field.text}
-                  </Typography>
-                  <Typography variant="main12" color="text.primary">
-                    {tooltipValueAccessors[field.name](tooltipData).toFixed(2)}%
-                  </Typography>
-                </Box>
-              ))}
-            </TooltipWithBounds>
-          </div>
+            {fields.map((field) => (
+              <Box key={field.name} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
+                  {field.text}
+                </Typography>
+                <Typography variant="main12" color="text.primary">
+                  {tooltipValueAccessors[field.name](tooltipData).toFixed(2)}%
+                </Typography>
+              </Box>
+            ))}
+          </TooltipWithBounds>
         )}
       </>
     );

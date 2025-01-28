@@ -1,4 +1,5 @@
 import React from 'react';
+import { IProps } from 'src/helpers/types';
 
 export enum GasOption {
   Slow = 'slow',
@@ -30,7 +31,7 @@ function gasStationReducer(state: State, action: Action) {
   }
 }
 
-export const GasStationProvider: React.FC = ({ children }) => {
+export const GasStationProvider: React.FC<IProps> = ({ children }) => {
   const [state, dispatch] = React.useReducer(gasStationReducer, {
     gasOption: GasOption.Normal,
     customGas: '100',

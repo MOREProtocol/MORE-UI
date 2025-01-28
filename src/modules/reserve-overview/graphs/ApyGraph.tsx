@@ -305,36 +305,36 @@ export const ApyGraph = withTooltip<AreaProps, TooltipData>(
 
         {/* Tooltip Info */}
         {tooltipData && (
-          <div>
-            <TooltipWithBounds
-              top={20}
-              left={tooltipLeft + 40}
-              style={theme.palette.mode === 'light' ? tooltipStyles : tooltipStylesDark}
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          <TooltipWithBounds
+            top={20}
+            left={tooltipLeft + 40}
+            style={theme.palette.mode === 'light' ? tooltipStyles : tooltipStylesDark}
+          >
+            <Typography
+              variant="secondary12"
+              color="text.secondary"
+              sx={{ mb: 2, mr: 2, fontWeight: 400 }}
             >
-              <Typography
-                variant="secondary12"
-                color="text.secondary"
-                sx={{ mb: 2, mr: 2, fontWeight: 400 }}
+              {formatDate(getDate(tooltipData), selectedTimeRange)}
+            </Typography>
+            {fields.map((field) => (
+              <Box
+                key={field.name}
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
               >
-                {formatDate(getDate(tooltipData), selectedTimeRange)}
-              </Typography>
-              {fields.map((field) => (
-                <Box
-                  key={field.name}
-                  display="flex"
-                  justifyContent="space-between"
-                  alignItems="center"
-                >
-                  <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
-                    {field.text}
-                  </Typography>
-                  <Typography variant="main12" color="text.primary">
-                    {getData(tooltipData, field.name).toFixed(2)}%
-                  </Typography>
-                </Box>
-              ))}
-            </TooltipWithBounds>
-          </div>
+                <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
+                  {field.text}
+                </Typography>
+                <Typography variant="main12" color="text.primary">
+                  {getData(tooltipData, field.name).toFixed(2)}%
+                </Typography>
+              </Box>
+            ))}
+          </TooltipWithBounds>
         )}
       </>
     );

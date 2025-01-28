@@ -7,6 +7,7 @@ import { UiIncentivesService } from 'src/services/UIIncentivesService';
 import { UiPoolService } from 'src/services/UIPoolService';
 import { WalletBalanceService } from 'src/services/WalletBalanceService';
 import { useRootStore } from 'src/store/root';
+import { IProps } from 'src/helpers/types';
 import { getProvider } from 'src/utils/marketsAndNetworksConfig';
 import invariant from 'tiny-invariant';
 
@@ -22,7 +23,7 @@ interface SharedDependenciesContext {
 
 const SharedDependenciesContext = createContext<SharedDependenciesContext | null>(null);
 
-export const SharedDependenciesProvider: React.FC = ({ children }) => {
+export const SharedDependenciesProvider: React.FC<IProps> = ({ children }) => {
   const currentMarketData = useRootStore((state) => state.currentMarketData);
 
   // services

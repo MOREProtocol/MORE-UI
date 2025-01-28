@@ -1,6 +1,6 @@
 import { enableMapSet } from 'immer';
 import { CustomMarket } from 'src/ui-config/marketsConfig';
-import create from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 
 import { AnalyticsSlice, createAnalyticsSlice } from './analyticsSlice';
@@ -24,7 +24,7 @@ export type RootStore = ProtocolDataSlice &
   TransactionsSlice &
   LayoutSlice;
 
-export const useRootStore = create<RootStore>()(
+export const useRootStore = createWithEqualityFn<RootStore>()(
   subscribeWithSelector(
     devtools((...args) => {
       return {
