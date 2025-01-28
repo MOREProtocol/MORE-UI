@@ -37,9 +37,5 @@ export const LanguageProvider: React.FunctionComponent<IProps> = (props) => {
     if (i18n.locale !== savedLocale) dynamicActivateLanguage(savedLocale);
   }, []);
 
-  return (
-    <I18nProvider i18n={i18n} forceRenderOnLocaleChange={false}>
-      {props.children}
-    </I18nProvider>
-  );
+  return <I18nProvider i18n={i18n}>{props.children}</I18nProvider>;
 };
