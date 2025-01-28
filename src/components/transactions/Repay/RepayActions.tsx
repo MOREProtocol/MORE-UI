@@ -1,5 +1,4 @@
 import { gasLimitRecommendations, InterestRate, ProtocolAction } from '@aave/contract-helpers';
-import { TransactionResponse } from '@ethersproject/providers';
 import { Trans } from '@lingui/macro';
 import { BoxProps } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
@@ -133,7 +132,7 @@ export const RepayActions = ({
     try {
       setMainTxState({ ...mainTxState, loading: true });
 
-      let response: TransactionResponse;
+      let response: string;
       let action = ProtocolAction.default;
 
       if (usePermit && signatureParams) {
@@ -161,7 +160,6 @@ export const RepayActions = ({
 
         signedRepayWithPermitTxData = await estimateGasLimit(signedRepayWithPermitTxData);
         response = await sendTx(signedRepayWithPermitTxData);
-        await response.wait(1);
       } else {
         const repayParams = {
           amountToRepay:
@@ -185,14 +183,13 @@ export const RepayActions = ({
         });
         repayTxData = await estimateGasLimit(repayTxData);
         response = await sendTx(repayTxData);
-        await response.wait(1);
       }
       setMainTxState({
-        txHash: response.hash,
+        txHash: response,
         loading: false,
         success: true,
       });
-      addTransaction(response.hash, {
+      addTransaction(response, {
         action,
         txState: 'success',
         asset: poolAddress,

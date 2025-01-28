@@ -137,9 +137,8 @@ export const SwitchActions = ({
           outAssetName: outputName,
         };
         try {
-          await response.wait(1);
           addTransaction(
-            response.hash,
+            response,
             {
               txState: 'success',
               ...txData,
@@ -149,7 +148,7 @@ export const SwitchActions = ({
             }
           );
           setMainTxState({
-            txHash: response.hash,
+            txHash: response,
             loading: false,
             success: true,
           });
@@ -160,11 +159,11 @@ export const SwitchActions = ({
           const parsedError = getErrorTextFromError(error, TxAction.MAIN_ACTION, false);
           setTxError(parsedError);
           setMainTxState({
-            txHash: response.hash,
+            txHash: response,
             loading: false,
           });
           addTransaction(
-            response.hash,
+            response,
             {
               txState: 'failed',
               ...txData,
@@ -235,9 +234,8 @@ export const SwitchActions = ({
           const txWithGasEstimation = await estimateGasLimit(tx, chainId);
           setApprovalTxState({ ...approvalTxState, loading: true });
           const response = await sendTx(txWithGasEstimation);
-          await response.wait(1);
           setApprovalTxState({
-            txHash: response.hash,
+            txHash: response,
             loading: false,
             success: true,
           });
