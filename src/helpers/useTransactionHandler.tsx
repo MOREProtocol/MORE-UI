@@ -4,7 +4,6 @@ import {
   ProtocolAction,
 } from '@aave/contract-helpers';
 import { SignatureLike } from '@ethersproject/bytes';
-import { TransactionResponse } from '@ethersproject/providers';
 import { useQueryClient } from '@tanstack/react-query';
 import { DependencyList, useEffect, useRef, useState } from 'react';
 import { useModalContext } from 'src/hooks/useModal';
@@ -101,21 +100,19 @@ export const useTransactionHandler = ({
     successCallback,
     approval,
   }: {
-    tx: () => Promise<TransactionResponse>;
+    tx: () => Promise<string>;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     errorCallback?: (error: any, hash?: string) => void;
-    successCallback?: (param: TransactionResponse) => void;
+    successCallback?: (param: string) => void;
     approval?: boolean;
   }) => {
     try {
       const txnResult = await tx();
 
       try {
-        await txnResult.wait(1);
-
         mounted.current && successCallback && successCallback(txnResult);
 
-        addTransaction(txnResult.hash, {
+        addTransaction(txnResult, {
           txState: 'success',
           action: approval ? ProtocolAction.approval : protocolAction ?? ProtocolAction.default,
           ...eventTxInfo,
@@ -128,14 +125,14 @@ export const useTransactionHandler = ({
         // TODO: what to do with this error?
         try {
           // TODO: what to do with this error?
-          const error = await getTxError(txnResult.hash);
-          mounted.current && errorCallback && errorCallback(new Error(error), txnResult.hash);
+          const error = await getTxError(txnResult);
+          mounted.current && errorCallback && errorCallback(new Error(error), txnResult);
           return;
         } catch (e) {
-          mounted.current && errorCallback && errorCallback(e, txnResult.hash);
+          mounted.current && errorCallback && errorCallback(e, txnResult);
           return;
         } finally {
-          addTransaction(txnResult.hash, {
+          addTransaction(txnResult, {
             txState: 'failed',
             action: protocolAction || ProtocolAction.default,
             ...eventTxInfo,
@@ -221,11 +218,11 @@ export const useTransactionHandler = ({
           const approvalResponses = await Promise.all(
             params.map(
               (param) =>
-                new Promise<TransactionResponse>(async (resolve, reject) => {
+                new Promise<string>(async (resolve, reject) => {
                   delete param.gasPrice;
                   processTx({
                     tx: () => sendTx(param),
-                    successCallback: (txnResponse: TransactionResponse) => {
+                    successCallback: (txnResponse: string) => {
                       resolve(txnResponse);
                     },
                     errorCallback: (error, hash) => {
@@ -244,7 +241,7 @@ export const useTransactionHandler = ({
           );
 
           setApprovalTxState({
-            txHash: approvalResponses[0].hash,
+            txHash: approvalResponses[0],
             loading: false,
             success: true,
           });
@@ -271,9 +268,9 @@ export const useTransactionHandler = ({
         delete params.gasPrice;
         return processTx({
           tx: () => sendTx(params),
-          successCallback: (txnResponse: TransactionResponse) => {
+          successCallback: (txnResponse: string) => {
             setMainTxState({
-              txHash: txnResponse.hash,
+              txHash: txnResponse,
               loading: false,
               success: true,
             });
@@ -289,7 +286,6 @@ export const useTransactionHandler = ({
           },
         });
       } catch (error) {
-        console.log(error, 'error');
         const parsedError = getErrorTextFromError(error, TxAction.GAS_ESTIMATION, false);
         setTxError(parsedError);
         setMainTxState({
@@ -305,9 +301,9 @@ export const useTransactionHandler = ({
         delete params.gasPrice;
         return processTx({
           tx: () => sendTx(params),
-          successCallback: (txnResponse: TransactionResponse) => {
+          successCallback: (txnResponse: string) => {
             setMainTxState({
-              txHash: txnResponse.hash,
+              txHash: txnResponse,
               loading: false,
               success: true,
             });
@@ -324,7 +320,6 @@ export const useTransactionHandler = ({
         });
       } catch (error) {
         const parsedError = getErrorTextFromError(error, TxAction.GAS_ESTIMATION, false);
-        console.log(error, parsedError);
         setTxError(parsedError);
         setMainTxState({
           txHash: undefined,

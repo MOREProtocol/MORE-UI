@@ -136,13 +136,12 @@ export const DebtSwitchActions = ({
           setApprovalTxState({ ...approvalTxState, loading: true });
           approveDelegationTxData = await estimateGasLimit(approveDelegationTxData);
           const response = await sendTx(approveDelegationTxData);
-          await response.wait(1);
           setApprovalTxState({
-            txHash: response.hash,
+            txHash: response,
             loading: false,
             success: true,
           });
-          addTransaction(response.hash, {
+          addTransaction(response, {
             action: ProtocolAction.approval,
             txState: 'success',
             asset: targetReserve.variableDebtTokenAddress,
@@ -183,13 +182,12 @@ export const DebtSwitchActions = ({
       });
       debtSwitchTxData = await estimateGasLimit(debtSwitchTxData);
       const response = await sendTx(debtSwitchTxData);
-      await response.wait(1);
       setMainTxState({
-        txHash: response.hash,
+        txHash: response,
         loading: false,
         success: true,
       });
-      addTransaction(response.hash, {
+      addTransaction(response, {
         action: 'debtSwitch',
         txState: 'success',
         previousState:

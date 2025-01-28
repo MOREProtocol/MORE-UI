@@ -1,9 +1,8 @@
 import { UserReserveData } from '@aave/math-utils';
 import React, { useContext } from 'react';
-import { EmodeCategory } from 'src/helpers/types';
+import { EmodeCategory, IProps } from 'src/helpers/types';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
-
 import { formatEmodes } from '../../store/poolSelectors';
 import {
   ExtendedFormattedUser as _ExtendedFormattedUser,
@@ -57,7 +56,7 @@ const AppDataContext = React.createContext<AppDataContextType>({} as AppDataCont
  * This is the only provider you'll ever need.
  * It fetches reserves /incentives & walletbalances & keeps them updated.
  */
-export const AppDataProvider: React.FC = ({ children }) => {
+export const AppDataProvider: React.FC<IProps> = ({ children }) => {
   const { currentAccount } = useWeb3Context();
 
   const currentMarketData = useRootStore((state) => state.currentMarketData);
@@ -82,7 +81,7 @@ export const AppDataProvider: React.FC = ({ children }) => {
   const isReservesLoading = reservesDataLoading || formattedPoolReservesLoading;
   const isUserDataLoading = userReservesDataLoading || userSummaryLoading;
 
-  let user = userSummary;
+  const user = userSummary;
   // Factor discounted GHO interest into cumulative user fields
 
   return (

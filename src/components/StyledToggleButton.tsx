@@ -29,7 +29,7 @@ const CustomToggleButton = styled(ToggleButton)<ToggleButtonProps>(({ theme }) =
       textFillColor: 'transparent',
     },
   },
-})) as typeof ToggleButton;
+})) as unknown as typeof ToggleButton;
 
 const CustomTxModalToggleButton = styled(ToggleButton)<ToggleButtonProps>(({ theme }) => ({
   border: '0px',
@@ -50,7 +50,7 @@ const CustomTxModalToggleButton = styled(ToggleButton)<ToggleButtonProps>(({ the
     justifyContent: 'center',
     color: theme.palette.background.header,
   },
-})) as typeof ToggleButton;
+})) as unknown as typeof ToggleButton;
 
 export function StyledTxModalToggleButton(props: ToggleButtonProps) {
   return <CustomTxModalToggleButton {...props} />;

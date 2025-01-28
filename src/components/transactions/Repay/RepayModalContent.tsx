@@ -35,7 +35,7 @@ import {
 import { RepayActions } from './RepayActions';
 
 interface RepayAsset extends Asset {
-  balance: string;
+  balance?: string;
 }
 
 export const RepayModalContent = ({
@@ -66,7 +66,7 @@ export const RepayModalContent = ({
   const [assets, setAssets] = useState<RepayAsset[]>([tokenToRepayWith]);
   const [repayMax, setRepayMax] = useState('');
   const [_amount, setAmount] = useState('');
-  const amountRef = useRef<string>();
+  const amountRef = useRef<string>('0');
 
   const networkConfig = getNetworkConfig(currentChainId);
 
