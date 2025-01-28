@@ -1,14 +1,26 @@
-import React, { ReactElement, useCallback, useEffect, useState } from 'react';
+import React, { ReactElement, useEffect, useState } from 'react';
 import { API_ETH_MOCK_ADDRESS, ERC20Service, transactionType } from '@aave/contract-helpers';
 import { SignatureLike } from '@ethersproject/bytes';
-import { TransactionResponse, Provider } from '@ethersproject/providers';
-import { useAccount, usePublicClient, useSwitchChain, useChainId } from 'wagmi';
+import { Provider } from '@ethersproject/providers';
+import {
+  useAccount,
+  usePublicClient,
+  useSwitchChain,
+  useChainId,
+  useConnect,
+  useDisconnect,
+  useSendTransaction,
+  useSignMessage,
+} from 'wagmi';
+import { waitForTransactionReceipt } from '@wagmi/core';
+import { injected } from 'wagmi/connectors';
 import { useWeb3React } from '@web3-react/core';
 import { BigNumber, PopulatedTransaction, providers } from 'ethers';
 import { useRootStore } from 'src/store/root';
 import { hexToAscii } from 'src/utils/utils';
 import { Web3Context } from 'src/libs/hooks/useWeb3Context';
 import { WalletType } from 'src/helpers/types';
+import { config as wagmiConfig } from 'src/utils/wagmi';
 
 export type ERC20TokenType = {
   address: string;
@@ -28,7 +40,7 @@ export type Web3Data = {
   chainId: number;
   switchNetwork: (chainId: number) => Promise<void>;
   getTxError: (txHash: string) => Promise<string>;
-  sendTx: (txData: transactionType | PopulatedTransaction) => Promise<TransactionResponse>;
+  sendTx: (txData: transactionType | PopulatedTransaction) => Promise<string>;
   addERC20Token: (args: ERC20TokenType) => Promise<boolean>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   signTxData: (unsignedData: string) => Promise<SignatureLike>;
@@ -41,14 +53,17 @@ export type Web3Data = {
 
 export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ children }) => {
   const chainId = useChainId();
+  const { connectAsync } = useConnect();
+  const { disconnectAsync } = useDisconnect();
   const publicClient = usePublicClient();
+  const { signMessageAsync } = useSignMessage();
+  const { sendTransactionAsync } = useSendTransaction();
   const { address, isConnected } = useAccount();
   const { switchChainAsync: switchNetworkFunc } = useSwitchChain();
 
   const { error } = useWeb3React<providers.Web3Provider>();
 
   const [loading, setLoading] = useState(false);
-  // const [signer, setSigner] = useState<Signer | undefined>(undefined);
   const [switchNetworkError, setSwitchNetworkError] = useState<Error>();
   const [setAccount] = useRootStore((store) => [store.setAccount]);
   const setAccountLoading = useRootStore((store) => store.setAccountLoading);
@@ -57,30 +72,33 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
   const provider = publicClient
     ? new providers.JsonRpcProvider(publicClient.transport.url)
     : undefined;
-  const signer = provider ? provider.getSigner(address) : undefined;
 
   // TODO: we use from instead of currentAccount because of the mock wallet.
   // If we used current account then the tx could get executed
-  const sendTx = async (
-    txData: transactionType | PopulatedTransaction
-  ): Promise<TransactionResponse> => {
-    if (provider && signer) {
+  const sendTx = async (txData: transactionType | PopulatedTransaction): Promise<string> => {
+    if (isConnected && address) {
       setLoading(true);
       const { from, ...data } = txData;
-      const txResponse: TransactionResponse = await signer.sendTransaction({
+      const txHash = await sendTransactionAsync({
         ...data,
         value: data.value ? BigNumber.from(data.value) : undefined,
       });
+      await waitForTransactionReceipt(wagmiConfig, {
+        hash: txHash,
+      });
       setLoading(false);
-      return txResponse;
+      return txHash;
     }
     throw new Error('Error sending transaction. Provider not found');
   };
 
   // TODO: recheck that it works on all wallets
   const signTxData = async (unsignedData: string): Promise<SignatureLike> => {
-    if (provider && signer) {
-      return await signer.signMessage(unsignedData);
+    if (isConnected && address) {
+      return await signMessageAsync({
+        account: address,
+        message: unsignedData,
+      });
     }
     throw new Error('Error initializing permit signature');
   };
@@ -152,11 +170,14 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
     return false;
   };
 
-  const connectWallet = useCallback(async (wallet: WalletType) => {
+  const connectWallet = async (wallet: WalletType) => {
     console.log(wallet);
-  }, []);
+    await connectAsync({ connector: injected() });
+  };
 
-  const disconnectWallet = useCallback(async () => {}, []);
+  const disconnectWallet = async () => {
+    await disconnectAsync();
+  };
 
   // inject account into zustand as long as aave itnerface is using old web3 providers
   useEffect(() => {

@@ -1,9 +1,8 @@
 import { UserReserveData } from '@aave/math-utils';
 import React, { useContext } from 'react';
-import { EmodeCategory } from 'src/helpers/types';
+import { EmodeCategory, IProps } from 'src/helpers/types';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
-import { IProps } from 'src/helpers/types';
 import { formatEmodes } from '../../store/poolSelectors';
 import {
   ExtendedFormattedUser as _ExtendedFormattedUser,
@@ -82,7 +81,7 @@ export const AppDataProvider: React.FC<IProps> = ({ children }) => {
   const isReservesLoading = reservesDataLoading || formattedPoolReservesLoading;
   const isUserDataLoading = userReservesDataLoading || userSummaryLoading;
 
-  let user = userSummary;
+  const user = userSummary;
   // Factor discounted GHO interest into cumulative user fields
 
   return (

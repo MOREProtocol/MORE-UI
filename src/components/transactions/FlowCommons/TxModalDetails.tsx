@@ -10,8 +10,7 @@ import {
   UnavailableDueToIsolationBadge,
 } from 'src/components/isolationMode/IsolatedBadge';
 import { Row } from 'src/components/primitives/Row';
-import { CollateralType } from 'src/helpers/types';
-import { IProps } from 'src/helpers/types';
+import { CollateralType, IProps } from 'src/helpers/types';
 import { HealthFactorNumber } from '../../HealthFactorNumber';
 import { IncentivesButton } from '../../incentives/IncentivesButton';
 import { FormattedNumber, FormattedNumberProps } from '../../primitives/FormattedNumber';

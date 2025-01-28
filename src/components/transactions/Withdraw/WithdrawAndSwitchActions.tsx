@@ -128,15 +128,14 @@ export const WithdrawAndSwitchActions = ({
       });
       const txDataWithGasEstimation = await estimateGasLimit(tx);
       const response = await sendTx(txDataWithGasEstimation);
-      await response.wait(1);
       queryClient.invalidateQueries({ queryKey: queryKeysFactory.pool });
       queryClient.invalidateQueries({ queryKey: queryKeysFactory.gho });
       setMainTxState({
-        txHash: response.hash,
+        txHash: response,
         loading: false,
         success: true,
       });
-      addTransaction(response.hash, {
+      addTransaction(response, {
         action: ProtocolAction.withdrawAndSwitch,
         txState: 'success',
         asset: poolReserve.underlyingAsset,
@@ -190,13 +189,12 @@ export const WithdrawAndSwitchActions = ({
         const txWithGasEstimation = await estimateGasLimit(tx);
         setApprovalTxState({ ...approvalTxState, loading: true });
         const response = await sendTx(txWithGasEstimation);
-        await response.wait(1);
         setApprovalTxState({
-          txHash: response.hash,
+          txHash: response,
           loading: false,
           success: true,
         });
-        addTransaction(response.hash, {
+        addTransaction(response, {
           action: ProtocolAction.withdrawAndSwitch,
           txState: 'success',
           asset: poolReserve.aTokenAddress,
