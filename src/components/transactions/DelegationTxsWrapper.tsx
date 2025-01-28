@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { CheckIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import { Box, BoxProps, Button, CircularProgress, SvgIcon, Typography } from '@mui/material';
 import { ReactNode } from 'react';
 import { TxStateType, useModalContext } from 'src/hooks/useModal';

@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ReserveIncentiveResponse } from '@aave/math-utils/dist/esm/formatters/incentive/calculate-reserve-incentives';
-import { Trans } from '@lingui/macro';
 import { Box, Typography } from '@mui/material';
 
 import { FormattedNumber } from '../primitives/FormattedNumber';

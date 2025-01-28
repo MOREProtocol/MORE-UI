@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ArrowNarrowRightIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { Box, SvgIcon, Typography } from '@mui/material';
 import { formatUnits } from 'ethers/lib/utils';
 import React from 'react';

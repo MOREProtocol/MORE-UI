@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { InterestRate, ProtocolAction } from '@aave/contract-helpers';
-import { Trans } from '@lingui/macro';
 import { useTransactionHandler } from 'src/helpers/useTransactionHandler';
 import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useRootStore } from 'src/store/root';

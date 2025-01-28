@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ProtocolAction } from '@aave/contract-helpers';
-import { Trans } from '@lingui/macro';
 import { BoxProps } from '@mui/material';
 import { useTransactionHandler } from 'src/helpers/useTransactionHandler';
 import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';

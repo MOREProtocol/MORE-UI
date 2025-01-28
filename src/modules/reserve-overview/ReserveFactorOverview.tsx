@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ExternalLinkIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { Box, SvgIcon, Typography } from '@mui/material';
 import { ReserveFactorTooltip } from 'src/components/infoTooltips/ReserveFactorTooltip';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';

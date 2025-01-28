@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { valueToBigNumber } from '@aave/math-utils';
-import { Trans } from '@lingui/macro';
 import { Typography } from '@mui/material';
 import { useMemo } from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';

@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
 import { valueToBigNumber } from '@aave/math-utils';
-import { Trans } from '@lingui/macro';
 import { Box, Checkbox, Typography } from '@mui/material';
 import { useRef, useState } from 'react';
 import { Warning } from 'src/components/primitives/Warning';

@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ERC20Service, gasLimitRecommendations, ProtocolAction } from '@aave/contract-helpers';
-import { Trans } from '@lingui/macro';
 import { OptimalRate } from '@paraswap/sdk';
 import { useQueryClient } from '@tanstack/react-query';
 import { defaultAbiCoder, formatUnits, splitSignature } from 'ethers/lib/utils';

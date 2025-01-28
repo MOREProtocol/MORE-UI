@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { valueToBigNumber } from '@aave/math-utils';
-import { Trans } from '@lingui/macro';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { AlertTitle, Box, Typography } from '@mui/material';
 import { CapsCircularStatus } from 'src/components/caps/CapsCircularStatus';
@@ -40,7 +40,7 @@ export const SupplyInfo = ({
   debtCeiling,
 }: SupplyInfoProps) => {
   return (
-    <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
+    (<Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
       <Box
         sx={{
           display: 'flex',
@@ -50,7 +50,7 @@ export const SupplyInfo = ({
       >
         {showSupplyCapStatus ? (
           // With supply cap
-          <>
+          (<>
             <CapsCircularStatus
               value={supplyCap.percentUsed}
               tooltipContent={
@@ -133,10 +133,10 @@ export const SupplyInfo = ({
                 <ReserveSubheader value={reserve.supplyCapUSD} />
               </Box>
             </PanelItem>
-          </>
+          </>)
         ) : (
           // Without supply cap
-          <PanelItem
+          (<PanelItem
             title={
               <Box display="flex" alignItems="center">
                 <Trans>Total supplied</Trans>
@@ -145,7 +145,7 @@ export const SupplyInfo = ({
           >
             <FormattedNumber value={reserve.totalLiquidity} variant="main16" compact />
             <ReserveSubheader value={reserve.totalLiquidityUSD} />
-          </PanelItem>
+          </PanelItem>)
         )}
         <PanelItem title={<Trans>APY</Trans>}>
           <FormattedNumber value={reserve.supplyAPY} percent variant="main16" />
@@ -323,6 +323,6 @@ export const SupplyInfo = ({
           </Warning>
         </Box>
       )}
-    </Box>
+    </Box>)
   );
 };
