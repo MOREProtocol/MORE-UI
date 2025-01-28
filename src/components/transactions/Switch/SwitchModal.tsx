@@ -2,7 +2,7 @@ import { Trans } from '@lingui/macro';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ConnectWalletButton } from 'src/components/WalletConnection/ConnectWalletButton1';
+import { ConnectWalletButton } from 'src/components/WalletConnection/ConnectWalletButton';
 import { TokenInfoWithBalance, useTokensBalance } from 'src/hooks/generic/useTokensBalance';
 import { ModalType, useModalContext } from 'src/hooks/useModal';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';

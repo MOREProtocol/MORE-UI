@@ -1,17 +1,18 @@
+"use client";
+
 import '/public/fonts/inter/inter.css';
 import '/src/styles/variables.css';
 import '@rainbow-me/rainbowkit/styles.css';
 
 import { CacheProvider, EmotionCache } from '@emotion/react';
-import { WagmiProvider } from "wagmi";
-import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import { WagmiProvider } from 'wagmi';
+import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Web3ReactProvider } from '@web3-react/core';
 import { providers } from 'ethers';
 import { NextPage } from 'next';
 import { AppProps } from 'next/app';
 import dynamic from 'next/dynamic';
-import Head from 'next/head';
 import { ReactNode, useEffect, useState } from 'react';
 import { AddressBlocked } from 'src/components/AddressBlocked';
 import { Meta } from 'src/components/Meta';
@@ -115,26 +116,15 @@ export default function MyApp(props: MyAppProps) {
   useEffect(() => {
     if (MIXPANEL_TOKEN) {
       initializeMixpanel();
-    } else {
-      console.log('no analytics tracking');
     }
   }, [MIXPANEL_TOKEN, initializeMixpanel]);
 
   return (
     <CacheProvider value={emotionCache}>
-      <Head>
-        <meta name="viewport" content="initial-scale=1, width=device-width" />
-      </Head>
-      <Meta
-        title={'Open Source Liquidity Protocol'}
-        description={
-          'MoreMarkets is an Open Source Protocol to create Non-Custodial Liquidity Markets to earn interest on supplying and borrowing assets with a variable or stable interest rate. The protocol is designed for easy integration into your products and services.'
-        }
-        imageUrl="https://cdn.prod.website-files.com/6618ffb14f6deabedc97531d/66742b16f9d7dfec3b6313b7_more_logo_light.png"
-      />
+      <Meta />
       <LanguageProvider>
-        <QueryClientProvider client={queryClient}>
-          <WagmiProvider config={wagmiConfig}>
+        <WagmiProvider config={wagmiConfig}>
+          <QueryClientProvider client={queryClient}>
             <RainbowKitProvider>
               <Web3ReactProvider getLibrary={getWeb3Library}>
                 <Web3ContextProvider>
@@ -168,8 +158,8 @@ export default function MyApp(props: MyAppProps) {
                 </Web3ContextProvider>
               </Web3ReactProvider>
             </RainbowKitProvider>
-          </WagmiProvider>
-        </QueryClientProvider>
+          </QueryClientProvider>
+        </WagmiProvider>
       </LanguageProvider>
     </CacheProvider>
   );

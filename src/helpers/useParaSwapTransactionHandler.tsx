@@ -1,6 +1,5 @@
 import { EthereumTransactionTypeExtended, ProtocolAction } from '@aave/contract-helpers';
 import { SignatureLike } from '@ethersproject/bytes';
-import { TransactionResponse } from '@ethersproject/providers';
 import { useQueryClient } from '@tanstack/react-query';
 import { DependencyList, useEffect, useRef, useState } from 'react';
 import { SIGNATURE_AMOUNT_MARGIN } from 'src/hooks/paraswap/common';
@@ -102,18 +101,17 @@ export const useParaSwapTransactionHandler = ({
     errorCallback,
     successCallback,
   }: {
-    tx: () => Promise<TransactionResponse>;
+    tx: () => Promise<string>;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     errorCallback?: (error: any, hash?: string) => void;
-    successCallback?: (param: TransactionResponse) => void;
+    successCallback?: (param: string) => void;
     action: TxAction;
   }) => {
     try {
       const txnResult = await tx();
       try {
-        await txnResult.wait(1);
         mounted.current && successCallback && successCallback(txnResult);
-        addTransaction(txnResult.hash, {
+        addTransaction(txnResult, {
           txState: 'success',
           action: protocolAction || ProtocolAction.default,
         });
@@ -122,14 +120,14 @@ export const useParaSwapTransactionHandler = ({
         // TODO: what to do with this error?
         try {
           // TODO: what to do with this error?
-          const error = await getTxError(txnResult.hash);
-          mounted.current && errorCallback && errorCallback(new Error(error), txnResult.hash);
+          const error = await getTxError(txnResult);
+          mounted.current && errorCallback && errorCallback(new Error(error), txnResult);
           return;
         } catch (e) {
-          mounted.current && errorCallback && errorCallback(e, txnResult.hash);
+          mounted.current && errorCallback && errorCallback(e, txnResult);
           return;
         } finally {
-          addTransaction(txnResult.hash, {
+          addTransaction(txnResult, {
             txState: 'failed',
             action: protocolAction || ProtocolAction.default,
           });
@@ -191,9 +189,9 @@ export const useParaSwapTransactionHandler = ({
         delete params.gasPrice;
         await processTx({
           tx: () => sendTx(params),
-          successCallback: (txnResponse: TransactionResponse) => {
+          successCallback: (txnResponse: string) => {
             setApprovalTxState({
-              txHash: txnResponse.hash,
+              txHash: txnResponse,
               loading: false,
               success: true,
             });
@@ -234,9 +232,9 @@ export const useParaSwapTransactionHandler = ({
             delete params.gasPrice;
             return processTx({
               tx: () => sendTx(params),
-              successCallback: (txnResponse: TransactionResponse) => {
+              successCallback: (txnResponse: string) => {
                 setMainTxState({
-                  txHash: txnResponse.hash,
+                  txHash: txnResponse,
                   loading: false,
                   success: true,
                 });

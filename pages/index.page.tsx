@@ -26,13 +26,13 @@ export default function Home() {
       'Page Name': 'Dashboard',
       Market: currentMarket,
     });
-  }, [trackEvent]);
+  }, [trackEvent, currentMarket]);
 
   useEffect(() => {
     if (localStorage.getItem('welcome-check') !== 'true') {
       openWelcome();
     }
-  }, []);
+  }, [openWelcome]);
 
   return (
     <>

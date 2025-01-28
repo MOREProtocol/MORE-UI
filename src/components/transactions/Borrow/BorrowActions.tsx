@@ -86,9 +86,8 @@ export const BorrowActions = React.memo(
           setApprovalTxState({ ...approvalTxState, loading: true });
           approveDelegationTxData = await estimateGasLimit(approveDelegationTxData);
           const response = await sendTx(approveDelegationTxData);
-          await response.wait(1);
           setApprovalTxState({
-            txHash: response.hash,
+            txHash: response,
             loading: false,
             success: true,
           });
@@ -118,14 +117,13 @@ export const BorrowActions = React.memo(
         });
         borrowTxData = await estimateGasLimit(borrowTxData);
         const response = await sendTx(borrowTxData);
-        await response.wait(1);
         setMainTxState({
-          txHash: response.hash,
+          txHash: response,
           loading: false,
           success: true,
         });
 
-        addTransaction(response.hash, {
+        addTransaction(response, {
           action: ProtocolAction.borrow,
           txState: 'success',
           asset: poolAddress,
