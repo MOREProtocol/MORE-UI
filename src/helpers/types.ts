@@ -31,3 +31,14 @@ export enum CollateralType {
   UNAVAILABLE,
   UNAVAILABLE_DUE_TO_ISOLATION,
 }
+
+export interface IProps {
+  children: React.ReactNode;
+}
+
+export enum WalletType {
+  INJECTED = 'injected',
+  FLOW_WALLET = 'flow_wallet',
+  WALLET_CONNECT = 'wallet_connect',
+  READ_ONLY_MODE = 'read_only_mode',
+}
