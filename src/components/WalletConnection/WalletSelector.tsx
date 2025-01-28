@@ -6,8 +6,7 @@ import { utils } from 'ethers';
 import { useState } from 'react';
 import { ReadOnlyModeTooltip } from 'src/components/infoTooltips/ReadOnlyModeTooltip';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
-import { UserRejectedRequestError } from 'src/libs/web3-data-provider/WalletConnectConnector';
-import { WalletType } from 'src/libs/web3-data-provider/WalletOptions';
+import { WalletType } from 'src/helpers/types';
 import { useRootStore } from 'src/store/root';
 import { AUTH } from 'src/utils/mixPanelEvents';
 
@@ -85,6 +84,14 @@ export enum ErrorType {
   USER_REJECTED_REQUEST,
   UNDETERMINED_ERROR,
   NO_WALLET_DETECTED,
+}
+
+export class UserRejectedRequestError extends Error {
+  public constructor() {
+    super();
+    this.name = this.constructor.name;
+    this.message = 'The user rejected the request.';
+  }
 }
 
 export const WalletSelector = () => {

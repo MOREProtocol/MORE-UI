@@ -1,42 +1,20 @@
-import { publicProvider } from 'wagmi/providers/public';
-import { configureChains, createClient, Chain } from 'wagmi'; // Import Chain from wagmi
-import { getDefaultWallets } from '@rainbow-me/rainbowkit';
+import { Chain } from '@rainbow-me/rainbowkit';
+import { injected } from 'wagmi/connectors';
+import { http, createConfig } from 'wagmi';
 import { multicalls } from './const';
 
-export const flowTestnet = {
-  id: 545,
-  name: 'FlowTestnet',
-  network: 'FlowTestnet',
-  // iconUrl:
-  //   'https://cdn.prod.website-files.com/5f734f4dbd95382f4fdfa0ea/616b1520779838b5f9174363_favicon.png',
-  nativeCurrency: { name: 'Flow', symbol: 'FLOW', decimals: 18 },
-  rpcUrls: {
-    default: {
-      http: ['https://testnet.evm.nodes.onflow.org/'], // Wrap in http array
-    },
-    public: {
-      http: ['https://testnet.evm.nodes.onflow.org/'], // Wrap in http array
-    },
-  },
-  contracts: {
-    multicall3: {
-      address: multicalls.testnet as `0x${string}`,
-    },
-  },
-  testnet: true,
-} as Chain; // Now using wagmi's Chain type
-
-export const flowMainnet = {
+const flowMainnet = {
   id: 747,
-  name: 'FlowEVM',
-  network: 'FlowEVM',
+  name: 'EVM on Flow',
+  iconUrl:
+    'https://cdn.prod.website-files.com/5f734f4dbd95382f4fdfa0ea/616b1520779838b5f9174363_favicon.png',
   nativeCurrency: { name: 'Flow', symbol: 'FLOW', decimals: 18 },
   rpcUrls: {
     default: {
-      http: ['https://mainnet.evm.nodes.onflow.org/'], // Wrap in http array
-    },
-    public: {
-      http: ['https://mainnet.evm.nodes.onflow.org/'], // Wrap in http array
+      http: [
+        // "https://flow-mainnet.g.alchemy.com/v2/giF5d0sHzxK4OoanZ-rwx6Z-jpLMuB1S",
+        'https://mainnet.evm.nodes.onflow.org',
+      ],
     },
   },
   contracts: {
@@ -44,26 +22,50 @@ export const flowMainnet = {
       address: multicalls.mainnet as `0x${string}`,
     },
   },
-  testnet: false,
-} as Chain; // Now using wagmi's Chain type
+  blockExplorers: {
+    default: {
+      name: 'Flow ',
+      url: 'https://evm.flowscan.io',
+      apiUrl: 'https://evm.flowscan.io/api',
+    },
+  },
+  testnet: true,
+} as const satisfies Chain;
 
-// Configure chains and providers
-const { chains: wagmiChains, provider } = configureChains(
-  [flowTestnet, flowMainnet],
-  [publicProvider()]
-);
+const flowTestnet = {
+  id: 545,
+  name: 'FlowTestnet',
+  iconUrl:
+    'https://cdn.prod.website-files.com/5f734f4dbd95382f4fdfa0ea/616b1520779838b5f9174363_favicon.png',
+  nativeCurrency: { name: 'Flow', symbol: 'FLOW', decimals: 18 },
+  rpcUrls: {
+    default: {
+      http: ['https://testnet.evm.nodes.onflow.org/'],
+    },
+  },
+  contracts: {
+    multicall3: {
+      address: multicalls.testnet as `0x${string}`,
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'Flow ',
+      url: 'https://evm-testnet.flowscan.io',
+      apiUrl: 'https://evm-testnet.flowscan.io/api',
+    },
+  },
+  testnet: true,
+} as const satisfies Chain;
 
-// Set up RainbowKit wallet connectors
-const { connectors } = getDefaultWallets({
-  appName: 'My RainbowKit App',
-  chains: wagmiChains,
+// Create wagmiConfig
+export const config = createConfig({
+  chains: [flowMainnet, flowTestnet],
+  connectors: [injected()],
+  transports: {
+    [flowMainnet.id]: http('https://mainnet.evm.nodes.onflow.org'),
+    [flowTestnet.id]: http('https://testnet.evm.nodes.onflow.org'),
+  },
+  ssr: true,
+  pollingInterval: 30_000,
 });
-
-// Create Wagmi client
-export const wagmiClient = createClient({
-  autoConnect: true,
-  connectors,
-  provider,
-});
-
-export const chains = wagmiChains;

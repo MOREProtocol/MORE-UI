@@ -1,6 +1,5 @@
 import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
 import React from 'react';
-import { ReactElement } from 'react-markdown/lib/react-markdown';
 import {
   ComputedReserveData,
   ComputedUserReserveData,
@@ -32,7 +31,7 @@ export interface ModalWrapperProps {
 
 export const ModalWrapper: React.FC<{
   underlyingAsset: string;
-  title: ReactElement;
+  title: React.ReactElement;
   requiredChainId?: number;
   // if true wETH will stay wETH otherwise wETH will be returned as ETH
   keepWrappedSymbol?: boolean;

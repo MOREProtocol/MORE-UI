@@ -3,9 +3,9 @@ import '/src/styles/variables.css';
 import '@rainbow-me/rainbowkit/styles.css';
 
 import { CacheProvider, EmotionCache } from '@emotion/react';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { WagmiProvider } from "wagmi";
+import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-// import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Web3ReactProvider } from '@web3-react/core';
 import { providers } from 'ethers';
 import { NextPage } from 'next';
@@ -22,8 +22,7 @@ import { ModalContextProvider } from 'src/hooks/useModal';
 import { Web3ContextProvider } from 'src/libs/web3-data-provider/Web3Provider';
 import { useRootStore } from 'src/store/root';
 import { SharedDependenciesProvider } from 'src/ui-config/SharedDependenciesProvider';
-import { chains, wagmiClient } from 'src/utils/wagmi';
-import { WagmiConfig } from 'wagmi';
+import { config as wagmiConfig } from 'src/utils/wagmi';
 
 import createEmotionCache from '../src/createEmotionCache';
 import { AppGlobalStyles } from '../src/layouts/AppGlobalStyles';
@@ -135,8 +134,8 @@ export default function MyApp(props: MyAppProps) {
       />
       <LanguageProvider>
         <QueryClientProvider client={queryClient}>
-          <WagmiConfig client={wagmiClient}>
-            <RainbowKitProvider chains={chains}>
+          <WagmiProvider config={wagmiConfig}>
+            <RainbowKitProvider>
               <Web3ReactProvider getLibrary={getWeb3Library}>
                 <Web3ContextProvider>
                   <AppGlobalStyles>
@@ -169,8 +168,7 @@ export default function MyApp(props: MyAppProps) {
                 </Web3ContextProvider>
               </Web3ReactProvider>
             </RainbowKitProvider>
-          </WagmiConfig>
-          {/* <ReactQueryDevtools initialIsOpen={false} /> */}
+          </WagmiProvider>
         </QueryClientProvider>
       </LanguageProvider>
     </CacheProvider>
