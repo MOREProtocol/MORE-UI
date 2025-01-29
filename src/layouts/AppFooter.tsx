@@ -1,5 +1,6 @@
-import { Trans } from "@lingui/react/macro";
-import { GitHub, Twitter } from '@mui/icons-material';
+import { Trans } from '@lingui/react/macro';
+import GitHub from '@mui/icons-material/GitHub';
+import X from '@mui/icons-material/X';
 import { Box, styled, SvgIcon, Typography } from '@mui/material';
 import { Link } from 'src/components/primitives/Link';
 import { useRootStore } from 'src/store/root';
@@ -22,7 +23,7 @@ const StyledLink = styled(Link)<StyledLinkProps>(({ theme }) => ({
 const FOOTER_ICONS = [
   {
     href: 'https://x.com/More_Protocol',
-    icon: <Twitter />,
+    icon: <X />,
     title: 'Lens',
   },
   {
