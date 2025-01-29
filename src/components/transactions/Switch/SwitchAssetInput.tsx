@@ -1,9 +1,10 @@
-import { Trans } from "@lingui/react/macro";
 import { isAddress } from '@ethersproject/address';
 import { formatUnits } from '@ethersproject/units';
 import { ExclamationIcon } from '@heroicons/react/outline';
 import { XCircleIcon } from '@heroicons/react/solid';
-import { ExpandLess, ExpandMore } from '@mui/icons-material';
+import { Trans } from '@lingui/react/macro';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 import {
   Box,
   Button,
