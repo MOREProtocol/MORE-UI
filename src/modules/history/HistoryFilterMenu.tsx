@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { XCircleIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import { Check as CheckIcon, Sort as SortIcon } from '@mui/icons-material';
 import {
   Box,

@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import React from 'react';
 import { ChevronDownIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import {
   Box,
   BoxProps,

@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { valueToBigNumber } from '@aave/math-utils';
 import { ExclamationIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import { ArrowDownward } from '@mui/icons-material';
 import {
   Box,

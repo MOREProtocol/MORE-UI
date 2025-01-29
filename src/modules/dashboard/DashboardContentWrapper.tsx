@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ChainId } from '@aave/contract-helpers';
-import { Trans } from '@lingui/macro';
 import { Box, Button, useMediaQuery, useTheme } from '@mui/material';
 import { useRouter } from 'next/router';
 import { ROUTES } from 'src/components/primitives/Link';

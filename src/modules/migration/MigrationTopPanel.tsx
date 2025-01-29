@@ -1,4 +1,4 @@
-import { Trans } from '@lingui/macro';
+import { Trans } from "@lingui/react/macro";
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import { Box, Button, SvgIcon, useMediaQuery, useTheme } from '@mui/material';
 import { useRouter } from 'next/router';

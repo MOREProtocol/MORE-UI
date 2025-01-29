@@ -1,4 +1,4 @@
-import { Trans } from '@lingui/macro';
+import { Trans } from "@lingui/react/macro";
 
 import { getFrozenProposalLink } from '../infoTooltips/FrozenTooltip';
 import { Link } from '../primitives/Link';

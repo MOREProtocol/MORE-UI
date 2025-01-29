@@ -1,4 +1,4 @@
-import { Trans } from '@lingui/macro';
+import { Trans } from "@lingui/react/macro";
 import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
 import * as React from 'react';
 import { PageTitle } from 'src/components/TopInfoPanel/PageTitle';

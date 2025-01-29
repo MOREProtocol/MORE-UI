@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { DuplicateIcon } from '@heroicons/react/outline';
 import { ChevronDownIcon, ChevronUpIcon, ExternalLinkIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import {
   Box,
   Button,

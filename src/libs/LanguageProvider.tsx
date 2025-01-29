@@ -2,12 +2,12 @@
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
 import React, { useEffect } from 'react';
-
 import { IProps } from 'src/helpers/types';
-import { messages } from '../locales/en/messages.js';
 
-i18n.load('en', messages);
-i18n.activate('en');
+// import { messages } from '../locales/en/messages.js';
+
+// i18n.load('en', messages);
+// i18n.activate('en');
 
 export const DEFAULT_LOCALE = 'en';
 

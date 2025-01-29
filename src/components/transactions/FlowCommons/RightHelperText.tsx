@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ExternalLinkIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { Box, Link, SvgIcon, Typography } from '@mui/material';
 import { ApprovalMethodToggleButton } from 'src/components/transactions/FlowCommons/ApprovalMethodToggleButton';
 import { MOCK_SIGNED_HASH } from 'src/helpers/useTransactionHandler';

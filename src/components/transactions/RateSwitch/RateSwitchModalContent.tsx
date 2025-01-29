@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { InterestRate } from '@aave/contract-helpers';
 import { valueToBigNumber } from '@aave/math-utils';
-import { Trans } from '@lingui/macro';
 import { Warning } from 'src/components/primitives/Warning';
 import { useModalContext } from 'src/hooks/useModal';
 

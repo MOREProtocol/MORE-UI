@@ -1,4 +1,4 @@
-import { Trans } from '@lingui/macro';
+import { Trans } from "@lingui/react/macro";
 import { Button } from '@mui/material';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useRootStore } from 'src/store/root';
