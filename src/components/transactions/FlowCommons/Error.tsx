@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { DuplicateIcon, XIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { Box, Button, Link, SvgIcon, Typography } from '@mui/material';
 import { useModalContext } from 'src/hooks/useModal';
 import { TxErrorType } from 'src/ui-config/errorMapping';

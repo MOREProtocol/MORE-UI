@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { DocumentDownloadIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import {
   Box,
   Button,

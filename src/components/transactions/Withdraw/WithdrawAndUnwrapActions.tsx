@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { gasLimitRecommendations, ProtocolAction, valueToWei } from '@aave/contract-helpers';
 import { SignatureLike } from '@ethersproject/bytes';
-import { Trans } from '@lingui/macro';
 import { BoxProps } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { constants } from 'ethers';

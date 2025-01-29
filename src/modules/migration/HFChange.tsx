@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ArrowNarrowRightIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import { Box, Skeleton, SvgIcon, Typography } from '@mui/material';
 import { ReactNode } from 'react';
 import { HealthFactorNumber } from 'src/components/HealthFactorNumber';

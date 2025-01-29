@@ -1,4 +1,4 @@
-import { Trans } from '@lingui/macro';
+import { Trans } from "@lingui/react/macro";
 import { Box, BoxProps, Paper, PaperProps, Typography } from '@mui/material';
 import { ReactNode, useState } from 'react';
 import { useRootStore } from 'src/store/root';

@@ -1,4 +1,4 @@
-import { Trans } from '@lingui/macro';
+import { Trans } from "@lingui/react/macro";
 import { Divider } from '@mui/material';
 import { GENERAL } from 'src/utils/mixPanelEvents';
 

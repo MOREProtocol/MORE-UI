@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { CreditCardIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { Button, SvgIcon } from '@mui/material';
 import { useState } from 'react';
 import { useCryptoBuyAvailable } from 'src/hooks/useCryptoBuyAvailable';

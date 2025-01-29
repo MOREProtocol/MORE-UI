@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ProtocolAction } from '@aave/contract-helpers';
-import { Trans } from '@lingui/macro';
 import { EmodeCategory } from 'src/helpers/types';
 import { useTransactionHandler } from 'src/helpers/useTransactionHandler';
 import { useRootStore } from 'src/store/root';

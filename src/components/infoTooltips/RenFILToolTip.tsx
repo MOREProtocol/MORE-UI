@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ExclamationIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { Box, SvgIcon } from '@mui/material';
 
 import { ContentWithTooltip } from '../ContentWithTooltip';

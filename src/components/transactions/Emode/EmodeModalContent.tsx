@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { formatUserSummary } from '@aave/math-utils';
 import { ArrowNarrowRightIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import { Box, Link, SvgIcon, Typography } from '@mui/material';
 import { useState } from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';

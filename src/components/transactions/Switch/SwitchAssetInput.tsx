@@ -1,8 +1,8 @@
+import { Trans } from "@lingui/react/macro";
 import { isAddress } from '@ethersproject/address';
 import { formatUnits } from '@ethersproject/units';
 import { ExclamationIcon } from '@heroicons/react/outline';
 import { XCircleIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import { ExpandLess, ExpandMore } from '@mui/icons-material';
 import {
   Box,
