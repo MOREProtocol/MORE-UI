@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ChainId } from '@aave/contract-helpers';
-import { Trans } from '@lingui/macro';
 import { Box, BoxProps, Typography } from '@mui/material';
 import { BaseNetworkConfig, networkConfigs } from 'src/ui-config/networksConfig';
 

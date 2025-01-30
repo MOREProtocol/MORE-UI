@@ -1,8 +1,8 @@
+import { Trans } from "@lingui/react/macro";
 import { valueToBigNumber } from '@aave/math-utils';
 import { ArrowNarrowRightIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { Box, Skeleton, SvgIcon } from '@mui/material';
-import React from 'react';
+import React, { JSX } from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { Row } from 'src/components/primitives/Row';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';

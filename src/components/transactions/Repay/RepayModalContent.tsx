@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
   API_ETH_MOCK_ADDRESS,
   InterestRate,
@@ -9,7 +10,6 @@ import {
   USD_DECIMALS,
   valueToBigNumber,
 } from '@aave/math-utils';
-import { Trans } from '@lingui/macro';
 import Typography from '@mui/material/Typography';
 import BigNumber from 'bignumber.js';
 import React, { useEffect, useRef, useState } from 'react';
@@ -35,7 +35,7 @@ import {
 import { RepayActions } from './RepayActions';
 
 interface RepayAsset extends Asset {
-  balance: string;
+  balance?: string;
 }
 
 export const RepayModalContent = ({
@@ -66,7 +66,7 @@ export const RepayModalContent = ({
   const [assets, setAssets] = useState<RepayAsset[]>([tokenToRepayWith]);
   const [repayMax, setRepayMax] = useState('');
   const [_amount, setAmount] = useState('');
-  const amountRef = useRef<string>();
+  const amountRef = useRef<string>('0');
 
   const networkConfig = getNetworkConfig(currentChainId);
 

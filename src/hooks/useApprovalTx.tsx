@@ -78,14 +78,13 @@ export const useApprovalTx = ({
           setApprovalTxState({ ...approvalTxState, loading: true });
           approveTxData = await estimateGasLimit(approveTxData);
           const response = await sendTx(approveTxData);
-          await response.wait(1);
           setApprovalTxState({
-            txHash: response.hash,
+            txHash: response,
             loading: false,
             success: true,
           });
           setTxError(undefined);
-          addTransaction(response.hash, {
+          addTransaction(response, {
             action: ProtocolAction.approval,
             txState: 'success',
             asset: assetAddress,

@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { CogIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import {
   Box,
   Button,

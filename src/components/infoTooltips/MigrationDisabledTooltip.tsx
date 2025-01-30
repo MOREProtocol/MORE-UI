@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ExclamationIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { Typography } from '@mui/material';
 import { ReactNode } from 'react';
 import { MigrationDisabled } from 'src/store/v3MigrationSelectors';

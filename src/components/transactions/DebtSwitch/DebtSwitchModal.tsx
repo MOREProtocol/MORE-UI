@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { InterestRate } from '@aave/contract-helpers';
-import { Trans } from '@lingui/macro';
 import React from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
 import { UserAuthenticated } from 'src/components/UserAuthenticated';

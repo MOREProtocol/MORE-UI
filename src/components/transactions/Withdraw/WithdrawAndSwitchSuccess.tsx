@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ArrowRightIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { Box, SvgIcon, Typography } from '@mui/material';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';

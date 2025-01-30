@@ -1,10 +1,10 @@
+import { Trans } from "@lingui/react/macro";
 import { API_ETH_MOCK_ADDRESS, InterestRate } from '@aave/contract-helpers';
 import {
   calculateHealthFactorFromBalancesBigUnits,
   USD_DECIMALS,
   valueToBigNumber,
 } from '@aave/math-utils';
-import { Trans } from '@lingui/macro';
 import { Typography } from '@mui/material';
 import { useState } from 'react';
 import { APYTypeTooltip } from 'src/components/infoTooltips/APYTypeTooltip';

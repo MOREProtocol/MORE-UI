@@ -1,4 +1,4 @@
-import { Trans } from '@lingui/macro';
+import { Trans } from "@lingui/react/macro";
 
 import { CapType } from '../caps/helper';
 import { TextWithTooltip, TextWithTooltipProps } from '../TextWithTooltip';

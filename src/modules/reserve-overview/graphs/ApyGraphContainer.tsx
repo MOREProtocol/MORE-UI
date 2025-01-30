@@ -1,7 +1,7 @@
-import { Trans } from '@lingui/macro';
+import { Trans } from "@lingui/react/macro";
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import { ParentSize } from '@visx/responsive';
-import { useState } from 'react';
+import { useState, JSX } from 'react';
 import type { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { ReserveRateTimeRange, useReserveRatesHistory } from 'src/hooks/useReservesHistory';
 import { MarketDataType } from 'src/utils/marketsAndNetworksConfig';

@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { valueToBigNumber } from '@aave/math-utils';
 import { ArrowDownIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import { Box, Checkbox, Stack, SvgIcon, Typography } from '@mui/material';
 import { useRef, useState } from 'react';
 import { PriceImpactTooltip } from 'src/components/infoTooltips/PriceImpactTooltip';

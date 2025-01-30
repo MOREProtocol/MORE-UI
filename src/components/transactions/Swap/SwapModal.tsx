@@ -1,4 +1,4 @@
-import { Trans } from '@lingui/macro';
+import { Trans } from "@lingui/react/macro";
 import React from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
 import { UserAuthenticated } from 'src/components/UserAuthenticated';

@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ChainId } from '@aave/contract-helpers';
-import { Trans } from '@lingui/macro';
 import { Button, Typography } from '@mui/material';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { TrackEventProps } from 'src/store/analyticsSlice';

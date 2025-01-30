@@ -1,4 +1,4 @@
-import { Trans } from '@lingui/macro';
+import { Trans } from "@lingui/react/macro";
 import { Box, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import StyledToggleButton from 'src/components/StyledToggleButton';
@@ -26,13 +26,13 @@ export default function Home() {
       'Page Name': 'Dashboard',
       Market: currentMarket,
     });
-  }, [trackEvent]);
+  }, [trackEvent, currentMarket]);
 
   useEffect(() => {
     if (localStorage.getItem('welcome-check') !== 'true') {
       openWelcome();
     }
-  }, []);
+  }, [openWelcome]);
 
   return (
     <>

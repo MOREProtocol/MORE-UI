@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { InterestRate } from '@aave/contract-helpers';
 import {
   CheckIcon,
@@ -5,7 +6,6 @@ import {
   ChevronUpIcon,
   ExternalLinkIcon,
 } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import {
   Box,
   Button,
