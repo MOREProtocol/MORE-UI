@@ -1,7 +1,6 @@
-import { Trans } from "@lingui/react/macro";
-import { t } from "@lingui/core/macro";
 import { CheckIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/solid';
 import { useLingui } from '@lingui/react';
+import { Trans } from '@lingui/react/macro';
 import {
   Box,
   ListItem,
@@ -16,10 +15,10 @@ import React from 'react';
 import { dynamicActivateLanguage } from '../../libs/LanguageProvider';
 
 const langMap = {
-  en: t`English`,
-  es: t`Spanish`,
-  fr: t`French`,
-  el: t`Greek`,
+  en: 'English',
+  es: 'Spanish',
+  fr: 'French',
+  el: 'Greek',
 };
 
 interface LanguageListItemProps {

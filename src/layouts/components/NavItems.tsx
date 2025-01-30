@@ -2,20 +2,64 @@ import { useLingui } from '@lingui/react';
 import { Button, List, ListItem, Typography, useMediaQuery, useTheme } from '@mui/material';
 import * as React from 'react';
 import { useRootStore } from 'src/store/root';
+import { MarketDataType } from 'src/ui-config/marketsConfig';
+import { ENABLE_TESTNET } from 'src/utils/marketsAndNetworksConfig';
 import { NAV_BAR } from 'src/utils/mixPanelEvents';
 
-import { Link } from '../../components/primitives/Link';
+import { Link, ROUTES } from '../../components/primitives/Link';
 import { useProtocolDataContext } from '../../hooks/useProtocolDataContext';
-import { navigation } from '../../ui-config/menu-items';
 import { MoreMenu } from '../MoreMenu';
 
 interface NavItemsProps {
   setOpen?: (value: boolean) => void;
 }
 
+interface Navigation {
+  link: string;
+  title: string;
+  isVisible?: (data: MarketDataType) => boolean | undefined;
+  dataCy?: string;
+}
+
 export const NavItems = ({ setOpen }: NavItemsProps) => {
   const { i18n } = useLingui();
   const { currentMarketData } = useProtocolDataContext();
+
+  const navigation: Navigation[] = [
+    {
+      link: ROUTES.dashboard,
+      title: i18n._(`Dashboard`),
+      dataCy: 'menuDashboard',
+    },
+    {
+      link: ROUTES.markets,
+      title: i18n._(`Markets`),
+      dataCy: 'menuMarkets',
+    },
+    {
+      link: ROUTES.staking,
+      title: i18n._(`Stake`),
+      dataCy: 'menuStake',
+      isVisible: () =>
+        process.env.NEXT_PUBLIC_ENABLE_STAKING === 'true' &&
+        process.env.NEXT_PUBLIC_ENV === 'prod' &&
+        !ENABLE_TESTNET,
+    },
+    {
+      link: ROUTES.governance,
+      title: i18n._(`Governance`),
+      dataCy: 'menuGovernance',
+      isVisible: () =>
+        process.env.NEXT_PUBLIC_ENABLE_GOVERNANCE === 'true' &&
+        process.env.NEXT_PUBLIC_ENV === 'prod' &&
+        !ENABLE_TESTNET,
+    },
+    {
+      link: ROUTES.faucet,
+      title: i18n._(`Faucet`),
+      isVisible: () => process.env.NEXT_PUBLIC_ENV === 'staging' || ENABLE_TESTNET,
+    },
+  ];
 
   const { breakpoints } = useTheme();
   const md = useMediaQuery(breakpoints.down('md'));
