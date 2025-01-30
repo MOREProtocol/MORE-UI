@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { DuplicateIcon } from '@heroicons/react/outline';
 import { ChevronDownIcon, ChevronUpIcon, ExternalLinkIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import {
   Box,
   Button,
@@ -18,12 +18,12 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import React, { useState } from 'react';
 import { AvatarSize } from 'src/components/Avatar';
 import { CompactMode } from 'src/components/CompactableTypography';
 import { Warning } from 'src/components/primitives/Warning';
 import { UserDisplay } from 'src/components/UserDisplay';
-import { WalletModal } from 'src/components/WalletConnection/WalletModal';
 import { useWalletModalContext } from 'src/hooks/useWalletModal';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
@@ -43,6 +43,7 @@ interface WalletWidgetProps {
 export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidgetProps) {
   const { disconnectWallet, currentAccount, connected, chainId, loading, readOnlyModeAddress } =
     useWeb3Context();
+  const { openConnectModal } = useConnectModal();
 
   const { setWalletModalOpen } = useWalletModalContext();
 
@@ -70,7 +71,8 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
   const handleClick = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     if (!connected) {
       trackEvent(GENERAL.OPEN_MODAL, { modal: 'Connect Waller' });
-      setWalletModalOpen(true);
+      // setWalletModalOpen(true);
+      openConnectModal();
     } else {
       setOpen(true);
       setAnchorEl(event.currentTarget);
@@ -356,8 +358,6 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
           </MenuList>
         </Menu>
       )}
-
-      <WalletModal />
     </>
   );
 }

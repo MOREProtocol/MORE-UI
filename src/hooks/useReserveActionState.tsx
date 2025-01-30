@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ExternalLinkIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import { Button, Stack, SvgIcon, Typography } from '@mui/material';
 import { Link, ROUTES } from 'src/components/primitives/Link';
 import { Warning } from 'src/components/primitives/Warning';

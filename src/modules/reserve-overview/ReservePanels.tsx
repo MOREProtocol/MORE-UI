@@ -1,5 +1,6 @@
 import { Box, BoxProps, Typography, TypographyProps, useMediaQuery, useTheme } from '@mui/material';
 import type { ReactNode } from 'react';
+import { IProps } from 'src/helpers/types';
 
 export const PanelRow: React.FC<BoxProps> = (props) => (
   <Box
@@ -20,7 +21,7 @@ export const PanelTitle: React.FC<TypographyProps> = (props) => (
   />
 );
 
-interface PanelItemProps {
+interface PanelItemProps extends IProps {
   title: ReactNode;
   className?: string;
 }

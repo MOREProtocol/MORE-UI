@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { InterestRate } from '@aave/contract-helpers';
-import { Trans } from '@lingui/macro';
 import { Box, Button, Typography, useTheme } from '@mui/material';
 import { ReactNode, useState } from 'react';
 import { WalletIcon } from 'src/components/icons/WalletIcon';
@@ -38,7 +38,7 @@ export const TxSuccessView = ({
   const theme = useTheme();
 
   return (
-    <BaseSuccessView txHash={txHash}>
+    (<BaseSuccessView txHash={txHash}>
       <Box
         sx={{
           mt: 2,
@@ -131,6 +131,6 @@ export const TxSuccessView = ({
           </Box>
         )}
       </Box>
-    </BaseSuccessView>
+    </BaseSuccessView>)
   );
 };

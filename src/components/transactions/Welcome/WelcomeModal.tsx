@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import React, { useState } from 'react';
-import { Trans } from '@lingui/macro';
 import { Typography, Box, FormControlLabel, Checkbox, Button, Link } from '@mui/material';
 
 import { useRootStore } from 'src/store/root';

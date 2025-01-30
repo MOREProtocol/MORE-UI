@@ -1,3 +1,4 @@
+import { JSX } from 'react';
 import { Box } from '@mui/material';
 import { ParentSize } from '@visx/responsive';
 import type { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';

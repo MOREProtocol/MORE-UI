@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { ERC20Service, gasLimitRecommendations, ProtocolAction } from '@aave/contract-helpers';
 import { SignatureLike } from '@ethersproject/bytes';
-import { Trans } from '@lingui/macro';
 import { BoxProps } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { parseUnits } from 'ethers/lib/utils';
@@ -128,15 +128,14 @@ export const WithdrawAndSwitchActions = ({
       });
       const txDataWithGasEstimation = await estimateGasLimit(tx);
       const response = await sendTx(txDataWithGasEstimation);
-      await response.wait(1);
       queryClient.invalidateQueries({ queryKey: queryKeysFactory.pool });
       queryClient.invalidateQueries({ queryKey: queryKeysFactory.gho });
       setMainTxState({
-        txHash: response.hash,
+        txHash: response,
         loading: false,
         success: true,
       });
-      addTransaction(response.hash, {
+      addTransaction(response, {
         action: ProtocolAction.withdrawAndSwitch,
         txState: 'success',
         asset: poolReserve.underlyingAsset,
@@ -190,13 +189,12 @@ export const WithdrawAndSwitchActions = ({
         const txWithGasEstimation = await estimateGasLimit(tx);
         setApprovalTxState({ ...approvalTxState, loading: true });
         const response = await sendTx(txWithGasEstimation);
-        await response.wait(1);
         setApprovalTxState({
-          txHash: response.hash,
+          txHash: response,
           loading: false,
           success: true,
         });
-        addTransaction(response.hash, {
+        addTransaction(response, {
           action: ProtocolAction.withdrawAndSwitch,
           txState: 'success',
           asset: poolReserve.aTokenAddress,

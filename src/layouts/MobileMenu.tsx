@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { MenuIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { useLingui } from '@lingui/react';
 import {
   Box,

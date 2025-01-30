@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { XIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import { Box, Button, CircularProgress, SvgIcon, TextField, Typography } from '@mui/material';
 import { FormEvent, useEffect, useState } from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';

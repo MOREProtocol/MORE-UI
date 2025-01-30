@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { DotsHorizontalIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import { useLingui } from '@lingui/react';
 import { Button, ListItemIcon, ListItemText, SvgIcon } from '@mui/material';
 import Menu from '@mui/material/Menu';

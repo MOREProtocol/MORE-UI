@@ -1,18 +1,15 @@
-import { Trans } from '@lingui/macro';
+import { Trans } from "@lingui/react/macro";
 import { Button } from '@mui/material';
-import dynamic from 'next/dynamic';
-import { useWalletModalContext } from 'src/hooks/useWalletModal';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useRootStore } from 'src/store/root';
 import { AUTH } from 'src/utils/mixPanelEvents';
-
-const WalletModal = dynamic(() => import('./WalletModal').then((module) => module.WalletModal));
 
 export interface ConnectWalletProps {
   funnel?: string;
 }
 
 export const ConnectWalletButton: React.FC<ConnectWalletProps> = ({ funnel }) => {
-  const { setWalletModalOpen } = useWalletModalContext();
+  const { openConnectModal } = useConnectModal();
   const trackEvent = useRootStore((store) => store.trackEvent);
 
   return (
@@ -21,12 +18,11 @@ export const ConnectWalletButton: React.FC<ConnectWalletProps> = ({ funnel }) =>
         variant="gradient"
         onClick={() => {
           trackEvent(AUTH.CONNECT_WALLET, { funnel: funnel });
-          setWalletModalOpen(true);
+          openConnectModal();
         }}
       >
         <Trans>Connect wallet</Trans>
       </Button>
-      <WalletModal />
     </>
   );
 };

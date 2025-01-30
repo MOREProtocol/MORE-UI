@@ -1,6 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { ReserveIncentiveResponse } from '@aave/math-utils/dist/esm/formatters/incentive/calculate-reserve-incentives';
 import { ArrowNarrowRightIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/macro';
 import { Box, FormControlLabel, Skeleton, SvgIcon, Switch, Typography } from '@mui/material';
 import { parseUnits } from 'ethers/lib/utils';
 import React, { ReactNode } from 'react';
@@ -10,15 +10,14 @@ import {
   UnavailableDueToIsolationBadge,
 } from 'src/components/isolationMode/IsolatedBadge';
 import { Row } from 'src/components/primitives/Row';
-import { CollateralType } from 'src/helpers/types';
-
+import { CollateralType, IProps } from 'src/helpers/types';
 import { HealthFactorNumber } from '../../HealthFactorNumber';
 import { IncentivesButton } from '../../incentives/IncentivesButton';
 import { FormattedNumber, FormattedNumberProps } from '../../primitives/FormattedNumber';
 import { TokenIcon } from '../../primitives/TokenIcon';
 import { GasStation } from '../GasStation/GasStation';
 
-export interface TxModalDetailsProps {
+export interface TxModalDetailsProps extends IProps {
   gasLimit?: string;
   slippageSelector?: ReactNode;
   skipLoad?: boolean;

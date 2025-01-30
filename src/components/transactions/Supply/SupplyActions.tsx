@@ -1,6 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { gasLimitRecommendations, ProtocolAction } from '@aave/contract-helpers';
-import { TransactionResponse } from '@ethersproject/providers';
-import { Trans } from '@lingui/macro';
 import { BoxProps } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { parseUnits } from 'ethers/lib/utils';
@@ -136,7 +135,7 @@ export const SupplyActions = React.memo(
       try {
         setMainTxState({ ...mainTxState, loading: true });
 
-        let response: TransactionResponse;
+        let response: string;
         let action = ProtocolAction.default;
 
         // determine if approval is signature or transaction
@@ -152,8 +151,6 @@ export const SupplyActions = React.memo(
 
           signedSupplyWithPermitTxData = await estimateGasLimit(signedSupplyWithPermitTxData);
           response = await sendTx(signedSupplyWithPermitTxData);
-
-          await response.wait(1);
         } else {
           action = ProtocolAction.supply;
           let supplyTxData = supply({
@@ -162,17 +159,15 @@ export const SupplyActions = React.memo(
           });
           supplyTxData = await estimateGasLimit(supplyTxData);
           response = await sendTx(supplyTxData);
-
-          await response.wait(1);
         }
 
         setMainTxState({
-          txHash: response.hash,
+          txHash: response,
           loading: false,
           success: true,
         });
 
-        addTransaction(response.hash, {
+        addTransaction(response, {
           action,
           txState: 'success',
           asset: poolAddress,

@@ -1,7 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { gasLimitRecommendations, ProtocolAction, valueToWei } from '@aave/contract-helpers';
 import { SignatureLike } from '@ethersproject/bytes';
-import { TransactionResponse } from '@ethersproject/providers';
-import { Trans } from '@lingui/macro';
 import { BoxProps } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { constants } from 'ethers';
@@ -114,7 +113,7 @@ export const WithdrawAndUnwrapAction = ({
     try {
       setMainTxState({ ...mainTxState, loading: true });
 
-      let response: TransactionResponse;
+      let response: string;
 
       const convertedAmount: string =
         amountToWithdraw === '-1'
@@ -131,7 +130,6 @@ export const WithdrawAndUnwrapAction = ({
         );
         signedTxData = await estimateGasLimit(signedTxData);
         response = await sendTx(signedTxData);
-        await response.wait(1);
       } else {
         let txData = await tokenWrapperService.withdrawWrappedToken(
           convertedAmount,
@@ -140,10 +138,9 @@ export const WithdrawAndUnwrapAction = ({
         );
         txData = await estimateGasLimit(txData);
         response = await sendTx(txData);
-        await response.wait(1);
       }
       setMainTxState({
-        txHash: response.hash,
+        txHash: response,
         loading: false,
         success: true,
       });

@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { ChainId } from '@aave/contract-helpers';
-import { Trans } from '@lingui/macro';
 import { Theme } from '@mui/material';
 import { SxProps } from '@mui/system';
 import { Warning } from 'src/components/primitives/Warning';

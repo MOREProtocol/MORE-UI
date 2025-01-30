@@ -1,4 +1,4 @@
-import { Trans } from '@lingui/macro';
+import { Trans } from "@lingui/react/macro";
 import { Typography } from '@mui/material';
 import { formatUnits } from 'ethers/lib/utils';
 import React from 'react';

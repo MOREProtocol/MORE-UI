@@ -1,23 +1,26 @@
+import React, { ReactElement, useEffect, useState } from 'react';
 import { API_ETH_MOCK_ADDRESS, ERC20Service, transactionType } from '@aave/contract-helpers';
 import { SignatureLike } from '@ethersproject/bytes';
+import { Provider } from '@ethersproject/providers';
 import {
-  JsonRpcProvider,
-  TransactionResponse,
-  // Web3Provider,
-} from '@ethersproject/providers';
-import { AbstractConnector } from '@web3-react/abstract-connector';
+  useAccount,
+  usePublicClient,
+  useSwitchChain,
+  useChainId,
+  useConnect,
+  useDisconnect,
+  useSendTransaction,
+  useSignMessage,
+} from 'wagmi';
+import { waitForTransactionReceipt } from '@wagmi/core';
+import { injected } from 'wagmi/connectors';
 import { useWeb3React } from '@web3-react/core';
 import { BigNumber, PopulatedTransaction, providers } from 'ethers';
-import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { useRootStore } from 'src/store/root';
-import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
 import { hexToAscii } from 'src/utils/utils';
-
-// import { isLedgerDappBrowserProvider } from 'web3-ledgerhq-frame-connector';
-import { Web3Context } from '../hooks/useWeb3Context';
-import { WalletConnectConnector } from './WalletConnectConnector';
-import { FlowWalletConnector } from './FlowWalletConnector';
-import { getWallet, ReadOnlyModeConnector, WalletType } from './WalletOptions';
+import { Web3Context } from 'src/libs/hooks/useWeb3Context';
+import { WalletType } from 'src/helpers/types';
+import { config as wagmiConfig } from 'src/utils/wagmi';
 
 export type ERC20TokenType = {
   address: string;
@@ -29,16 +32,15 @@ export type ERC20TokenType = {
 
 export type Web3Data = {
   connectWallet: (wallet: WalletType) => Promise<void>;
-  connectReadOnlyMode: (address: string) => Promise<void>;
   disconnectWallet: () => void;
   currentAccount: string;
   connected: boolean;
   loading: boolean;
-  provider: JsonRpcProvider | undefined;
+  provider: Provider | undefined;
   chainId: number;
   switchNetwork: (chainId: number) => Promise<void>;
   getTxError: (txHash: string) => Promise<string>;
-  sendTx: (txData: transactionType | PopulatedTransaction) => Promise<TransactionResponse>;
+  sendTx: (txData: transactionType | PopulatedTransaction) => Promise<string>;
   addERC20Token: (args: ERC20TokenType) => Promise<boolean>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   signTxData: (unsignedData: string) => Promise<SignatureLike>;
@@ -50,220 +52,64 @@ export type Web3Data = {
 };
 
 export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ children }) => {
-  const {
-    account,
-    chainId,
-    library: provider,
-    activate,
-    active,
-    error,
-    deactivate,
-    setError,
-  } = useWeb3React<providers.Web3Provider>();
+  const chainId = useChainId();
+  const { connectAsync } = useConnect();
+  const { disconnectAsync } = useDisconnect();
+  const publicClient = usePublicClient();
+  const { signMessageAsync } = useSignMessage();
+  const { sendTransactionAsync } = useSendTransaction();
+  const { address, isConnected } = useAccount();
+  const { switchChainAsync: switchNetworkFunc } = useSwitchChain();
 
-  // const [provider, setProvider] = useState<JsonRpcProvider>();
-  const [connector, setConnector] = useState<AbstractConnector>();
+  const { error } = useWeb3React<providers.Web3Provider>();
+
   const [loading, setLoading] = useState(false);
-  const [readOnlyMode, setReadOnlyMode] = useState(false);
   const [switchNetworkError, setSwitchNetworkError] = useState<Error>();
-  const [flowProvider, setFlowProvider] = useState({} as any);
-  const [flowWalletProvider, setFlowWalletProvider] = useState<any>(null);
-  const [setAccount, currentChainId] = useRootStore((store) => [
-    store.setAccount,
-    store.currentChainId,
-  ]);
+  const [setAccount] = useRootStore((store) => [store.setAccount]);
   const setAccountLoading = useRootStore((store) => store.setAccountLoading);
-  const setWalletType = useRootStore((store) => store.setWalletType);
-  // for now we use network changed as it returns the chain string instead of hex
-  // const handleChainChanged = (chainId: number) => {
-  //   console.log('chainChanged', chainId);
-  //   if (selectedWallet) {
-  //     connectWallet(selectedWallet);
-  //   }
-  // };
 
-  // Wallet connection and disconnection
-  // clean local storage
-  const cleanConnectorStorage = useCallback((): void => {
-    if (connector instanceof WalletConnectConnector) {
-      localStorage.removeItem('walletconnect');
-    }
-  }, [connector]);
-
-  const disconnectWallet = useCallback(async () => {
-    cleanConnectorStorage();
-    localStorage.removeItem('walletProvider');
-    deactivate();
-    // @ts-expect-error close can be returned by wallet
-    if (connector && connector.close) {
-      // @ts-expect-error close can be returned by wallet
-      // close will remove wallet from DOM if provided by wallet
-      await connector.close();
-    }
-    setWalletType(undefined);
-    setLoading(false);
-    setSwitchNetworkError(undefined);
-  }, [provider, connector]);
-
-  const connectReadOnlyMode = (address: string): Promise<void> => {
-    localStorage.setItem('readOnlyModeAddress', address);
-    return connectWallet(WalletType.READ_ONLY_MODE);
-  };
-
-  // connect to the wallet specified by wallet type
-  const connectWallet = useCallback(
-    async (wallet: WalletType) => {
-      setLoading(true);
-      try {
-        const connector: AbstractConnector =
-          wallet == WalletType.FLOW_WALLET
-            ? new FlowWalletConnector(flowWalletProvider)
-            : getWallet(wallet, currentChainId);
-
-        if (connector instanceof ReadOnlyModeConnector) {
-          setReadOnlyMode(true);
-        } else {
-          setReadOnlyMode(false);
-        }
-
-        if (connector instanceof WalletConnectConnector) {
-          connector.walletConnectProvider = undefined;
-        }
-
-        if (wallet === WalletType.INJECTED) {
-          await activateMetaMask(connector);
-        } else {
-          await activate(connector, undefined, true);
-        }
-
-        setConnector(connector);
-        setSwitchNetworkError(undefined);
-        setWalletType(wallet);
-        localStorage.setItem('walletProvider', wallet.toString());
-        setLoading(false);
-      } catch (e) {
-        setError(e);
-        setWalletType(undefined);
-        // disconnectWallet();
-        setLoading(false);
-      }
-    },
-    [disconnectWallet, currentChainId, flowWalletProvider]
-  );
-
-  const activateMetaMask = async (connector: AbstractConnector) => {
-    // This is a workaround for an issue that happens with chrome and metamask.
-    // If the app was preloaded in chrome, there's a case where the extension can be
-    // unresponsive if the app was switched from preloading to active at the wrong time.
-    // This produces an infinite loading spinner on app load.
-    // There are no errors thrown that we can handle in this state, so just retry activating
-    // the connector. If it still fails after the backoff retry, then throw an error.
-    // See this issue for more details: https://github.com/MetaMask/metamask-extension/issues/23329
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const unlocked = (await (window as any)?.ethereum?._metamask?.isUnlocked()) ?? false;
-    if (!unlocked) {
-      // if the extension is locked, just do the normal activation
-      return activate(connector, undefined, true);
-    }
-
-    const activatePromise = activate(connector, undefined, true);
-
-    const activateRetryAttempts = 2;
-
-    const activateFn = async (connector: AbstractConnector, attempt: number) => {
-      await Promise.race([
-        activate(connector, undefined, true),
-        new Promise((_resolve, reject) => {
-          setTimeout(() => {
-            reject(new Error('MetaMask activation timeout'));
-          }, 2000);
-        }),
-      ]).catch((reason: unknown) => {
-        console.error(reason);
-        if (reason instanceof Error && reason.message === 'MetaMask activation timeout') {
-          if (attempt <= activateRetryAttempts) {
-            return activateFn(connector, attempt + 1);
-          }
-          throw reason;
-        }
-        // If the promise was rejected with a different error, then return the original instance.
-        // This handles cases where we are waiting for user input, such as giving the dapp permissions.
-        return activatePromise;
-      });
-    };
-
-    await activateFn(connector, 1);
-  };
+  // Convert viem public client to ethers.js provider
+  const provider = publicClient
+    ? new providers.JsonRpcProvider(publicClient.transport.url)
+    : undefined;
 
   // TODO: we use from instead of currentAccount because of the mock wallet.
   // If we used current account then the tx could get executed
-  const sendTx = async (
-    txData: transactionType | PopulatedTransaction
-  ): Promise<TransactionResponse> => {
-    if (provider) {
+  const sendTx = async (txData: transactionType | PopulatedTransaction): Promise<string> => {
+    if (isConnected && address) {
+      setLoading(true);
       const { from, ...data } = txData;
-      const signer = provider.getSigner(from);
-      const txResponse: TransactionResponse = await signer.sendTransaction({
+      const txHash = await sendTransactionAsync({
         ...data,
         value: data.value ? BigNumber.from(data.value) : undefined,
       });
-      return txResponse;
+      await waitForTransactionReceipt(wagmiConfig, {
+        hash: txHash,
+      });
+      setLoading(false);
+      return txHash;
     }
     throw new Error('Error sending transaction. Provider not found');
   };
 
   // TODO: recheck that it works on all wallets
   const signTxData = async (unsignedData: string): Promise<SignatureLike> => {
-    if (provider && account) {
-      const signature: SignatureLike = await provider.send('eth_signTypedData_v4', [
-        account,
-        unsignedData,
-      ]);
-
-      return signature;
+    if (isConnected && address) {
+      return await signMessageAsync({
+        account: address,
+        message: unsignedData,
+      });
     }
     throw new Error('Error initializing permit signature');
   };
 
   const switchNetwork = async (newChainId: number) => {
-    if (provider) {
+    if (provider && switchNetworkFunc) {
       try {
-        await provider.send('wallet_switchEthereumChain', [
-          { chainId: `0x${newChainId.toString(16)}` },
-        ]);
+        await switchNetworkFunc({ chainId: newChainId });
         setSwitchNetworkError(undefined);
       } catch (switchError) {
-        const networkInfo = getNetworkConfig(newChainId);
-        if (switchError.code === 4902) {
-          try {
-            try {
-              await provider.send('wallet_addEthereumChain', [
-                {
-                  chainId: `0x${newChainId.toString(16)}`,
-                  chainName: networkInfo.name,
-                  nativeCurrency: {
-                    symbol: networkInfo.baseAssetSymbol,
-                    decimals: networkInfo.baseAssetDecimals,
-                  },
-                  rpcUrls: [...networkInfo.publicJsonRPCUrl, networkInfo.publicJsonRPCWSUrl],
-                  blockExplorerUrls: [networkInfo.explorerLink],
-                },
-              ]);
-            } catch (error) {
-              if (error.code !== 4001) {
-                throw error;
-              }
-            }
-            setSwitchNetworkError(undefined);
-          } catch (addError) {
-            setSwitchNetworkError(addError);
-          }
-        } else if (switchError.code === 4001) {
-          setSwitchNetworkError(undefined);
-        } else {
-          setSwitchNetworkError(switchError);
-        }
+        setSwitchNetworkError(switchError);
       }
     }
   };
@@ -271,8 +117,15 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
   const getTxError = async (txHash: string): Promise<string> => {
     if (provider) {
       const tx = await provider.getTransaction(txHash);
-      // @ts-expect-error TODO: need think about "tx" type
-      const code = await provider.call(tx, tx.blockNumber);
+      const code = await provider.call(
+        {
+          from: tx.from,
+          to: tx.to,
+          data: tx.data,
+          value: tx.value,
+        },
+        tx.blockNumber
+      );
       const error = hexToAscii(code.substr(138));
       return error;
     }
@@ -289,7 +142,7 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
     // and didn't manage to make the call with ethersjs
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const injectedProvider = (window as any).ethereum;
-    if (provider && account && window && injectedProvider) {
+    if (provider && address && window && injectedProvider) {
       if (address.toLowerCase() !== API_ETH_MOCK_ADDRESS.toLowerCase()) {
         let tokenSymbol = symbol;
         if (!tokenSymbol) {
@@ -317,53 +170,45 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
     return false;
   };
 
+  const connectWallet = async (wallet: WalletType) => {
+    console.log(wallet);
+    await connectAsync({ connector: injected() });
+  };
+
+  const disconnectWallet = async () => {
+    await disconnectAsync();
+  };
+
   // inject account into zustand as long as aave itnerface is using old web3 providers
   useEffect(() => {
-    setAccount(account?.toLowerCase());
-  }, [account]);
+    setAccount(address?.toLowerCase());
+  }, [address]);
 
   useEffect(() => {
     setAccountLoading(loading);
   }, [loading]);
-
-  const setupEventListeners = () => {
-    // 监听钱包公告事件
-    window.addEventListener('eip6963:announceProvider', ((event: CustomEvent) => {
-      const { info, provider } = event.detail;
-      flowProvider[info.rdns] = { info, provider };
-      setFlowProvider(flowProvider);
-      if (info.rdns == 'com.flowfoundation.wallet') {
-        setFlowWalletProvider(provider);
-      }
-    }) as EventListener);
-  };
-
-  useEffect(() => {
-    setupEventListeners();
-  }, []);
 
   return (
     <Web3Context.Provider
       value={{
         web3ProviderData: {
           connectWallet,
-          connectReadOnlyMode,
           disconnectWallet,
           provider,
-          connected: active,
+          connected: isConnected,
           loading,
           chainId: chainId || 1,
           switchNetwork,
           getTxError,
           sendTx,
           signTxData,
-          currentAccount: account?.toLowerCase() || '',
+          currentAccount: address?.toLowerCase() || '',
           addERC20Token,
           error,
           switchNetworkError,
           setSwitchNetworkError,
-          readOnlyModeAddress: readOnlyMode ? account?.toLowerCase() : undefined,
-          readOnlyMode,
+          readOnlyModeAddress: undefined,
+          readOnlyMode: false,
         },
       }}
     >

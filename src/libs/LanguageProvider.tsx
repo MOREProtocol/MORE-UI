@@ -1,19 +1,13 @@
 // src/index.js
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { el, en, es, fr } from 'make-plural/plurals';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { IProps } from 'src/helpers/types';
 
-import { messages } from '../locales/en/messages.js';
+// import { messages } from '../locales/en/messages.js';
 
-i18n.loadLocaleData({
-  en: { plurals: en },
-  es: { plurals: es },
-  fr: { plurals: fr },
-  el: { plurals: el },
-});
-i18n.load('en', messages);
-i18n.activate('en');
+// i18n.load('en', messages);
+// i18n.activate('en');
 
 export const DEFAULT_LOCALE = 'en';
 
@@ -36,16 +30,21 @@ export async function dynamicActivateLanguage(locale: string) {
   localStorage.setItem('LOCALE', locale);
 }
 
-export const LanguageProvider: React.FunctionComponent = (props) => {
+export const LanguageProvider: React.FunctionComponent<IProps> = (props) => {
+  const [i18nReady, setI18nReady] = useState(false);
+
   useEffect(() => {
-    // With this method we dynamically load the catalogs
-    const savedLocale = localStorage.getItem('LOCALE') || DEFAULT_LOCALE;
-    if (i18n._locale !== savedLocale) dynamicActivateLanguage(savedLocale);
+    const initI18n = async () => {
+      // With this method we dynamically load the catalogs
+      const savedLocale = localStorage.getItem('LOCALE') || DEFAULT_LOCALE;
+      if (i18n.locale !== savedLocale) {
+        await dynamicActivateLanguage(savedLocale);
+        setI18nReady(true);
+      }
+    };
+
+    initI18n();
   }, []);
 
-  return (
-    <I18nProvider i18n={i18n} forceRenderOnLocaleChange={false}>
-      {props.children}
-    </I18nProvider>
-  );
+  return i18nReady ? <I18nProvider i18n={i18n}>{props.children}</I18nProvider> : <></>;
 };

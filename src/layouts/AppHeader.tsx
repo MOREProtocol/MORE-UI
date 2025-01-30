@@ -1,5 +1,5 @@
+import { Trans } from "@lingui/react/macro";
 import { InformationCircleIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/macro';
 import {
   // Badge,
   Button,
