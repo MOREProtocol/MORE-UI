@@ -1,6 +1,6 @@
-import { Trans } from "@lingui/react/macro";
 import { MenuIcon } from '@heroicons/react/outline';
 import { useLingui } from '@lingui/react';
+import { Trans } from '@lingui/react/macro';
 import {
   Box,
   Button,
@@ -92,15 +92,24 @@ export const MobileMenu = ({ open, setOpen, headerHeight }: MobileMenuProps) => 
                     <Trans>Migrate to Aave V3</Trans>
                   </ListItemText>
                 </ListItem>
-                {moreNavigation.map((item, index) => (
-                  <ListItem component={Link} href={item.link} sx={{ color: '#F1F1F3' }} key={index}>
-                    <ListItemIcon sx={{ minWidth: 'unset', mr: 3 }}>
-                      <SvgIcon sx={{ fontSize: '20px', color: '#F1F1F3' }}>{item.icon}</SvgIcon>
-                    </ListItemIcon>
+                {moreNavigation.length > 0 ? (
+                  moreNavigation.map((item, index) => (
+                    <ListItem
+                      component={Link}
+                      href={item.link}
+                      sx={{ color: '#F1F1F3' }}
+                      key={index}
+                    >
+                      <ListItemIcon sx={{ minWidth: 'unset', mr: 3 }}>
+                        <SvgIcon sx={{ fontSize: '20px', color: '#F1F1F3' }}>{item.icon}</SvgIcon>
+                      </ListItemIcon>
 
-                    <ListItemText>{i18n._(item.title)}</ListItemText>
-                  </ListItem>
-                ))}
+                      <ListItemText>{i18n._(item.title)}</ListItemText>
+                    </ListItem>
+                  ))
+                ) : (
+                  <></>
+                )}
               </List>
             </MenuItemsWrapper>
           </>
