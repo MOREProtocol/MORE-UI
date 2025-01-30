@@ -1,7 +1,7 @@
 // src/index.js
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { IProps } from 'src/helpers/types';
 
 // import { messages } from '../locales/en/messages.js';
@@ -31,11 +31,20 @@ export async function dynamicActivateLanguage(locale: string) {
 }
 
 export const LanguageProvider: React.FunctionComponent<IProps> = (props) => {
+  const [i18nReady, setI18nReady] = useState(false);
+
   useEffect(() => {
-    // With this method we dynamically load the catalogs
-    const savedLocale = localStorage.getItem('LOCALE') || DEFAULT_LOCALE;
-    if (i18n.locale !== savedLocale) dynamicActivateLanguage(savedLocale);
+    const initI18n = async () => {
+      // With this method we dynamically load the catalogs
+      const savedLocale = localStorage.getItem('LOCALE') || DEFAULT_LOCALE;
+      if (i18n.locale !== savedLocale) {
+        await dynamicActivateLanguage(savedLocale);
+        setI18nReady(true);
+      }
+    };
+
+    initI18n();
   }, []);
 
-  return <I18nProvider i18n={i18n}>{props.children}</I18nProvider>;
+  return i18nReady ? <I18nProvider i18n={i18n}>{props.children}</I18nProvider> : <></>;
 };
