@@ -24,7 +24,6 @@ import { AvatarSize } from 'src/components/Avatar';
 import { CompactMode } from 'src/components/CompactableTypography';
 import { Warning } from 'src/components/primitives/Warning';
 import { UserDisplay } from 'src/components/UserDisplay';
-import { useWalletModalContext } from 'src/hooks/useWalletModal';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
 import { AUTH, GENERAL } from 'src/utils/mixPanelEvents';
@@ -44,8 +43,6 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
   const { disconnectWallet, currentAccount, connected, chainId, loading, readOnlyModeAddress } =
     useWeb3Context();
   const { openConnectModal } = useConnectModal();
-
-  const { setWalletModalOpen } = useWalletModalContext();
 
   const { breakpoints, palette } = useTheme();
   const xsm = useMediaQuery(breakpoints.down('xsm'));
@@ -71,7 +68,6 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
   const handleClick = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     if (!connected) {
       trackEvent(GENERAL.OPEN_MODAL, { modal: 'Connect Waller' });
-      // setWalletModalOpen(true);
       openConnectModal();
     } else {
       setOpen(true);
@@ -94,7 +90,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
   };
 
   const handleSwitchWallet = (): void => {
-    setWalletModalOpen(true);
+    openConnectModal();
     trackEvent(AUTH.SWITCH_WALLET);
     handleClose();
   };
