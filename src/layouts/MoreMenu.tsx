@@ -1,6 +1,6 @@
-import { Trans } from "@lingui/react/macro";
 import { DotsHorizontalIcon } from '@heroicons/react/solid';
 import { useLingui } from '@lingui/react';
+import { Trans } from '@lingui/react/macro';
 import { Button, ListItemIcon, ListItemText, SvgIcon } from '@mui/material';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -26,6 +26,10 @@ export function MoreMenu() {
   const handleClose = () => {
     setAnchorEl(null);
   };
+
+  if (moreNavigation.length === 0) {
+    return <></>;
+  }
 
   return (
     <>
