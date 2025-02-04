@@ -93,7 +93,7 @@ export const marketsData: {
     },
   },
   [CustomMarket.proto_degen_v3]: {
-    marketTitle: 'Degen on Mainnet',
+    marketTitle: 'Degen Market',
     market: CustomMarket.proto_degen_v3,
     chainId: ChainIds.flowEVMMainnet,
     v3: true,

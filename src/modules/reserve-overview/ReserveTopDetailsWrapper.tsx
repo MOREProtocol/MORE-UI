@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import {
   Box,
@@ -114,7 +114,8 @@ export const ReserveTopDetailsWrapper = ({ underlyingAsset }: ReserveTopDetailsP
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <MarketLogo size={20} logo={network.networkLogoPath} />
               <Typography variant="subheader1" sx={{ color: 'common.white' }}>
-                {market.marketTitle} <Trans>Market</Trans>
+                {market.marketTitle}{' '}
+                {market.marketTitle.includes('Market') ? null : <Trans>Market</Trans>}
               </Typography>
               {market.v3 && (
                 <Box
