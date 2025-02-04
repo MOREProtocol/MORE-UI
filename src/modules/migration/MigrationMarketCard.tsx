@@ -19,7 +19,7 @@ import { MarketDataType } from 'src/ui-config/marketsConfig';
 import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
 
 const formatMarketName = (market: MarketDataType) => {
-  return `Aave ${market.v3 ? 'V3' : 'V2'} - ${market.marketTitle}${market.isFork ? ' Fork' : ''}`;
+  return `More ${market.v3 ? 'V3' : 'V2'} - ${market.marketTitle}${market.isFork ? ' Fork' : ''}`;
 };
 
 type MigrationMarketCardProps = {
