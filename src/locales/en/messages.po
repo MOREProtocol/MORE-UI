@@ -42,10 +42,6 @@ msgstr "To enable E-mode for the {0} category, all borrow positions outside of t
 msgid "Borrowing this amount will reduce your health factor and increase risk of liquidation."
 msgstr "Borrowing this amount will reduce your health factor and increase risk of liquidation."
 
-#: src/ui-config/menu-items/index.tsx
-msgid "FAQ"
-msgstr "FAQ"
-
 #: src/ui-config/errorMapping.tsx
 msgid "Stable borrowing is not enabled"
 msgstr "Stable borrowing is not enabled"
@@ -306,10 +302,6 @@ msgstr "All transactions"
 msgid "Collateral"
 msgstr "Collateral"
 
-#: src/layouts/components/LanguageSwitcher.tsx
-msgid "Spanish"
-msgstr "Spanish"
-
 #: src/modules/dashboard/lists/ListItemAPYButton.tsx
 msgid "SEE CHARTS"
 msgstr "SEE CHARTS"
@@ -324,8 +316,8 @@ msgstr "Signing"
 msgid "Repay {symbol}"
 msgstr "Repay {symbol}"
 
-#: src/ui-config/menu-items/index.tsx
 #: src/modules/markets/MarketsTopPanel.tsx
+#: src/layouts/components/NavItems.tsx
 msgid "Markets"
 msgstr "Markets"
 
@@ -373,8 +365,8 @@ msgstr "Claim all"
 msgid "Data couldn't be fetched, please reload graph."
 msgstr "Data couldn't be fetched, please reload graph."
 
-#: src/ui-config/menu-items/index.tsx
 #: src/modules/dashboard/DashboardTopPanel.tsx
+#: src/layouts/components/NavItems.tsx
 msgid "Dashboard"
 msgstr "Dashboard"
 
@@ -567,12 +559,12 @@ msgstr "Asset category"
 msgid "Borrow APY rate"
 msgstr "Borrow APY rate"
 
-#: src/ui-config/menu-items/index.tsx
 #: src/modules/faucet/FaucetMobileItemLoader.tsx
 #: src/modules/faucet/FaucetItemLoader.tsx
 #: src/modules/faucet/FaucetAssetsList.tsx
 #: src/modules/faucet/FaucetAssetsList.tsx
 #: src/modules/dashboard/lists/ListBottomText.tsx
+#: src/layouts/components/NavItems.tsx
 #: src/components/transactions/Faucet/FaucetModal.tsx
 msgid "Faucet"
 msgstr "Faucet"
@@ -593,10 +585,6 @@ msgstr "Max"
 #: src/components/transactions/Switch/SwitchSlippageSelector.tsx
 msgid "Slippage"
 msgstr "Slippage"
-
-#: src/layouts/components/LanguageSwitcher.tsx
-msgid "Greek"
-msgstr "Greek"
 
 #: src/components/transactions/Switch/SwitchActions.tsx
 #: src/components/transactions/Swap/SwapActions.tsx
@@ -808,7 +796,7 @@ msgstr "You can not use this currency as collateral"
 msgid "Reward(s) to claim"
 msgstr "Reward(s) to claim"
 
-#: src/ui-config/menu-items/index.tsx
+#: src/layouts/components/NavItems.tsx
 msgid "Stake"
 msgstr "Stake"
 
@@ -1451,10 +1439,6 @@ msgstr "enabled"
 msgid "Disabling this asset as collateral affects your borrowing power and Health Factor."
 msgstr "Disabling this asset as collateral affects your borrowing power and Health Factor."
 
-#: src/ui-config/menu-items/index.tsx
-msgid "Buy Crypto With Fiat"
-msgstr "Buy Crypto With Fiat"
-
 #: src/ui-config/errorMapping.tsx
 msgid "Array parameters that should be equal length are not"
 msgstr "Array parameters that should be equal length are not"
@@ -1561,7 +1545,7 @@ msgstr "Per the community, the Fantom market has been frozen."
 msgid "Available"
 msgstr "Available"
 
-#: src/ui-config/menu-items/index.tsx
+#: src/layouts/components/NavItems.tsx
 msgid "Governance"
 msgstr "Governance"
 
@@ -1935,10 +1919,6 @@ msgstr "Asset cannot be migrated due to insufficient liquidity or borrow cap lim
 msgid "We couldn't find any transactions related to your search. Try again with a different asset name, or reset filters."
 msgstr "We couldn't find any transactions related to your search. Try again with a different asset name, or reset filters."
 
-#: src/layouts/components/LanguageSwitcher.tsx
-msgid "English"
-msgstr "English"
-
 #: src/components/isolationMode/IsolatedBadge.tsx
 msgid "Learn more in our <0>FAQ guide</0>"
 msgstr "Learn more in our <0>FAQ guide</0>"
@@ -1980,17 +1960,9 @@ msgstr "User is in isolation mode"
 msgid "Asset cannot be used as collateral."
 msgstr "Asset cannot be used as collateral."
 
-#: src/ui-config/menu-items/index.tsx
-msgid "Developers"
-msgstr "Developers"
-
 #: src/components/transactions/Swap/SwapModalDetails.tsx
 msgid "Supply apy"
 msgstr "Supply apy"
-
-#: src/layouts/components/LanguageSwitcher.tsx
-msgid "French"
-msgstr "French"
 
 #: src/modules/migration/MigrationBottomPanel.tsx
 msgid "Migrating multiple collaterals and borrowed assets at the same time can be an expensive operation and might fail in certain situations.<0>Therefore it’s not recommended to migrate positions with more than 5 assets (deposited + borrowed) at the same time.</0>"
