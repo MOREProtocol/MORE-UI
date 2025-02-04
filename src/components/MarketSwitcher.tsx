@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import React from 'react';
 import { ChevronDownIcon } from '@heroicons/react/outline';
 import {
@@ -153,7 +153,7 @@ export const MarketSwitcher = () => {
                   }}
                 >
                   {getMarketHelpData(market.marketTitle).name} {market.isFork ? 'Fork' : ''}
-                  {upToLG && ' Market'}
+                  {upToLG && !market.marketTitle.includes('Market') && ' Market'}
                 </Typography>
                 {market.v3 ? (
                   <Box
