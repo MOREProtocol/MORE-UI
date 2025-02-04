@@ -1,3 +1,5 @@
+import { MessageDescriptor } from '@lingui/core';
+import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 import { Button, List, ListItem, Typography, useMediaQuery, useTheme } from '@mui/material';
 import * as React from 'react';
@@ -17,6 +19,7 @@ interface NavItemsProps {
 interface Navigation {
   link: string;
   title: string;
+  visibleTitle: MessageDescriptor;
   isVisible?: (data: MarketDataType) => boolean | undefined;
   dataCy?: string;
 }
@@ -28,17 +31,20 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
   const navigation: Navigation[] = [
     {
       link: ROUTES.dashboard,
-      title: i18n._(`Dashboard`),
+      title: 'Dashboard',
+      visibleTitle: msg`Dashboard`,
       dataCy: 'menuDashboard',
     },
     {
       link: ROUTES.markets,
-      title: i18n._(`Markets`),
+      title: 'Markets',
+      visibleTitle: msg`Markets`,
       dataCy: 'menuMarkets',
     },
     {
       link: ROUTES.staking,
-      title: i18n._(`Stake`),
+      title: 'Stake',
+      visibleTitle: msg`Stake`,
       dataCy: 'menuStake',
       isVisible: () =>
         process.env.NEXT_PUBLIC_ENABLE_STAKING === 'true' &&
@@ -47,7 +53,8 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
     },
     {
       link: ROUTES.governance,
-      title: i18n._(`Governance`),
+      title: 'Governance',
+      visibleTitle: msg`Governance`,
       dataCy: 'menuGovernance',
       isVisible: () =>
         process.env.NEXT_PUBLIC_ENABLE_GOVERNANCE === 'true' &&
@@ -56,7 +63,8 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
     },
     {
       link: ROUTES.faucet,
-      title: i18n._(`Faucet`),
+      title: 'Faucet',
+      visibleTitle: msg`Faucet`,
       isVisible: () => process.env.NEXT_PUBLIC_ENV === 'staging' || ENABLE_TESTNET,
     },
   ];
@@ -102,7 +110,7 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
                 sx={{ width: '100%', p: 4 }}
                 onClick={() => handleClick(item.title, true)}
               >
-                {i18n._(item.title)}
+                {i18n._(item.visibleTitle)}
               </Typography>
             ) : (
               <Button
@@ -131,7 +139,7 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
                   },
                 })}
               >
-                {i18n._(item.title)}
+                {i18n._(item.visibleTitle)}
               </Button>
             )}
           </ListItem>
