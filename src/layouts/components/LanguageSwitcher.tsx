@@ -39,7 +39,7 @@ export const LanguageListItem = ({ component = ListItem, onClick }: LanguageList
         <Trans>Language</Trans>
       </ListItemText>
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        {i18n._(langMap[i18n.locale as keyof typeof langMap])}{' '}
+        {langMap[i18n.locale as keyof typeof langMap]}{' '}
         <SvgIcon fontSize="small" sx={{ color: { xs: '#F1F1F3', md: 'text.primary' }, ml: 1 }}>
           <ChevronRightIcon />
         </SvgIcon>
@@ -92,7 +92,7 @@ export const LanguagesList = ({ component = ListItem, onClick }: LanguageListIte
           >
             <img src={`/icons/flags/${lang}.svg`} width="100%" height="100%" alt={`${lang} icon`} />
           </ListItemIcon>
-          <ListItemText>{i18n._(langMap[lang as keyof typeof langMap])}</ListItemText>
+          <ListItemText>{langMap[lang as keyof typeof langMap]}</ListItemText>
           {lang === i18n.locale && (
             <ListItemIcon sx={{ m: 0 }}>
               <SvgIcon fontSize="small" sx={{ color: { xs: '#F1F1F3', md: 'text.primary' } }}>
