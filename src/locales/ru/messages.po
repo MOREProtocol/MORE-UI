@@ -2147,8 +2147,8 @@ msgid "Since this asset is frozen, the only available actions are withdraw and r
 msgstr "Поскольку этот актив заморожен, единственными доступными действиями являются вывод и погашение, доступ к которым можно получить из <0>Личного кабинета</0>"
 
 #: src/modules/dashboard/lists/ListBottomText.tsx
-msgid "Since this is a test network, you can get any of the assets if you have ETH on your wallet"
-msgstr "Так как это тестовая сеть, вы можете получить любой из активов, если у вас есть ETH на кошельке"
+msgid "Since this is a test network, you can get any of the assets if you have FLOW on your wallet"
+msgstr "Так как это тестовая сеть, вы можете получить любой из активов, если у вас есть FLOW на кошельке"
 
 #: src/components/transactions/Switch/SwitchSlippageSelector.tsx
 msgid "Slippage"
@@ -2457,8 +2457,8 @@ msgid "The Aave Protocol is programmed to always use the price of 1 GHO = $1. Th
 msgstr "Протокол Aave запрограммирован на то, чтобы всегда использовать цену 1 GHO = $1. Это отличается от использования рыночного ценообразования через оракулы для других криптоактивов. Это создает стабилизирующие арбитражные возможности при колебаниях цены GHO."
 
 #: src/components/infoTooltips/MaxLTVTooltip.tsx
-msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of ETH in the principal currency for every 1 ETH worth of collateral."
-msgstr "Максимальный коэффициент LTV представляет собой максимальную заемную способность конкретного обеспечения. Например, если залог имеет LTV 75%, пользователь может занять до 0,75 ETH в основной валюте за каждый 1 ETH залога."
+msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of FLOW in the principal currency for every 1 FLOW worth of collateral."
+msgstr "Максимальный коэффициент LTV представляет собой максимальную заемную способность конкретного обеспечения. Например, если залог имеет LTV 75%, пользователь может занять до 0,75 FLOW в основной валюте за каждый 1 FLOW залога."
 
 #: src/components/transactions/Borrow/BorrowModalContent.tsx
 #: src/components/transactions/Borrow/GhoBorrowModalContent.tsx

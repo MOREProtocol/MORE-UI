@@ -2147,8 +2147,8 @@ msgid "Since this asset is frozen, the only available actions are withdraw and r
 msgstr "Étant donné que cet actif est gelé, les seules actions disponibles sont le retrait et le remboursement, accessibles depuis le <0>tableau de bord</0>"
 
 #: src/modules/dashboard/lists/ListBottomText.tsx
-msgid "Since this is a test network, you can get any of the assets if you have ETH on your wallet"
-msgstr "Comme il s'agit d'un réseau de test, vous pouvez obtenir n'importe lequel des actifs si vous avez ETH dans votre portefeuille"
+msgid "Since this is a test network, you can get any of the assets if you have FLOW on your wallet"
+msgstr "Comme il s'agit d'un réseau de test, vous pouvez obtenir n'importe lequel des actifs si vous avez FLOW dans votre portefeuille"
 
 #: src/components/transactions/Switch/SwitchSlippageSelector.tsx
 msgid "Slippage"
@@ -2457,8 +2457,8 @@ msgid "The Aave Protocol is programmed to always use the price of 1 GHO = $1. Th
 msgstr "Le protocole Aave est programmé pour toujours utiliser le prix de 1 GHO = 1 $. C’est différent de l’utilisation des prix du marché via des oracles pour d’autres actifs cryptographiques. Cela crée des opportunités d’arbitrage stabilisatrices lorsque le prix du GHO fluctue."
 
 #: src/components/infoTooltips/MaxLTVTooltip.tsx
-msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of ETH in the principal currency for every 1 ETH worth of collateral."
-msgstr "Le ratio LTV maximum représente le pouvoir d'emprunt maximum d'une garantie spécifique. Par exemple, si une garantie a un LTV de 75 %, l'utilisateur peut emprunter jusqu'à 0,75 ETH dans la devise principale pour chaque 1 ETH de garantie."
+msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of FLOW in the principal currency for every 1 FLOW worth of collateral."
+msgstr "Le ratio LTV maximum représente le pouvoir d'emprunt maximum d'une garantie spécifique. Par exemple, si une garantie a un LTV de 75 %, l'utilisateur peut emprunter jusqu'à 0,75 FLOW dans la devise principale pour chaque 1 FLOW de garantie."
 
 #: src/components/transactions/Borrow/BorrowModalContent.tsx
 #: src/components/transactions/Borrow/GhoBorrowModalContent.tsx

@@ -2147,8 +2147,8 @@ msgid "Since this asset is frozen, the only available actions are withdraw and r
 msgstr "Dado que este activo está congelado, las únicas acciones disponibles son retirar y pagar, a las que se puede acceder desde el <0>Panel de control</0>"
 
 #: src/modules/dashboard/lists/ListBottomText.tsx
-msgid "Since this is a test network, you can get any of the assets if you have ETH on your wallet"
-msgstr "Puesto que esta es una red de pruebas, puedes obtener cualquiera de los activos si tienes ETH en tu cartera"
+msgid "Since this is a test network, you can get any of the assets if you have FLOW on your wallet"
+msgstr "Puesto que esta es una red de pruebas, puedes obtener cualquiera de los activos si tienes FLOW en tu cartera"
 
 #: src/components/transactions/Switch/SwitchSlippageSelector.tsx
 msgid "Slippage"
@@ -2457,8 +2457,8 @@ msgid "The Aave Protocol is programmed to always use the price of 1 GHO = $1. Th
 msgstr "El Protocolo Aave está programado para usar siempre el precio de 1 GHO = $1. Esto es diferente del uso del precio de mercado a través de oráculos para otros criptoactivos. Esto crea oportunidades de arbitraje estabilizadoras cuando el precio de GHO fluctúa."
 
 #: src/components/infoTooltips/MaxLTVTooltip.tsx
-msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of ETH in the principal currency for every 1 ETH worth of collateral."
-msgstr "El ratio LTV máximo representa el poder de endeudamiento máximo de una garantía específica. Por ejemplo, si una garantía tiene un LTV del 75 %, el usuario puede pedir prestado hasta 0,75 ETH en la moneda principal por cada 1 ETH de garantía."
+msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of FLOW in the principal currency for every 1 FLOW worth of collateral."
+msgstr "El ratio LTV máximo representa el poder de endeudamiento máximo de una garantía específica. Por ejemplo, si una garantía tiene un LTV del 75 %, el usuario puede pedir prestado hasta 0,75 FLOW en la moneda principal por cada 1 FLOW de garantía."
 
 #: src/components/transactions/Borrow/BorrowModalContent.tsx
 #: src/components/transactions/Borrow/GhoBorrowModalContent.tsx

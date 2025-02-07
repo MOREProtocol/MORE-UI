@@ -2147,8 +2147,8 @@ msgid "Since this asset is frozen, the only available actions are withdraw and r
 msgstr "Da dieses Vermögen eingefroren ist, sind die einzigen verfügbaren Aktionen Abhebung und Rückzahlung, auf die über das <0>Dashboard</0> zugegriffen werden kann"
 
 #: src/modules/dashboard/lists/ListBottomText.tsx
-msgid "Since this is a test network, you can get any of the assets if you have ETH on your wallet"
-msgstr "Da es sich um ein Testnetzwerk handelt, können Sie alle Vermögenswerte erhalten, wenn Sie ETH in Ihrer Brieftasche haben"
+msgid "Since this is a test network, you can get any of the assets if you have FLOW on your wallet"
+msgstr "Da es sich um ein Testnetzwerk handelt, können Sie alle Vermögenswerte erhalten, wenn Sie FLOW in Ihrer Brieftasche haben"
 
 #: src/components/transactions/Switch/SwitchSlippageSelector.tsx
 msgid "Slippage"
@@ -2457,8 +2457,8 @@ msgid "The Aave Protocol is programmed to always use the price of 1 GHO = $1. Th
 msgstr "Das Aave-Protokoll ist so programmiert, dass es immer den Preis von 1 GHO = 1 $ verwendet. Dies unterscheidet sich von der Verwendung von Marktpreisen über Orakel für andere Krypto-Assets. Dies schafft stabilisierende Arbitragemöglichkeiten, wenn der GHO-Preis schwankt."
 
 #: src/components/infoTooltips/MaxLTVTooltip.tsx
-msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of ETH in the principal currency for every 1 ETH worth of collateral."
-msgstr "Die maximale Beleihungsquote stellt die maximale Fremdkapitalkraft einer bestimmten Sicherheit dar. Wenn eine Sicherheit beispielsweise einen LTV von 75 % hat, kann der Benutzer für jede Sicherheit im Wert von 1 ETH bis zu 0,75 in der Hauptwährung leihen."
+msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of FLOW in the principal currency for every 1 FLOW worth of collateral."
+msgstr "Die maximale Beleihungsquote stellt die maximale Fremdkapitalkraft einer bestimmten Sicherheit dar. Wenn eine Sicherheit beispielsweise einen LTV von 75 % hat, kann der Benutzer für jede Sicherheit im Wert von 1 FLOW bis zu 0,75 in der Hauptwährung leihen."
 
 #: src/components/transactions/Borrow/BorrowModalContent.tsx
 #: src/components/transactions/Borrow/GhoBorrowModalContent.tsx
