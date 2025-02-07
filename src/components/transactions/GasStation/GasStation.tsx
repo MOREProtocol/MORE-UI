@@ -75,7 +75,7 @@ export const GasStation: React.FC<GasStationProps> = ({
             poolReserves?.baseCurrencyData.networkBaseTokenPriceInUsd,
             poolReserves?.baseCurrencyData.networkBaseTokenPriceDecimals
           )
-        )
+        ) * 1e15
       : undefined;
 
   return (
