@@ -2147,8 +2147,8 @@ msgid "Since this asset is frozen, the only available actions are withdraw and r
 msgstr ""
 
 #: src/modules/dashboard/lists/ListBottomText.tsx
-msgid "Since this is a test network, you can get any of the assets if you have ETH on your wallet"
-msgstr "Δεδομένου ότι πρόκειται για ένα δοκιμαστικό δίκτυο, μπορείτε να αποκτήσετε οποιοδήποτε από τα περιουσιακά στοιχεία αν έχετε ETH στο πορτοφόλι σας"
+msgid "Since this is a test network, you can get any of the assets if you have FLOW on your wallet"
+msgstr "Δεδομένου ότι πρόκειται για ένα δοκιμαστικό δίκτυο, μπορείτε να αποκτήσετε οποιοδήποτε από τα περιουσιακά στοιχεία αν έχετε FLOW στο πορτοφόλι σας"
 
 #: src/components/transactions/Switch/SwitchSlippageSelector.tsx
 msgid "Slippage"
@@ -2458,8 +2458,8 @@ msgid "The Aave Protocol is programmed to always use the price of 1 GHO = $1. Th
 msgstr ""
 
 #: src/components/infoTooltips/MaxLTVTooltip.tsx
-msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of ETH in the principal currency for every 1 ETH worth of collateral."
-msgstr "Ο δείκτης μέγιστου LTV αντιπροσωπεύει τη μέγιστη δανειοληπτική ικανότητα μιας συγκεκριμένης εγγύησης. Για παράδειγμα, εάν μια εγγύηση έχει LTV 75%, ο χρήστης μπορεί να δανειστεί έως και 0,75 ETH στο κύριο νόμισμα για κάθε 1 ETH αξίας εγγύησης."
+msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of FLOW in the principal currency for every 1 FLOW worth of collateral."
+msgstr "Ο δείκτης μέγιστου LTV αντιπροσωπεύει τη μέγιστη δανειοληπτική ικανότητα μιας συγκεκριμένης εγγύησης. Για παράδειγμα, εάν μια εγγύηση έχει LTV 75%, ο χρήστης μπορεί να δανειστεί έως και 0,75 FLOW στο κύριο νόμισμα για κάθε 1 FLOW αξίας εγγύησης."
 
 #: src/components/transactions/Borrow/BorrowModalContent.tsx
 #: src/components/transactions/Borrow/GhoBorrowModalContent.tsx

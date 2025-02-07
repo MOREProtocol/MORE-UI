@@ -44,7 +44,7 @@ export const UserNameText: React.FC<UserNameTextProps> = ({
         {domainName ? domainName : address}
       </CompactableTypography>
       {link && (
-        <DarkTooltip title="View on Etherscan">
+        <DarkTooltip title="View on Scan">
           <Link
             href={link}
             target="_blank"

@@ -472,8 +472,8 @@ msgid "Underlying token"
 msgstr "Underlying token"
 
 #: src/modules/dashboard/lists/ListBottomText.tsx
-msgid "Since this is a test network, you can get any of the assets if you have ETH on your wallet"
-msgstr "Since this is a test network, you can get any of the assets if you have ETH on your wallet"
+msgid "Since this is a test network, you can get any of the assets if you have FLOW on your wallet"
+msgstr "Since this is a test network, you can get any of the assets if you have FLOW on your wallet"
 
 #: src/modules/staking/BuyWithFiatModal.tsx
 msgid "Choose one of the on-ramp services"
@@ -1273,8 +1273,8 @@ msgid "These funds have been borrowed and are not available for withdrawal at th
 msgstr "These funds have been borrowed and are not available for withdrawal at this time."
 
 #: src/components/infoTooltips/MaxLTVTooltip.tsx
-msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of ETH in the principal currency for every 1 ETH worth of collateral."
-msgstr "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of ETH in the principal currency for every 1 ETH worth of collateral."
+msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of FLOW in the principal currency for every 1 FLOW worth of collateral."
+msgstr "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of FLOW in the principal currency for every 1 FLOW worth of collateral."
 
 #: src/modules/dashboard/DashboardEModeButton.tsx
 msgid "Switch E-Mode category"

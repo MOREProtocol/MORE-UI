@@ -2147,8 +2147,8 @@ msgid "Since this asset is frozen, the only available actions are withdraw and r
 msgstr "由于此资产已冻结，因此唯一可用的操作是提款和还款，可以从<0>仪表板</0>访问"
 
 #: src/modules/dashboard/lists/ListBottomText.tsx
-msgid "Since this is a test network, you can get any of the assets if you have ETH on your wallet"
-msgstr "由于这是一个测试网络，如果您的钱包中有 ETH，您可以获得任何资产"
+msgid "Since this is a test network, you can get any of the assets if you have FLOW on your wallet"
+msgstr "由于这是一个测试网络，如果您的钱包中有 FLOW，您可以获得任何资产"
 
 #: src/components/transactions/Switch/SwitchSlippageSelector.tsx
 msgid "Slippage"
@@ -2457,8 +2457,8 @@ msgid "The Aave Protocol is programmed to always use the price of 1 GHO = $1. Th
 msgstr "Aave 协议被编程为始终使用 1 GHO = 1 美元的价格。这与通过预言机对其他加密资产使用市场定价不同。当GHO的价格波动时，这创造了稳定的套利机会。"
 
 #: src/components/infoTooltips/MaxLTVTooltip.tsx
-msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of ETH in the principal currency for every 1 ETH worth of collateral."
-msgstr "最高 LTV 比率代表特定抵押品的最大借贷能力。例如，如果抵押品的 LTV 为 75%，则用户每 1 个 ETH 抵押品最多可以借入价值 0.75 的 ETH。"
+msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of FLOW in the principal currency for every 1 FLOW worth of collateral."
+msgstr "最高 LTV 比率代表特定抵押品的最大借贷能力。例如，如果抵押品的 LTV 为 75%，则用户每 1 个 FLOW 抵押品最多可以借入价值 0.75 的 FLOW。"
 
 #: src/components/transactions/Borrow/BorrowModalContent.tsx
 #: src/components/transactions/Borrow/GhoBorrowModalContent.tsx
