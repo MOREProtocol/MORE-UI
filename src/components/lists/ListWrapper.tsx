@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { Box, BoxProps, Paper, PaperProps, Typography } from '@mui/material';
 import { ReactNode, useState } from 'react';
 import { useRootStore } from 'src/store/root';
@@ -11,6 +11,7 @@ interface ListWrapperProps {
   localStorageName?: string;
   subTitleComponent?: ReactNode;
   subChildrenComponent?: ReactNode;
+  filterComponent?: ReactNode;
   topInfo?: ReactNode;
   children: ReactNode;
   withTopMargin?: boolean;
@@ -26,6 +27,7 @@ export const ListWrapper = ({
   titleComponent,
   subTitleComponent,
   subChildrenComponent,
+  filterComponent,
   topInfo,
   withTopMargin,
   noData,
@@ -160,6 +162,15 @@ export const ListWrapper = ({
             <span />
           </Box>
         )}
+      </Box>
+
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
+        {filterComponent}
       </Box>
 
       {topInfo && (

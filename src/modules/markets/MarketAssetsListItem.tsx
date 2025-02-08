@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { Box, Button, Typography } from '@mui/material';
 import { useRouter } from 'next/router';
 import { OffboardingTooltip } from 'src/components/infoTooltips/OffboardingToolTip';
@@ -7,6 +7,8 @@ import { IsolatedEnabledBadge } from 'src/components/isolationMode/IsolatedBadge
 import { NoData } from 'src/components/primitives/NoData';
 import { ReserveSubheader } from 'src/components/ReserveSubheader';
 import { AssetsBeingOffboarded } from 'src/components/Warnings/OffboardingWarning';
+import { WalletBalancesMap } from 'src/hooks/app-data-provider/useWalletBalances';
+import { useModalContext } from 'src/hooks/useModal';
 import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
 import { useRootStore } from 'src/store/root';
 import { MARKETS } from 'src/utils/mixPanelEvents';
@@ -16,14 +18,26 @@ import { AMPLToolTip } from '../../components/infoTooltips/AMPLToolTip';
 import { ListColumn } from '../../components/lists/ListColumn';
 import { ListItem } from '../../components/lists/ListItem';
 import { FormattedNumber } from '../../components/primitives/FormattedNumber';
-import { Link, ROUTES } from '../../components/primitives/Link';
+import { ROUTES } from '../../components/primitives/Link';
 import { TokenIcon } from '../../components/primitives/TokenIcon';
 import { ComputedReserveData } from '../../hooks/app-data-provider/useAppDataProvider';
 
-export const MarketAssetsListItem = ({ ...reserve }: ComputedReserveData) => {
+export const MarketAssetsListItem = ({
+  reserve,
+  walletBalances,
+}: {
+  reserve: ComputedReserveData;
+  walletBalances: WalletBalancesMap;
+}) => {
   const router = useRouter();
   const { currentMarket } = useProtocolDataContext();
+  const { openSupply, openBorrow } = useModalContext();
   const trackEvent = useRootStore((store) => store.trackEvent);
+
+  // Does not seem to work
+  const disableSupply = !reserve.isActive || Number(walletBalances[reserve.underlyingAsset]) <= 0;
+  const disableBorrow =
+    !reserve.isActive || !reserve.borrowingEnabled || reserve.isFrozen || reserve.isPaused;
 
   const offboardingDiscussion = AssetsBeingOffboarded[currentMarket]?.[reserve.symbol];
 
@@ -123,22 +137,29 @@ export const MarketAssetsListItem = ({ ...reserve }: ComputedReserveData) => {
         )}
       </ListColumn> */}
 
-      <ListColumn minWidth={95} maxWidth={95} align="right">
-        <Button
-          variant="outlined"
-          component={Link}
-          href={ROUTES.reserveOverview(reserve.underlyingAsset, currentMarket)}
-          onClick={() =>
-            trackEvent(MARKETS.DETAILS_NAVIGATION, {
-              type: 'Button',
-              assetName: reserve.name,
-              asset: reserve.underlyingAsset,
-              market: currentMarket,
-            })
-          }
-        >
-          <Trans>Details</Trans>
-        </Button>
+      <ListColumn minWidth={180} maxWidth={180} align="right">
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            disabled={disableSupply}
+            variant="contained"
+            onClick={(event) => {
+              event.stopPropagation();
+              openSupply(reserve.underlyingAsset, currentMarket, reserve.name, 'dashboard');
+            }}
+          >
+            <Trans>Supply</Trans>
+          </Button>
+          <Button
+            disabled={disableBorrow}
+            variant="contained"
+            onClick={(event) => {
+              event.stopPropagation();
+              openBorrow(reserve.underlyingAsset, currentMarket, reserve.name, 'dashboard');
+            }}
+          >
+            <Trans>Borrow</Trans>
+          </Button>
+        </Box>
       </ListColumn>
     </ListItem>
   );
