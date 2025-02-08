@@ -1,5 +1,5 @@
-import { Trans } from "@lingui/react/macro";
 import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
+import { Trans } from '@lingui/react/macro';
 import { Box, Switch, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { useState } from 'react';
 import { ListWrapper } from 'src/components/lists/ListWrapper';
@@ -9,6 +9,7 @@ import { Warning } from 'src/components/primitives/Warning';
 import { TitleWithSearchBar } from 'src/components/TitleWithSearchBar';
 import { MarketWarning } from 'src/components/transactions/Warnings/MarketWarning';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
 import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
 import MarketAssetsList from 'src/modules/markets/MarketAssetsList';
 import { useRootStore } from 'src/store/root';
@@ -16,14 +17,29 @@ import { fetchIconSymbolAndName } from 'src/ui-config/reservePatches';
 import { getGhoReserve, GHO_SUPPORTED_MARKETS, GHO_SYMBOL } from 'src/utils/ghoUtilities';
 
 import { GENERAL } from '../../utils/mixPanelEvents';
+import {
+  applyFilters,
+  DEFAULT_FILTERS,
+  FilterComponent,
+  FilterState,
+} from './MarketAssetsListFilters';
 
 export const MarketAssetsListContainer = () => {
   const { reserves, loading } = useAppDataContext();
   const { currentMarket, currentMarketData, currentNetworkConfig } = useProtocolDataContext();
+  const { walletBalances, loading: walletLoading } = useWalletBalances(currentMarketData);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const { breakpoints } = useTheme();
   const sm = useMediaQuery(breakpoints.down('sm'));
   const trackEvent = useRootStore((store) => store.trackEvent);
+
+  const handleFiltersChange = (newFilters: Partial<FilterState>) => {
+    setFilters((prevFilters) => ({
+      ...prevFilters,
+      ...newFilters,
+    }));
+  };
 
   const ghoReserve = getGhoReserve(reserves);
   const filteredData = reserves
@@ -41,6 +57,8 @@ export const MarketAssetsListContainer = () => {
         res.underlyingAsset.toLowerCase().includes(term)
       );
     })
+    // Apply numeric filters
+    .filter((res) => applyFilters([res], filters).length > 0)
     // Transform the object for list to consume it
     .map((reserve) => ({
       ...reserve,
@@ -93,6 +111,7 @@ export const MarketAssetsListContainer = () => {
           searchPlaceholder={sm ? 'Search asset' : 'Search asset name, symbol, or address'}
         />
       }
+      filterComponent={<FilterComponent filters={filters} onFiltersChange={handleFiltersChange} />}
     >
       {showFrozenMarketWarning && (
         <Box mx={6}>
@@ -101,7 +120,11 @@ export const MarketAssetsListContainer = () => {
       )}
 
       {/* Unfrozen assets list */}
-      <MarketAssetsList reserves={unfrozenReserves} loading={loading} />
+      <MarketAssetsList
+        reserves={unfrozenReserves}
+        loading={loading}
+        walletBalances={walletBalances}
+      />
 
       {/* Frozen or paused assets list */}
       {frozenOrPausedReserves.length > 0 && (
@@ -140,7 +163,11 @@ export const MarketAssetsListContainer = () => {
         </Box>
       )}
       {showFrozenMarketsToggle && (
-        <MarketAssetsList reserves={frozenOrPausedReserves} loading={loading} />
+        <MarketAssetsList
+          reserves={frozenOrPausedReserves}
+          loading={loading}
+          walletBalances={walletBalances}
+        />
       )}
 
       {/* Show no search results message if nothing hits in either list */}
