@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { useMediaQuery } from '@mui/material';
 import { useState } from 'react';
 import { VariableAPYTooltip } from 'src/components/infoTooltips/VariableAPYTooltip';
@@ -6,6 +6,7 @@ import { ListColumn } from 'src/components/lists/ListColumn';
 import { ListHeaderTitle } from 'src/components/lists/ListHeaderTitle';
 import { ListHeaderWrapper } from 'src/components/lists/ListHeaderWrapper';
 import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { WalletBalancesMap } from 'src/hooks/app-data-provider/useWalletBalances';
 
 import { MarketAssetsListItem } from './MarketAssetsListItem';
 import { MarketAssetsListItemLoader } from './MarketAssetsListItemLoader';
@@ -54,9 +55,14 @@ const listHeaders = [
 type MarketAssetsListProps = {
   reserves: ComputedReserveData[];
   loading: boolean;
+  walletBalances: WalletBalancesMap;
 };
 
-export default function MarketAssetsList({ reserves, loading }: MarketAssetsListProps) {
+export default function MarketAssetsList({
+  reserves,
+  loading,
+  walletBalances,
+}: MarketAssetsListProps) {
   const isTableChangedToCards = useMediaQuery('(max-width:1125px)');
   const [sortName, setSortName] = useState('');
   const [sortDesc, setSortDesc] = useState(false);
@@ -121,7 +127,8 @@ export default function MarketAssetsList({ reserves, loading }: MarketAssetsList
               </ListHeaderTitle>
             </ListColumn>
           ))}
-          <ListColumn maxWidth={95} minWidth={95} />
+          {/* Width for buttons */}
+          <ListColumn maxWidth={180} minWidth={180} />
         </ListHeaderWrapper>
       )}
 
@@ -129,7 +136,11 @@ export default function MarketAssetsList({ reserves, loading }: MarketAssetsList
         isTableChangedToCards ? (
           <MarketAssetsListMobileItem {...reserve} key={reserve.id} />
         ) : (
-          <MarketAssetsListItem {...reserve} key={reserve.id} />
+          <MarketAssetsListItem
+            reserve={reserve}
+            key={reserve.id}
+            walletBalances={walletBalances}
+          />
         )
       )}
     </>
