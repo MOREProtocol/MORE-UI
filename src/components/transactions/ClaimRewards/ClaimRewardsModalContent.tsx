@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { ChainId } from '@aave/contract-helpers';
 import { normalize, UserIncentiveData } from '@aave/math-utils';
 import { Box, Typography } from '@mui/material';
@@ -62,8 +62,8 @@ export const ClaimRewardsModalContent = ({ user, reserves }: ClaimRewardsModalCo
       // getting price from reserves for the native rewards for v2 markets
       if (!currentMarketData.v3 && Number(rewardBalance) > 0) {
         if (currentMarketData.chainId === ChainId.mainnet) {
-          const aave = reserves.find((reserve) => reserve.symbol === 'AAVE');
-          tokenPrice = aave ? Number(aave.priceInUSD) : 0;
+          const moreToken = reserves.find((reserve) => reserve.symbol === 'MORE');
+          tokenPrice = moreToken ? Number(moreToken.priceInUSD) : 0;
         } else {
           reserves.forEach((reserve) => {
             if (reserve.isWrappedBaseAsset) {

@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { valueToBigNumber } from '@aave/math-utils';
 import { Button, Link, Popper, Stack, styled, SvgIcon, Tooltip, Typography } from '@mui/material';
 import BigNumber from 'bignumber.js';
@@ -55,8 +55,8 @@ export default function HALLink({ healthFactor, marketName, integrationURL }: Pr
     url.searchParams.set('user', currentAccount);
     url.searchParams.set('healthfactor', formattedHealthFactor);
     url.searchParams.set('chain', marketName);
-    url.searchParams.set('aaveversion', marketName);
-    url.searchParams.set('utm_source', 'aave-integration');
+    url.searchParams.set('moreversion', marketName);
+    url.searchParams.set('utm_source', 'more-integration');
 
     return url.toString();
   }, [currentAccount, healthFactor, marketName, integrationURL]);
@@ -70,23 +70,6 @@ export default function HALLink({ healthFactor, marketName, integrationURL }: Pr
         <Stack sx={{ py: 4, px: 6 }} spacing={1}>
           <Typography variant="tooltip" color="text.secondary" fontWeight={500}>
             <Trans>Setup notifications about your Health Factor using the Hal app.</Trans>
-          </Typography>
-          <Typography variant="tooltip" color="text.secondary" fontWeight={500}>
-            <Trans>
-              This integration was
-              <Link
-                mx={1}
-                variant="tooltip"
-                color="text.secondary"
-                fontWeight={500}
-                target="_blank"
-                rel="noopener"
-                href="https://snapshot.org/#/aave.eth/proposal/0xa730caeec3c28e014ff456b454186ef41c6c1f382cf0a7caa3d99c4ae16c8318"
-              >
-                proposed and approved
-              </Link>
-              by the community.
-            </Trans>
           </Typography>
         </Stack>
       }

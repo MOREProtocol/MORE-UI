@@ -67,20 +67,6 @@ export function AppFooter() {
       label: <Trans>Send feedback</Trans>,
       key: 'Send feedback',
     },
-    // {
-    //   href: 'https://docs.aave.com/faq/',
-    //   label: <Trans>FAQS</Trans>,
-    //   key: 'FAQS',
-    // },
-    // {
-    //   href: 'https://discord.com/invite/aave',
-    //   label: <Trans>Send feedback</Trans>,
-    //   key: 'Send feedback',
-    //   onClick: (event: React.MouseEvent) => {
-    //     event.preventDefault();
-    //     setFeedbackOpen(true);
-    //   },
-    // },
     {
       href: '/',
       label: <Trans>Manage analytics</Trans>,

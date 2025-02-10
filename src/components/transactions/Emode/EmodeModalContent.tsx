@@ -192,7 +192,7 @@ export const EmodeModalContent = ({
               Enabling E-Mode only allows you to borrow assets belonging to the selected category.
               Please visit our{' '}
               <Link
-                href="https://docs.aave.com/faq/aave-v3-features#high-efficiency-mode-e-mode"
+                href="https://docs.more.markets/faq/more-markets-features#high-efficiency-mode-e-mode"
                 target="_blank"
                 rel="noopener"
               >

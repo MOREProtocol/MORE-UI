@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { ExternalLinkIcon } from '@heroicons/react/solid';
 import { Box, Button, Divider, SvgIcon } from '@mui/material';
 import { getFrozenProposalLink } from 'src/components/infoTooltips/FrozenTooltip';
@@ -51,10 +51,7 @@ export const ReserveConfiguration: React.FC<ReserveConfigurationProps> = ({ rese
           <Warning sx={{ mt: '16px', mb: '40px' }} severity="error">
             <Trans>
               This asset is frozen due to an More community decision.{' '}
-              <Link
-                href={getFrozenProposalLink(reserve.symbol, currentMarket)}
-                sx={{ textDecoration: 'underline' }}
-              >
+              <Link href={getFrozenProposalLink()} sx={{ textDecoration: 'underline' }}>
                 <Trans>More details</Trans>
               </Link>
             </Trans>
@@ -79,7 +76,7 @@ export const ReserveConfiguration: React.FC<ReserveConfigurationProps> = ({ rese
                 impacted.{' '}
                 <Link
                   href={
-                    'https://governance.aave.com/t/arfc-add-mai-to-arbitrum-aave-v3-market/12759/8'
+                    'https://governance.more.markets/t/arfc-add-mai-to-arbitrum-more-market/12759/8'
                   }
                   sx={{ textDecoration: 'underline' }}
                 >
@@ -115,7 +112,7 @@ export const ReserveConfiguration: React.FC<ReserveConfigurationProps> = ({ rese
             <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
               {!reserve.borrowingEnabled && (
                 <Warning sx={{ mb: '40px' }} severity="error">
-                  <BorrowDisabledWarning symbol={reserve.symbol} currentMarket={currentMarket} />
+                  <BorrowDisabledWarning />
                 </Warning>
               )}
               <BorrowInfo

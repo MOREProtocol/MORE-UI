@@ -19,7 +19,7 @@ import { Link } from '../components/primitives/Link';
 import { moreNavigation } from '../ui-config/menu-items';
 import { DarkModeSwitcher } from './components/DarkModeSwitcher';
 import { DrawerWrapper } from './components/DrawerWrapper';
-import { LanguageListItem, LanguagesList } from './components/LanguageSwitcher';
+// import { LanguageListItem } from './components/LanguageSwitcher';
 import { MobileCloseButton } from './components/MobileCloseButton';
 import { NavItems } from './components/NavItems';
 import { TestNetModeSwitcher } from './components/TestNetModeSwitcher';
@@ -77,7 +77,7 @@ export const MobileMenu = ({ open, setOpen, headerHeight }: MobileMenuProps) => 
               <List>
                 <DarkModeSwitcher />
                 {PROD_ENV && <TestNetModeSwitcher />}
-                <LanguageListItem onClick={() => setIsLanguagesListOpen(true)} />
+                {/* <LanguageListItem onClick={() => setIsLanguagesListOpen(true)} /> */}
               </List>
             </MenuItemsWrapper>
             <MenuItemsWrapper title={<Trans>Links</Trans>}>
@@ -89,10 +89,10 @@ export const MobileMenu = ({ open, setOpen, headerHeight }: MobileMenuProps) => 
                   onClick={() => setOpen(false)}
                 >
                   <ListItemText>
-                    <Trans>Migrate to Aave V3</Trans>
+                    <Trans>Migrate to More</Trans>
                   </ListItemText>
                 </ListItem>
-                {moreNavigation.length > 0 ? (
+                {moreNavigation.length > 0 &&
                   moreNavigation.map((item, index) => (
                     <ListItem
                       component={Link}
@@ -103,20 +103,17 @@ export const MobileMenu = ({ open, setOpen, headerHeight }: MobileMenuProps) => 
                       <ListItemIcon sx={{ minWidth: 'unset', mr: 3 }}>
                         <SvgIcon sx={{ fontSize: '20px', color: '#F1F1F3' }}>{item.icon}</SvgIcon>
                       </ListItemIcon>
-
                       <ListItemText>{i18n._(item.title)}</ListItemText>
                     </ListItem>
-                  ))
-                ) : (
-                  <></>
-                )}
+                  ))}
               </List>
             </MenuItemsWrapper>
           </>
         ) : (
-          <List sx={{ px: 2 }}>
-            <LanguagesList onClick={() => setIsLanguagesListOpen(false)} />
-          </List>
+          <></>
+          // <List sx={{ px: 2 }}>
+          //   <LanguagesList onClick={() => setIsLanguagesListOpen(false)} />
+          // </List>
         )}
       </DrawerWrapper>
     </>

@@ -551,7 +551,7 @@ msgstr ""
 msgid "You can only switch to tokens with variable APY types. After this transaction, you may change the variable rate to a stable one if available."
 msgstr "Solo puedes cambiar a tokens con tipos de APY variables. Después de esta transacción, puedes cambiar la tasa variable a una estable si está disponible."
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "Supplying your "
 msgstr ""
 
@@ -905,7 +905,7 @@ msgstr "La tasa de interés variable <0>fluctuará</0> según las condiciones de
 
 #: src/ui-config/errorMapping.tsx
 msgid "MToken supply is not zero"
-msgstr "El balance de AToken no es cero"
+msgstr "El balance de MToken no es cero"
 
 #: src/ui-config/errorMapping.tsx
 msgid "Borrow and repay in same block is not allowed"
@@ -950,7 +950,7 @@ msgstr "Más información aquí."
 msgid "Maximum amount received"
 msgstr ""
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "staking view"
 msgstr "vista de stakeo"
 
@@ -1407,7 +1407,7 @@ msgstr "Si tu relación préstamo-valor supera el umbral de liquidación, tu gar
 msgid "Interest rate rebalance conditions were not met"
 msgstr "No se cumplieron las condiciones de ajuste de tasas de interés"
 
-#. placeholder {0}: addToken && addToken.aToken ? 'aToken ' : 'token '
+#. placeholder {0}: addToken && addToken.mToken ? 'mToken ' : 'token '
 #: src/components/transactions/FlowCommons/Success.tsx
 msgid "Add {0} to wallet to track your balance."
 msgstr "Añade {0} a tu cartera para hacer un seguimiento del balance."
@@ -1530,7 +1530,7 @@ msgstr "Estos activos están temporalmente congelados o pausados por decisiones 
 msgid "Per the community, the V2 AMM market has been deprecated."
 msgstr "De acuerdo con la comunidad, el mercado V2 AMM se ha quedado obsoleto."
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "tokens is not the same as staking them. If you wish to stake your "
 msgstr ""
 
@@ -2035,7 +2035,7 @@ msgstr "Sin resultados"
 msgid "Signatures ready"
 msgstr "Firmas listas"
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "tokens, please go to the "
 msgstr ""
 

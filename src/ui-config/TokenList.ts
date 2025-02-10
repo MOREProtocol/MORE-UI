@@ -85,7 +85,7 @@ export const TOKEN_LIST: TokenList = {
   },
   tags: {},
   logoURI: 'ipfs://QmNa8mQkrNKp1WEEeGjFezDmDeodkWRevGFN8JCV7b4Xir',
-  keywords: ['aave', 'default'],
+  keywords: ['moremarkets', 'more'],
   tokens: [
     ...NETWORK_ASSETS,
     {

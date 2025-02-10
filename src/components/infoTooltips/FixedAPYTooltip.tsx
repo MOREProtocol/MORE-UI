@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { GENERAL } from 'src/utils/mixPanelEvents';
 
 import { Link } from '../primitives/Link';
@@ -8,10 +8,10 @@ type FixedToolTipProps = TextWithTooltipProps;
 
 export const FixedAPYTooltipText = (
   <Trans>
-    Interest rate that is determined by Aave Governance. This rate may be changed over time
+    Interest rate that is determined by More Governance. This rate may be changed over time
     depending on the need for the GHO supply to contract/expand.{' '}
     <Link
-      href="https://docs.gho.xyz/concepts/how-gho-works/interest-rate-discount-model#interest-rate-model"
+      href="https://docs.more.markets/concepts/how-gho-works/interest-rate-discount-model#interest-rate-model"
       underline="always"
     >
       <Trans>Learn more</Trans>

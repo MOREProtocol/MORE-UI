@@ -370,7 +370,7 @@ const SwitchTargetSelectOption = ({ asset }: { asset: SwitchTargetAsset }) => {
   return (
     <>
       <TokenIcon
-        aToken={asset.aToken}
+        mToken={asset.mToken}
         symbol={asset.iconSymbol || asset.symbol}
         sx={{ fontSize: '22px', mr: 1 }}
       />

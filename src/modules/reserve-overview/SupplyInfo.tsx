@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { valueToBigNumber } from '@aave/math-utils';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { AlertTitle, Box, Typography } from '@mui/material';
@@ -40,7 +40,7 @@ export const SupplyInfo = ({
   debtCeiling,
 }: SupplyInfoProps) => {
   return (
-    (<Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
+    <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
       <Box
         sx={{
           display: 'flex',
@@ -50,7 +50,7 @@ export const SupplyInfo = ({
       >
         {showSupplyCapStatus ? (
           // With supply cap
-          (<>
+          <>
             <CapsCircularStatus
               value={supplyCap.percentUsed}
               tooltipContent={
@@ -98,7 +98,7 @@ export const SupplyInfo = ({
                         the asset and to help manage risks involved.
                       </Trans>{' '}
                       <Link
-                        href="https://docs.aave.com/developers/whats-new/supply-borrow-caps"
+                        href="https://docs.more.markets/developers/whats-new/supply-borrow-caps"
                         underline="always"
                       >
                         <Trans>Learn more</Trans>
@@ -133,10 +133,10 @@ export const SupplyInfo = ({
                 <ReserveSubheader value={reserve.supplyCapUSD} />
               </Box>
             </PanelItem>
-          </>)
+          </>
         ) : (
           // Without supply cap
-          (<PanelItem
+          <PanelItem
             title={
               <Box display="flex" alignItems="center">
                 <Trans>Total supplied</Trans>
@@ -145,7 +145,7 @@ export const SupplyInfo = ({
           >
             <FormattedNumber value={reserve.totalLiquidity} variant="main16" compact />
             <ReserveSubheader value={reserve.totalLiquidityUSD} />
-          </PanelItem>)
+          </PanelItem>
         )}
         <PanelItem title={<Trans>APY</Trans>}>
           <FormattedNumber value={reserve.supplyAPY} percent variant="main16" />
@@ -183,7 +183,7 @@ export const SupplyInfo = ({
                 In Isolation mode you cannot supply other assets as collateral for borrowing. Assets
                 used as collateral in Isolation mode can only be borrowed to a specific debt
                 ceiling.{' '}
-                <Link href="https://docs.aave.com/faq/aave-v3-features#isolation-mode">
+                <Link href="https://docs.more.markets/faq/more-v3-features#isolation-mode">
                   Learn more
                 </Link>
               </Typography>
@@ -315,7 +315,7 @@ export const SupplyInfo = ({
               rebases.
             </Trans>{' '}
             <Link
-              href="https://blog.lido.fi/aave-integrates-lidos-steth-as-collateral/"
+              href="https://docs.more.markets"
               underline="always"
             >
               <Trans>Learn more</Trans>
@@ -323,6 +323,6 @@ export const SupplyInfo = ({
           </Warning>
         </Box>
       )}
-    </Box>)
+    </Box>
   );
 };

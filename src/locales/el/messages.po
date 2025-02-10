@@ -553,7 +553,7 @@ msgstr ""
 msgid "You can only switch to tokens with variable APY types. After this transaction, you may change the variable rate to a stable one if available."
 msgstr ""
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "Supplying your "
 msgstr ""
 
@@ -952,7 +952,7 @@ msgstr ""
 msgid "Maximum amount received"
 msgstr ""
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "staking view"
 msgstr "προβολή κλειδώματος"
 
@@ -1409,7 +1409,7 @@ msgstr "Εάν το δάνειο προς αξία υπερβεί το όριο 
 msgid "Interest rate rebalance conditions were not met"
 msgstr "Δεν τηρήθηκαν οι όροι επανεξισορρόπησης των επιτοκίων"
 
-#. placeholder {0}: addToken && addToken.aToken ? 'aToken ' : 'token '
+#. placeholder {0}: addToken && addToken.mToken ? 'mToken ' : 'token '
 #: src/components/transactions/FlowCommons/Success.tsx
 msgid "Add {0} to wallet to track your balance."
 msgstr ""
@@ -1532,7 +1532,7 @@ msgstr ""
 msgid "Per the community, the V2 AMM market has been deprecated."
 msgstr ""
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "tokens is not the same as staking them. If you wish to stake your "
 msgstr ""
 
@@ -2037,7 +2037,7 @@ msgstr ""
 msgid "Signatures ready"
 msgstr ""
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "tokens, please go to the "
 msgstr ""
 

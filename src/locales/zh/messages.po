@@ -6,13 +6,13 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: @lingui/cli\n"
 "Language: zh\n"
-"Project-Id-Version: aave-interface\n"
+"Project-Id-Version: more-markets-interface\n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: 2024-05-07 00:17\n"
 "Last-Translator: \n"
 "Language-Team: Chinese Simplified\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Crowdin-Project: aave-interface\n"
+"X-Crowdin-Project: more-markets-interface\n"
 "X-Crowdin-Project-ID: 502668\n"
 "X-Crowdin-Language: zh-CN\n"
 "X-Crowdin-File: /src/locales/en/messages.po\n"
@@ -33,12 +33,12 @@ msgid ".JSON"
 msgstr ".JSON格式"
 
 #: src/modules/reserve-overview/Gho/GhoDiscountCalculator.tsx
-msgid "<0><1><2/></1>Add <3/> stkAAVE</0> to borrow at <4/> (max discount)"
-msgstr "<0><1><2/></1>添加 <3/> stkAAVE</0> 以借入（ <4/> 最大折扣）"
+msgid "<0><1><2/></1>Add <3/> stkMORE</0> to borrow at <4/> (max discount)"
+msgstr "<0><1><2/></1>添加 <3/> stkMORE</0> 以借入（ <4/> 最大折扣）"
 
 #: src/modules/reserve-overview/Gho/GhoDiscountCalculator.tsx
-msgid "<0><1><2/></1>Add stkAAVE</0> to see borrow rate with discount"
-msgstr "<0><1><2/></1>添加 stkAAVE</0> 查看带折扣的借贷利率"
+msgid "<0><1><2/></1>Add stkMORE</0> to see borrow rate with discount"
+msgstr "<0><1><2/></1>添加 stkMORE</0> 查看带折扣的借贷利率"
 
 #: src/components/Warnings/AMPLWarning.tsx
 msgid "<0>Ampleforth</0> is a rebasing asset. Visit the <1>documentation</1> to learn more."
@@ -46,14 +46,14 @@ msgstr "<0>Ampleforth</0> 是变基资产。请访问 <1>文档</1> 以了解更
 
 #: src/components/transactions/Borrow/ParameterChangewarning.tsx
 msgid "<0>Attention:</0> Parameter changes via governance can alter your account health factor and risk of liquidation. Follow the <1>More governance forum</1> for updates."
-msgstr "<0>注意力：</0> 通过监管更改参数可能会改变您的账户健康因素和清算风险。关注 <1>Aave 治理论坛</1> 以获取更新。"
+msgstr "<0>注意力：</0> 通过监管更改参数可能会改变您的账户健康因素和清算风险。关注 <1>More 治理论坛</1> 以获取更新。"
 
 #: src/modules/dashboard/lists/SlippageList.tsx
 msgid "<0>Slippage tolerance </0><1>{selectedSlippage}% </1><2>{0}</2>"
 msgstr "<0>滑点容差 </0><1>{selectedSlippage}% </1><2>{0}</2>"
 
 #: src/modules/staking/StakingHeader.tsx
-msgid "AAVE, GHO, and ABPT holders (Ethereum network only) can stake their assets in the Safety Module to add more security to the protocol and earn Safety Incentives. In the case of a shortfall event, your stake can be slashed to cover the deficit, providing an additional layer of protection for the protocol."
+msgid "MORE and MBPT holders (Ethereum network only) can stake their assets in the Safety Module to add more security to the protocol and earn Safety Incentives. In the case of a shortfall event, your stake can be slashed to cover the deficit, providing an additional layer of protection for the protocol."
 msgstr ""
 
 #: src/components/incentives/IncentivesTooltipContent.tsx
@@ -121,25 +121,25 @@ msgid "MToken supply is not zero"
 msgstr "A供应量不为零"
 
 #: src/modules/governance/GovernanceTopPanel.tsx
-msgid "Aave Governance"
-msgstr "Aave 治理"
+msgid "More Governance"
+msgstr "More 治理"
 
 #: src/modules/reserve-overview/AddTokenDropdown.tsx
 #: src/modules/reserve-overview/TokenLinkDropdown.tsx
-msgid "Aave mToken"
-msgstr "Aave mToken（英语：Aave mToken）"
+msgid "More mToken"
+msgstr "More mToken（英语：More mToken）"
 
 #: src/modules/reserve-overview/TokenLinkDropdown.tsx
-msgid "Aave debt token"
-msgstr "Aave 债务代币"
+msgid "More debt token"
+msgstr "More 债务代币"
 
 #: src/modules/governance/GovernanceTopPanel.tsx
-msgid "Aave is a fully decentralized, community governed protocol by the AAVE token-holders. AAVE token-holders collectively discuss, propose, and vote on upgrades to the protocol. AAVE token-holders (Ethereum network only) can either vote themselves on new proposals or delagate to an address of choice. To learn more check out the Governance"
-msgstr "Aave 是一个完全去中心化的、由社区管理的协议，由 AAVE 代币持有者管理。AAVE 代币持有者集体讨论、提议和投票升级协议。AAVE代币持有者（仅限以太坊网络）可以对新提案进行投票，也可以选择地址。要了解更多信息，请查看治理"
+msgid "More is a fully decentralized, community governed protocol by the MORE token-holders. MORE token-holders collectively discuss, propose, and vote on upgrades to the protocol. MORE token-holders (Ethereum network only) can either vote themselves on new proposals or delagate to an address of choice. To learn more check out the Governance"
+msgstr "More 是一个完全去中心化的、由社区管理的协议，由 MORE 代币持有者管理。MORE 代币持有者集体讨论、提议和投票升级协议。MORE代币持有者（仅限以太坊网络）可以对新提案进行投票，也可以选择地址。要了解更多信息，请查看治理"
 
 #: src/modules/staking/StakingPanel.tsx
-msgid "Aave per month"
-msgstr "Aave 每月"
+msgid "More per month"
+msgstr "More 每月"
 
 #: src/modules/reserve-overview/Gho/GhoReserveConfiguration.tsx
 msgid "About GHO"
@@ -167,8 +167,8 @@ msgid "Activate Cooldown"
 msgstr "激活冷却时间"
 
 #: src/modules/reserve-overview/Gho/GhoDiscountCalculator.tsx
-msgid "Add stkAAVE to see borrow APY with the discount"
-msgstr "添加 stkAAVE 以查看折扣借入 APY"
+msgid "Add stkMORE to see borrow APY with the discount"
+msgstr "添加 stkMORE 以查看折扣借入 APY"
 
 #: src/components/transactions/FlowCommons/Success.tsx
 msgid "Add to wallet"
@@ -547,8 +547,8 @@ msgid "Borrowing is currently unavailable for {0}."
 msgstr "目前无法借用 {0}."
 
 #: src/components/Warnings/BorrowDisabledWarning.tsx
-msgid "Borrowing is disabled due to an Aave community decision. <0>More details</0>"
-msgstr "由于 Aave 社区的决定，借贷被禁用。 <0>更多详情</0>"
+msgid "Borrowing is disabled due to an More community decision. <0>More details</0>"
+msgstr "由于 More 社区的决定，借贷被禁用。 <0>更多详情</0>"
 
 #: src/ui-config/errorMapping.tsx
 msgid "Borrowing is not enabled"
@@ -631,7 +631,7 @@ msgid "Cannot disable E-Mode"
 msgstr "无法禁用 E 模式"
 
 #: src/components/transactions/GovDelegation/GovDelegationModalContent.tsx
-msgid "Choose how much voting/proposition power to give to someone else by delegating some of your AAVE, stkAAVE or aAave balance. Your tokens will remain in your account, but your delegate will be able to vote or propose on your behalf. If your AAVE, stkAAVE or aAave balance changes, your delegate's voting/proposition power will be automatically adjusted."
+msgid "Choose how much voting/proposition power to give to someone else by delegating some of your MORE, stkMORE or mMORE balance. Your tokens will remain in your account, but your delegate will be able to vote or propose on your behalf. If your MORE, stkMORE or mMORE balance changes, your delegate's voting/proposition power will be automatically adjusted."
 msgstr ""
 
 #: src/modules/staking/BuyWithFiatModal.tsx
@@ -661,8 +661,8 @@ msgid "Claim {symbol}"
 msgstr "索赔 {symbol}"
 
 #: src/modules/staking/StakingPanel.tsx
-msgid "Claimable AAVE"
-msgstr "可申领的AAVE"
+msgid "Claimable MORE"
+msgstr "可申领的MORE"
 
 #: src/components/transactions/ClaimRewards/ClaimRewardsModalContent.tsx
 #: src/components/transactions/StakeRewardClaim/StakeRewardClaimModalContent.tsx
@@ -914,16 +914,16 @@ msgid "Discount"
 msgstr "折扣"
 
 #: src/components/transactions/Borrow/GhoBorrowModalContent.tsx
-msgid "Discount applied for <0/> staking AAVE"
-msgstr "质押AAVE的 <0/> 折扣"
+msgid "Discount applied for <0/> staking MORE"
+msgstr "质押MORE的 <0/> 折扣"
 
 #: src/modules/reserve-overview/Gho/GhoDiscountCalculator.tsx
 msgid "Discount model parameters"
 msgstr "折扣模型参数"
 
 #: src/modules/reserve-overview/Gho/GhoDiscountCalculator.tsx
-msgid "Discount parameters are decided by the Aave community and may be changed over time. Check Governance for updates and vote to participate. <0>Learn more</0>"
-msgstr "折扣参数由 Aave 社区决定，可能会随着时间的推移而改变。查看 Governance 以获取更新并投票参与。 <0>了解更多信息</0>"
+msgid "Discount parameters are decided by the More community and may be changed over time. Check Governance for updates and vote to participate. <0>Learn more</0>"
+msgstr "折扣参数由 More 社区决定，可能会随着时间的推移而改变。查看 Governance 以获取更新并投票参与。 <0>了解更多信息</0>"
 
 #: src/modules/reserve-overview/Gho/GhoDiscountCalculator.tsx
 msgid "Discountable amount"
@@ -939,7 +939,7 @@ msgstr "下载"
 
 #: src/components/transactions/Repay/CollateralRepayModalContent.tsx
 #: src/components/transactions/Swap/SwapModalContent.tsx
-msgid "Due to health factor impact, a flashloan is required to perform this transaction, but Aave Governance has disabled flashloan availability for this asset. Try lowering the amount or supplying additional collateral."
+msgid "Due to health factor impact, a flashloan is required to perform this transaction, but More Governance has disabled flashloan availability for this asset. Try lowering the amount or supplying additional collateral."
 msgstr ""
 
 #: src/components/Warnings/StETHCollateralWarning.tsx
@@ -947,8 +947,8 @@ msgid "Due to internal stETH mechanics required for rebasing support, it is not 
 msgstr "由于变基支持需要内部 stETH 机制，因此无法执行 stETH 作为源代币的抵押品切换。"
 
 #: src/components/transactions/Warnings/MarketWarning.tsx
-msgid "Due to the Horizon bridge exploit, certain assets on the Harmony network are not at parity with Ethereum, which affects the Aave V3 Harmony market."
-msgstr "由于 Horizon 桥的漏洞利用，Harmony 网络上的某些资产与以太坊不对等，这影响了 Aave V3 Harmony 市场。"
+msgid "Due to the Horizon bridge exploit, certain assets on the Harmony network are not at parity with Ethereum, which affects the More market."
+msgstr "由于 Horizon 桥的漏洞利用，Harmony 网络上的某些资产与以太坊不对等，这影响了 More Harmony 市场。"
 
 #: src/modules/dashboard/DashboardEModeButton.tsx
 msgid "E-Mode"
@@ -971,8 +971,8 @@ msgid "E-Mode increases your LTV for a selected category of assets up to<0/>. <1
 msgstr "E-Mode 将选定资产类别的 LTV 提高到最高<0/>。 <1>了解更多信息</1>"
 
 #: src/modules/reserve-overview/ReserveEModePanel.tsx
-msgid "E-Mode increases your LTV for a selected category of assets, meaning that when E-mode is enabled, you will have higher borrowing power over assets of the same E-mode category which are defined by Aave Governance. You can enter E-Mode from your <0>Dashboard</0>. To learn more about E-Mode and applied restrictions in <1>FAQ</1> or <2>Aave V3 Technical Paper</2>."
-msgstr "E-Mode会增加所选资产类别的LTV，这意味着当启用E-mode时，您将比Aave Governance定义的相同E-mode类别的资产拥有更高的借贷能力。您可以从 <0>仪表板</0>进入 E-Mode。要了解有关 E-Mode 和应用限制的更多信息，请参阅 <1>FAQ</1> 或 <2>Aave V3 技术论文</2>。"
+msgid "E-Mode increases your LTV for a selected category of assets, meaning that when E-mode is enabled, you will have higher borrowing power over assets of the same E-mode category which are defined by More Governance. You can enter E-Mode from your <0>Dashboard</0>. To learn more about E-Mode and applied restrictions in <1>FAQ</1> or <2>MoreMarkets Technical Paper</2>."
+msgstr "E-Mode会增加所选资产类别的LTV，这意味着当启用E-mode时，您将比More Governance定义的相同E-mode类别的资产拥有更高的借贷能力。您可以从 <0>仪表板</0>进入 E-Mode。要了解有关 E-Mode 和应用限制的更多信息，请参阅 <1>FAQ</1> 或 <2>MoreMarkets 技术论文</2>。"
 
 #: src/modules/governance/RepresentativesInfoPanel.tsx
 msgid "Edit"
@@ -1042,8 +1042,8 @@ msgid "Error connecting. Try refreshing the page."
 msgstr "连接时出错。尝试刷新页面。"
 
 #: src/components/incentives/GhoIncentivesCard.tsx
-msgid "Estimated compounding interest, including discount for Staking {0}AAVE in Safety Module."
-msgstr "估计复利，包括质押折扣 {0}安全模块中的AAVE。"
+msgid "Estimated compounding interest, including discount for Staking {0}MORE in Safety Module."
+msgstr "估计复利，包括质押折扣 {0}安全模块中的MORE。"
 
 #: src/modules/reserve-overview/Gho/GhoPieChartContainer.tsx
 msgid "Exceeds the discount"
@@ -1140,8 +1140,8 @@ msgid "Funds in the Safety Module"
 msgstr "安全模块中的资金"
 
 #: src/modules/reserve-overview/Gho/GhoReserveConfiguration.tsx
-msgid "GHO is a native decentralized, collateral-backed digital asset pegged to USD. It is created by users via borrowing against multiple collateral. When user repays their GHO borrow position, the protocol burns that user's GHO. All the interest payments accrued by minters of GHO would be directly transferred to the AaveDAO treasury."
-msgstr "GHO 是一种与美元挂钩的原生去中心化、抵押品支持的数字资产。它是由用户通过借入多个抵押品创建的。当用户偿还其 GHO 借入头寸时，协议会销毁该用户的 GHO。GHO 的铸币者产生的所有利息支付将直接转入 AaveDAO 金库。"
+msgid "GHO is a native decentralized, collateral-backed digital asset pegged to USD. It is created by users via borrowing against multiple collateral. When user repays their GHO borrow position, the protocol burns that user's GHO. All the interest payments accrued by minters of GHO would be directly transferred to the MoreDAO treasury."
+msgstr "GHO 是一种与美元挂钩的原生去中心化、抵押品支持的数字资产。它是由用户通过借入多个抵押品创建的。当用户偿还其 GHO 借入头寸时，协议会销毁该用户的 GHO。GHO 的铸币者产生的所有利息支付将直接转入 MoreDAO 金库。"
 
 #: src/modules/staking/GetABPToken.tsx
 msgid "Get ABP Token"
@@ -1202,8 +1202,8 @@ msgid "Hide"
 msgstr "隐藏"
 
 #: src/modules/staking/GhoDiscountProgram.tsx
-msgid "Holders of stkAAVE receive a discount on the GHO borrowing rate"
-msgstr "stkAAVE的持有者可享受GHO借款利率的折扣"
+msgid "Holders of stkMORE receive a discount on the GHO borrowing rate"
+msgstr "stkMORE的持有者可享受GHO借款利率的折扣"
 
 #: src/components/transactions/Borrow/BorrowAmountWarning.tsx
 #: src/components/transactions/Withdraw/WithdrawAndSwitchModalContent.tsx
@@ -1264,7 +1264,7 @@ msgid "Interest rate strategy"
 msgstr "利率策略"
 
 #: src/components/infoTooltips/FixedAPYTooltip.tsx
-msgid "Interest rate that is determined by Aave Governance. This rate may be changed over time depending on the need for the GHO supply to contract/expand. <0>Learn more</0>"
+msgid "Interest rate that is determined by More Governance. This rate may be changed over time depending on the need for the GHO supply to contract/expand. <0>Learn more</0>"
 msgstr ""
 
 #: src/ui-config/errorMapping.tsx
@@ -1511,7 +1511,7 @@ msgstr "迁移"
 
 #: src/layouts/MobileMenu.tsx
 #: src/layouts/MoreMenu.tsx
-msgid "Migrate to Aave V3"
+msgid "Migrate to MoreMarkets"
 msgstr ""
 
 #: src/components/TopInfoPanel/PageTitle.tsx
@@ -1571,8 +1571,8 @@ msgid "Minimum amount received"
 msgstr ""
 
 #: src/modules/reserve-overview/Gho/GhoDiscountCalculator.tsx
-msgid "Minimum staked Aave amount"
-msgstr "最低质押 Aave 金额"
+msgid "Minimum staked MORE amount"
+msgstr "最低质押 MORE 金额"
 
 #: src/components/transactions/Switch/SwitchModalContent.tsx
 msgid "Minimum {0} received"
@@ -1886,8 +1886,8 @@ msgid "Read more here."
 msgstr "在此处阅读更多内容。"
 
 #: src/components/infoTooltips/ReadOnlyModeTooltip.tsx
-msgid "Read-only mode allows to see address positions in Aave, but you won't be able to perform transactions."
-msgstr "只读模式允许在 Aave 中查看地址位置，但您将无法执行交易。"
+msgid "Read-only mode allows to see address positions in More, but you won't be able to perform transactions."
+msgstr "只读模式允许在 More 中查看地址位置，但您将无法执行交易。"
 
 #: src/layouts/WalletWidget.tsx
 msgid "Read-only mode."
@@ -1989,8 +1989,8 @@ msgid "Reserve factor"
 msgstr "储备系数"
 
 #: src/components/infoTooltips/ReserveFactorTooltip.tsx
-msgid "Reserve factor is a percentage of interest which goes to a {0} that is controlled by Aave governance to promote ecosystem growth."
-msgstr "储备因子是利息的百分比，它用于 {0} 由 Aave 治理控制，以促进生态系统增长。"
+msgid "Reserve factor is a percentage of interest which goes to a {0} that is controlled by More governance to promote ecosystem growth."
+msgstr "储备因子是利息的百分比，它用于 {0} 由 More 治理控制，以促进生态系统增长。"
 
 #: src/modules/reserve-overview/ReserveConfigurationWrapper.tsx
 msgid "Reserve status & configuration"
@@ -2219,8 +2219,8 @@ msgid "Stake"
 msgstr "桩"
 
 #: pages/staking.staking.tsx
-msgid "Stake AAVE"
-msgstr "质押 AAVE"
+msgid "Stake MORE"
+msgstr "质押 MORE"
 
 #: pages/staking.staking.tsx
 msgid "Stake ABPT"
@@ -2344,7 +2344,7 @@ msgstr "已达到目标储备的供应上限。尝试降低金额。"
 msgid "Supply {symbol}"
 msgstr "供应 {symbol}"
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "Supplying your"
 msgstr "提供您的"
 
@@ -2449,12 +2449,12 @@ msgid "The % of your total borrowing power used. This is based on the amount of 
 msgstr "已使用总借贷能力的百分比。这是基于您提供的抵押品金额和您可以借入的总金额。"
 
 #: src/modules/staking/GetABPTokenModal.tsx
-msgid "The Aave Balancer Pool Token (ABPT) is a liquidity pool token. You can receive ABPT by depositing a combination of AAVE + wstETH in the Balancer liquidity pool. You can then stake your BPT in the Safety Module to secure the protocol and earn Safety Incentives."
+msgid "The More Balancer Pool Token (MBPT) is a liquidity pool token. You can receive ABPT by depositing a combination of MORE + wstFLOW in the Balancer liquidity pool. You can then stake your BPT in the Safety Module to secure the protocol and earn Safety Incentives."
 msgstr ""
 
 #: src/modules/reserve-overview/Gho/GhoReserveTopDetails.tsx
-msgid "The Aave Protocol is programmed to always use the price of 1 GHO = $1. This is different from using market pricing via oracles for other crypto assets. This creates stabilizing arbitrage opportunities when the price of GHO fluctuates."
-msgstr "Aave 协议被编程为始终使用 1 GHO = 1 美元的价格。这与通过预言机对其他加密资产使用市场定价不同。当GHO的价格波动时，这创造了稳定的套利机会。"
+msgid "The More Protocol is programmed to always use the price of 1 GHO = $1. This is different from using market pricing via oracles for other crypto assets. This creates stabilizing arbitrage opportunities when the price of GHO fluctuates."
+msgstr "More 协议被编程为始终使用 1 GHO = 1 美元的价格。这与通过预言机对其他加密资产使用市场定价不同。当GHO的价格波动时，这创造了稳定的套利机会。"
 
 #: src/components/infoTooltips/MaxLTVTooltip.tsx
 msgid "The Maximum LTV ratio represents the maximum borrowing power of a specific collateral. For example, if a collateral has an LTV of 75%, the user can borrow up to 0.75 worth of FLOW in the principal currency for every 1 FLOW worth of collateral."
@@ -2503,7 +2503,7 @@ msgstr "冷却时间是 {0}.后 {1} 冷却时间，您将进入 {2}.您将在冷
 
 #: src/modules/staking/StakingPanel.tsx
 #: src/modules/staking/StakingPanelNoWallet.tsx
-msgid "The current incentives period, decided on by the Aave community, has ended. Governance is in the process on renewing, check for updates. <0>Learn more</0>."
+msgid "The current incentives period, decided on by the More community, has ended. Governance is in the process on renewing, check for updates. <0>Learn more</0>."
 msgstr ""
 
 #: src/modules/migration/MigrationBottomPanel.tsx
@@ -2551,8 +2551,8 @@ msgid "There was some error. Please try changing the parameters or <0><1>copy th
 msgstr "有一些错误。请尝试更改参数或 <0><1>复制错误</1></0>"
 
 #: src/modules/markets/MarketAssetsListContainer.tsx
-msgid "These assets are temporarily frozen or paused by Aave community decisions, meaning that further supply / borrow, or rate swap of these assets are unavailable. Withdrawals and debt repayments are allowed. Follow the <0>More governance forum</0> for further updates."
-msgstr "这些资产被 Aave 社区决定暂时冻结或暂停，这意味着这些资产的进一步供应/借款或利率互换不可用。允许提款和偿还债务。关注 <0>Aave 治理论坛</0> ，了解进一步的更新。"
+msgid "These assets are temporarily frozen or paused by More community decisions, meaning that further supply / borrow, or rate swap of these assets are unavailable. Withdrawals and debt repayments are allowed. Follow the <0>More governance forum</0> for further updates."
+msgstr "这些资产被 More 社区决定暂时冻结或暂停，这意味着这些资产的进一步供应/借款或利率互换不可用。允许提款和偿还债务。关注 <0>More 治理论坛</0> ，了解进一步的更新。"
 
 #: src/components/transactions/Withdraw/WithdrawError.tsx
 msgid "These funds have been borrowed and are not available for withdrawal at this time."
@@ -2571,8 +2571,8 @@ msgid "This action will reduce your health factor. Please be mindful of the incr
 msgstr "此操作将降低您的健康因素。请注意抵押品清算的风险增加。"
 
 #: src/components/AddressBlockedModal.tsx
-msgid "This address is blocked on app.aave.com because it is associated with one or more"
-msgstr "此地址在 app.aave.com 上被阻止，因为它与一个或多个相关联"
+msgid "This address is blocked on app.more.markets because it is associated with one or more"
+msgstr "此地址在 app.more.markets 上被阻止，因为它与一个或多个相关联"
 
 #: src/components/caps/CapsTooltip.tsx
 msgid "This asset has almost reached its borrow cap. There is only {messageValue} available to be borrowed from this market."
@@ -2595,20 +2595,20 @@ msgid "This asset has reached its supply cap. Nothing is available to be supplie
 msgstr "该资产已达到其供应上限。这个市场没有任何东西可以供应。"
 
 #: src/components/infoTooltips/FrozenTooltip.tsx
-msgid "This asset is frozen due to an Aave Protocol Governance decision. <0>More details</0>"
-msgstr "由于 Aave 协议治理决定，该资产被冻结。 <0>更多详情</0>"
+msgid "This asset is frozen due to an More Protocol Governance decision. <0>More details</0>"
+msgstr "由于 More 协议治理决定，该资产被冻结。 <0>更多详情</0>"
 
 #: src/components/infoTooltips/RenFILToolTip.tsx
-msgid "This asset is frozen due to an Aave Protocol Governance decision. On the 20th of December 2022, renFIL will no longer be supported and cannot be bridged back to its native network. It is recommended to withdraw supply positions and repay borrow positions so that renFIL can be bridged back to FIL before the deadline. After this date, it will no longer be possible to convert renFIL to FIL. <0>More details</0>"
-msgstr "由于 Aave 协议治理决定，该资产被冻结。2022 年 12 月 20 日，renFIL 将不再受支持，也无法桥接回其原生网络。建议在截止日期前撤回供应头寸并偿还借入头寸，以便renFIL可以桥接回FIL。在此日期之后，将无法再将renFIL转换为FIL。 <0>更多详情</0>"
+msgid "This asset is frozen due to an More Protocol Governance decision. On the 20th of December 2022, renFIL will no longer be supported and cannot be bridged back to its native network. It is recommended to withdraw supply positions and repay borrow positions so that renFIL can be bridged back to FIL before the deadline. After this date, it will no longer be possible to convert renFIL to FIL. <0>More details</0>"
+msgstr "由于 More 协议治理决定，该资产被冻结。2022 年 12 月 20 日，renFIL 将不再受支持，也无法桥接回其原生网络。建议在截止日期前撤回供应头寸并偿还借入头寸，以便renFIL可以桥接回FIL。在此日期之后，将无法再将renFIL转换为FIL。 <0>更多详情</0>"
 
 #: src/modules/reserve-overview/ReserveConfiguration.tsx
-msgid "This asset is frozen due to an Aave community decision. <0>More details</0>"
-msgstr "由于 Aave 社区的决定，该资产被冻结。 <0>更多详情</0>"
+msgid "This asset is frozen due to an More community decision. <0>More details</0>"
+msgstr "由于 More 社区的决定，该资产被冻结。 <0>更多详情</0>"
 
 #: src/components/Warnings/OffboardingWarning.tsx
-msgid "This asset is planned to be offboarded due to an Aave Protocol Governance decision. <0>More details</0>"
-msgstr "由于 Aave 协议治理决策，该资产计划被卸载。 <0>更多详情</0>"
+msgid "This asset is planned to be offboarded due to an More Protocol Governance decision. <0>More details</0>"
+msgstr "由于 More 协议治理决策，该资产计划被卸载。 <0>更多详情</0>"
 
 #: src/components/infoTooltips/GasTooltip.tsx
 msgid "This gas calculation is only an estimation. Your wallet will set the price of the transaction. You can modify the gas settings directly from your wallet provider."
@@ -2619,7 +2619,7 @@ msgid "This integration was<0>proposed and approved</0>by the community."
 msgstr "这种整合是由社区<0>提出并批准的</0>。"
 
 #: src/components/incentives/MeritIncentivesTooltipContent.tsx
-msgid "This is a program initiated and implemented by the decentralised Aave community. Aave Labs does not guarantee the program and accepts no liability."
+msgid "This is a program initiated and implemented by the decentralised More community. More Labs does not guarantee the program and accepts no liability."
 msgstr ""
 
 #: src/components/infoTooltips/AvailableTooltip.tsx
@@ -2656,8 +2656,8 @@ msgid "To borrow you need to supply any asset to be used as collateral."
 msgstr "要借款，您需要提供任何用作抵押品的资产。"
 
 #: src/components/infoTooltips/ApprovalTooltip.tsx
-msgid "To continue, you need to grant Aave smart contracts permission to move your funds from your wallet. Depending on the asset and wallet you use, it is done by signing the permission message (gas free), or by submitting an approval transaction (requires gas). <0>Learn more</0>"
-msgstr "要继续，您需要授予 Aave 智能合约从钱包中转移资金的权限。根据您使用的资产和钱包，可以通过签署许可消息（无 gas）或提交批准交易（需要 gas）来完成。 <0>了解更多信息</0>"
+msgid "To continue, you need to grant More smart contracts permission to move your funds from your wallet. Depending on the asset and wallet you use, it is done by signing the permission message (gas free), or by submitting an approval transaction (requires gas). <0>Learn more</0>"
+msgstr "要继续，您需要授予 More 智能合约从钱包中转移资金的权限。根据您使用的资产和钱包，可以通过签署许可消息（无 gas）或提交批准交易（需要 gas）来完成。 <0>了解更多信息</0>"
 
 #: src/components/transactions/Emode/EmodeModalContent.tsx
 msgid "To enable E-mode for the {0} category, all borrow positions outside of this category must be closed."
@@ -2807,7 +2807,7 @@ msgid "Use it to vote for or against active proposals."
 msgstr "用它来投票支持或反对活跃的提案。"
 
 #: src/modules/governance/DelegatedInfoPanel.tsx
-msgid "Use your AAVE, stkAAVE, or aAave balance to delegate your voting and proposition powers. You will not be sending any tokens, only the rights to vote and propose changes to the protocol. You can re-delegate or revoke power to self at any time."
+msgid "Use your MORE, stkMORE, or mMore balance to delegate your voting and proposition powers. You will not be sending any tokens, only the rights to vote and propose changes to the protocol. You can re-delegate or revoke power to self at any time."
 msgstr ""
 
 #: src/modules/dashboard/lists/SuppliedPositionsList/SuppliedPositionsListMobileItem.tsx
@@ -2839,8 +2839,8 @@ msgid "User is trying to borrow multiple assets including a siloed one"
 msgstr "用户正在尝试借入多种资产，包括孤立的资产"
 
 #: src/modules/reserve-overview/Gho/GhoDiscountCalculator.tsx
-msgid "Users who stake AAVE in Safety Module (i.e. stkAAVE holders) receive a discount on GHO borrow interest rate. The discount applies to 100 GHO for every 1 stkAAVE held. Use the calculator below to see GHO borrow rate with the discount applied."
-msgstr "在安全模块中质押 AAVE 的用户（即 stkAAVE 持有者）可享受 GHO 借款利率的折扣。每持有 1 stkAAVE 可享受 100 GHO 的折扣。使用下面的计算器查看应用折扣后的 GHO 借款利率。"
+msgid "Users who stake MORE in Safety Module (i.e. stkMORE holders) receive a discount on GHO borrow interest rate. The discount applies to 100 GHO for every 1 stkMORE held. Use the calculator below to see GHO borrow rate with the discount applied."
+msgstr "在安全模块中质押 MORE 的用户（即 stkMORE 持有者）可享受 GHO 借款利率的折扣。每持有 1 stkMORE 可享受 100 GHO 的折扣。使用下面的计算器查看应用折扣后的 GHO 借款利率。"
 
 #: src/modules/reserve-overview/ReserveConfiguration.tsx
 #: src/modules/reserve-overview/ReserveTopDetails.tsx
@@ -3012,8 +3012,8 @@ msgid "With a voting power of <0/>"
 msgstr "投票权 <0/>"
 
 #: src/modules/faucet/FaucetTopPanel.tsx
-msgid "With testnet Faucet you can get free assets to test the Aave Protocol. Make sure to switch your wallet provider to the appropriate testnet network, select desired asset, and click ‘Faucet’ to get tokens transferred to your wallet. The assets on a testnet are not “real,” meaning they have no monetary value. <0>Learn more</0>"
-msgstr "使用测试网水龙头，您可以获得免费资产来测试 Aave 协议。确保将您的钱包提供商切换到适当的测试网网络，选择所需的资产，然后单击“水龙头”以将代币转移到您的钱包。测试网上的资产不是“真实的”，这意味着它们没有货币价值。 <0>了解更多信息</0>"
+msgid "With testnet Faucet you can get free assets to test the More Protocol. Make sure to switch your wallet provider to the appropriate testnet network, select desired asset, and click ‘Faucet’ to get tokens transferred to your wallet. The assets on a testnet are not “real,” meaning they have no monetary value. <0>Learn more</0>"
+msgstr "使用测试网水龙头，您可以获得免费资产来测试 More 协议。确保将您的钱包提供商切换到适当的测试网网络，选择所需的资产，然后单击“水龙头”以将代币转移到您的钱包。测试网上的资产不是“真实的”，这意味着它们没有货币价值。 <0>了解更多信息</0>"
 
 #: src/components/transactions/Withdraw/WithdrawAndSwitchModalContent.tsx
 #: src/components/transactions/Withdraw/WithdrawAndUnwrapActions.tsx
@@ -3123,7 +3123,7 @@ msgid "You don’t have enough funds in your wallet to repay the full amount. If
 msgstr "您的钱包中没有足够的资金来偿还全额。如果您继续用当前金额还款，您的仪表板中仍将有一个小额借款头寸。"
 
 #: src/modules/governance/DelegatedInfoPanel.tsx
-msgid "You have no AAVE/stkAAVE/aAave balance to delegate."
+msgid "You have no MORE/stkMORE/mMore balance to delegate."
 msgstr ""
 
 #: src/components/transactions/RateSwitch/RateSwitchModalContent.tsx
@@ -3198,8 +3198,8 @@ msgid "Your info"
 msgstr "您的信息"
 
 #: src/modules/governance/VotingPowerInfoPanel.tsx
-msgid "Your proposition power is based on your AAVE/stkAAVE balance and received delegations."
-msgstr "您的提议能力基于您的 AAVE/stkAAVE 余额和收到的委托。"
+msgid "Your proposition power is based on your MORE/stkMORE balance and received delegations."
+msgstr "您的提议能力基于您的 MORE/stkMORE 余额和收到的委托。"
 
 #: src/components/transactions/ClaimRewards/ClaimRewardsModalContent.tsx
 msgid "Your reward balance is 0"
@@ -3215,8 +3215,8 @@ msgid "Your voting info"
 msgstr "您的投票信息"
 
 #: src/modules/governance/VotingPowerInfoPanel.tsx
-msgid "Your voting power is based on your AAVE/stkAAVE balance and received delegations."
-msgstr "您的投票权基于您的 AAVE/stkAAVE 余额和收到的授权。"
+msgid "Your voting power is based on your MORE/stkMORE balance and received delegations."
+msgstr "您的投票权基于您的 MORE/stkMORE 余额和收到的授权。"
 
 #: src/modules/dashboard/lists/SupplyAssetsList/WalletEmptyInfo.tsx
 msgid "Your {name} wallet is empty. Purchase or transfer assets or use <0>{0}</0> to transfer your {network} assets."
@@ -3303,7 +3303,7 @@ msgstr "作为抵押品提供的 stETH 将继续累积每日 rebase 提供的质
 msgid "stETH tokens will be migrated to Wrapped stETH using Lido Protocol wrapper which leads to supply balance change after migration: {0}"
 msgstr "stETH 代币将使用 Lido 协议包装器迁移到 Wrapped stETH，这会导致迁移后供应平衡发生变化： {0}"
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "staking view"
 msgstr "质押视图"
 
@@ -3312,18 +3312,18 @@ msgid "starts"
 msgstr "开始"
 
 #: src/modules/staking/GhoDiscountProgram.tsx
-msgid "stkAAVE holders get a discount on GHO borrow rate"
-msgstr "stkAAVE 持有者获得 GHO 借款利率折扣"
+msgid "stkMORE holders get a discount on GHO borrow rate"
+msgstr "stkMORE 持有者获得 GHO 借款利率折扣"
 
 #: src/modules/reserve-overview/Gho/GhoDiscountCalculator.tsx
 msgid "to"
 msgstr "自"
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "tokens is not the same as staking them. If you wish to stake your"
 msgstr "代币与质押代币不同。如果您想质押您的"
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "tokens, please go to the"
 msgstr "代币，请前往"
 

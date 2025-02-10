@@ -2344,7 +2344,7 @@ msgstr "Достигнут предел запасов по целевому р�
 msgid "Supply {symbol}"
 msgstr "Снабжение {symbol}"
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "Supplying your"
 msgstr "Поставляя ваши"
 
@@ -3303,7 +3303,7 @@ msgstr "stETH, предоставленные в качестве залога, 
 msgid "stETH tokens will be migrated to Wrapped stETH using Lido Protocol wrapper which leads to supply balance change after migration: {0}"
 msgstr "Токены stETH будут перенесены в Wrapped stETH с использованием оболочки Lido Protocol, что приведет к изменению баланса предложения после миграции: {0}"
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "staking view"
 msgstr "Представление разбивки"
 
@@ -3319,11 +3319,11 @@ msgstr "Держатели stkAAVE получают скидку на ставк
 msgid "to"
 msgstr "Кому"
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "tokens is not the same as staking them. If you wish to stake your"
 msgstr "токены — это не то же самое, что стейкинг их. Если вы хотите поставить свой"
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "tokens, please go to the"
 msgstr "токенов, пожалуйста, перейдите в раздел"
 
