@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { ReserveIncentiveResponse } from '@aave/math-utils/dist/esm/formatters/incentive/calculate-reserve-incentives';
 import { Box, Typography } from '@mui/material';
 
@@ -28,11 +28,11 @@ export const MeritIncentivesTooltipContent = ({
 
       <Typography variant="caption" color="text.secondary" mb={3}>
         <Trans>
-          This is a program initiated and implemented by the decentralised Aave community. Aave Labs
+          This is a program initiated and implemented by the decentralised More community. More Labs
           does not guarantee the program and accepts no liability.
         </Trans>{' '}
         <Link
-          href="https://governance.aave.com/t/arfc-merit-a-new-aave-alignment-user-reward-system/16646"
+          href="https://governance.more.markets/t/arfc-merit-a-new-more-alignment-user-reward-system/16646"
           sx={{ textDecoration: 'underline' }}
           variant="caption"
           color="text.secondary"

@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { valueToBigNumber } from '@aave/math-utils';
 import { Typography } from '@mui/material';
 import { useMemo } from 'react';

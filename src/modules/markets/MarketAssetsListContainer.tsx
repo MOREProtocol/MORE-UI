@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
 import { Box, Switch, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { useState } from 'react';
@@ -118,8 +118,8 @@ export const MarketAssetsListContainer = () => {
           {showFrozenMarketsToggle && (
             <Warning severity="info">
               <Trans>
-                These assets are temporarily frozen or paused by Aave community decisions, meaning
-                that further supply / borrow, or rate swap of these assets are unavailable.
+                These assets are temporarily frozen or paused by MoreMarkets community decisions,
+                meaning that further supply / borrow, or rate swap of these assets are unavailable.
                 Withdrawals and debt repayments are allowed. Follow the{' '}
                 <Link
                   onClick={() => {
@@ -128,7 +128,7 @@ export const MarketAssetsListContainer = () => {
                       frozenMarket: currentNetworkConfig.name,
                     });
                   }}
-                  href="https://governance.aave.com"
+                  href="https://governance.more.markets"
                   underline="always"
                 >
                   More governance forum

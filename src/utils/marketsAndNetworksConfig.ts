@@ -182,8 +182,6 @@ export const getENSProvider = () => {
   return new StaticJsonRpcProvider(config.publicJsonRPCUrl[0], chainId);
 };
 
-export const frozenProposalMap: Record<string, string> = {};
-
 // reexport so we can forbit config import
 export { CustomMarket };
 export type { MarketDataType, NetworkConfig };

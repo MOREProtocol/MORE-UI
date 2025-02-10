@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { DuplicateIcon, RefreshIcon } from '@heroicons/react/outline';
 import { Box, Button, Link, Paper, SvgIcon, Typography, useTheme } from '@mui/material';
 import { useEffect } from 'react';
@@ -7,7 +7,7 @@ import { TopInfoPanel } from 'src/components/TopInfoPanel/TopInfoPanel';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { useRootStore } from 'src/store/root';
 
-export default function Aave500Page() {
+export default function More500Page() {
   const theme = useTheme();
 
   const handleCopyError = () => {
@@ -70,7 +70,7 @@ export default function Aave500Page() {
                 If the error continues to happen,
                 <br /> you may report it to this
               </Trans>{' '}
-              <Link href="https://discord.com/invite/aave" color="inherit" target="_blank">
+              <Link href="https://discord.com/invite/VzGm75kN" color="inherit" target="_blank">
                 <Trans>Discord channel</Trans>
               </Link>
               .
@@ -93,6 +93,6 @@ export default function Aave500Page() {
   );
 }
 
-Aave500Page.getLayout = function getLayout(page: React.ReactElement) {
+More500Page.getLayout = function getLayout(page: React.ReactElement) {
   return <MainLayout>{page}</MainLayout>;
 };

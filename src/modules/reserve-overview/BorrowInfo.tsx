@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { valueToBigNumber } from '@aave/math-utils';
 import { Box, Typography } from '@mui/material';
 import { BigNumber } from 'bignumber.js';
@@ -46,7 +46,7 @@ export const BorrowInfo = ({
   ).toNumber();
 
   return (
-    (<Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
+    <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
       <Box
         sx={{
           display: 'flex',
@@ -56,7 +56,7 @@ export const BorrowInfo = ({
       >
         {showBorrowCapStatus ? (
           // With a borrow cap
-          (<>
+          <>
             <CapsCircularStatus
               value={borrowCap.percentUsed}
               tooltipContent={
@@ -95,7 +95,7 @@ export const BorrowInfo = ({
                         pool insolvency.
                       </Trans>{' '}
                       <Link
-                        href="https://docs.aave.com/developers/whats-new/supply-borrow-caps"
+                        href="https://docs.more.markets/developers/whats-new/supply-borrow-caps"
                         underline="always"
                       >
                         <Trans>Learn more</Trans>
@@ -130,10 +130,10 @@ export const BorrowInfo = ({
                 <ReserveSubheader value={reserve.borrowCapUSD} />
               </Box>
             </PanelItem>
-          </>)
+          </>
         ) : (
           // Without a borrow cap
-          (<PanelItem
+          <PanelItem
             title={
               <Box display="flex" alignItems="center">
                 <Trans>Total borrowed</Trans>
@@ -142,7 +142,7 @@ export const BorrowInfo = ({
           >
             <FormattedNumber value={reserve.totalDebt} variant="main16" />
             <ReserveSubheader value={reserve.totalDebtUSD} />
-          </PanelItem>)
+          </PanelItem>
         )}
         <PanelItem
           title={
@@ -199,6 +199,6 @@ export const BorrowInfo = ({
           reserveAsset={reserve.underlyingAsset}
         />
       )}
-    </Box>)
+    </Box>
   );
 };

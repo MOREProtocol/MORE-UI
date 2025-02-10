@@ -179,7 +179,7 @@ export async function fetchExactInRate(
   const amount = normalizeBN(swapInAmount, swapIn.decimals * -1);
 
   const options: RateOptions = {
-    partner: 'aave',
+    partner: 'more',
   };
 
   if (max) {
@@ -260,7 +260,7 @@ export async function fetchExactOutRate(
   const amount = normalizeBN(swapOutAmount, swapOut.decimals * -1);
 
   const options: RateOptions = {
-    partner: 'aave',
+    partner: 'more',
   };
 
   if (max) {
@@ -422,9 +422,9 @@ const ExactOutSwapper = (chainId: ChainId) => {
 // generate signature approval a certain threshold above the current balance to account for accrued interest
 export const SIGNATURE_AMOUNT_MARGIN = 0.1;
 
-// Calculate aToken amount to request for signature, adding small margin to account for accruing interest
+// Calculate mToken amount to request for signature, adding small margin to account for accruing interest
 export const calculateSignedAmount = (amount: string, decimals: number, margin?: number) => {
-  const amountWithMargin = Number(amount) + Number(amount) * (margin ?? SIGNATURE_AMOUNT_MARGIN); // 10% margin for aToken interest accrual, custom amount for actions where output amount is variable
+  const amountWithMargin = Number(amount) + Number(amount) * (margin ?? SIGNATURE_AMOUNT_MARGIN); // 10% margin for mToken interest accrual, custom amount for actions where output amount is variable
   const formattedAmountWithMargin = valueToWei(amountWithMargin.toString(), decimals);
   return formattedAmountWithMargin;
 };

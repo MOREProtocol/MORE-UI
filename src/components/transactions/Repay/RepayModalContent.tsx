@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import {
   API_ETH_MOCK_ADDRESS,
   InterestRate,
@@ -72,7 +72,7 @@ export const RepayModalContent = ({
 
   const { underlyingBalance, usageAsCollateralEnabledOnUser, reserve } = userReserve;
 
-  const repayWithATokens = tokenToRepayWith.address === poolReserve.aTokenAddress;
+  const repayWithMTokens = tokenToRepayWith.address === poolReserve.aTokenAddress;
 
   const debt =
     debtType === InterestRate.Stable
@@ -90,7 +90,7 @@ export const RepayModalContent = ({
   // calculate max amount abailable to repay
   let maxAmountToRepay: BigNumber;
   let balance: string;
-  if (repayWithATokens) {
+  if (repayWithMTokens) {
     maxAmountToRepay = BigNumber.min(underlyingBalance, debt);
     balance = underlyingBalance;
   } else {
@@ -110,7 +110,7 @@ export const RepayModalContent = ({
     const maxSelected = value === '-1';
     amountRef.current = maxSelected ? maxAmountToRepay.toString(10) : value;
     setAmount(value);
-    if (maxSelected && (repayWithATokens || maxAmountToRepay.eq(debt))) {
+    if (maxSelected && (repayWithMTokens || maxAmountToRepay.eq(debt))) {
       if (
         tokenToRepayWith.address === API_ETH_MOCK_ADDRESS.toLowerCase() ||
         (synthetixProxyByChainId[currentChainId] &&
@@ -174,7 +174,7 @@ export const RepayModalContent = ({
         address: poolReserve.aTokenAddress,
         symbol: `a${poolReserve.symbol}`,
         iconSymbol: poolReserve.iconSymbol,
-        aToken: true,
+        mToken: true,
         balance: maxBalance.toString(10),
       });
     }
@@ -198,7 +198,7 @@ export const RepayModalContent = ({
   let newHF = user?.healthFactor;
   if (amount) {
     let collateralBalanceMarketReferenceCurrency: BigNumberValue = user?.totalCollateralUSD || '0';
-    if (repayWithATokens && usageAsCollateralEnabledOnUser) {
+    if (repayWithMTokens && usageAsCollateralEnabledOnUser) {
       collateralBalanceMarketReferenceCurrency = valueToBigNumber(
         user?.totalCollateralUSD || '0'
       ).minus(valueToBigNumber(reserve.priceInUSD).multipliedBy(amount));
@@ -229,7 +229,7 @@ export const RepayModalContent = ({
       <TxSuccessView
         action={<Trans>repaid</Trans>}
         amount={amountRef.current}
-        symbol={repayWithATokens ? poolReserve.symbol : tokenToRepayWith.symbol}
+        symbol={repayWithMTokens ? poolReserve.symbol : tokenToRepayWith.symbol}
       />
     );
 
@@ -284,12 +284,12 @@ export const RepayModalContent = ({
         poolReserve={poolReserve}
         amountToRepay={isMaxSelected ? repayMax : amount}
         poolAddress={
-          repayWithATokens ? poolReserve.underlyingAsset : tokenToRepayWith.address ?? ''
+          repayWithMTokens ? poolReserve.underlyingAsset : tokenToRepayWith.address ?? ''
         }
         isWrongNetwork={isWrongNetwork}
         symbol={modalSymbol}
         debtType={debtType}
-        repayWithATokens={repayWithATokens}
+        repayWithATokens={repayWithMTokens}
       />
     </>
   );

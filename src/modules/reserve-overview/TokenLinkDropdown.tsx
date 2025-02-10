@@ -14,13 +14,13 @@ import { RESERVE_DETAILS } from '../../utils/mixPanelEvents';
 interface TokenLinkDropdownProps {
   poolReserve: ComputedReserveData;
   downToSM: boolean;
-  hideAToken?: boolean;
+  hideMToken?: boolean;
 }
 
 export const TokenLinkDropdown = ({
   poolReserve,
   downToSM,
-  hideAToken,
+  hideMToken,
 }: TokenLinkDropdownProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -32,7 +32,7 @@ export const TokenLinkDropdown = ({
     trackEvent(RESERVE_DETAILS.RESERVE_TOKENS_DROPDOWN, {
       assetName: poolReserve.name,
       asset: poolReserve.underlyingAsset,
-      aToken: poolReserve.aTokenAddress,
+      mToken: poolReserve.aTokenAddress,
       market: currentMarket,
       variableDebtToken: poolReserve.variableDebtTokenAddress,
     });
@@ -95,7 +95,7 @@ export const TokenLinkDropdown = ({
               type: 'Underlying Token',
               assetName: poolReserve.name,
               asset: poolReserve.underlyingAsset,
-              aToken: poolReserve.aTokenAddress,
+              mToken: poolReserve.aTokenAddress,
               market: currentMarket,
               variableDebtToken: poolReserve.variableDebtTokenAddress,
             });
@@ -113,7 +113,7 @@ export const TokenLinkDropdown = ({
           </Typography>
         </MenuItem>
 
-        {!hideAToken && (
+        {!hideMToken && (
           <Box>
             <Box sx={{ px: 4, pt: 3, pb: 2 }}>
               <Typography variant="secondary12" color="text.secondary">
@@ -125,10 +125,10 @@ export const TokenLinkDropdown = ({
               component="a"
               onClick={() => {
                 trackEvent(RESERVE_DETAILS.RESERVE_TOKEN_ACTIONS, {
-                  type: 'aToken',
+                  type: 'mToken',
                   assetName: poolReserve.name,
                   asset: poolReserve.underlyingAsset,
-                  aToken: poolReserve.aTokenAddress,
+                  mToken: poolReserve.aTokenAddress,
                   market: currentMarket,
                   variableDebtToken: poolReserve.variableDebtTokenAddress,
                 });
@@ -139,7 +139,7 @@ export const TokenLinkDropdown = ({
               target="_blank"
               divider={showDebtTokenHeader}
             >
-              <TokenIcon symbol={poolReserve.iconSymbol} aToken={true} sx={{ fontSize: '20px' }} />
+              <TokenIcon symbol={poolReserve.iconSymbol} mToken={true} sx={{ fontSize: '20px' }} />
               <Typography variant="subheader1" sx={{ ml: 3 }} noWrap data-cy={`assetName`}>
                 {'a' + poolReserve.symbol}
               </Typography>
@@ -150,7 +150,7 @@ export const TokenLinkDropdown = ({
         {showDebtTokenHeader && (
           <Box sx={{ px: 4, pt: 3, pb: 2 }}>
             <Typography variant="secondary12" color="text.secondary">
-              <Trans>Aave debt token</Trans>
+              <Trans>More debt token</Trans>
             </Typography>
           </Box>
         )}
@@ -166,7 +166,7 @@ export const TokenLinkDropdown = ({
                 type: 'Variable Debt',
                 assetName: poolReserve.name,
                 asset: poolReserve.underlyingAsset,
-                aToken: poolReserve.aTokenAddress,
+                mToken: poolReserve.aTokenAddress,
                 market: currentMarket,
                 variableDebtToken: poolReserve.variableDebtTokenAddress,
               });
@@ -190,7 +190,7 @@ export const TokenLinkDropdown = ({
                 type: 'Stable Debt',
                 assetName: poolReserve.name,
                 asset: poolReserve.underlyingAsset,
-                aToken: poolReserve.aTokenAddress,
+                mToken: poolReserve.aTokenAddress,
                 market: currentMarket,
                 variableDebtToken: poolReserve.variableDebtTokenAddress,
                 stableDebtToken: poolReserve.stableDebtTokenAddress,

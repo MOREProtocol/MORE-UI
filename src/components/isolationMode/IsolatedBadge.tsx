@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { InformationCircleIcon } from '@heroicons/react/outline';
 import { Box, Link, SvgIcon, Typography, TypographyProps, useTheme } from '@mui/material';
 import { ReactNode } from 'react';
@@ -122,7 +122,10 @@ const IsolationModeTooltipTemplate = ({ content }: { content: ReactNode }) => {
       <Typography variant="subheader2" color="text.secondary">
         <Trans>
           Learn more in our{' '}
-          <Link href="https://docs.aave.com/faq/aave-v3-features#isolation-mode" fontWeight={500}>
+          <Link
+            href="https://docs.more.markets/faq/more-markets-features#isolation-mode"
+            fontWeight={500}
+          >
             FAQ guide
           </Link>
         </Trans>

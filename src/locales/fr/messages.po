@@ -551,7 +551,7 @@ msgstr ""
 msgid "You can only switch to tokens with variable APY types. After this transaction, you may change the variable rate to a stable one if available."
 msgstr "Vous ne pouvez passer qu’à des jetons avec des types APY variables. Après cette transaction, vous pouvez changer le taux variable pour un taux stable s’il est disponible."
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "Supplying your "
 msgstr ""
 
@@ -905,7 +905,7 @@ msgstr "Le taux d’intérêt variable <0>fluctuera</0> en fonction des conditio
 
 #: src/ui-config/errorMapping.tsx
 msgid "MToken supply is not zero"
-msgstr "L'approvisionnement en aTokens n'est pas nul"
+msgstr "L'approvisionnement en mTokens n'est pas nul"
 
 #: src/ui-config/errorMapping.tsx
 msgid "Borrow and repay in same block is not allowed"
@@ -950,7 +950,7 @@ msgstr "Pour en savoir plus, cliquez ici."
 msgid "Maximum amount received"
 msgstr ""
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "staking view"
 msgstr "vue de staking"
 
@@ -1407,7 +1407,7 @@ msgstr "Si votre prêt à la valeur dépasse le seuil de liquidation, votre gara
 msgid "Interest rate rebalance conditions were not met"
 msgstr "Les conditions de rééquilibrage des taux d'intérêt n'ont pas été remplies"
 
-#. placeholder {0}: addToken && addToken.aToken ? 'aToken ' : 'token '
+#. placeholder {0}: addToken && addToken.mToken ? 'mToken ' : 'token '
 #: src/components/transactions/FlowCommons/Success.tsx
 msgid "Add {0} to wallet to track your balance."
 msgstr "Ajouter {0} à Wallet pour suivre votre solde."
@@ -1530,7 +1530,7 @@ msgstr "Ces actifs sont temporairement gelés ou suspendus par des décisions de
 msgid "Per the community, the V2 AMM market has been deprecated."
 msgstr "Selon la communauté, le marché de l’AMM V2 a été déprécié."
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "tokens is not the same as staking them. If you wish to stake your "
 msgstr ""
 
@@ -2035,7 +2035,7 @@ msgstr "Rien n’a été trouvé"
 msgid "Signatures ready"
 msgstr "Signatures prêtes"
 
-#: src/components/transactions/Warnings/AAVEWarning.tsx
+#: src/components/transactions/Warnings/MOREWarning.tsx
 msgid "tokens, please go to the "
 msgstr ""
 

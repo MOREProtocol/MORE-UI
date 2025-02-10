@@ -151,7 +151,7 @@ export function AppHeader() {
       <Typography variant="description">
         <Trans>The app is running in testnet mode. Learn how it works in</Trans>{' '}
         <Link
-          href="https://docs.aave.com/faq/testing-aave"
+          href="https://docs.more.markets/faq/testing-more"
           style={{ fontSize: '14px', fontWeight: 400, textDecoration: 'underline' }}
         >
           FAQ.
@@ -212,7 +212,7 @@ export function AppHeader() {
           }}
           onClick={() => setMobileMenuOpen(false)}
         >
-          <img src={uiConfig.appLogo} alt="AAVE" width={150} height={30} />
+          <img src={uiConfig.appLogo} alt="MORE" width={150} height={30} />
         </Box>
         <Box sx={{ mr: sm ? 1 : 3 }}>
           {ENABLE_TESTNET && (
