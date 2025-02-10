@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { DuplicateIcon } from '@heroicons/react/outline';
 import { ChevronDownIcon, ChevronUpIcon, ExternalLinkIcon } from '@heroicons/react/solid';
 import {
@@ -89,11 +89,11 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
     handleClose();
   };
 
-  const handleSwitchWallet = (): void => {
-    openConnectModal();
-    trackEvent(AUTH.SWITCH_WALLET);
-    handleClose();
-  };
+  // const handleSwitchWallet = (): void => {
+  //   openConnectModal();
+  //   trackEvent(AUTH.SWITCH_WALLET);
+  //   handleClose();
+  // };
 
   const handleViewOnExplorer = (): void => {
     trackEvent(GENERAL.EXTERNAL_LINK, { Link: 'Etherscan for Wallet' });
@@ -142,7 +142,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
       </Box>
       {!md && (
         <Box sx={{ display: 'flex', flexDirection: 'row', padding: '0 16px 10px' }}>
-          <Button
+          {/* <Button
             variant="outlined"
             sx={{
               padding: '0 5px',
@@ -152,7 +152,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
             onClick={handleSwitchWallet}
           >
             Switch wallet
-          </Button>
+          </Button> */}
           <Button
             variant="outlined"
             sx={{
@@ -256,7 +256,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
         <>
           <Divider sx={{ my: { xs: 7, md: 0 }, borderColor: { xs: '#FFFFFF1F', md: 'divider' } }} />
           <Box sx={{ padding: '16px 16px 10px' }}>
-            <Button
+            {/* <Button
               sx={{
                 marginBottom: '16px',
                 background: '#383D51',
@@ -268,7 +268,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
               onClick={handleSwitchWallet}
             >
               Switch wallet
-            </Button>
+            </Button> */}
             <Button
               sx={{
                 background: '#383D51',
