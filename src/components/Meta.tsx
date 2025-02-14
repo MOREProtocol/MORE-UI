@@ -4,16 +4,16 @@ import React from 'react';
 export function Meta() {
   const title = 'Open Source Liquidity Protocol';
   const description =
-    'MoreMarkets is an Open Source Protocol to create Non-Custodial Liquidity Markets to earn interest on supplying and borrowing assets with a variable or stable interest rate. The protocol is designed for easy integration into your products and services.';
+    'MORE Markets is an Open Source Protocol to create Non-Custodial Liquidity Markets to earn interest on supplying and borrowing assets with a variable or stable interest rate. The protocol is designed for easy integration into your products and services.';
   const imageUrl =
     'https://cdn.prod.website-files.com/6618ffb14f6deabedc97531d/66742b16f9d7dfec3b6313b7_more_logo_light.png';
 
   return (
     <Head>
-      <title>MoreMarkets - Open Source Liquidity Protocol</title>
+      <title>MORE Markets - Open Source Liquidity Protocol</title>
       <meta name="viewport" content="initial-scale=1, width=device-width" />
       <meta name="description" content={description} key="description" />
-      <meta property="og:title" content={`MoreMarkets - ${title}`} key="title" />
+      <meta property="og:title" content={`MORE Markets - ${title}`} key="title" />
       <meta property="og:description" content={description} key="ogdescription" />
       {imageUrl && <meta property="og:image" content={imageUrl} key="ogimage" />}
       {imageUrl && <meta name="twitter:image" content={imageUrl} key="twitterimage" />}

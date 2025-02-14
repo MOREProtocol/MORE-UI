@@ -37,10 +37,6 @@ msgstr "Borrow cap"
 msgid "Supplied asset amount"
 msgstr "Supplied asset amount"
 
-#: src/modules/reserve-overview/ReserveEModePanel.tsx
-msgid "E-Mode increases your LTV for a selected category of assets, meaning that when E-mode is enabled, you will have higher borrowing power over assets of the same E-mode category which are defined by MoreMarkets Governance. You can enter E-Mode from your <0>Dashboard</0>. To learn more about E-Mode and applied restrictions in <1>FAQ</1> or <2>MoreMarkets Technical Paper</2>."
-msgstr "E-Mode increases your LTV for a selected category of assets, meaning that when E-mode is enabled, you will have higher borrowing power over assets of the same E-mode category which are defined by MoreMarkets Governance. You can enter E-Mode from your <0>Dashboard</0>. To learn more about E-Mode and applied restrictions in <1>FAQ</1> or <2>MoreMarkets Technical Paper</2>."
-
 #. placeholder {0}: selectedEmode && getEmodeMessage(selectedEmode.label)
 #: src/components/transactions/Emode/EmodeModalContent.tsx
 msgid "To enable E-mode for the {0} category, all borrow positions outside of this category must be closed."
@@ -1462,10 +1458,6 @@ msgstr "Isolated assets have limited borrowing power and other assets cannot be 
 msgid "Your {networkName} wallet is empty. Get free test assets at "
 msgstr "Your {networkName} wallet is empty. Get free test assets at "
 
-#: src/modules/markets/MarketAssetsListContainer.tsx
-msgid "These assets are temporarily frozen or paused by MoreMarkets community decisions, meaning that further supply / borrow, or rate swap of these assets are unavailable. Withdrawals and debt repayments are allowed. Follow the <0>More governance forum</0> for further updates."
-msgstr "These assets are temporarily frozen or paused by MoreMarkets community decisions, meaning that further supply / borrow, or rate swap of these assets are unavailable. Withdrawals and debt repayments are allowed. Follow the <0>More governance forum</0> for further updates."
-
 #: src/ui-config/errorMapping.tsx
 msgid "The requested amount is greater than the max loan size in stable rate mode"
 msgstr "The requested amount is greater than the max loan size in stable rate mode"
@@ -2283,6 +2275,10 @@ msgstr "Maximum amount available to borrow is limited because protocol borrow ca
 msgid "Insufficient collateral to cover new borrow position. Wallet must have borrowing power remaining to perform debt switch."
 msgstr "Insufficient collateral to cover new borrow position. Wallet must have borrowing power remaining to perform debt switch."
 
+#: src/modules/reserve-overview/ReserveEModePanel.tsx
+msgid "E-Mode increases your LTV for a selected category of assets, meaning that when E-mode is enabled, you will have higher borrowing power over assets of the same E-mode category which are defined by MORE Markets Governance. You can enter E-Mode from your <0>Dashboard</0>. To learn more about E-Mode and applied restrictions in <1>FAQ</1> or <2>MORE Markets Technical Paper</2>."
+msgstr "E-Mode increases your LTV for a selected category of assets, meaning that when E-mode is enabled, you will have higher borrowing power over assets of the same E-mode category which are defined by MORE Markets Governance. You can enter E-Mode from your <0>Dashboard</0>. To learn more about E-Mode and applied restrictions in <1>FAQ</1> or <2>MORE Markets Technical Paper</2>."
+
 #: src/components/lists/ListWrapper.tsx
 msgid "Hide"
 msgstr "Hide"
@@ -2356,6 +2352,10 @@ msgstr "Your {networkName} wallet is empty. Get free test {0} at"
 #: src/components/transactions/Repay/RepayTypeSelector.tsx
 msgid "Repay with"
 msgstr "Repay with"
+
+#: src/modules/markets/MarketAssetsListContainer.tsx
+msgid "These assets are temporarily frozen or paused by MORE Markets community decisions, meaning that further supply / borrow, or rate swap of these assets are unavailable. Withdrawals and debt repayments are allowed."
+msgstr "These assets are temporarily frozen or paused by MORE Markets community decisions, meaning that further supply / borrow, or rate swap of these assets are unavailable. Withdrawals and debt repayments are allowed."
 
 #. placeholder {0}: currentMarketData.marketTitle
 #. placeholder {0}: currentNetworkConfig.name
