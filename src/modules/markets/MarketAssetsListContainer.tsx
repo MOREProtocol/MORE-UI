@@ -1,7 +1,7 @@
 import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
 import { Trans } from '@lingui/react/macro';
 import { Box, Switch, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ListWrapper } from 'src/components/lists/ListWrapper';
 import { NoSearchResults } from 'src/components/NoSearchResults';
 import { Link } from 'src/components/primitives/Link';
@@ -19,6 +19,7 @@ import { getGhoReserve, GHO_SUPPORTED_MARKETS, GHO_SYMBOL } from 'src/utils/ghoU
 import { GENERAL } from '../../utils/mixPanelEvents';
 import {
   applyFilters,
+  calculateFilterRanges,
   DEFAULT_FILTERS,
   FilterComponent,
   FilterState,
@@ -27,9 +28,38 @@ import {
 export const MarketAssetsListContainer = () => {
   const { reserves, loading } = useAppDataContext();
   const { currentMarket, currentMarketData, currentNetworkConfig } = useProtocolDataContext();
-  const { walletBalances, loading: walletLoading } = useWalletBalances(currentMarketData);
+  const { walletBalances } = useWalletBalances(currentMarketData);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Calculate initial ranges from reserves
+  const initialRanges = useMemo(() => calculateFilterRanges(reserves), [reserves]);
+
+  // Initialize filters with calculated ranges
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  useEffect(() => {
+    if (!loading && initialRanges) {
+      setFilters({
+        ...DEFAULT_FILTERS,
+        totalSupplied: {
+          ...DEFAULT_FILTERS.totalSupplied,
+          max: initialRanges.totalSupplied.max,
+        },
+        utilizationRate: {
+          ...DEFAULT_FILTERS.utilizationRate,
+          max: initialRanges.utilizationRate.max,
+        },
+        maxLtv: {
+          ...DEFAULT_FILTERS.maxLtv,
+          max: initialRanges.maxLtv.max,
+        },
+        apy: {
+          ...DEFAULT_FILTERS.apy,
+          max: initialRanges.apy.max,
+        },
+      });
+    }
+  }, [initialRanges, loading]);
+
   const { breakpoints } = useTheme();
   const sm = useMediaQuery(breakpoints.down('sm'));
   const trackEvent = useRootStore((store) => store.trackEvent);
@@ -177,7 +207,7 @@ export const MarketAssetsListContainer = () => {
           subtitle={
             <Trans>
               We couldn&apos;t find any assets related to your search. Try again with a different
-              asset name, symbol, or address.
+              asset name, symbol, search parameter, or address.
             </Trans>
           }
         />
