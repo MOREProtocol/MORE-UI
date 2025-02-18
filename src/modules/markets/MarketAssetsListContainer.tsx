@@ -27,7 +27,7 @@ import {
 
 export const MarketAssetsListContainer = () => {
   const { reserves, loading } = useAppDataContext();
-  const { currentMarket, currentMarketData, currentNetworkConfig } = useProtocolDataContext();
+  const { currentMarket, currentMarketData, currentNetworkConfig } = useRootStore();
   const { walletBalances } = useWalletBalances(currentMarketData);
   const [searchTerm, setSearchTerm] = useState('');
 

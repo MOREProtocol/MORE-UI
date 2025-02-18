@@ -19,12 +19,15 @@ type TypePermitParams = {
 };
 
 export interface ProtocolDataSlice {
-  currentMarket: CustomMarket;
+  currentMarket: CustomMarket | 'all_markets';
   currentMarketData: MarketDataType;
   currentChainId: number;
   currentNetworkConfig: NetworkConfig;
   jsonRpcProvider: (chainId?: number) => providers.Provider;
-  setCurrentMarket: (market: CustomMarket, omitQueryParameterUpdate?: boolean) => void;
+  setCurrentMarket: (
+    market: CustomMarket | 'all_markets',
+    omitQueryParameterUpdate?: boolean
+  ) => void;
   tryPermit: ({ reserveAddress, isWrappedBaseAsset }: TypePermitParams) => boolean;
 }
 
@@ -43,18 +46,27 @@ export const createProtocolDataSlice: StateCreator<
     currentNetworkConfig: getNetworkConfig(initialMarketData.chainId),
     jsonRpcProvider: (chainId) => getProvider(chainId ?? get().currentChainId),
     setCurrentMarket: (market, omitQueryParameterUpdate) => {
-      if (!availableMarkets.includes(market as CustomMarket)) return;
-      const nextMarketData = marketsData[market];
-      localStorage.setItem('selectedMarket', market);
-      if (!omitQueryParameterUpdate) {
-        setQueryParameter('marketName', market);
+      if (market === 'all_markets') {
+        set({
+          currentMarket: market,
+          currentMarketData: { ...initialMarketData, marketTitle: 'All Markets' },
+          currentChainId: 0,
+          currentNetworkConfig: getNetworkConfig(initialMarketData.chainId),
+        });
+      } else {
+        if (!availableMarkets.includes(market as CustomMarket)) return;
+        const nextMarketData = marketsData[market];
+        localStorage.setItem('selectedMarket', market);
+        if (!omitQueryParameterUpdate) {
+          setQueryParameter('marketName', market);
+        }
+        set({
+          currentMarket: market,
+          currentMarketData: nextMarketData,
+          currentChainId: nextMarketData.chainId,
+          currentNetworkConfig: getNetworkConfig(nextMarketData.chainId),
+        });
       }
-      set({
-        currentMarket: market,
-        currentMarketData: nextMarketData,
-        currentChainId: nextMarketData.chainId,
-        currentNetworkConfig: getNetworkConfig(nextMarketData.chainId),
-      });
     },
     tryPermit: ({ reserveAddress, isWrappedBaseAsset }: TypePermitParams) => {
       const currentNetworkConfig = get().currentNetworkConfig;
