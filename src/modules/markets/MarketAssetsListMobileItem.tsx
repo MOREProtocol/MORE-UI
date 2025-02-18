@@ -1,9 +1,11 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans } from '@lingui/react/macro';
 import { Box, Button, Divider } from '@mui/material';
 import { VariableAPYTooltip } from 'src/components/infoTooltips/VariableAPYTooltip';
 import { NoData } from 'src/components/primitives/NoData';
 import { ReserveSubheader } from 'src/components/ReserveSubheader';
+import { useModalContext } from 'src/hooks/useModal';
 import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
+import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
 import { MARKETS } from 'src/utils/mixPanelEvents';
 
@@ -15,8 +17,17 @@ import { ComputedReserveData } from '../../hooks/app-data-provider/useAppDataPro
 import { ListMobileItemWrapper } from '../dashboard/lists/ListMobileItemWrapper';
 
 export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) => {
-  const { currentMarket } = useProtocolDataContext();
   const trackEvent = useRootStore((store) => store.trackEvent);
+  const { currentMarket } = useProtocolDataContext();
+  const { openSupply, openBorrow } = useModalContext();
+  const { currentAccount } = useWeb3Context();
+  const disableSupply = !currentAccount || !reserve.isActive;
+  const disableBorrow =
+    !currentAccount ||
+    !reserve.isActive ||
+    !reserve.borrowingEnabled ||
+    reserve.isFrozen ||
+    reserve.isPaused;
 
   return (
     <ListMobileItemWrapper
@@ -129,22 +140,49 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) 
         </Box>
       </Row> */}
 
-      <Button
-        variant="outlined"
-        component={Link}
-        href={ROUTES.reserveOverview(reserve.underlyingAsset, currentMarket)}
-        fullWidth
-        onClick={() => {
-          trackEvent(MARKETS.DETAILS_NAVIGATION, {
-            type: 'button',
-            asset: reserve.underlyingAsset,
-            market: currentMarket,
-            assetName: reserve.name,
-          });
-        }}
-      >
-        <Trans>View details</Trans>
-      </Button>
+      {currentAccount ? (
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            disabled={disableSupply}
+            variant="contained"
+            fullWidth
+            onClick={(event) => {
+              event.stopPropagation();
+              openSupply(reserve.underlyingAsset, currentMarket, reserve.name, 'dashboard');
+            }}
+          >
+            <Trans>Supply</Trans>
+          </Button>
+          <Button
+            disabled={disableBorrow}
+            variant="contained"
+            fullWidth
+            onClick={(event) => {
+              event.stopPropagation();
+              openBorrow(reserve.underlyingAsset, currentMarket, reserve.name, 'dashboard');
+            }}
+          >
+            <Trans>Borrow</Trans>
+          </Button>
+        </Box>
+      ) : (
+        <Button
+          variant="outlined"
+          component={Link}
+          href={ROUTES.reserveOverview(reserve.underlyingAsset, currentMarket)}
+          fullWidth
+          onClick={() => {
+            trackEvent(MARKETS.DETAILS_NAVIGATION, {
+              type: 'button',
+              asset: reserve.underlyingAsset,
+              market: currentMarket,
+              assetName: reserve.name,
+            });
+          }}
+        >
+          <Trans>View details</Trans>
+        </Button>
+      )}
     </ListMobileItemWrapper>
   );
 };

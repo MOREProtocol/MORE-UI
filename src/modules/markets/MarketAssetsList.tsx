@@ -1,12 +1,13 @@
 import { Trans } from '@lingui/react/macro';
 import { useMediaQuery } from '@mui/material';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { VariableAPYTooltip } from 'src/components/infoTooltips/VariableAPYTooltip';
 import { ListColumn } from 'src/components/lists/ListColumn';
 import { ListHeaderTitle } from 'src/components/lists/ListHeaderTitle';
 import { ListHeaderWrapper } from 'src/components/lists/ListHeaderWrapper';
 import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { WalletBalancesMap } from 'src/hooks/app-data-provider/useWalletBalances';
+import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 
 import { MarketAssetsListItem } from './MarketAssetsListItem';
 import { MarketAssetsListItemLoader } from './MarketAssetsListItemLoader';
@@ -63,6 +64,8 @@ export default function MarketAssetsList({
   loading,
   walletBalances,
 }: MarketAssetsListProps) {
+  const { currentAccount } = useWeb3Context();
+  const lastColumnSize = useMemo(() => (!!currentAccount ? 180 : 95), [currentAccount]);
   const isTableChangedToCards = useMediaQuery('(max-width:1125px)');
   const [sortName, setSortName] = useState('');
   const [sortDesc, setSortDesc] = useState(false);
@@ -128,7 +131,7 @@ export default function MarketAssetsList({
             </ListColumn>
           ))}
           {/* Width for buttons */}
-          <ListColumn maxWidth={180} minWidth={180} />
+          <ListColumn maxWidth={lastColumnSize} minWidth={lastColumnSize} />
         </ListHeaderWrapper>
       )}
 

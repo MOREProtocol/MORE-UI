@@ -3,14 +3,14 @@ import { Box, Slider, styled, Typography } from '@mui/material';
 
 const StyledSlider = styled(Slider)({
   color: '#F5871F',
-  height: 8,
+  height: 6,
   '& .MuiSlider-track': {
     color: '#F5871F',
     border: 'none',
   },
   '& .MuiSlider-thumb': {
-    height: 18,
-    width: 18,
+    height: 16,
+    width: 16,
     backgroundColor: '#fff',
     border: '2px solid #F5871F',
     '&:focus, &:hover, &.Mui-active, &.Mui-focusVisible': {

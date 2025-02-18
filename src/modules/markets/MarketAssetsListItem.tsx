@@ -1,6 +1,7 @@
 import { Trans } from '@lingui/react/macro';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button, Link, Typography } from '@mui/material';
 import { useRouter } from 'next/router';
+import { useMemo } from 'react';
 import { OffboardingTooltip } from 'src/components/infoTooltips/OffboardingToolTip';
 import { RenFILToolTip } from 'src/components/infoTooltips/RenFILToolTip';
 import { IsolatedEnabledBadge } from 'src/components/isolationMode/IsolatedBadge';
@@ -10,6 +11,7 @@ import { AssetsBeingOffboarded } from 'src/components/Warnings/OffboardingWarnin
 import { WalletBalancesMap } from 'src/hooks/app-data-provider/useWalletBalances';
 import { useModalContext } from 'src/hooks/useModal';
 import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
+import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
 import { MARKETS } from 'src/utils/mixPanelEvents';
 
@@ -33,11 +35,18 @@ export const MarketAssetsListItem = ({
   const { currentMarket } = useProtocolDataContext();
   const { openSupply, openBorrow } = useModalContext();
   const trackEvent = useRootStore((store) => store.trackEvent);
+  const { currentAccount } = useWeb3Context();
+  const lastColumnSize = useMemo(() => (!!currentAccount ? 180 : 95), [currentAccount]);
 
   // Does not seem to work
-  const disableSupply = !reserve.isActive || Number(walletBalances[reserve.underlyingAsset]) <= 0;
+  const disableSupply =
+    !currentAccount || !reserve.isActive || Number(walletBalances[reserve.underlyingAsset]) <= 0;
   const disableBorrow =
-    !reserve.isActive || !reserve.borrowingEnabled || reserve.isFrozen || reserve.isPaused;
+    !currentAccount ||
+    !reserve.isActive ||
+    !reserve.borrowingEnabled ||
+    reserve.isFrozen ||
+    reserve.isPaused;
 
   const offboardingDiscussion = AssetsBeingOffboarded[currentMarket]?.[reserve.symbol];
 
@@ -137,29 +146,47 @@ export const MarketAssetsListItem = ({
         )}
       </ListColumn> */}
 
-      <ListColumn minWidth={180} maxWidth={180} align="right">
-        <Box sx={{ display: 'flex', gap: 1 }}>
+      <ListColumn minWidth={lastColumnSize} maxWidth={lastColumnSize} align="right">
+        {currentAccount ? (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              disabled={disableSupply}
+              variant="contained"
+              onClick={(event) => {
+                event.stopPropagation();
+                openSupply(reserve.underlyingAsset, currentMarket, reserve.name, 'dashboard');
+              }}
+            >
+              <Trans>Supply</Trans>
+            </Button>
+            <Button
+              disabled={disableBorrow}
+              variant="contained"
+              onClick={(event) => {
+                event.stopPropagation();
+                openBorrow(reserve.underlyingAsset, currentMarket, reserve.name, 'dashboard');
+              }}
+            >
+              <Trans>Borrow</Trans>
+            </Button>
+          </Box>
+        ) : (
           <Button
-            disabled={disableSupply}
-            variant="contained"
-            onClick={(event) => {
-              event.stopPropagation();
-              openSupply(reserve.underlyingAsset, currentMarket, reserve.name, 'dashboard');
-            }}
+            variant="outlined"
+            component={Link}
+            href={ROUTES.reserveOverview(reserve.underlyingAsset, currentMarket)}
+            onClick={() =>
+              trackEvent(MARKETS.DETAILS_NAVIGATION, {
+                type: 'Button',
+                assetName: reserve.name,
+                asset: reserve.underlyingAsset,
+                market: currentMarket,
+              })
+            }
           >
-            <Trans>Supply</Trans>
+            <Trans>Details</Trans>
           </Button>
-          <Button
-            disabled={disableBorrow}
-            variant="contained"
-            onClick={(event) => {
-              event.stopPropagation();
-              openBorrow(reserve.underlyingAsset, currentMarket, reserve.name, 'dashboard');
-            }}
-          >
-            <Trans>Borrow</Trans>
-          </Button>
-        </Box>
+        )}
       </ListColumn>
     </ListItem>
   );
