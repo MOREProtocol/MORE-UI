@@ -1,5 +1,5 @@
-import { Trans } from "@lingui/react/macro";
 import { valueToBigNumber } from '@aave/math-utils';
+import { Trans } from '@lingui/react/macro';
 import { useMediaQuery, useTheme } from '@mui/material';
 import { marketContainerProps } from 'pages/markets.page';
 import * as React from 'react';

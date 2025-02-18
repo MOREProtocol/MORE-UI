@@ -1,8 +1,11 @@
+import { ReserveDataHumanized } from '@aave/contract-helpers';
 import { UserReserveData } from '@aave/math-utils';
 import React, { useContext } from 'react';
 import { EmodeCategory, IProps } from 'src/helpers/types';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
+import { allMarketsData, marketsData } from 'src/ui-config/marketsConfig';
+
 import { formatEmodes } from '../../store/poolSelectors';
 import {
   ExtendedFormattedUser as _ExtendedFormattedUser,
@@ -11,8 +14,9 @@ import {
 import {
   FormattedReservesAndIncentives,
   usePoolFormattedReserves,
+  usePoolsFormattedReserves,
 } from '../pool/usePoolFormattedReserves';
-import { usePoolReservesHumanized } from '../pool/usePoolReserves';
+import { usePoolReservesHumanized, usePoolsReservesHumanized } from '../pool/usePoolReserves';
 import { useUserPoolReservesHumanized } from '../pool/useUserPoolReserves';
 import { FormattedUserReserves } from '../pool/useUserSummaryAndIncentives';
 
@@ -59,17 +63,25 @@ const AppDataContext = React.createContext<AppDataContextType>({} as AppDataCont
 export const AppDataProvider: React.FC<IProps> = ({ children }) => {
   const { currentAccount } = useWeb3Context();
 
-  const currentMarketData = useRootStore((state) => state.currentMarketData);
+  const { currentMarket, currentMarketData } = useRootStore();
   // pool hooks
 
-  const { data: reservesData, isLoading: reservesDataLoading } =
-    usePoolReservesHumanized(currentMarketData);
-  const { data: formattedPoolReserves, isLoading: formattedPoolReservesLoading } =
-    usePoolFormattedReserves(currentMarketData);
-  const baseCurrencyData = reservesData?.baseCurrencyData;
+  const localMarketData = currentMarket === 'all_markets' ? allMarketsData : [currentMarketData];
+
+  const poolsReservesHumanized = usePoolsReservesHumanized(localMarketData);
+  const reservesDataLoading = poolsReservesHumanized.some((r) => r.isLoading);
+  const reservesData: ReserveDataHumanized[] =
+    !reservesDataLoading && poolsReservesHumanized.map((r) => r.data.reservesData).flat();
+
+  const poolsFormattedReserves = usePoolsFormattedReserves(localMarketData);
+  const formattedPoolReservesLoading = poolsFormattedReserves.some((r) => r.isLoading);
+  const formattedPoolReserves: FormattedReservesAndIncentives[] =
+    !formattedPoolReservesLoading && poolsFormattedReserves.map((r) => r.data).flat();
+
+  const baseCurrencyData = !reservesDataLoading && poolsReservesHumanized[0]?.data.baseCurrencyData;
   // user hooks
 
-  const eModes = reservesData?.reservesData ? formatEmodes(reservesData.reservesData) : {};
+  const eModes = reservesData ? formatEmodes(reservesData) : {};
 
   const { data: userReservesData, isLoading: userReservesDataLoading } =
     useUserPoolReservesHumanized(currentMarketData);
