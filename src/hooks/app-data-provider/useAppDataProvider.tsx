@@ -4,7 +4,7 @@ import React, { useContext } from 'react';
 import { EmodeCategory, IProps } from 'src/helpers/types';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
-import { allMarketsData, marketsData } from 'src/ui-config/marketsConfig';
+import { allMarketsData } from 'src/ui-config/marketsConfig';
 
 import { formatEmodes } from '../../store/poolSelectors';
 import {
@@ -13,10 +13,9 @@ import {
 } from '../pool/useExtendedUserSummaryAndIncentives';
 import {
   FormattedReservesAndIncentives,
-  usePoolFormattedReserves,
   usePoolsFormattedReserves,
 } from '../pool/usePoolFormattedReserves';
-import { usePoolReservesHumanized, usePoolsReservesHumanized } from '../pool/usePoolReserves';
+import { usePoolsReservesHumanized } from '../pool/usePoolReserves';
 import { useUserPoolReservesHumanized } from '../pool/useUserPoolReserves';
 import { FormattedUserReserves } from '../pool/useUserSummaryAndIncentives';
 

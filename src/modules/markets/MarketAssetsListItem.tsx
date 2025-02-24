@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { OffboardingTooltip } from 'src/components/infoTooltips/OffboardingToolTip';
 import { RenFILToolTip } from 'src/components/infoTooltips/RenFILToolTip';
 import { IsolatedEnabledBadge } from 'src/components/isolationMode/IsolatedBadge';
+import { getMarketInfoById } from 'src/components/MarketSwitcher';
 import { NoData } from 'src/components/primitives/NoData';
 import { ReserveSubheader } from 'src/components/ReserveSubheader';
 import { AssetsBeingOffboarded } from 'src/components/Warnings/OffboardingWarning';
@@ -13,6 +14,7 @@ import { useModalContext } from 'src/hooks/useModal';
 import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
+import { CustomMarket } from 'src/utils/marketsAndNetworksConfig';
 import { MARKETS } from 'src/utils/mixPanelEvents';
 
 import { IncentivesCard } from '../../components/incentives/IncentivesCard';
@@ -68,7 +70,11 @@ export const MarketAssetsListItem = ({
       data-cy={`marketListItemListItem_${reserve.symbol.toUpperCase()}`}
     >
       <ListColumn isRow maxWidth={280}>
-        <TokenIcon symbol={reserve.iconSymbol} fontSize="large" />
+        <TokenIcon
+          symbol={reserve.iconSymbol}
+          networkId={currentMarket === 'all_markets' && reserve.id.split('-')[0]}
+          fontSize="large"
+        />
         <Box sx={{ pl: 3.5, overflow: 'hidden' }}>
           <Typography variant="h4" noWrap>
             {reserve.name}
