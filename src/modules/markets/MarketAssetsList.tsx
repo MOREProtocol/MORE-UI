@@ -5,7 +5,7 @@ import { VariableAPYTooltip } from 'src/components/infoTooltips/VariableAPYToolt
 import { ListColumn } from 'src/components/lists/ListColumn';
 import { ListHeaderTitle } from 'src/components/lists/ListHeaderTitle';
 import { ListHeaderWrapper } from 'src/components/lists/ListHeaderWrapper';
-import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { WalletBalancesMap } from 'src/hooks/app-data-provider/useWalletBalances';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 
@@ -54,7 +54,7 @@ const listHeaders = [
 ];
 
 type MarketAssetsListProps = {
-  reserves: ComputedReserveData[];
+  reserves: ComputedReserveDataWithMarket[];
   loading: boolean;
   walletBalances: WalletBalancesMap;
 };

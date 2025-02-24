@@ -1,6 +1,7 @@
 import { Badge, Box, Icon, IconProps, Tooltip } from '@mui/material';
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import LazyLoad from 'react-lazy-load';
+import { MarketDataType } from 'src/ui-config/marketsConfig';
 import { networkConfigs } from 'src/ui-config/networksConfig';
 
 interface ATokenIconProps {
@@ -139,7 +140,7 @@ ATokenIcon.displayName = 'ATokenIcon';
 
 interface TokenIconProps extends IconProps {
   symbol: string;
-  networkId?: string;
+  market?: MarketDataType;
   aToken?: boolean;
 }
 
@@ -149,7 +150,7 @@ interface TokenIconProps extends IconProps {
  * @param param0
  * @returns
  */
-function SingleTokenIcon({ symbol, aToken, networkId, ...rest }: TokenIconProps) {
+function SingleTokenIcon({ symbol, aToken, market, ...rest }: TokenIconProps) {
   const [tokenSymbol, setTokenSymbol] = useState(symbol.toLowerCase());
 
   useEffect(() => {
@@ -172,17 +173,17 @@ function SingleTokenIcon({ symbol, aToken, networkId, ...rest }: TokenIconProps)
     </Icon>
   );
 
-  if (networkId && networkConfigs[networkId]?.networkLogoPath) {
+  if (market) {
     return (
       <Badge
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         badgeContent={
-          <Tooltip title={networkConfigs[networkId]?.name || ''}>
+          <Tooltip title={market.marketTitle || ''}>
             <img
-              src={networkConfigs[networkId].networkLogoPath}
+              src={networkConfigs[market.chainId].networkLogoPath}
               width="16"
               height="16"
-              alt={`${networkId} network`}
+              alt={`${market.chainId} network`}
               style={{ border: '1px solid #fff', borderRadius: '50%' }}
             />
           </Tooltip>

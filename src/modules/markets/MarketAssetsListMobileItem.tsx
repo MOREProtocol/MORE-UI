@@ -13,12 +13,12 @@ import { IncentivesCard } from '../../components/incentives/IncentivesCard';
 import { FormattedNumber } from '../../components/primitives/FormattedNumber';
 import { Link, ROUTES } from '../../components/primitives/Link';
 import { Row } from '../../components/primitives/Row';
-import { ComputedReserveData } from '../../hooks/app-data-provider/useAppDataProvider';
+import { ComputedReserveDataWithMarket } from '../../hooks/app-data-provider/useAppDataProvider';
 import { ListMobileItemWrapper } from '../dashboard/lists/ListMobileItemWrapper';
 
-export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) => {
+export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveDataWithMarket) => {
   const trackEvent = useRootStore((store) => store.trackEvent);
-  const { currentMarket } = useProtocolDataContext();
+  const { currentMarket, setCurrentMarket } = useRootStore();
   const { openSupply, openBorrow } = useModalContext();
   const { currentAccount } = useWeb3Context();
   const disableSupply = !currentAccount || !reserve.isActive;
@@ -35,7 +35,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) 
       iconSymbol={reserve.iconSymbol}
       name={reserve.name}
       underlyingAsset={reserve.underlyingAsset}
-      currentMarket={currentMarket}
+      currentMarket={reserve.market.market}
       isIsolated={reserve.isIsolated}
     >
       <Row caption={<Trans>Total supplied</Trans>} captionVariant="description" mb={3}>
@@ -148,7 +148,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) 
             fullWidth
             onClick={(event) => {
               event.stopPropagation();
-              openSupply(reserve.underlyingAsset, currentMarket, reserve.name, 'dashboard');
+              openSupply(reserve.underlyingAsset, reserve.market.market, reserve.name, 'dashboard');
             }}
           >
             <Trans>Supply</Trans>
@@ -159,7 +159,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) 
             fullWidth
             onClick={(event) => {
               event.stopPropagation();
-              openBorrow(reserve.underlyingAsset, currentMarket, reserve.name, 'dashboard');
+              openBorrow(reserve.underlyingAsset, reserve.market.market, reserve.name, 'dashboard');
             }}
           >
             <Trans>Borrow</Trans>
@@ -169,7 +169,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) 
         <Button
           variant="outlined"
           component={Link}
-          href={ROUTES.reserveOverview(reserve.underlyingAsset, currentMarket)}
+          href={ROUTES.reserveOverview(reserve.underlyingAsset, reserve.market.market)}
           fullWidth
           onClick={() => {
             trackEvent(MARKETS.DETAILS_NAVIGATION, {
@@ -178,6 +178,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) 
               market: currentMarket,
               assetName: reserve.name,
             });
+            setCurrentMarket(reserve.market.market);
           }}
         >
           <Trans>View details</Trans>

@@ -4,7 +4,7 @@ import React, { useContext } from 'react';
 import { EmodeCategory, IProps } from 'src/helpers/types';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
-import { allMarketsData } from 'src/ui-config/marketsConfig';
+import { allMarketsData, MarketDataType } from 'src/ui-config/marketsConfig';
 
 import { formatEmodes } from '../../store/poolSelectors';
 import {
@@ -33,6 +33,10 @@ export const unPrefixSymbol = (symbol: string, prefix: string) => {
  */
 export type ComputedReserveData = FormattedReservesAndIncentives;
 
+export type ComputedReserveDataWithMarket = FormattedReservesAndIncentives & {
+  market: MarketDataType;
+};
+
 /**
  * @deprecated Use FormattedUserReserves type from useUserSummaryAndIncentives hook
  */
@@ -45,7 +49,7 @@ export type ExtendedFormattedUser = _ExtendedFormattedUser;
 
 export interface AppDataContextType {
   loading: boolean;
-  reserves: ComputedReserveData[];
+  reserves: ComputedReserveDataWithMarket[];
   eModes: Record<number, EmodeCategory>;
   user?: ExtendedFormattedUser;
   marketReferencePriceInUsd: string;
@@ -69,13 +73,29 @@ export const AppDataProvider: React.FC<IProps> = ({ children }) => {
 
   const poolsReservesHumanized = usePoolsReservesHumanized(localMarketData);
   const reservesDataLoading = poolsReservesHumanized.some((r) => r.isLoading);
-  const reservesData: ReserveDataHumanized[] =
-    !reservesDataLoading && poolsReservesHumanized.map((r) => r.data.reservesData).flat();
+  const reservesData: (ReserveDataHumanized & { market: MarketDataType })[] =
+    !reservesDataLoading &&
+    poolsReservesHumanized
+      .map((r, index) =>
+        r.data.reservesData.map((reserve) => ({
+          ...reserve,
+          market: localMarketData[index],
+        }))
+      )
+      .flat();
 
   const poolsFormattedReserves = usePoolsFormattedReserves(localMarketData);
   const formattedPoolReservesLoading = poolsFormattedReserves.some((r) => r.isLoading);
-  const formattedPoolReserves: FormattedReservesAndIncentives[] =
-    !formattedPoolReservesLoading && poolsFormattedReserves.map((r) => r.data).flat();
+  const formattedPoolReserves: (FormattedReservesAndIncentives & { market: MarketDataType })[] =
+    !formattedPoolReservesLoading &&
+    poolsFormattedReserves
+      .map((r, index) =>
+        r.data.map((reserve) => ({
+          ...reserve,
+          market: localMarketData[index],
+        }))
+      )
+      .flat();
 
   const baseCurrencyData = !reservesDataLoading && poolsReservesHumanized[0]?.data.baseCurrencyData;
   // user hooks
