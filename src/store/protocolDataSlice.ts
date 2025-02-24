@@ -46,6 +46,10 @@ export const createProtocolDataSlice: StateCreator<
     currentNetworkConfig: getNetworkConfig(initialMarketData.chainId),
     jsonRpcProvider: (chainId) => getProvider(chainId ?? get().currentChainId),
     setCurrentMarket: (market, omitQueryParameterUpdate) => {
+      localStorage.setItem('selectedMarket', market);
+      if (!omitQueryParameterUpdate) {
+        setQueryParameter('marketName', market);
+      }
       if (market === 'all_markets') {
         set({
           currentMarket: market,
@@ -56,10 +60,6 @@ export const createProtocolDataSlice: StateCreator<
       } else {
         if (!availableMarkets.includes(market as CustomMarket)) return;
         const nextMarketData = marketsData[market];
-        localStorage.setItem('selectedMarket', market);
-        if (!omitQueryParameterUpdate) {
-          setQueryParameter('marketName', market);
-        }
         set({
           currentMarket: market,
           currentMarketData: nextMarketData,

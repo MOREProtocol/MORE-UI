@@ -1,6 +1,6 @@
-import { Trans } from "@lingui/react/macro";
 import { API_ETH_MOCK_ADDRESS, InterestRate } from '@aave/contract-helpers';
 import { BigNumberValue, USD_DECIMALS, valueToBigNumber } from '@aave/math-utils';
+import { Trans } from '@lingui/react/macro';
 import {
   Box,
   Button,

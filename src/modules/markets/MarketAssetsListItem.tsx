@@ -5,16 +5,13 @@ import { useMemo } from 'react';
 import { OffboardingTooltip } from 'src/components/infoTooltips/OffboardingToolTip';
 import { RenFILToolTip } from 'src/components/infoTooltips/RenFILToolTip';
 import { IsolatedEnabledBadge } from 'src/components/isolationMode/IsolatedBadge';
-import { getMarketInfoById } from 'src/components/MarketSwitcher';
 import { NoData } from 'src/components/primitives/NoData';
 import { ReserveSubheader } from 'src/components/ReserveSubheader';
 import { AssetsBeingOffboarded } from 'src/components/Warnings/OffboardingWarning';
 import { WalletBalancesMap } from 'src/hooks/app-data-provider/useWalletBalances';
 import { useModalContext } from 'src/hooks/useModal';
-import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
-import { CustomMarket } from 'src/utils/marketsAndNetworksConfig';
 import { MARKETS } from 'src/utils/mixPanelEvents';
 
 import { IncentivesCard } from '../../components/incentives/IncentivesCard';
@@ -24,17 +21,17 @@ import { ListItem } from '../../components/lists/ListItem';
 import { FormattedNumber } from '../../components/primitives/FormattedNumber';
 import { ROUTES } from '../../components/primitives/Link';
 import { TokenIcon } from '../../components/primitives/TokenIcon';
-import { ComputedReserveData } from '../../hooks/app-data-provider/useAppDataProvider';
+import { ComputedReserveDataWithMarket } from '../../hooks/app-data-provider/useAppDataProvider';
 
 export const MarketAssetsListItem = ({
   reserve,
   walletBalances,
 }: {
-  reserve: ComputedReserveData;
+  reserve: ComputedReserveDataWithMarket;
   walletBalances: WalletBalancesMap;
 }) => {
   const router = useRouter();
-  const { currentMarket } = useProtocolDataContext();
+  const { currentMarket, setCurrentMarket } = useRootStore();
   const { openSupply, openBorrow } = useModalContext();
   const trackEvent = useRootStore((store) => store.trackEvent);
   const { currentAccount } = useWeb3Context();
@@ -63,7 +60,8 @@ export const MarketAssetsListItem = ({
           asset: reserve.underlyingAsset,
           market: currentMarket,
         });
-        router.push(ROUTES.reserveOverview(reserve.underlyingAsset, currentMarket));
+        setCurrentMarket(reserve.market.market);
+        router.push(ROUTES.reserveOverview(reserve.underlyingAsset, reserve.market.market));
       }}
       sx={{ cursor: 'pointer' }}
       button
@@ -72,7 +70,7 @@ export const MarketAssetsListItem = ({
       <ListColumn isRow maxWidth={280}>
         <TokenIcon
           symbol={reserve.iconSymbol}
-          networkId={currentMarket === 'all_markets' && reserve.id.split('-')[0]}
+          market={currentMarket === 'all_markets' && reserve.market}
           fontSize="large"
         />
         <Box sx={{ pl: 3.5, overflow: 'hidden' }}>
@@ -180,15 +178,16 @@ export const MarketAssetsListItem = ({
           <Button
             variant="outlined"
             component={Link}
-            href={ROUTES.reserveOverview(reserve.underlyingAsset, currentMarket)}
-            onClick={() =>
+            href={ROUTES.reserveOverview(reserve.underlyingAsset, reserve.market.market)}
+            onClick={() => {
               trackEvent(MARKETS.DETAILS_NAVIGATION, {
                 type: 'Button',
                 assetName: reserve.name,
                 asset: reserve.underlyingAsset,
                 market: currentMarket,
-              })
-            }
+              });
+              setCurrentMarket(reserve.market.market);
+            }}
           >
             <Trans>Details</Trans>
           </Button>
