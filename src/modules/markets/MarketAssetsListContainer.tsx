@@ -1,6 +1,6 @@
 import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
 import { Trans } from '@lingui/react/macro';
-import { Box, Switch, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Collapse, Switch, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { ListWrapper } from 'src/components/lists/ListWrapper';
 import { NoSearchResults } from 'src/components/NoSearchResults';
@@ -10,7 +10,6 @@ import { TitleWithSearchBar } from 'src/components/TitleWithSearchBar';
 import { MarketWarning } from 'src/components/transactions/Warnings/MarketWarning';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
-import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
 import MarketAssetsList from 'src/modules/markets/MarketAssetsList';
 import { useRootStore } from 'src/store/root';
 import { fetchIconSymbolAndName } from 'src/ui-config/reservePatches';
@@ -19,7 +18,7 @@ import { getGhoReserve, GHO_SUPPORTED_MARKETS, GHO_SYMBOL } from 'src/utils/ghoU
 import { GENERAL } from '../../utils/mixPanelEvents';
 import {
   applyFilters,
-  calculateFilterRanges,
+  calculateFilterOptions,
   DEFAULT_FILTERS,
   FilterComponent,
   FilterState,
@@ -30,38 +29,48 @@ export const MarketAssetsListContainer = () => {
   const { currentMarket, currentMarketData, currentNetworkConfig } = useRootStore();
   const { walletBalances } = useWalletBalances(currentMarketData);
   const [searchTerm, setSearchTerm] = useState('');
+  const { breakpoints } = useTheme();
+  const lg = useMediaQuery(breakpoints.down('lg'));
+  const sm = useMediaQuery(breakpoints.down('sm'));
+  const [showFilter, setShowFilter] = useState(!lg);
 
   // Calculate initial ranges from reserves
-  const initialRanges = useMemo(() => calculateFilterRanges(reserves), [reserves]);
+  const initialFilterOptions = useMemo(() => calculateFilterOptions(reserves), [reserves]);
 
   // Initialize filters with calculated ranges
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   useEffect(() => {
-    if (!loading && initialRanges) {
+    if (!loading && initialFilterOptions) {
       setFilters({
         ...DEFAULT_FILTERS,
         totalSupplied: {
           ...DEFAULT_FILTERS.totalSupplied,
-          max: initialRanges.totalSupplied.max,
+          max: initialFilterOptions.totalSupplied.max,
         },
         utilizationRate: {
           ...DEFAULT_FILTERS.utilizationRate,
-          max: initialRanges.utilizationRate.max,
+          max: initialFilterOptions.utilizationRate.max,
         },
         maxLtv: {
           ...DEFAULT_FILTERS.maxLtv,
-          max: initialRanges.maxLtv.max,
+          max: initialFilterOptions.maxLtv.max,
         },
         apy: {
           ...DEFAULT_FILTERS.apy,
-          max: initialRanges.apy.max,
+          max: initialFilterOptions.apy.max,
+        },
+        loanToken: {
+          ...DEFAULT_FILTERS.loanToken,
+          options: initialFilterOptions.loanTokens.options,
+        },
+        collateralToken: {
+          ...DEFAULT_FILTERS.collateralToken,
+          options: initialFilterOptions.collateralTokens.options,
         },
       });
     }
-  }, [initialRanges, loading]);
+  }, [initialFilterOptions, loading]);
 
-  const { breakpoints } = useTheme();
-  const sm = useMediaQuery(breakpoints.down('sm'));
   const trackEvent = useRootStore((store) => store.trackEvent);
 
   const handleFiltersChange = (newFilters: Partial<FilterState>) => {
@@ -87,7 +96,6 @@ export const MarketAssetsListContainer = () => {
         res.underlyingAsset.toLowerCase().includes(term)
       );
     })
-    // Apply numeric filters
     .filter((res) => applyFilters([res], filters).length > 0)
     // Transform the object for list to consume it
     .map((reserve) => ({
@@ -133,6 +141,8 @@ export const MarketAssetsListContainer = () => {
       titleComponent={
         <TitleWithSearchBar
           onSearchTermChange={setSearchTerm}
+          onShowFilterChange={setShowFilter}
+          showFilter={showFilter}
           title={
             <>
               {currentMarketData.marketTitle} <Trans>assets</Trans>
@@ -141,7 +151,11 @@ export const MarketAssetsListContainer = () => {
           searchPlaceholder={sm ? 'Search asset' : 'Search asset name, symbol, or address'}
         />
       }
-      filterComponent={<FilterComponent filters={filters} onFiltersChange={handleFiltersChange} />}
+      filterComponent={
+        <Collapse in={showFilter}>
+          <FilterComponent filters={filters} onFiltersChange={handleFiltersChange} />
+        </Collapse>
+      }
     >
       {showFrozenMarketWarning && (
         <Box mx={6}>

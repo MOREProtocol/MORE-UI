@@ -1,5 +1,5 @@
-import { Trans } from "@lingui/react/macro";
-import { SearchIcon } from '@heroicons/react/solid';
+import { FilterIcon, SearchIcon } from '@heroicons/react/solid';
+import { Trans } from '@lingui/react/macro';
 import {
   Box,
   Button,
@@ -19,6 +19,8 @@ interface TitleWithSearchBarProps<C extends React.ElementType> {
   searchPlaceholder: string;
   titleProps?: TypographyProps<C, { component?: C }>;
   title: ReactNode;
+  onShowFilterChange?: (value: boolean) => void;
+  showFilter?: boolean;
 }
 
 export const TitleWithSearchBar = <T extends React.ElementType>({
@@ -26,6 +28,8 @@ export const TitleWithSearchBar = <T extends React.ElementType>({
   searchPlaceholder,
   titleProps,
   title,
+  onShowFilterChange,
+  showFilter,
 }: TitleWithSearchBarProps<T>) => {
   const [showSearchBar, setShowSearchBar] = useState(false);
 
@@ -49,11 +53,20 @@ export const TitleWithSearchBar = <T extends React.ElementType>({
         justifyContent: 'space-between',
       }}
     >
-      {showMarketTitle && (
-        <Typography component="div" variant="h2" sx={{ mr: 4 }} {...titleProps}>
-          {title}
-        </Typography>
-      )}
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        {showMarketTitle && (
+          <Typography component="div" variant="h2" sx={{ mr: 4 }} {...titleProps}>
+            {title}
+          </Typography>
+        )}
+        {onShowFilterChange && (
+          <IconButton disableRipple onClick={() => onShowFilterChange(!showFilter)}>
+            <SvgIcon sx={{ fontSize: '20px', color: showFilter ? 'text.primary' : '#A5A8B6' }}>
+              <FilterIcon />
+            </SvgIcon>
+          </IconButton>
+        )}
+      </Box>
       <Box
         sx={{
           height: '40px',
