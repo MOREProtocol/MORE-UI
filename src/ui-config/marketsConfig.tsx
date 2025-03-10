@@ -74,7 +74,7 @@ export const marketsData: {
       staking: false,
       liquiditySwap: false,
       collateralRepay: false,
-      incentives: false,
+      incentives: true,
       withdrawAndSwitch: false,
       debtSwitch: false,
       switch: false,
@@ -87,6 +87,7 @@ export const marketsData: {
       WETH_GATEWAY: '0xe847D70a35bbb9DA4133EdC1Cc9cCfFe0C379b4f',
       WALLET_BALANCE_PROVIDER: '0xC66DFBE13F0ED9EFE4cA2113a0c26C6a2008bBD0',
       UI_POOL_DATA_PROVIDER: '0x2148e6253b23122Ee78B3fa6DcdDbefae426EB78',
+      UI_INCENTIVE_DATA_PROVIDER: '0x7b589494de15C30FBBA49B2b478cBEcC561f5A87'
     },
     halIntegration: {
       URL: 'https://app.hal.xyz/recipes/more-track-health-factor',
