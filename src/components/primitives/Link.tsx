@@ -113,6 +113,7 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(function Link
 export const ROUTES = {
   dashboard: '/',
   markets: '/markets',
+  vaults: '/vaults',
   staking: '/staking',
   governance: '/governance',
   faucet: '/faucet',
@@ -122,5 +123,6 @@ export const ROUTES = {
     `/governance/v3/proposal?proposalId=${proposalId}`,
   reserveOverview: (underlyingAsset: string, marketName: CustomMarket) =>
     `/reserve-overview/?underlyingAsset=${underlyingAsset}&marketName=${marketName}`,
+  vaultDetail: (vaultName: string) => `/vault-detail/?vaultName=${vaultName}`,
   history: '/history',
 };

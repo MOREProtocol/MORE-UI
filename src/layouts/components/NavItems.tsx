@@ -42,6 +42,12 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
       dataCy: 'menuMarkets',
     },
     {
+      link: ROUTES.vaults,
+      title: 'Vaults',
+      visibleTitle: msg`Vaults`,
+      dataCy: 'menuVaults',
+    },
+    {
       link: ROUTES.staking,
       title: 'Stake',
       visibleTitle: msg`Stake`,
