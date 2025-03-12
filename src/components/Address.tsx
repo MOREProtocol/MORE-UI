@@ -1,12 +1,13 @@
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { Avatar, IconButton, Stack, Tooltip } from '@mui/material';
+import { Avatar, IconButton, Stack, Tooltip, TypographyProps } from '@mui/material';
 import { useState } from 'react';
 import { CompactableTypography, CompactMode } from 'src/components/CompactableTypography';
 
-interface AddressProps {
+interface AddressProps extends TypographyProps {
   address: string;
   link: string;
+  isUser?: boolean;
   compactMode?: CompactMode;
   loading?: boolean;
 }
@@ -14,8 +15,10 @@ interface AddressProps {
 export const Address: React.FC<AddressProps> = ({
   address,
   link,
+  isUser = false,
   loading = false,
   compactMode = CompactMode.SM,
+  ...rest
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -40,8 +43,8 @@ export const Address: React.FC<AddressProps> = ({
   return (
     <Stack direction="row" spacing={1} alignItems="center">
       {/* TODO: Add avatar or wallet icon */}
-      <Avatar sx={{ bgcolor: 'primary.main', width: 18, height: 18 }} />
-      <CompactableTypography loading={loading} compactMode={compactMode}>
+      {isUser && <Avatar sx={{ bgcolor: 'primary.main', width: 18, height: 18 }} />}
+      <CompactableTypography loading={loading} compactMode={compactMode} {...rest}>
         {address}
       </CompactableTypography>
       <Tooltip title={copied ? 'Copied!' : 'Copy address'} arrow>

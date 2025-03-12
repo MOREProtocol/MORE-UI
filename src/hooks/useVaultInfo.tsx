@@ -55,6 +55,27 @@ export interface VaultData {
     };
     returnMetrics: ReturnMetrics;
   };
+  allocation: {
+    assetName: string;
+    assetSymbol: string;
+    type: string;
+    market: string;
+    balance: number;
+    price: number;
+    priceChangeLast24Hours: number;
+    value: number;
+  }[];
+  activity: {
+    timestamp: Date;
+    market: string;
+    assetSymbol: string;
+    assetName: string;
+    amount: number;
+    price: number;
+    type: string;
+    transactionHash: string;
+    user: string;
+  }[];
 }
 
 // Define a type for the raw API response
@@ -104,6 +125,27 @@ export interface RawVaultApiResponse {
     worstMonth?: string;
     trackRecord?: string;
   };
+  allocation?: {
+    assetName?: string;
+    assetSymbol?: string;
+    type?: string;
+    market?: string;
+    balance?: string;
+    price?: string;
+    priceChangeLast24Hours?: string;
+    value?: string;
+  }[];
+  activity?: {
+    timestamp: Date;
+    market: string;
+    assetSymbol: string;
+    assetName: string;
+    amount: string;
+    price: string;
+    type: string;
+    transactionHash: string;
+    user: string;
+  }[];
 }
 
 // Define a type for external API data structure
@@ -143,6 +185,27 @@ export interface ExternalVaultApiData {
     worst_month?: number;
     track_record_months?: number;
   };
+  assets?: {
+    name?: string;
+    symbol?: string;
+    type?: string;
+    market?: string;
+    balance?: number;
+    price?: number;
+    price_change_24h?: number;
+    value?: number;
+  }[];
+  activity?: {
+    timestamp: Date;
+    market: string;
+    assetSymbol: string;
+    assetName: string;
+    amount: string;
+    price: string;
+    type: string;
+    transactionHash: string;
+    user: string;
+  }[];
 }
 
 // Example vault data for development and testing
@@ -151,7 +214,7 @@ export const fakeVaultData: VaultData = {
     id: '0x0000000000000000000000000000000000000000',
     name: 'Resolv USDC Vault',
     description:
-      'The Resolv USDC Vault curated by Steakhouse Financial is designed to optimize risk-adjusted returns by lending USDC to Resolv collateral markets, ensuring robust risk management and sustainable yield strategies.',
+      "The Resolv USDC Vault curated by Steakhouse Financial is designed to optimize risk-adjusted returns by lending USDC to Resolv collateral markets, ensuring robust risk management and sustainable yield strategies. The vault employs a sophisticated lending strategy that carefully evaluates borrower creditworthiness, collateral quality, and market conditions. The strategy is actively managed by Steakhouse Financial's experienced team, who continuously monitor market conditions and adjust positions to capture optimal yields while maintaining strong risk controls.",
     sharePrice: 34.12,
     shareCurrency: 'USDC',
     curator: 'Steakhouse Financial',
@@ -178,29 +241,119 @@ export const fakeVaultData: VaultData = {
     },
     fees: {
       performance: {
-        percentage: 0.25,
+        percentage: 0.0025,
         recipient: '0x6d01a9e00733a6309cc53051b101cda3348568e9',
       },
       management: {
-        percentage: 0.01,
+        percentage: 0.0005,
         recipient: '0x6d01a9e00733a6309cc53051b101cda3348520e2',
       },
       network: {
-        percentage: 0.05,
+        percentage: 0.0005,
         recipient: '0x6d01a9e00733a6309cc53051b101cda3348545e1',
       },
     },
     returnMetrics: {
-      monthToDate: 0.45,
-      quarterToDate: 1.23,
-      yearToDate: 2.42,
-      inceptionToDate: 6.92,
-      averageMonth: 1.45,
-      bestMonth: 15.92,
-      worstMonth: -12.37,
+      monthToDate: 0.0045,
+      quarterToDate: 0.0123,
+      yearToDate: 0.0242,
+      inceptionToDate: 0.0692,
+      averageMonth: 0.0145,
+      bestMonth: 0.1592,
+      worstMonth: -0.1237,
       trackRecord: 45,
     },
   },
+  allocation: [
+    {
+      assetSymbol: 'USDC',
+      assetName: 'FLOW USDC',
+      type: 'Spot (Long)',
+      market: 'FLOW',
+      balance: 3517962.23,
+      price: 1.0002,
+      priceChangeLast24Hours: 0.0319,
+      value: 3517962.23,
+    },
+    {
+      assetSymbol: 'USDT',
+      assetName: 'FLOW USDT',
+      type: 'Spot (Long)',
+      market: 'FLOW',
+      balance: 3517962.23,
+      price: 1,
+      priceChangeLast24Hours: -0.0032,
+      value: 3517962.23,
+    },
+  ],
+  activity: [
+    {
+      timestamp: new Date(2023, 4, 15, 14, 30, 0),
+      market: 'FLOW',
+      assetSymbol: 'USDT',
+      assetName: 'FLOW USDT',
+      amount: 1000,
+      price: 1,
+      type: 'Deposit',
+      transactionHash: '0x1234567890abcdef',
+      user: '0x6d01a9e00733a6309cc53051b101cda3348568e9',
+    },
+    {
+      timestamp: new Date(2023, 5, 20, 9, 15, 0),
+      market: 'Ethereum',
+      assetSymbol: 'ETH',
+      assetName: 'Ethereum',
+      amount: 0.5,
+      price: 3200,
+      type: 'Withdrawal',
+      transactionHash: '0x2a7bc9d45e8f1c6ab3d9e77c',
+      user: '0x8f42b334d1c11ba89c752e4d3cd309b0f641d7c8',
+    },
+    {
+      timestamp: new Date(2023, 6, 5, 11, 45, 0),
+      market: 'Arbitrum',
+      assetSymbol: 'ARB',
+      assetName: 'Arbitrum',
+      amount: 250,
+      price: 1.25,
+      type: 'Swap',
+      transactionHash: '0x3e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f',
+      user: '0x4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b',
+    },
+    {
+      timestamp: new Date(2023, 7, 12, 16, 20, 0),
+      market: 'Polygon',
+      assetSymbol: 'MATIC',
+      assetName: 'Polygon',
+      amount: 1500,
+      price: 0.85,
+      type: 'Yield Harvest',
+      transactionHash: '0x9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b',
+      user: '0x2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d',
+    },
+    {
+      timestamp: new Date(2023, 8, 28, 13, 10, 0),
+      market: 'Optimism',
+      assetSymbol: 'OP',
+      assetName: 'Optimism',
+      amount: 100,
+      price: 2.45,
+      type: 'Leverage Adjustment',
+      transactionHash: '0x5f4e3d2c1b0a9f8e7d6c5b4a3f2e1d0c9b8a7f6e',
+      user: '0xe1d2c3b4a5f6e7d8c9b0a1f2e3d4c5b6a7f8e9d0',
+    },
+    {
+      timestamp: new Date(2023, 9, 3, 10, 5, 0),
+      market: 'Avalanche',
+      assetSymbol: 'AVAX',
+      assetName: 'Avalanche',
+      amount: 10,
+      price: 28.75,
+      type: 'Liquidation',
+      transactionHash: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b',
+      user: '0xa0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9',
+    },
+  ],
 };
 
 // Define the tabs for your vault page
@@ -278,6 +431,31 @@ export function transformApiDataToVaultData(apiData: RawVaultApiResponse): Vault
         trackRecord: parseFloat(apiData.returns?.trackRecord || '0'),
       },
     },
+    allocation: apiData.allocation
+      ? apiData.allocation.map((asset) => ({
+          assetName: asset.assetName || '',
+          assetSymbol: asset.assetSymbol || '',
+          type: asset.type || '',
+          market: asset.market || '',
+          balance: parseFloat(asset.balance?.toString() || '0'),
+          price: parseFloat(asset.price?.toString() || '0'),
+          priceChangeLast24Hours: parseFloat(asset.priceChangeLast24Hours?.toString() || '0'),
+          value: parseFloat(asset.value?.toString() || '0'),
+        }))
+      : [],
+    activity: apiData.activity
+      ? apiData.activity.map((activity) => ({
+          timestamp: activity.timestamp,
+          market: activity.market,
+          assetSymbol: activity.assetSymbol,
+          assetName: activity.assetName,
+          amount: parseFloat(activity.amount?.toString() || '0'),
+          price: parseFloat(activity.price?.toString() || '0'),
+          type: activity.type,
+          transactionHash: activity.transactionHash,
+          user: activity.user,
+        }))
+      : [],
   };
 }
 
@@ -423,6 +601,13 @@ export function adaptExternalApiData(externalApiData: ExternalVaultApiData): Raw
       worstMonth: externalApiData.returns?.worst_month?.toString(),
       trackRecord: externalApiData.returns?.track_record_months?.toString(),
     },
+    allocation: externalApiData.assets?.map((asset) => ({
+      assetName: asset.name,
+      balance: asset.balance?.toString(),
+      price: asset.price?.toString(),
+      priceChangeLast24Hours: asset.price_change_24h?.toString(),
+      value: asset.value?.toString(),
+    })),
   };
 }
 
