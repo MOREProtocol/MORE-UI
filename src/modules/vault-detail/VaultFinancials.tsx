@@ -1,9 +1,12 @@
-import { Avatar, Box, Grid, Stack, styled, Typography } from '@mui/material';
+import ShieldIcon from '@mui/icons-material/Shield';
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
+import { Avatar, Box, Grid, Rating, Stack, styled, Typography } from '@mui/material';
 import React from 'react';
+import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { useVaultInfo } from 'src/hooks/useVaultInfo';
 
 import { Address } from '../../components/Address';
-import { ValueDisplay } from './utils/ValueDisplay';
+
 // Styled components
 const MetricCard = styled(Box)(() => ({
   paddingTop: '8px',
@@ -15,40 +18,47 @@ const MetricCard = styled(Box)(() => ({
 }));
 
 const SectionTitle = styled(Typography)(() => ({
-  fontWeight: 600,
-  marginBottom: '24px',
+  fontWeight: 700,
+  marginBottom: 6,
   fontSize: '1.5rem',
-}));
-
-const MetricLabel = styled(Typography)(() => ({
-  color: '#666',
-  marginBottom: '8px',
 }));
 
 export const VaultFinancials: React.FC = () => {
   // We're not using these values yet, but keeping the hook for future implementation
-  const { vault, isLoading, error } = useVaultInfo();
+  const { vault } = useVaultInfo();
 
-  // Handle loading and error states
-  if (isLoading) return <Typography>Loading financials data...</Typography>;
-  if (error) return <Typography color="error">Error loading financials: {error}</Typography>;
+  // TODO: Nice error handling
 
   return (
-    <Box sx={{ py: 5 }}>
+    <Box sx={{ py: 8 }}>
       <Box sx={{ mb: 4 }}>
         <SectionTitle>Basics</SectionTitle>
         <Grid container spacing={3}>
           <Grid item xs={12} md={4}>
             <MetricCard>
-              <MetricLabel>Gross Asset Value (GAV)</MetricLabel>
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Gross Asset Value (GAV)
+              </Typography>
               <Stack direction="row" spacing={2} alignItems="center">
                 <Avatar sx={{ bgcolor: 'primary.main' }}>$</Avatar>
-                <Box>
-                  <ValueDisplay
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  <FormattedNumber
                     value={vault?.financials?.basics.grossAssetValue.value}
-                    suffix={vault?.financials?.basics.grossAssetValue.currency}
-                    subValue={vault?.financials?.basics.grossAssetValue.value}
-                    subValueSuffix={'US$'}
+                    symbol={vault?.financials?.basics.grossAssetValue.currency}
+                    variant="main21"
+                    compact
+                  />
+                  <FormattedNumber
+                    value={vault?.financials?.basics.grossAssetValue.value}
+                    symbol={'USD'}
+                    variant="secondary14"
+                    compact
                   />
                 </Box>
               </Stack>
@@ -57,15 +67,29 @@ export const VaultFinancials: React.FC = () => {
 
           <Grid item xs={12} md={4}>
             <MetricCard>
-              <MetricLabel>Net Asset Value (NAV)</MetricLabel>
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Net Asset Value (NAV)
+              </Typography>
               <Stack direction="row" spacing={2} alignItems="center">
                 <Avatar sx={{ bgcolor: 'primary.main' }}>$</Avatar>
-                <Box>
-                  <ValueDisplay
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  <FormattedNumber
                     value={vault?.financials?.basics.netAssetValue.value}
-                    suffix={vault?.financials?.basics.netAssetValue.currency}
-                    subValue={vault?.financials?.basics.netAssetValue.value}
-                    subValueSuffix={'US$'}
+                    symbol={vault?.financials?.basics.netAssetValue.currency}
+                    variant="main21"
+                    compact
+                  />
+                  <FormattedNumber
+                    value={vault?.financials?.basics.netAssetValue.value}
+                    symbol={'USD'}
+                    variant="secondary14"
+                    compact
                   />
                 </Box>
               </Stack>
@@ -74,15 +98,31 @@ export const VaultFinancials: React.FC = () => {
 
           <Grid item xs={12} md={4}>
             <MetricCard>
-              <MetricLabel>Share Supply</MetricLabel>
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Share Supply
+              </Typography>
               <Stack direction="row" spacing={2} alignItems="center">
                 <Avatar sx={{ bgcolor: 'warning.main' }}>R</Avatar>
-                <ValueDisplay
-                  value={vault?.financials?.basics.shareSupply.value}
-                  suffix={vault?.financials?.basics.shareSupply.currency}
-                  subValue={vault?.financials?.basics.shareSupply.value}
-                  subValueSuffix={'US$'}
-                />
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  <FormattedNumber
+                    value={vault?.financials?.basics.shareSupply.value}
+                    symbol={vault?.financials?.basics.shareSupply.currency}
+                    variant="main21"
+                    compact
+                  />
+                  <FormattedNumber
+                    value={vault?.financials?.basics.shareSupply.value}
+                    symbol={'USD'}
+                    variant="secondary14"
+                    compact
+                  />
+                </Box>
               </Stack>
             </MetricCard>
           </Grid>
@@ -94,8 +134,15 @@ export const VaultFinancials: React.FC = () => {
         <Grid container spacing={3}>
           <Grid item xs={12} md={4}>
             <MetricCard>
-              <MetricLabel>Performance Fee (annual)</MetricLabel>
-              <ValueDisplay value={vault?.financials?.fees.performance.percentage} suffix={'%'} />
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Performance Fee (annual)
+              </Typography>
+              <FormattedNumber
+                value={vault?.financials?.fees.performance.percentage}
+                percent
+                variant="main21"
+                compact
+              />
               <Stack direction="row" spacing={1} alignItems="center">
                 <Typography sx={{ fontSize: '0.875rem', color: '#666' }}>Recipient:</Typography>
                 <Address
@@ -108,8 +155,15 @@ export const VaultFinancials: React.FC = () => {
 
           <Grid item xs={12} md={4}>
             <MetricCard>
-              <MetricLabel>Management Fee (annual)</MetricLabel>
-              <ValueDisplay value={vault?.financials?.fees.management.percentage} suffix={'%'} />
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Management Fee (annual)
+              </Typography>
+              <FormattedNumber
+                value={vault?.financials?.fees.management.percentage}
+                percent
+                variant="main21"
+                compact
+              />
               <Stack direction="row" spacing={1} alignItems="center">
                 <Typography sx={{ fontSize: '0.875rem', color: '#666' }}>Recipient:</Typography>
                 <Address
@@ -122,8 +176,15 @@ export const VaultFinancials: React.FC = () => {
 
           <Grid item xs={12} md={4}>
             <MetricCard>
-              <MetricLabel>Network Fee (annual)</MetricLabel>
-              <ValueDisplay value={vault?.financials?.fees.network.percentage} suffix={'%'} />
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Network Fee (annual)
+              </Typography>
+              <FormattedNumber
+                value={vault?.financials?.fees.network.percentage}
+                percent
+                variant="main21"
+                compact
+              />
               <Stack direction="row" spacing={1} alignItems="center">
                 <Typography sx={{ fontSize: '0.875rem', color: '#666' }}>Recipient:</Typography>
                 <Address
@@ -141,82 +202,171 @@ export const VaultFinancials: React.FC = () => {
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6} md={3}>
             <MetricCard>
-              <MetricLabel>Return Month-to-Date</MetricLabel>
-              <ValueDisplay
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Return Month-to-Date
+              </Typography>
+              <FormattedNumber
                 value={vault?.financials?.returnMetrics.monthToDate}
-                isPercentage={true}
+                coloredPercent
+                variant="main21"
+                compact
               />
             </MetricCard>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
             <MetricCard>
-              <MetricLabel>Return Quarter-to-Date</MetricLabel>
-              <ValueDisplay
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Return Quarter-to-Date
+              </Typography>
+              <FormattedNumber
                 value={vault?.financials?.returnMetrics.quarterToDate}
-                isPercentage={true}
+                coloredPercent
+                variant="main21"
+                compact
               />
             </MetricCard>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
             <MetricCard>
-              <MetricLabel>Return Year-to-Date</MetricLabel>
-              <ValueDisplay
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Return Year-to-Date
+              </Typography>
+              <FormattedNumber
                 value={vault?.financials?.returnMetrics.yearToDate}
-                isPercentage={true}
+                coloredPercent
+                variant="main21"
+                compact
               />
             </MetricCard>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
             <MetricCard>
-              <MetricLabel>Return Inception-to-Date</MetricLabel>
-              <ValueDisplay
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Return Inception-to-Date
+              </Typography>
+              <FormattedNumber
                 value={vault?.financials?.returnMetrics.inceptionToDate}
-                isPercentage={true}
+                coloredPercent
+                variant="main21"
+                compact
               />
             </MetricCard>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
             <MetricCard>
-              <MetricLabel>Average Month</MetricLabel>
-              <ValueDisplay
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Average Month
+              </Typography>
+              <FormattedNumber
                 value={vault?.financials?.returnMetrics.averageMonth}
-                isPercentage={true}
+                coloredPercent
+                variant="main21"
+                compact
               />
             </MetricCard>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
             <MetricCard>
-              <MetricLabel>Best Month</MetricLabel>
-              <ValueDisplay
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Best Month
+              </Typography>
+              <FormattedNumber
                 value={vault?.financials?.returnMetrics.bestMonth}
-                isPercentage={true}
+                coloredPercent
+                variant="main21"
+                compact
               />
             </MetricCard>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
             <MetricCard>
-              <MetricLabel>Worst Month</MetricLabel>
-              <ValueDisplay
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Worst Month
+              </Typography>
+              <FormattedNumber
                 value={vault?.financials?.returnMetrics.worstMonth}
-                isPercentage={true}
+                coloredPercent
+                variant="main21"
+                compact
               />
             </MetricCard>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
             <MetricCard>
-              <MetricLabel>Length of Track Record</MetricLabel>
-              <ValueDisplay
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Length of Track Record
+              </Typography>
+              <FormattedNumber
                 value={vault?.financials?.returnMetrics.trackRecord}
-                suffix="months"
-                valueVisibleDecimals={0}
+                symbol=" months"
+                visibleDecimals={0}
+                variant="main21"
+                compact
               />
+            </MetricCard>
+          </Grid>
+        </Grid>
+      </Box>
+
+      <Box sx={{ mb: 4 }}>
+        <SectionTitle>Risk metrics</SectionTitle>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6} md={3}>
+            <MetricCard>
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Annualized Volatility
+              </Typography>
+              <FormattedNumber value={0.1242} percent variant="main21" compact />
+            </MetricCard>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <MetricCard>
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Sharp Ratio
+              </Typography>
+              <FormattedNumber value={0.21} visibleDecimals={2} variant="main21" compact />
+            </MetricCard>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <MetricCard>
+              <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                Risk Rating
+              </Typography>
+              <Box>
+                <Rating
+                  name="risk-rating"
+                  value={3.5}
+                  precision={0.5}
+                  max={5}
+                  readOnly
+                  icon={<ShieldIcon color="primary" />}
+                  emptyIcon={<ShieldOutlinedIcon />}
+                />
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    mt: 0.5,
+                    width: 'calc(5 * 24px)',
+                  }}
+                >
+                  <Typography variant="caption" fontSize={9} color="text.secondary">
+                    Aggressive
+                  </Typography>
+                  <Typography variant="caption" fontSize={9} color="text.secondary">
+                    Defensive
+                  </Typography>
+                </Box>
+              </Box>
             </MetricCard>
           </Grid>
         </Grid>
