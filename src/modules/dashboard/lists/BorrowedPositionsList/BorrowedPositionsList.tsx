@@ -1,6 +1,6 @@
-import { Trans } from "@lingui/react/macro";
 import { API_ETH_MOCK_ADDRESS, InterestRate } from '@aave/contract-helpers';
 import { valueToBigNumber } from '@aave/math-utils';
+import { Trans } from '@lingui/react/macro';
 import { Typography, useMediaQuery, useTheme } from '@mui/material';
 import { useState } from 'react';
 import { ListColumn } from 'src/components/lists/ListColumn';
@@ -112,13 +112,10 @@ export const BorrowedPositionsList = () => {
     borrowPositions.unshift(ghoReserve[0]);
   }
 
-  const maxBorrowAmount = valueToBigNumber(user?.totalBorrowsMarketReferenceCurrency || '0').plus(
-    user?.availableBorrowsMarketReferenceCurrency || '0'
-  );
-  const collateralUsagePercent = maxBorrowAmount.eq(0)
+  const ltv = valueToBigNumber(user?.totalCollateralMarketReferenceCurrency || '0').eq(0)
     ? '0'
     : valueToBigNumber(user?.totalBorrowsMarketReferenceCurrency || '0')
-        .div(maxBorrowAmount)
+        .div(user?.totalCollateralMarketReferenceCurrency || '0')
         .toFixed();
 
   // Transform to the DashboardReserve schema so the sort utils can work with it
@@ -195,15 +192,15 @@ export const BorrowedPositionsList = () => {
                 }
               />
               <ListTopInfoItem
-                title={<Trans>Borrow power used</Trans>}
-                value={collateralUsagePercent || 0}
+                title={<Trans>LTV</Trans>}
+                value={ltv || 0}
                 percent
                 tooltip={
                   <BorrowPowerTooltip
                     setOpen={setTooltipOpen}
                     event={{
                       eventName: GENERAL.TOOL_TIP,
-                      eventParams: { tooltip: 'Borrow power used' },
+                      eventParams: { tooltip: 'LTV' },
                     }}
                   />
                 }
