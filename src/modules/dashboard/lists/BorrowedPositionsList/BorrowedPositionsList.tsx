@@ -192,7 +192,7 @@ export const BorrowedPositionsList = () => {
                 }
               />
               <ListTopInfoItem
-                title={<Trans>LTV</Trans>}
+                title={'LTV'}
                 value={ltv || 0}
                 percent
                 tooltip={
