@@ -12,6 +12,7 @@ const MULTICALL_ADDRESS = '0xF7d11c74B5706155d7C6DBe931d590611a371a8a';
 
 export interface BatchTransaction {
   action: 'supply' | 'borrow' | 'repay' | 'withdraw' | 'transfer';
+  isHidden: boolean;
   market: CustomMarket;
   poolAddress: string;
   amount: string;
@@ -297,6 +298,7 @@ export const createBatchTransactionsSlice: StateCreator<
       );
       get().addToBatch({
         ...transaction,
+        isHidden: true,
         action: 'transfer',
         tx: transferActionTx,
       });
@@ -317,6 +319,7 @@ export const createBatchTransactionsSlice: StateCreator<
 
     get().addToBatch({
       ...transaction,
+      isHidden: false,
       tx: supplyTx,
     });
   },
@@ -364,6 +367,7 @@ export const createBatchTransactionsSlice: StateCreator<
       );
       get().addToBatch({
         ...transaction,
+        isHidden: false,
         action: 'withdraw',
         tx: withdrawEthTx,
       });
@@ -392,6 +396,7 @@ export const createBatchTransactionsSlice: StateCreator<
       );
       get().addToBatch({
         ...transaction,
+        isHidden: true,
         action: 'transfer',
         tx: transferActionTx,
       });
@@ -416,6 +421,7 @@ export const createBatchTransactionsSlice: StateCreator<
 
       get().addToBatch({
         ...transaction,
+        isHidden: false,
         action: 'withdraw',
         tx: { ...withdrawTx, gasLimit: ethers.BigNumber.from(200000) },
       });
@@ -448,6 +454,7 @@ export const createBatchTransactionsSlice: StateCreator<
 
     get().addToBatch({
       ...transaction,
+      isHidden: false,
       action: 'borrow',
       tx: borrowTx,
     });
@@ -465,6 +472,7 @@ export const createBatchTransactionsSlice: StateCreator<
       ]);
       get().addToBatch({
         ...transaction,
+        isHidden: true,
         action: 'transfer',
         tx: {
           data: transferActionData,
@@ -491,6 +499,7 @@ export const createBatchTransactionsSlice: StateCreator<
       );
       get().addToBatch({
         ...transaction,
+        isHidden: true,
         action: 'transfer',
         tx: transferActionTx,
       });
@@ -514,6 +523,7 @@ export const createBatchTransactionsSlice: StateCreator<
 
     get().addToBatch({
       ...transaction,
+      isHidden: false,
       action: 'repay',
       tx: repayTx,
     });

@@ -55,28 +55,29 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
 
   // Calculate USD values for each transaction
   const transactionsWithUsdValues = useMemo(() => {
-    return batchTransactions.map((transaction) => {
-      // Find the reserve that matches this transaction's asset
-      const matchingReserve = reserves.find(
-        (reserve) => reserve.underlyingAsset.toLowerCase() === transaction.symbol.toLowerCase()
-      );
+    return batchTransactions
+      .map((transaction) => {
+        // Find the reserve that matches this transaction's asset
+        const matchingReserve = reserves.find(
+          (reserve) => reserve.symbol.toLowerCase() === transaction.symbol.toLowerCase()
+        );
+        let amountUSD = '0';
+        if (matchingReserve) {
+          // Calculate USD value using the reserve's price data
+          const amountInTokens = valueToBigNumber(transaction.amount);
+          amountUSD = amountInTokens
+            .multipliedBy(matchingReserve.formattedPriceInMarketReferenceCurrency)
+            .multipliedBy(marketReferencePriceInUsd)
+            .shiftedBy(-USD_DECIMALS)
+            .toString();
+        }
 
-      let amountUSD = '0';
-      if (matchingReserve) {
-        // Calculate USD value using the reserve's price data
-        const amountInTokens = valueToBigNumber(transaction.amount);
-        amountUSD = amountInTokens
-          .multipliedBy(matchingReserve.formattedPriceInMarketReferenceCurrency)
-          .multipliedBy(marketReferencePriceInUsd)
-          .shiftedBy(-USD_DECIMALS)
-          .toString();
-      }
-
-      return {
-        ...transaction,
-        amountUSD,
-      };
-    });
+        return {
+          ...transaction,
+          amountUSD,
+        };
+      })
+      .filter((transaction) => !transaction.isHidden);
   }, [batchTransactions, reserves, marketReferencePriceInUsd]);
 
   const handleClose = () => {
