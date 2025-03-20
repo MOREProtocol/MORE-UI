@@ -3,12 +3,7 @@ import { nativeToUSD, normalize, USD_DECIMALS } from '@aave/math-utils';
 import { BigNumber } from 'bignumber.js';
 import { UserPoolTokensBalances } from 'src/services/WalletBalanceService';
 import { useRootStore } from 'src/store/root';
-import { CustomMarket, marketsData } from 'src/ui-config/marketsConfig';
-import {
-  availableMarkets,
-  MarketDataType,
-  networkConfigs,
-} from 'src/utils/marketsAndNetworksConfig';
+import { MarketDataType, networkConfigs } from 'src/utils/marketsAndNetworksConfig';
 
 import { usePoolsReservesHumanized } from '../pool/usePoolReserves';
 import { usePoolsTokensBalance } from '../pool/usePoolTokensBalance';

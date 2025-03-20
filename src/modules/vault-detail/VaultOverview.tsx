@@ -59,7 +59,14 @@ export const VaultOverview: React.FC = () => {
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: '300px' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            minWidth: '300px',
+          }}
+        >
           <Typography variant="h4" sx={{ mb: 2 }}>
             Vault Roles
           </Typography>

@@ -1,8 +1,7 @@
 import { Trans } from '@lingui/react/macro';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
-import { Box, Button, Skeleton, SvgIcon, Tab, Tabs, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Button, SvgIcon, Tab, Tabs, useMediaQuery, useTheme } from '@mui/material';
 import { useRouter } from 'next/router';
-import { useState } from 'react';
 import { useVaultInfo, VaultTab } from 'src/hooks/useVaultInfo';
 
 import { NewTopInfoPanel } from './NewTopInfoPanel';
@@ -14,27 +13,6 @@ export const VaultTopDetailsWrapper = () => {
 
   const theme = useTheme();
   const downToSM = useMediaQuery(theme.breakpoints.down('sm'));
-
-  const [tokenSymbol, setTokenSymbol] = useState('flow');
-
-  const ReserveIcon = () => {
-    return (
-      <Box mr={3} sx={{ mr: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {false ? (
-          <Skeleton variant="circular" width={40} height={40} sx={{ background: '#383D51' }} />
-        ) : (
-          <img
-            src={`/icons/tokens/${tokenSymbol}.svg`}
-            onError={() => setTokenSymbol('default')}
-            width="40px"
-            height="40px"
-            alt="token-svg"
-            style={{ borderRadius: '50%' }}
-          />
-        )}
-      </Box>
-    );
-  };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
     setSelectedTab(newValue as VaultTab);

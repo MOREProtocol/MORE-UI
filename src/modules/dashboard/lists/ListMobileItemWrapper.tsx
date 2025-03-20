@@ -19,7 +19,7 @@ interface ListMobileItemWrapperProps {
   underlyingAsset?: string;
   children: ReactNode;
   loading?: boolean;
-  currentMarket?: CustomMarket;
+  currentMarket?: CustomMarket | 'all_markets';
   frozen?: boolean;
   paused?: boolean;
   borrowEnabled?: boolean;

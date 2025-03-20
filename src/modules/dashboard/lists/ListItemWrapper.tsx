@@ -25,7 +25,7 @@ interface ListItemWrapperProps {
   name: string;
   detailsAddress: string;
   children: ReactNode;
-  currentMarket: CustomMarket;
+  currentMarket: CustomMarket | 'all_markets';
   frozen?: boolean;
   paused?: boolean;
   borrowEnabled?: boolean;

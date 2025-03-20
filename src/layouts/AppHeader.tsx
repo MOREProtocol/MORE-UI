@@ -1,5 +1,5 @@
-import { Trans } from "@lingui/react/macro";
 import { InformationCircleIcon } from '@heroicons/react/outline';
+import { Trans } from '@lingui/react/macro';
 import {
   // Badge,
   Button,
@@ -15,6 +15,7 @@ import Box from '@mui/material/Box';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { ContentWithTooltip } from 'src/components/ContentWithTooltip';
+import { BatchTransactionsButton } from 'src/components/transactions/BatchTransactions/BatchTransactionsButton';
 // import { useModalContext } from 'src/hooks/useModal';
 import { useRootStore } from 'src/store/root';
 import { ENABLE_TESTNET, FORK_ENABLED } from 'src/utils/marketsAndNetworksConfig';
@@ -27,6 +28,7 @@ import { MobileMenu } from './MobileMenu';
 import { SettingsMenu } from './SettingsMenu';
 import WalletWidget from './WalletWidget';
 
+export const HEADER_HEIGHT = 48;
 interface Props {
   children: React.ReactElement;
 }
@@ -98,7 +100,7 @@ export function AppHeader() {
   const { currentMarketData } = useProtocolDataContext();
   const [walletWidgetOpen, setWalletWidgetOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+  const [batchTransactionsOpen, setBatchTransactionsOpen] = useState(false);
   useEffect(() => {
     if (mobileDrawerOpen && !md) {
       setMobileDrawerOpen(false);
@@ -108,8 +110,6 @@ export function AppHeader() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [md]);
-
-  const headerHeight = 48;
 
   const toggleWalletWigit = (state: boolean) => {
     if (md) setMobileDrawerOpen(state);
@@ -184,7 +184,7 @@ export function AppHeader() {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         sx={(theme) => ({
-          height: headerHeight,
+          height: HEADER_HEIGHT,
           position: 'sticky',
           top: 0,
           transition: theme.transitions.create('top'),
@@ -286,11 +286,13 @@ export function AppHeader() {
           </StyledBadge>
         </NoSsr> */}
 
+        <BatchTransactionsButton open={batchTransactionsOpen} setOpen={setBatchTransactionsOpen} />
+
         {!mobileMenuOpen && (
           <WalletWidget
             open={walletWidgetOpen}
             setOpen={toggleWalletWigit}
-            headerHeight={headerHeight}
+            headerHeight={HEADER_HEIGHT}
           />
         )}
 
@@ -303,7 +305,7 @@ export function AppHeader() {
             <MobileMenu
               open={mobileMenuOpen}
               setOpen={toggleMobileMenu}
-              headerHeight={headerHeight}
+              headerHeight={HEADER_HEIGHT}
             />
           </Box>
         )}
