@@ -23,8 +23,8 @@ export interface FilterState {
 
 export const DEFAULT_FILTERS: FilterState = {
   marketType: 'all',
-  loanToken: { value: 'all', options: [] },
-  collateralToken: { value: 'all', options: [] },
+  loanToken: { value: 'all', options: [{ value: 'all', label: 'All' }] },
+  collateralToken: { value: 'all', options: [{ value: 'all', label: 'All' }] },
   apy: {
     min: 0,
     max: 100,
