@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ExternalLinkIcon } from '@heroicons/react/outline';
 import { Box, SvgIcon, Typography } from '@mui/material';
 import { ReserveFactorTooltip } from 'src/components/infoTooltips/ReserveFactorTooltip';
@@ -45,7 +44,7 @@ export const ReserveFactorOverview = ({
                 assetName: reserveName,
               },
             }}
-            text={<Trans>Reserve factor</Trans>}
+            text={'Reserve factor'}
             key="res_factor"
             variant="description"
             collectorLink={
@@ -61,13 +60,7 @@ export const ReserveFactorOverview = ({
         <FormattedNumber value={reserveFactor} percent variant="secondary14" visibleDecimals={2} />
       </ReserveOverviewBox>
 
-      <ReserveOverviewBox
-        title={
-          <Typography variant="description">
-            <Trans>Collector Contract</Trans>
-          </Typography>
-        }
-      >
+      <ReserveOverviewBox title={<Typography variant="description">Collector Contract</Typography>}>
         <Link
           onClick={() => {
             trackEvent(GENERAL.EXTERNAL_LINK, {
@@ -83,7 +76,7 @@ export const ReserveFactorOverview = ({
         >
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Typography variant="description" color="text.secondary">
-              <Trans>View contract</Trans>
+              View contract
             </Typography>
             <SvgIcon sx={{ ml: 1, fontSize: 14 }}>
               <ExternalLinkIcon />

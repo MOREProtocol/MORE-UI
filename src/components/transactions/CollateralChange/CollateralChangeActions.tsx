@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ProtocolAction } from '@aave/contract-helpers';
 import { useTransactionHandler } from 'src/helpers/useTransactionHandler';
 import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
@@ -50,13 +49,9 @@ export const CollateralChangeActions = ({
       mainTxState={mainTxState}
       isWrongNetwork={isWrongNetwork}
       actionText={
-        usageAsCollateral ? (
-          <Trans>Enable {symbol} as collateral</Trans>
-        ) : (
-          <Trans>Disable {symbol} as collateral</Trans>
-        )
+        usageAsCollateral ? `Enable ${symbol} as collateral` : `Disable ${symbol} as collateral`
       }
-      actionInProgressText={<Trans>Pending...</Trans>}
+      actionInProgressText={'Pending...'}
       handleAction={action}
     />
   );

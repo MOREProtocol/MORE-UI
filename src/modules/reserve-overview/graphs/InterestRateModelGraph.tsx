@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { normalizeBN, RAY, rayDiv, rayMul } from '@aave/math-utils';
 import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { AxisBottom, AxisLeft } from '@visx/axis';
@@ -425,7 +424,7 @@ export const InterestRateModelGraph = withTooltip<AreaProps, TooltipData>(
         >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant="main12" color="primary" sx={{ mr: 2 }}>
-              <Trans>Utilization Rate</Trans>
+              Utilization Rate
             </Typography>
             <Typography variant="main12" color="primary">
               {tooltipData.utilization}%
@@ -444,7 +443,7 @@ export const InterestRateModelGraph = withTooltip<AreaProps, TooltipData>(
             0 ? (
               <>
                 <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
-                  <Trans>Borrow amount to reach {tooltipData.utilization}% utilization</Trans>
+                  Borrow amount to reach {tooltipData.utilization}% utilization
                 </Typography>
                 <Typography variant="main12" color="primary">
                   $
@@ -460,7 +459,7 @@ export const InterestRateModelGraph = withTooltip<AreaProps, TooltipData>(
             ) : (
               <>
                 <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
-                  <Trans>Repayment amount to reach {tooltipData.utilization}% utilization</Trans>
+                  Repayment amount to reach {tooltipData.utilization}% utilization
                 </Typography>
                 <Typography variant="main12" color="primary">
                   $

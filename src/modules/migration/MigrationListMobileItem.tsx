@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { InterestRate } from '@aave/contract-helpers';
 import { ExclamationCircleIcon } from '@heroicons/react/outline';
 import { ArrowNarrowRightIcon, CheckIcon } from '@heroicons/react/solid';
@@ -146,7 +145,7 @@ export const MigrationListMobileItem = ({
       <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 2, pb: 4, pl: 12 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Typography variant="description" color={baseColorSecondary}>
-            <Trans>Current v2 Balance</Trans>
+            Current v2 Balance
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
             <Box sx={{ display: 'flex', alignItems: 'flex-end', mb: 0.5 }}>
@@ -170,7 +169,7 @@ export const MigrationListMobileItem = ({
           }}
         >
           <Typography variant="description" color={baseColorSecondary}>
-            <Trans>APY change</Trans>
+            APY change
           </Typography>
 
           <Box sx={{ display: 'flex' }}>
@@ -208,7 +207,7 @@ export const MigrationListMobileItem = ({
             }}
           >
             <Typography variant="description" color={baseColorSecondary}>
-              <Trans>Collateral change</Trans>
+              Collateral change
             </Typography>
 
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -265,7 +264,7 @@ export const MigrationListMobileItem = ({
             }}
           >
             <Typography variant="description" color={baseColorSecondary}>
-              <Trans>APY type change</Trans>
+              APY type change
             </Typography>
             <Box sx={{ display: 'flex' }}>
               <Button
@@ -309,7 +308,7 @@ export const MigrationListMobileItem = ({
             }}
           >
             <Typography variant="description" color={baseColorSecondary}>
-              <Trans>Max LTV</Trans>
+              Max LTV
             </Typography>
 
             <Box sx={{ display: 'flex' }}>
@@ -354,7 +353,7 @@ export const MigrationListMobileItem = ({
             }}
           >
             <Typography variant="description" color={baseColorSecondary}>
-              <Trans>Liquidation threshold</Trans>
+              Liquidation threshold
             </Typography>
 
             <Box sx={{ display: 'flex' }}>

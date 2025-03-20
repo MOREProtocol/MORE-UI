@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ExclamationIcon } from '@heroicons/react/outline';
 import { Stack, SvgIcon, Tooltip } from '@mui/material';
 
@@ -6,10 +5,11 @@ import { PopperComponent } from '../ContentWithTooltip';
 
 export const PausedTooltipText = () => {
   return (
-    <Trans>
-      This asset has been paused due to a community decision. Supply, withdraw, borrows and repays
-      are impacted.
-    </Trans>
+    <>
+      {
+        'This asset has been paused due to a community decision. Supply, withdraw, borrows and repays are impacted.'
+      }
+    </>
   );
 };
 

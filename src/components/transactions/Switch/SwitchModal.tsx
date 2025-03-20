@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -157,7 +156,7 @@ export const SwitchModal = () => {
       {!user ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', mt: 4, alignItems: 'center' }}>
           <Typography sx={{ mb: 6, textAlign: 'center' }} color="text.secondary">
-            <Trans>Please connect your wallet to be able to switch your tokens.</Trans>
+            Please connect your wallet to be able to switch your tokens.
           </Typography>
           <ConnectWalletButton />
         </Box>

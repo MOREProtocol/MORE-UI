@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { API_ETH_MOCK_ADDRESS, InterestRate } from '@aave/contract-helpers';
 import { valueToBigNumber } from '@aave/math-utils';
 import { Typography, useMediaQuery, useTheme } from '@mui/material';
@@ -33,15 +32,15 @@ import { BorrowedPositionsListItemWrapper } from './BorrowedPositionsListItemWra
 
 const head = [
   {
-    title: <Trans>Asset</Trans>,
+    title: 'Asset',
     sortKey: 'symbol',
   },
   {
-    title: <Trans key="Debt">Debt</Trans>,
+    title: 'Debt',
     sortKey: 'variableBorrows',
   },
   {
-    title: <Trans key="APY">APY</Trans>,
+    title: 'APY',
     sortKey: 'borrowAPY',
   },
   {
@@ -51,7 +50,7 @@ const head = [
           eventName: GENERAL.TOOL_TIP,
           eventParams: { tooltip: 'APY Type Borrow' },
         }}
-        text={<Trans>APY type</Trans>}
+        text={'APY type'}
         key="APY type"
         variant="subheader2"
       />
@@ -157,15 +156,14 @@ export const BorrowedPositionsList = () => {
     );
   };
 
-  if (loading)
-    return <ListLoader title={<Trans>Your borrows</Trans>} head={head.map((c) => c.title)} />;
+  if (loading) return <ListLoader title={'Your borrows'} head={head.map((c) => c.title)} />;
 
   return (
     <ListWrapper
       tooltipOpen={tooltipOpen}
       titleComponent={
         <Typography component="div" variant="h3" sx={{ mr: 4 }}>
-          <Trans>Your borrows</Trans>
+          Your borrows
         </Typography>
       }
       localStorageName="borrowedAssetsDashboardTableCollapse"
@@ -179,9 +177,9 @@ export const BorrowedPositionsList = () => {
         <>
           {!!sortedReserves.length && (
             <>
-              <ListTopInfoItem title={<Trans>Balance</Trans>} value={user?.totalBorrowsUSD || 0} />
+              <ListTopInfoItem title={'Balance'} value={user?.totalBorrowsUSD || 0} />
               <ListTopInfoItem
-                title={<Trans>APY</Trans>}
+                title={'APY'}
                 value={user?.debtAPY || 0}
                 percent
                 tooltip={
@@ -195,7 +193,7 @@ export const BorrowedPositionsList = () => {
                 }
               />
               <ListTopInfoItem
-                title={<Trans>Borrow power used</Trans>}
+                title={'Borrow power used'}
                 value={collateralUsagePercent || 0}
                 percent
                 tooltip={
@@ -224,7 +222,7 @@ export const BorrowedPositionsList = () => {
           ))}
         </>
       ) : (
-        <DashboardContentNoData text={<Trans>Nothing borrowed yet</Trans>} />
+        <DashboardContentNoData text={'Nothing borrowed yet'} />
       )}
     </ListWrapper>
   );

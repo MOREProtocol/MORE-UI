@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ChainId } from '@aave/contract-helpers';
 import { Button, Typography } from '@mui/material';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
@@ -32,23 +31,19 @@ export const ChangeNetworkWarning = ({
     <Warning severity="error" icon={false}>
       {switchNetworkError ? (
         <Typography>
-          <Trans>
-            Seems like we can&apos;t switch the network automatically. Please check if you can
-            change it from the wallet.
-          </Trans>
+          Seems like we can&apos;t switch the network automatically. Please check if you can change
+          it from the wallet.
         </Typography>
       ) : (
         <Typography variant="description">
-          <Trans>Please switch to {networkName}.</Trans>{' '}
+          Please switch to {networkName}.{' '}
           <Button
             variant="text"
             sx={{ ml: '2px', verticalAlign: 'top' }}
             onClick={handleSwitchNetwork}
             disableRipple
           >
-            <Typography variant="description">
-              <Trans>Switch Network</Trans>
-            </Typography>
+            <Typography variant="description">Switch Network</Typography>
           </Button>
         </Typography>
       )}

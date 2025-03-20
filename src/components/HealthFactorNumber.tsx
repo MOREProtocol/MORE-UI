@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { valueToBigNumber } from '@aave/math-utils';
 import { Box, Button, Typography, useTheme } from '@mui/material';
 import { TypographyProps } from '@mui/material/Typography';
@@ -60,7 +59,7 @@ export const HealthFactorNumber = ({
           size="small"
           sx={{ minWidth: 'unset', ml: { xs: 0, xsm: 2 } }}
         >
-          <Trans>Risk details</Trans>
+          Risk details
         </Button>
       )}
 

@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { InterestRate, ProtocolAction } from '@aave/contract-helpers';
 import { useTransactionHandler } from 'src/helpers/useTransactionHandler';
 import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
@@ -47,8 +46,8 @@ export const RateSwitchActions = ({
       preparingTransactions={loadingTxns}
       mainTxState={mainTxState}
       isWrongNetwork={isWrongNetwork}
-      actionText={<Trans>Switch rate</Trans>}
-      actionInProgressText={<Trans>Switching rate</Trans>}
+      actionText={'Switch rate'}
+      actionInProgressText={'Switching rate'}
       handleAction={action}
     />
   );

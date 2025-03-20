@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import {
   API_ETH_MOCK_ADDRESS,
   gasLimitRecommendations,
@@ -115,14 +114,14 @@ export const SwapActions = ({
         })
       }
       requiresApproval={requiresApproval}
-      actionText={<Trans>Switch</Trans>}
-      actionInProgressText={<Trans>Switching</Trans>}
+      actionText={'Switch'}
+      actionInProgressText={'Switching'}
       sx={sx}
       fetchingData={loading}
       errorParams={{
         loading: false,
         disabled: blocked,
-        content: <Trans>Switch</Trans>,
+        content: 'Switch',
         handleClick: action,
       }}
       tryPermit

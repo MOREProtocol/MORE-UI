@@ -1,5 +1,4 @@
 import { gasLimitRecommendations, ProtocolAction } from '@aave/contract-helpers';
-import { Trans } from '@lingui/react/macro';
 import { BoxProps } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { parseUnits } from 'ethers/lib/utils';
@@ -208,8 +207,8 @@ export const SupplyActions = React.memo(
         amount={amountToSupply}
         symbol={symbol}
         preparingTransactions={loadingTxns || !approvedAmount}
-        actionText={<Trans>Supply {symbol}</Trans>}
-        actionInProgressText={<Trans>Supplying {symbol}</Trans>}
+        actionText={`Supply ${symbol}`}
+        actionInProgressText={`Supplying ${symbol}`}
         handleApproval={approval}
         handleAction={action}
         handleAddToBatch={handleAddToBatch}

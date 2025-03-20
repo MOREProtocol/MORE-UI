@@ -1,6 +1,5 @@
 import { InterestRate } from '@aave/contract-helpers';
 import { ReserveIncentiveResponse } from '@aave/math-utils/dist/esm/formatters/incentive/calculate-reserve-incentives';
-import { Trans } from '@lingui/react/macro';
 import { Box, Button, useMediaQuery, useTheme } from '@mui/material';
 import { IncentivesCard } from 'src/components/incentives/IncentivesCard';
 import { APYTypeTooltip } from 'src/components/infoTooltips/APYTypeTooltip';
@@ -165,15 +164,15 @@ const BorrowedPositionsListItemDesktop = ({
             onClick={onDetbSwitchClick}
             data-cy={`swapButton`}
           >
-            <Trans>Switch</Trans>
+            Switch
           </Button>
         ) : (
           <Button disabled={disableBorrow} variant="contained" onClick={onOpenBorrow}>
-            <Trans>Borrow</Trans>
+            Borrow
           </Button>
         )}
         <Button disabled={disableRepay} variant="outlined" onClick={onOpenRepay}>
-          <Trans>Repay</Trans>
+          Repay
         </Button>
       </ListButtonsColumn>
     </ListItemWrapper>
@@ -225,13 +224,13 @@ const BorrowedPositionsListItemMobile = ({
       showBorrowCapTooltips
     >
       <ListValueRow
-        title={<Trans>Debt</Trans>}
+        title="Debt"
         value={totalBorrows}
         subValue={totalBorrowsUSD}
         disabled={Number(totalBorrows) === 0}
       />
 
-      <Row caption={<Trans>APY</Trans>} align="flex-start" captionVariant="description" mb={2}>
+      <Row caption="APY" align="flex-start" captionVariant="description" mb={2}>
         <IncentivesCard
           value={borrowAPY}
           incentives={incentives}
@@ -241,9 +240,7 @@ const BorrowedPositionsListItemMobile = ({
       </Row>
 
       <Row
-        caption={
-          <APYTypeTooltip text={<Trans>APY type</Trans>} key="APY type" variant="description" />
-        }
+        caption={<APYTypeTooltip text="APY type" key="APY type" variant="description" />}
         captionVariant="description"
         mb={2}
       >
@@ -268,11 +265,11 @@ const BorrowedPositionsListItemMobile = ({
             onClick={onDetbSwitchClick}
             data-cy={`swapButton`}
           >
-            <Trans>Switch</Trans>
+            Switch
           </Button>
         ) : (
           <Button disabled={disableBorrow} variant="contained" onClick={onOpenBorrow} fullWidth>
-            <Trans>Borrow</Trans>
+            Borrow
           </Button>
         )}
         <Button
@@ -282,7 +279,7 @@ const BorrowedPositionsListItemMobile = ({
           sx={{ ml: 1.5 }}
           fullWidth
         >
-          <Trans>Repay</Trans>
+          Repay
         </Button>
       </Box>
     </ListMobileItemWrapper>

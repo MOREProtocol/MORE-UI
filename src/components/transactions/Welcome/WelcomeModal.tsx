@@ -1,11 +1,9 @@
-import { Trans } from "@lingui/react/macro";
+import { Box, Button, Checkbox, FormControlLabel, Link, Typography } from '@mui/material';
 import React, { useState } from 'react';
-import { Typography, Box, FormControlLabel, Checkbox, Button, Link } from '@mui/material';
-
+import { toggleLocalStorageClick } from 'src/helpers/toggle-local-storage-click';
+import { ModalType, useModalContext } from 'src/hooks/useModal';
 import { useRootStore } from 'src/store/root';
 import { DASHBOARD } from 'src/utils/mixPanelEvents';
-import { ModalType, useModalContext } from 'src/hooks/useModal';
-import { toggleLocalStorageClick } from 'src/helpers/toggle-local-storage-click';
 
 import { BasicModal } from '../../primitives/BasicModal';
 import { TxModalTitle } from '../FlowCommons/TxModalTitle';
@@ -22,7 +20,7 @@ export const WelcomeModal = () => {
       withCloseButton={false}
       contentMaxWidth={450}
     >
-      <TxModalTitle title={<Trans>Welcome to MORE Markets!</Trans>} />
+      <TxModalTitle title={'Welcome to MORE Markets!'} />
       <Box>
         <Typography sx={{ mb: 1 }} color="text.secondary">
           To use the app, please acknowledge that you agree with the terms of use and privacy policy

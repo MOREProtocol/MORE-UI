@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ERC20Service, gasLimitRecommendations, ProtocolAction } from '@aave/contract-helpers';
 import { OptimalRate } from '@paraswap/sdk';
 import { useQueryClient } from '@tanstack/react-query';
@@ -300,12 +299,12 @@ export const SwitchActions = ({
       amount={inputAmount}
       handleApproval={() => approval()}
       requiresApproval={!blocked && requiresApproval}
-      actionText={<Trans>Switch</Trans>}
-      actionInProgressText={<Trans>Switching</Trans>}
+      actionText={'Switch'}
+      actionInProgressText={'Switching'}
       errorParams={{
         loading: false,
         disabled: blocked || (!approvalTxState.success && requiresApproval),
-        content: <Trans>Switch</Trans>,
+        content: 'Switch',
         handleClick: action,
       }}
       fetchingData={loading}

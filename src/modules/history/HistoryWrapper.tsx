@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { DocumentDownloadIcon } from '@heroicons/react/outline';
 import {
   Box,
@@ -132,7 +131,7 @@ export const HistoryWrapper = () => {
       >
         <LoveMore style={{ marginBottom: '16px' }} />
         <Typography variant={downToMD ? 'h4' : 'h3'}>
-          <Trans>Transaction history is not currently available for this market</Trans>
+          Transaction history is not currently available for this market
         </Typography>
       </Paper>
     );
@@ -142,7 +141,7 @@ export const HistoryWrapper = () => {
     return (
       <ConnectWalletPaper
         loading={web3Loading}
-        description={<Trans> Please connect your wallet to view transaction history.</Trans>}
+        description={'Please connect your wallet to view transaction history.'}
       />
     );
   }
@@ -158,7 +157,7 @@ export const HistoryWrapper = () => {
     <ListWrapper
       titleComponent={
         <Typography component="div" variant="h2" sx={{ mr: 4 }}>
-          <Trans>Transactions</Trans>
+          Transactions
         </Typography>
       }
     >
@@ -190,7 +189,7 @@ export const HistoryWrapper = () => {
               <DocumentDownloadIcon width={22} height={22} />
             </SvgIcon>
             <Typography variant="buttonM" color="text.primary">
-              <Trans>.CSV</Trans>
+              .CSV
             </Typography>
           </Box>
           <Box
@@ -208,7 +207,7 @@ export const HistoryWrapper = () => {
               <DocumentDownloadIcon width={22} height={22} />
             </SvgIcon>
             <Typography variant="buttonM" color="text.primary">
-              <Trans>.JSON</Trans>
+              .JSON
             </Typography>
           </Box>
         </Box>
@@ -251,13 +250,13 @@ export const HistoryWrapper = () => {
           }}
         >
           <Typography variant="h3" color="text.primary">
-            <Trans>Nothing found</Trans>
+            Nothing found
           </Typography>
           <Typography sx={{ mt: 1, mb: 4 }} variant="description" color="text.secondary">
-            <Trans>
+            <>
               We couldn&apos;t find any transactions related to your search. Try again with a
               different asset name, or reset filters.
-            </Trans>
+            </>
           </Typography>
           <Button
             variant="outlined"
@@ -283,7 +282,7 @@ export const HistoryWrapper = () => {
           }}
         >
           <Typography sx={{ my: 24 }} variant="h3" color="text.primary">
-            <Trans>No transactions yet.</Trans>
+            No transactions yet.
           </Typography>
         </Box>
       ) : (

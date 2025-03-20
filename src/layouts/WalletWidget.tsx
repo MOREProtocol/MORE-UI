@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { DuplicateIcon } from '@heroicons/react/outline';
 import { ChevronDownIcon, ChevronUpIcon, ExternalLinkIcon } from '@heroicons/react/solid';
 import {
@@ -113,7 +112,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
           py: 2,
         }}
       >
-        <Trans>Account</Trans>
+        Account
       </Typography>
 
       <Box component={component} disabled>
@@ -135,7 +134,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
               severity="warning"
               sx={{ mt: 3, mb: 0, ...(md ? { background: '#301E04', color: '#FFDCA8' } : {}) }}
             >
-              <Trans>Read-only mode.</Trans>
+              Read-only mode.
             </Warning>
           )}
         </Box>
@@ -179,7 +178,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
             }}
           >
             <Typography variant="caption" color={{ xs: '#FFFFFFB2', md: 'text.secondary' }}>
-              <Trans>Network</Trans>
+              Network
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -220,9 +219,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
             <DuplicateIcon />
           </SvgIcon>
         </ListItemIcon>
-        <ListItemText>
-          <Trans>Copy address</Trans>
-        </ListItemText>
+        <ListItemText>Copy address</ListItemText>
       </Box>
 
       {networkConfig?.explorerLinkBuilder && (
@@ -246,9 +243,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
                 <ExternalLinkIcon />
               </SvgIcon>
             </ListItemIcon>
-            <ListItemText>
-              <Trans>View on Explorer</Trans>
-            </ListItemText>
+            <ListItemText>View on Explorer</ListItemText>
           </Box>
         </Link>
       )}
@@ -327,7 +322,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
               titleProps={{ variant: 'buttonM' }}
             />
           ) : (
-            <Trans>Connect wallet</Trans>
+            'Connect wallet'
           )}
         </Button>
       )}

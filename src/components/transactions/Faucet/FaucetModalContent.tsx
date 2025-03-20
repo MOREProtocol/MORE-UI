@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { mintAmountsPerToken, valueToWei } from '@aave/contract-helpers';
 import { normalize } from '@aave/math-utils';
 import { useModalContext } from 'src/hooks/useModal';
@@ -25,18 +24,14 @@ export const FaucetModalContent = ({ poolReserve, isWrongNetwork }: ModalWrapper
 
   if (faucetTxState.success)
     return (
-      <TxSuccessView
-        action={<Trans>Received</Trans>}
-        symbol={poolReserve.symbol}
-        amount={normalizedAmount}
-      />
+      <TxSuccessView action={'Received'} symbol={poolReserve.symbol} amount={normalizedAmount} />
     );
 
   return (
     <>
       <TxModalDetails gasLimit={gasLimit}>
         <DetailsNumberLine
-          description={<Trans>Amount</Trans>}
+          description={'Amount'}
           iconSymbol={poolReserve.symbol}
           symbol={poolReserve.symbol}
           value={normalizedAmount}

@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, Button } from '@mui/material';
 import { VariableAPYTooltip } from 'src/components/infoTooltips/VariableAPYTooltip';
 import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
@@ -40,7 +39,7 @@ export const BorrowAssetsListMobileItem = ({
       currentMarket={currentMarket}
     >
       <ListValueRow
-        title={<Trans>Available to borrow</Trans>}
+        title={'Available to borrow'}
         value={Number(availableBorrows)}
         subValue={Number(availableBorrowsInUSD)}
         disabled={Number(availableBorrows) === 0}
@@ -56,7 +55,7 @@ export const BorrowAssetsListMobileItem = ({
       <Row
         caption={
           <VariableAPYTooltip
-            text={<Trans>APY, variable</Trans>}
+            text={'APY, variable'}
             key="APY_dash_mob_variable_ type"
             variant="description"
           />
@@ -75,7 +74,7 @@ export const BorrowAssetsListMobileItem = ({
       {/* <Row
         caption={
           <StableAPYTooltip
-            text={<Trans>APY, stable</Trans>}
+            text={APY, stable}
             key="APY_dash_mob_stable_ type"
             variant="description"
           />
@@ -99,7 +98,7 @@ export const BorrowAssetsListMobileItem = ({
           sx={{ mr: 1.5 }}
           fullWidth
         >
-          <Trans>Borrow</Trans>
+          Borrow
         </Button>
         <Button
           variant="outlined"
@@ -107,7 +106,7 @@ export const BorrowAssetsListMobileItem = ({
           href={ROUTES.reserveOverview(underlyingAsset, currentMarket)}
           fullWidth
         >
-          <Trans>Details</Trans>
+          Details
         </Button>
       </Box>
     </ListMobileItemWrapper>

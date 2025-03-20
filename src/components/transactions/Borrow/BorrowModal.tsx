@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import React, { useState } from 'react';
 import { UserAuthenticated } from 'src/components/UserAuthenticated';
 import { ModalContextType, ModalType, useModalContext } from 'src/hooks/useModal';
@@ -30,7 +29,7 @@ export const BorrowModal = () => {
     <BasicModal open={type === ModalType.Borrow} setOpen={close}>
       <ModalWrapper
         action="borrow"
-        title={<Trans>Borrow</Trans>}
+        title={<>{'Borrow'}</>}
         underlyingAsset={args.underlyingAsset}
         keepWrappedSymbol={!borrowUnWrapped}
       >

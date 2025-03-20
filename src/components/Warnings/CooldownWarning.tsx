@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Typography } from '@mui/material';
 import { useRootStore } from 'src/store/root';
 import { GENERAL } from 'src/utils/mixPanelEvents';
@@ -11,10 +10,10 @@ export const CooldownWarning = () => {
   return (
     <Warning severity="warning" sx={{ '.MuiAlert-message': { p: 0 }, mb: 6 }}>
       <Typography variant="subheader1">
-        <Trans>Cooldown period warning</Trans>
+        Cooldown period warning
       </Typography>
       <Typography variant="caption">
-        <Trans>
+        
           The cooldown period is the time required prior to unstaking your tokens (20 days). You can
           only withdraw your assets from the Security Module after the cooldown period and within
           the unstake window.
@@ -27,9 +26,9 @@ export const CooldownWarning = () => {
               })
             }
           >
-            <Trans>Learn more</Trans>
+            Learn more
           </Link>
-        </Trans>
+        
       </Typography>
     </Warning>
   );

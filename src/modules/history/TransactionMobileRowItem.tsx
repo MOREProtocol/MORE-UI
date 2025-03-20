@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import ArrowOutward from '@mui/icons-material/ArrowOutward';
 import { Box, Button, SvgIcon, Typography, useTheme } from '@mui/material';
 import React, { useEffect, useState } from 'react';
@@ -102,7 +101,7 @@ function TransactionMobileRowItem({ transaction }: TransactionHistoryItemProps) 
                   trackEvent(GENERAL.EXTERNAL_LINK, { funnel: 'TxHistoy', Link: 'Etherscan' })
                 }
               >
-                <Trans>VIEW TX</Trans>{' '}
+                VIEW TX{' '}
                 <SvgIcon
                   sx={{
                     fontSize: '15px',

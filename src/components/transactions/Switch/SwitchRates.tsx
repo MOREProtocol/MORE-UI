@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { normalizeBN, valueToBigNumber } from '@aave/math-utils';
 import { SwitchHorizontalIcon } from '@heroicons/react/outline';
 import { Box, ButtonBase, SvgIcon, Typography } from '@mui/material';
@@ -58,7 +57,7 @@ export const SwitchRates = ({ rates, srcSymbol, destSymbol }: SwitchRatesProps) 
       <DarkTooltip
         title={
           <Typography variant="caption">
-            <Trans>Price impact</Trans>
+            Price impact
           </Typography>
         }
       >

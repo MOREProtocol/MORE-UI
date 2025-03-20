@@ -1,6 +1,5 @@
 import { USD_DECIMALS, valueToBigNumber } from '@aave/math-utils';
 import { ArrowRightIcon, XIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/react/macro';
 import { Box, Button, Drawer, IconButton, Stack, SvgIcon, Typography } from '@mui/material';
 import { ethers } from 'ethers';
 import { useRouter } from 'next/router';
@@ -178,7 +177,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
     >
       <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h2" component="div">
-          <Trans>Batched Transactions</Trans>
+          Batched Transactions
         </Typography>
         <IconButton onClick={handleClose} sx={{ p: 1 }}>
           <SvgIcon>
@@ -234,7 +233,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
                 : 'Unknown Action'}
             </Typography>
             <Typography variant="description" color="text.secondary" sx={{ mb: 1 }}>
-              <Trans>Amount</Trans>
+              Amount
             </Typography>
             <Box
               sx={{
@@ -274,7 +273,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
               setOpen(false);
             }}
           >
-            <Trans>Explore other markets</Trans>
+            Explore other markets
           </Button>
         </Box>
       </Box>
@@ -298,7 +297,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
                   </svg>
                 </SvgIcon>
                 <Typography variant="description" color="text.secondary">
-                  <Trans>Cumulated cost</Trans>
+                  Cumulated cost
                 </Typography>
               </Box>
               <Typography variant="description">${totalGasCostUSD}</Typography>
@@ -312,7 +311,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
                   </svg>
                 </SvgIcon>
                 <Typography variant="description" color="text.secondary">
-                  <Trans>Health factor after transactions</Trans>
+                  Health factor after transactions
                 </Typography>
               </Box>
               <Typography variant="description" color="success.main">
@@ -328,7 +327,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
                   </svg>
                 </SvgIcon>
                 <Typography variant="description" color="text.secondary">
-                  <Trans>Max gas cost</Trans>
+                  Max gas cost
                 </Typography>
               </Box>
               <Typography variant="description">
@@ -347,7 +346,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
             disabled={batchTransactions.length === 0}
             sx={{ borderRadius: '6px', py: 2 }}
           >
-            <Trans>{getButtonText()}</Trans>
+            {getButtonText()}
           </Button>
         </Box>
       </Box>

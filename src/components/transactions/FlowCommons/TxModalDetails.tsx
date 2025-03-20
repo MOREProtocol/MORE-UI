@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ReserveIncentiveResponse } from '@aave/math-utils/dist/esm/formatters/incentive/calculate-reserve-incentives';
 import { ArrowNarrowRightIcon } from '@heroicons/react/solid';
 import { Box, FormControlLabel, Skeleton, SvgIcon, Switch, Typography } from '@mui/material';
@@ -11,6 +10,7 @@ import {
 } from 'src/components/isolationMode/IsolatedBadge';
 import { Row } from 'src/components/primitives/Row';
 import { CollateralType, IProps } from 'src/helpers/types';
+
 import { HealthFactorNumber } from '../../HealthFactorNumber';
 import { IncentivesButton } from '../../incentives/IncentivesButton';
 import { FormattedNumber, FormattedNumberProps } from '../../primitives/FormattedNumber';
@@ -42,7 +42,7 @@ export const TxModalDetails: React.FC<TxModalDetailsProps> = ({
   return (
     <Box sx={{ pt: 5 }}>
       <Typography sx={{ mb: 1 }} color="text.secondary">
-        <Trans>Transaction overview</Trans>
+        Transaction overview
       </Typography>
 
       <Box
@@ -193,7 +193,7 @@ export interface DetailsCollateralLine {
 
 export const DetailsCollateralLine = ({ collateralType }: DetailsCollateralLine) => {
   return (
-    <Row caption={<Trans>Collateralization</Trans>} captionVariant="description" mb={4}>
+    <Row caption={'Collateralization'} captionVariant="description" mb={4}>
       <CollateralState collateralType={collateralType} />
     </Row>
   );
@@ -210,7 +210,7 @@ export const CollateralState = ({ collateralType }: CollateralStateProps) => {
         {
           [CollateralType.ENABLED]: (
             <Typography variant="description" color="success.main">
-              <Trans>Enabled</Trans>
+              Enabled
             </Typography>
           ),
           [CollateralType.ISOLATED_ENABLED]: (
@@ -220,12 +220,12 @@ export const CollateralState = ({ collateralType }: CollateralStateProps) => {
           ),
           [CollateralType.DISABLED]: (
             <Typography variant="description" color="error.main">
-              <Trans>Disabled</Trans>
+              Disabled
             </Typography>
           ),
           [CollateralType.UNAVAILABLE]: (
             <Typography variant="description" color="error.main">
-              <Trans>Unavailable</Trans>
+              Unavailable
             </Typography>
           ),
           [CollateralType.ISOLATED_DISABLED]: <IsolatedDisabledBadge />,
@@ -254,7 +254,7 @@ export const DetailsIncentivesLine = ({
 }: DetailsIncentivesLineProps) => {
   if (!incentives || incentives.filter((i) => i.incentiveAPR !== '0').length === 0) return null;
   return (
-    <Row caption={<Trans>Rewards APR</Trans>} captionVariant="description" mb={4} minHeight={24}>
+    <Row caption={'Rewards APR'} captionVariant="description" mb={4} minHeight={24}>
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         {loading ? (
           <Skeleton variant="rectangular" height={20} width={100} sx={{ borderRadius: '4px' }} />
@@ -266,9 +266,7 @@ export const DetailsIncentivesLine = ({
                 {ArrowRightIcon}
                 <IncentivesButton incentives={futureIncentives} symbol={futureSymbol} />
                 {futureIncentives && futureIncentives.length === 0 && (
-                  <Typography variant="secondary14">
-                    <Trans>None</Trans>
-                  </Typography>
+                  <Typography variant="secondary14">None</Typography>
                 )}
               </>
             )}
@@ -294,12 +292,7 @@ export const DetailsHFLine = ({
 }: DetailsHFLineProps) => {
   if (healthFactor === '-1' && futureHealthFactor === '-1') return null;
   return (
-    <Row
-      caption={<Trans>Health factor</Trans>}
-      captionVariant="description"
-      mb={4}
-      align="flex-start"
-    >
+    <Row caption={'Health factor'} captionVariant="description" mb={4} align="flex-start">
       <Box sx={{ textAlign: 'right' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
           {loading ? (
@@ -323,7 +316,7 @@ export const DetailsHFLine = ({
         </Box>
 
         <Typography variant="helperText" color="text.secondary">
-          <Trans>Liquidation at</Trans>
+          Liquidation at
           {' <1.0'}
         </Typography>
       </Box>

@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { InterestRate } from '@aave/contract-helpers';
 import { Box, Button, Typography, useTheme } from '@mui/material';
 import { ReactNode, useState } from 'react';
@@ -51,10 +50,10 @@ export const TxSuccessView = ({
       >
         {action && amount && symbol && (
           <Typography>
-            <Trans>
+            
               You {action} <FormattedNumber value={Number(amount)} compact variant="secondary14" />{' '}
               {symbol}
-            </Trans>
+            
           </Typography>
         )}
 
@@ -73,9 +72,9 @@ export const TxSuccessView = ({
 
         {rate && (
           <Typography>
-            <Trans>
+            
               You switched to {rate === InterestRate.Variable ? 'variable' : 'stable'} rate
-            </Trans>
+            
           </Typography>
         )}
 
@@ -98,10 +97,10 @@ export const TxSuccessView = ({
               sx={{ fontSize: '32px', mt: '12px', mb: '8px' }}
             />
             <Typography variant="description" color="text.primary" sx={{ mx: '24px' }}>
-              <Trans>
+              
                 Add {addToken && addToken.aToken ? 'aToken ' : 'token '} to wallet to track your
                 balance.
-              </Trans>
+              
             </Typography>
             <Button
               onClick={() => {
@@ -125,7 +124,7 @@ export const TxSuccessView = ({
               )}
               <WalletIcon sx={{ width: '20px', height: '20px' }} />
               <Typography variant="buttonM" color="white" ml="4px">
-                <Trans>Add to wallet</Trans>
+                Add to wallet
               </Typography>
             </Button>
           </Box>

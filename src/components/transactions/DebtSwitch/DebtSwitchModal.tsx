@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { InterestRate } from '@aave/contract-helpers';
 import React from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
@@ -16,7 +15,7 @@ export const DebtSwitchModal = () => {
   return (
     <BasicModal open={type === ModalType.DebtSwitch} setOpen={close}>
       <ModalWrapper
-        title={<Trans>Switch borrow position</Trans>}
+        title={<>{'Switch borrow position'}</>}
         underlyingAsset={args.underlyingAsset}
         hideTitleSymbol
       >

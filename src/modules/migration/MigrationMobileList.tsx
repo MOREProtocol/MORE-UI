@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, Typography } from '@mui/material';
 import { ReactNode } from 'react';
 import { ListColumn } from 'src/components/lists/ListColumn';
@@ -60,9 +59,9 @@ export const MigrationMobileList = ({
               }}
             >
               <Typography variant="subheader2" color="text.secondary">
-                <Trans>
+                
                   {numSelected}/{numAvailable} assets selected
-                </Trans>
+                
               </Typography>
             </Box>
           </ListHeaderWrapper>

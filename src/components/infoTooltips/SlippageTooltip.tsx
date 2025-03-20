@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Divider } from '@mui/material';
 import { GENERAL } from 'src/utils/mixPanelEvents';
 
@@ -24,10 +23,10 @@ export const SlippageTooltip = ({ headerContent, ...rest }: SlippageTooltipProps
             <Divider sx={{ my: 2 }} />
           </>
         )}
-        <Trans>
-          Slippage is the difference between the quoted and received amounts from changing market
-          conditions between the moment the transaction is submitted and its verification.
-        </Trans>
+
+        {
+          'Slippage is the difference between the quoted and received amounts from changing market conditions between the moment the transaction is submitted and its verification.'
+        }
       </>
     </TextWithTooltip>
   );

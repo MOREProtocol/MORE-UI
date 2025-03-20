@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { SwitchHorizontalIcon } from '@heroicons/react/outline';
 import { EyeIcon } from '@heroicons/react/solid';
 import {
@@ -232,7 +231,7 @@ export const SupplyAssetsListItemDesktop = ({
             openSupply(underlyingAsset, currentMarket, name, 'dashboard');
           }}
         >
-          <Trans>Supply</Trans>
+          Supply
         </Button>
         <Button
           id="supply-extra-button"
@@ -246,7 +245,7 @@ export const SupplyAssetsListItemDesktop = ({
           aria-haspopup="true"
           aria-expanded={open ? 'true' : undefined}
         >
-          <Trans>...</Trans>
+          ...
         </Button>
         <Menu
           id="supply-item-extra-menu"
@@ -334,12 +333,7 @@ export const SupplyAssetsListItemMobile = ({
       showDebtCeilingTooltips
     >
       {canSupplyAsWrappedToken && wrappedToken && walletBalance === '0' ? (
-        <Row
-          caption={<Trans>Supply balance</Trans>}
-          align="flex-start"
-          captionVariant="description"
-          mb={2}
-        >
+        <Row caption={'Supply balance'} align="flex-start" captionVariant="description" mb={2}>
           <ContentWithTooltip
             tooltipContent={
               <WrappedTokenTooltipContent
@@ -380,7 +374,7 @@ export const SupplyAssetsListItemMobile = ({
         </Row>
       ) : (
         <ListValueRow
-          title={<Trans>Supply balance</Trans>}
+          title={'Supply balance'}
           value={Number(walletBalance)}
           subValue={walletBalanceUSD}
           disabled={Number(walletBalance) === 0 || isMaxCapReached}
@@ -395,12 +389,7 @@ export const SupplyAssetsListItemMobile = ({
         />
       )}
 
-      <Row
-        caption={<Trans>Supply APY</Trans>}
-        align="flex-start"
-        captionVariant="description"
-        mb={2}
-      >
+      <Row caption={'Supply APY'} align="flex-start" captionVariant="description" mb={2}>
         <IncentivesCard
           value={Number(supplyAPY)}
           incentives={aIncentivesData}
@@ -409,12 +398,7 @@ export const SupplyAssetsListItemMobile = ({
         />
       </Row>
 
-      <Row
-        caption={<Trans>Can be collateral</Trans>}
-        align="flex-start"
-        captionVariant="description"
-        mb={2}
-      >
+      <Row caption={'Can be collateral'} align="flex-start" captionVariant="description" mb={2}>
         <ListItemCanBeCollateral
           isIsolated={isIsolated}
           usageAsCollateralEnabled={usageAsCollateralEnabledOnUser}
@@ -429,7 +413,7 @@ export const SupplyAssetsListItemMobile = ({
           sx={{ mr: 1.5 }}
           fullWidth
         >
-          <Trans>Supply</Trans>
+          Supply
         </Button>
         <Button
           variant="outlined"
@@ -437,7 +421,7 @@ export const SupplyAssetsListItemMobile = ({
           href={ROUTES.reserveOverview(detailsAddress, currentMarket)}
           fullWidth
         >
-          <Trans>Details</Trans>
+          Details
         </Button>
       </Box>
     </ListMobileItemWrapper>

@@ -1,6 +1,5 @@
 import { ShoppingCartIcon } from '@heroicons/react/outline';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/react/macro';
 import { Box, Button, SvgIcon } from '@mui/material';
 import { useRootStore } from 'src/store/root';
 
@@ -40,7 +39,7 @@ export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps
               </SvgIcon>
             }
           >
-            <Trans>Batch Transactions</Trans>
+            Batch Transactions
           </Button>
         </Box>
       )}

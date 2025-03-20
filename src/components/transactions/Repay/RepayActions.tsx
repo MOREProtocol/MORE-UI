@@ -1,5 +1,4 @@
 import { gasLimitRecommendations, InterestRate, ProtocolAction } from '@aave/contract-helpers';
-import { Trans } from '@lingui/react/macro';
 import { BoxProps } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { parseUnits } from 'ethers/lib/utils';
@@ -252,8 +251,8 @@ export const RepayActions = ({
       handleAction={action}
       handleApproval={approval}
       handleAddToBatch={handleAddToBatch}
-      actionText={<Trans>Repay {symbol}</Trans>}
-      actionInProgressText={<Trans>Repaying {symbol}</Trans>}
+      actionText={`Repay ${symbol}`}
+      actionInProgressText={`Repaying ${symbol}`}
       tryPermit={permitAvailable}
     />
   );

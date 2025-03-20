@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { Box, Slider, styled, Typography } from '@mui/material';
 
 const StyledSlider = styled(Slider)({
@@ -75,7 +74,7 @@ export const FilterSlider = ({
     }}
   >
     <Typography variant="description" color="text.secondary" gutterBottom flexWrap="wrap">
-      <Trans>{label}</Trans>
+      {label}
     </Typography>
     <StyledSlider
       size="small"

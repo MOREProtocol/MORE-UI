@@ -1,5 +1,4 @@
 import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
-import { Trans } from '@lingui/react/macro';
 import { Box, Collapse, Switch, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { ListWrapper } from 'src/components/lists/ListWrapper';
@@ -143,11 +142,7 @@ export const MarketAssetsListContainer = () => {
           onSearchTermChange={setSearchTerm}
           onShowFilterChange={setShowFilter}
           showFilter={showFilter}
-          title={
-            <>
-              {currentMarketData.marketTitle} <Trans>assets</Trans>
-            </>
-          }
+          title={<>{currentMarketData.marketTitle} assets</>}
           searchPlaceholder={sm ? 'Search asset' : 'Search asset name, symbol, or address'}
         />
       }
@@ -174,8 +169,7 @@ export const MarketAssetsListContainer = () => {
       {frozenOrPausedReserves.length > 0 && (
         <Box sx={{ mt: 10, px: { xs: 4, xsm: 6 } }}>
           <Typography variant="h4" mb={4}>
-            <Trans>Show Frozen or paused assets</Trans>
-
+            Show Frozen or paused assets
             <Switch
               checked={showFrozenMarketsToggle}
               onChange={handleChange}
@@ -184,24 +178,22 @@ export const MarketAssetsListContainer = () => {
           </Typography>
           {showFrozenMarketsToggle && (
             <Warning severity="info">
-              <Trans>
-                These assets are temporarily frozen or paused by Aave community decisions, meaning
-                that further supply / borrow, or rate swap of these assets are unavailable.
-                Withdrawals and debt repayments are allowed. Follow the{' '}
-                <Link
-                  onClick={() => {
-                    trackEvent(GENERAL.EXTERNAL_LINK, {
-                      link: 'Frozen Market Markets Page',
-                      frozenMarket: currentNetworkConfig.name,
-                    });
-                  }}
-                  href="https://governance.aave.com"
-                  underline="always"
-                >
-                  More governance forum
-                </Link>{' '}
-                for further updates.
-              </Trans>
+              These assets are temporarily frozen or paused by Aave community decisions, meaning
+              that further supply / borrow, or rate swap of these assets are unavailable.
+              Withdrawals and debt repayments are allowed. Follow the{' '}
+              <Link
+                onClick={() => {
+                  trackEvent(GENERAL.EXTERNAL_LINK, {
+                    link: 'Frozen Market Markets Page',
+                    frozenMarket: currentNetworkConfig.name,
+                  });
+                }}
+                href="https://governance.aave.com"
+                underline="always"
+              >
+                More governance forum
+              </Link>{' '}
+              for further updates.
             </Warning>
           )}
         </Box>
@@ -219,10 +211,10 @@ export const MarketAssetsListContainer = () => {
         <NoSearchResults
           searchTerm={searchTerm}
           subtitle={
-            <Trans>
+            <>
               We couldn&apos;t find any assets related to your search. Try again with a different
               asset name, symbol, search parameter, or address.
-            </Trans>
+            </>
           }
         />
       )}

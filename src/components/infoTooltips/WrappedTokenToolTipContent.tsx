@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ArrowNarrowRightIcon } from '@heroicons/react/solid';
 import { Box, Skeleton, Stack, SvgIcon, Typography } from '@mui/material';
 import { useTokenOutForTokenIn } from 'src/hooks/token-wrapper/useTokenWrapper';
@@ -25,16 +24,15 @@ export const WrappedTokenTooltipContent = ({
   return (
     <Stack direction="column" gap={3}>
       <Typography variant="tooltip">
-        <Trans>
-          DAI balance will be converted via DSR contracts and then supplied as sDAI. Switching
-          incurs no additional costs and no slippage.
-        </Trans>
+        <>
+          {
+            'DAI balance will be converted via DSR contracts and then supplied as sDAI. Switching incurs no additional costs and no slippage.'
+          }
+        </>
       </Typography>
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <Box>
-          <Typography variant="secondary12">
-            <Trans>Exchange rate</Trans>
-          </Typography>
+          <Typography variant="secondary12">Exchange rate</Typography>
         </Box>
         {loadingExchangeRate ? (
           <Skeleton variant="rectangular" width={120} height={14} />

@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ExclamationIcon } from '@heroicons/react/outline';
 import { Box, SvgIcon } from '@mui/material';
 
@@ -31,15 +30,15 @@ export const FrozenTooltip = ({ symbol, currentMarket }: FrozenTooltipProps) => 
     <ContentWithTooltip
       tooltipContent={
         <Box>
-          <Trans>
-            This asset is frozen due to an Aave Protocol Governance decision.{' '}
+          <>
+            {'This asset is frozen due to an Aave Protocol Governance decision. '}
             <Link
               href={getFrozenProposalLink(symbol, currentMarket)}
               sx={{ textDecoration: 'underline' }}
             >
-              <Trans>More details</Trans>
+              More details
             </Link>
-          </Trans>
+          </>
         </Box>
       }
     >

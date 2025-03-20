@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { Box, MenuItem, Select, SelectChangeEvent, styled, Typography } from '@mui/material';
 
 const StyledSelect = styled(Select)(({ theme }) => ({
@@ -59,7 +58,7 @@ export const FilterSelect = ({ label, value, options, ariaLabel, onChange }: Fil
       }}
     >
       <Typography variant="description" color="text.secondary" gutterBottom flexWrap="wrap">
-        <Trans>{label}</Trans>
+        {label}
       </Typography>
       <StyledSelect
         size="small"

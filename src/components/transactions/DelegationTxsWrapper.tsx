@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { CheckIcon } from '@heroicons/react/solid';
 import { Box, BoxProps, Button, CircularProgress, SvgIcon, Typography } from '@mui/material';
 import { ReactNode } from 'react';
@@ -41,8 +40,7 @@ export const DelegationTxsWrapper = ({
   const { readOnlyModeAddress } = useWeb3Context();
 
   function getMainParams() {
-    if (blocked)
-      return { disabled: true, content: <Trans>{isRevoke ? 'Revoke' : 'Delegate'}</Trans> };
+    if (blocked) return { disabled: true, content: isRevoke ? 'Revoke' : 'Delegate' };
     if (
       (txError?.txAction === TxAction.GAS_ESTIMATION ||
         txError?.txAction === TxAction.MAIN_ACTION) &&
@@ -51,35 +49,34 @@ export const DelegationTxsWrapper = ({
       return {
         loading: false,
         disabled: true,
-        content: <Trans>{isRevoke ? 'Revoke' : 'Delegate'}</Trans>,
+        content: isRevoke ? 'Revoke' : 'Delegate',
       };
     }
-    if (isWrongNetwork) return { disabled: true, content: <Trans>Wrong Network</Trans> };
+    if (isWrongNetwork) return { disabled: true, content: 'Wrong Network' };
     if (preparingTransactions) return { disabled: true, loading: true };
     if (mainTxState?.loading)
       return {
         loading: true,
         disabled: true,
-        content: <Trans>{isRevoke ? 'Revoking' : 'Delegating'}</Trans>,
+        content: isRevoke ? 'Revoking' : 'Delegating',
       };
     if (requiresSignature && !approvalTxState?.success)
-      return { disabled: true, content: <Trans>{isRevoke ? 'Revoke' : 'Delegate'}</Trans> };
+      return { disabled: true, content: isRevoke ? 'Revoke' : 'Delegate' };
     return {
-      content: <Trans>{isRevoke ? 'Revoke' : 'Delegate'}</Trans>,
+      content: isRevoke ? 'Revoke' : 'Delegate',
       handleClick: handleAction,
     };
   }
 
   function getSignatureParams() {
     if (!requiresSignature || isWrongNetwork || preparingTransactions || blocked) return null;
-    if (approvalTxState?.loading)
-      return { loading: true, disabled: true, content: <Trans>Signing</Trans> };
+    if (approvalTxState?.loading) return { loading: true, disabled: true, content: 'Signing' };
     if (approvalTxState?.success)
       return {
         disabled: true,
         content: (
           <>
-            <Trans>Signatures ready</Trans>
+            Signatures ready
             <SvgIcon sx={{ fontSize: 20, ml: 2 }}>
               <CheckIcon />
             </SvgIcon>
@@ -88,7 +85,7 @@ export const DelegationTxsWrapper = ({
       };
 
     return {
-      content: <Trans>Sign to continue</Trans>,
+      content: 'Sign to continue',
       handleClick: handleSignatures,
     };
   }
@@ -126,7 +123,7 @@ export const DelegationTxsWrapper = ({
       </Button>
       {readOnlyModeAddress && (
         <Typography variant="helperText" color="warning.main" sx={{ textAlign: 'center', mt: 2 }}>
-          <Trans>Read-only mode. Connect to a wallet to perform transactions.</Trans>
+          Read-only mode. Connect to a wallet to perform transactions.
         </Typography>
       )}
     </Box>

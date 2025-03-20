@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { valueToBigNumber } from '@aave/math-utils';
 import { Box, Typography } from '@mui/material';
 
@@ -27,12 +26,7 @@ export const CapsHint = ({
   const percentageOfCap = valueToBigNumber(totalAmount).dividedBy(cap).toNumber();
   const value = valueToBigNumber(cap).minus(totalAmount).multipliedBy('0.995').toNumber();
 
-  const title =
-    capType === CapType.supplyCap ? (
-      <Trans>Available to supply</Trans>
-    ) : (
-      <Trans>Available to borrow</Trans>
-    );
+  const title = capType === CapType.supplyCap ? 'Available to supply' : 'Available to borrow';
 
   if (percentageOfCap < 0.99) return null;
 

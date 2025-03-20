@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Button } from '@mui/material';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useAssetCaps } from 'src/hooks/useAssetCaps';
@@ -108,7 +107,7 @@ export const SuppliedPositionsListItem = ({
             }}
             data-cy={`swapButton`}
           >
-            <Trans>Switch</Trans>
+            Switch
           </Button>
         ) : (
           <Button
@@ -116,7 +115,7 @@ export const SuppliedPositionsListItem = ({
             variant="contained"
             onClick={() => openSupply(underlyingAsset, currentMarket, reserve.name, 'dashboard')}
           >
-            <Trans>Supply</Trans>
+            Supply
           </Button>
         )}
         <Button
@@ -126,7 +125,7 @@ export const SuppliedPositionsListItem = ({
             openWithdraw(underlyingAsset, currentMarket, reserve.name, 'dashboard');
           }}
         >
-          <Trans>Withdraw</Trans>
+          Withdraw
         </Button>
       </ListButtonsColumn>
     </ListItemWrapper>
