@@ -114,6 +114,7 @@ export const VaultActivity: React.FC = () => {
                         value={activity.price * activity.amount}
                         symbol="USD"
                         variant="secondary12"
+                        color="text.muted"
                       />
                     </TableCell>
 

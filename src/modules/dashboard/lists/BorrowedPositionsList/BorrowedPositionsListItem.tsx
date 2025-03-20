@@ -1,13 +1,13 @@
-import { Trans } from "@lingui/react/macro";
 import { InterestRate } from '@aave/contract-helpers';
 import { ReserveIncentiveResponse } from '@aave/math-utils/dist/esm/formatters/incentive/calculate-reserve-incentives';
+import { Trans } from '@lingui/react/macro';
 import { Box, Button, useMediaQuery, useTheme } from '@mui/material';
 import { IncentivesCard } from 'src/components/incentives/IncentivesCard';
 import { APYTypeTooltip } from 'src/components/infoTooltips/APYTypeTooltip';
 import { Row } from 'src/components/primitives/Row';
 import { useAssetCaps } from 'src/hooks/useAssetCaps';
 import { useModalContext } from 'src/hooks/useModal';
-import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
+import { useRootStore } from 'src/store/root';
 import { DashboardReserve } from 'src/utils/dashboardSortUtils';
 import { isFeatureEnabled } from 'src/utils/marketsAndNetworksConfig';
 
@@ -22,7 +22,10 @@ import { ListValueRow } from '../ListValueRow';
 
 export const BorrowedPositionsListItem = ({ item }: { item: DashboardReserve }) => {
   const { borrowCap } = useAssetCaps();
-  const { currentMarket, currentMarketData } = useProtocolDataContext();
+  const { currentMarket, currentMarketData } = useRootStore((store) => ({
+    currentMarket: store.currentMarket,
+    currentMarketData: store.currentMarketData,
+  }));
   const theme = useTheme();
   const downToXSM = useMediaQuery(theme.breakpoints.down('xsm'));
   const { openBorrow, openRepay, openRateSwitch, openDebtSwitch } = useModalContext();
@@ -118,7 +121,9 @@ const BorrowedPositionsListItemDesktop = ({
   onOpenRepay,
   onOpenRateSwitch,
 }: BorrowedPositionsListItemProps) => {
-  const { currentMarket } = useProtocolDataContext();
+  const { currentMarket } = useRootStore((store) => ({
+    currentMarket: store.currentMarket,
+  }));
 
   const { isActive, isFrozen, isPaused, stableBorrowRateEnabled, name } = reserve;
 
@@ -191,7 +196,9 @@ const BorrowedPositionsListItemMobile = ({
   onOpenRepay,
   onOpenRateSwitch,
 }: BorrowedPositionsListItemProps) => {
-  const { currentMarket } = useProtocolDataContext();
+  const { currentMarket } = useRootStore((store) => ({
+    currentMarket: store.currentMarket,
+  }));
 
   const {
     symbol,

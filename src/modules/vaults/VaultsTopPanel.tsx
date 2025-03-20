@@ -1,4 +1,3 @@
-import { valueToBigNumber } from '@aave/math-utils';
 import { Trans } from '@lingui/react/macro';
 import { useMediaQuery, useTheme } from '@mui/material';
 import { marketContainerProps } from 'pages/markets.page';
@@ -10,7 +9,7 @@ import { TopInfoPanelItem } from '../../components/TopInfoPanel/TopInfoPanelItem
 import { useAppDataContext } from '../../hooks/app-data-provider/useAppDataProvider';
 
 export const VaultsTopPanel = () => {
-  const { reserves, loading } = useAppDataContext();
+  const { loading } = useAppDataContext();
 
   const theme = useTheme();
   const downToSM = useMediaQuery(theme.breakpoints.down('sm'));

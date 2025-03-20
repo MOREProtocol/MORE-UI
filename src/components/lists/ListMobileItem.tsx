@@ -15,7 +15,7 @@ interface ListMobileItemProps {
   name?: string;
   underlyingAsset?: string;
   loading?: boolean;
-  currentMarket?: CustomMarket;
+  currentMarket?: CustomMarket | 'all_markets';
   showSupplyCapTooltips?: boolean;
   showBorrowCapTooltips?: boolean;
   showDebtCeilingTooltips?: boolean;

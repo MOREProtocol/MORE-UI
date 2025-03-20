@@ -118,10 +118,11 @@ export const ROUTES = {
   governance: '/governance',
   faucet: '/faucet',
   migrationTool: '/v3-migration',
-  marketMigrationTool: (marketName: CustomMarket) => `/v3-migration/?market=${marketName}`,
+  marketMigrationTool: (marketName: CustomMarket | 'all_markets') =>
+    `/v3-migration/?market=${marketName}`,
   dynamicRenderedProposal: (proposalId: number) =>
     `/governance/v3/proposal?proposalId=${proposalId}`,
-  reserveOverview: (underlyingAsset: string, marketName: CustomMarket) =>
+  reserveOverview: (underlyingAsset: string, marketName: CustomMarket | 'all_markets') =>
     `/reserve-overview/?underlyingAsset=${underlyingAsset}&marketName=${marketName}`,
   vaultDetail: (vaultName: string) => `/vault-detail/?vaultName=${vaultName}`,
   history: '/history',

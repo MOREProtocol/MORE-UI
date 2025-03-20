@@ -1,26 +1,26 @@
-import React, { ReactElement, useEffect, useState } from 'react';
 import { API_ETH_MOCK_ADDRESS, ERC20Service, transactionType } from '@aave/contract-helpers';
 import { SignatureLike } from '@ethersproject/bytes';
 import { Provider } from '@ethersproject/providers';
+import { waitForTransactionReceipt } from '@wagmi/core';
+import { useWeb3React } from '@web3-react/core';
+import { BigNumber, PopulatedTransaction, providers } from 'ethers';
+import React, { ReactElement, useEffect, useState } from 'react';
+import { WalletType } from 'src/helpers/types';
+import { Web3Context } from 'src/libs/hooks/useWeb3Context';
+import { useRootStore } from 'src/store/root';
+import { hexToAscii } from 'src/utils/utils';
+import { config as wagmiConfig } from 'src/utils/wagmi';
 import {
   useAccount,
-  usePublicClient,
-  useSwitchChain,
   useChainId,
   useConnect,
   useDisconnect,
+  usePublicClient,
   useSendTransaction,
   useSignMessage,
+  useSwitchChain,
 } from 'wagmi';
-import { waitForTransactionReceipt } from '@wagmi/core';
 import { injected } from 'wagmi/connectors';
-import { useWeb3React } from '@web3-react/core';
-import { BigNumber, PopulatedTransaction, providers } from 'ethers';
-import { useRootStore } from 'src/store/root';
-import { hexToAscii } from 'src/utils/utils';
-import { Web3Context } from 'src/libs/hooks/useWeb3Context';
-import { WalletType } from 'src/helpers/types';
-import { config as wagmiConfig } from 'src/utils/wagmi';
 
 export type ERC20TokenType = {
   address: string;

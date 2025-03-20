@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import {
   API_ETH_MOCK_ADDRESS,
   ApproveDelegationType,
@@ -7,6 +6,7 @@ import {
   MAX_UINT_AMOUNT,
   ProtocolAction,
 } from '@aave/contract-helpers';
+import { Trans } from '@lingui/react/macro';
 import { BoxProps } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { parseUnits } from 'ethers/lib/utils';
@@ -49,6 +49,7 @@ export const BorrowActions = React.memo(
       generateApproveDelegation,
       estimateGasLimit,
       addTransaction,
+      addBorrowAction,
     ] = useRootStore((state) => [
       state.borrow,
       state.getCreditDelegationApprovedAmount,
@@ -56,6 +57,7 @@ export const BorrowActions = React.memo(
       state.generateApproveDelegation,
       state.estimateGasLimit,
       state.addTransaction,
+      state.addBorrowAction,
     ]);
     const {
       approvalTxState,
@@ -206,6 +208,21 @@ export const BorrowActions = React.memo(
       setGasLimit(borrowGasLimit.toString());
     }, [requiresApproval, approvalTxState, setGasLimit]);
 
+    const handleAddToBatch = () =>
+      addBorrowAction({
+        action: 'borrow',
+        market: currentMarketData.market,
+        poolAddress: poolAddress,
+        amount: amountToBorrow,
+        decimals: poolReserve.decimals,
+        debtTokenAddress:
+          interestRateMode === InterestRate.Variable
+            ? poolReserve.variableDebtTokenAddress
+            : poolReserve.stableDebtTokenAddress,
+        symbol,
+        debtType: interestRateMode,
+      });
+
     return (
       <TxActionsWrapper
         blocked={blocked}
@@ -215,6 +232,7 @@ export const BorrowActions = React.memo(
         amount={amountToBorrow}
         isWrongNetwork={isWrongNetwork}
         handleAction={action}
+        handleAddToBatch={handleAddToBatch}
         actionText={<Trans>Borrow {symbol}</Trans>}
         actionInProgressText={<Trans>Borrowing {symbol}</Trans>}
         handleApproval={() => approval()}

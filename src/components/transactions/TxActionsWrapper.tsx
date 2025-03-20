@@ -1,5 +1,5 @@
-import { Trans } from "@lingui/react/macro";
 import { CheckIcon } from '@heroicons/react/solid';
+import { Trans } from '@lingui/react/macro';
 import { Box, BoxProps, Button, CircularProgress, SvgIcon, Typography } from '@mui/material';
 import { ReactNode } from 'react';
 import { TxStateType, useModalContext } from 'src/hooks/useModal';
@@ -17,6 +17,7 @@ interface TxActionsWrapperProps extends BoxProps {
   approvalTxState?: TxStateType;
   handleApproval?: () => Promise<void>;
   handleAction: () => Promise<void>;
+  handleAddToBatch?: () => void;
   isWrongNetwork: boolean;
   mainTxState: TxStateType;
   preparingTransactions: boolean;
@@ -42,6 +43,7 @@ export const TxActionsWrapper = ({
   approvalTxState,
   handleApproval,
   handleAction,
+  handleAddToBatch,
   isWrongNetwork,
   mainTxState,
   preparingTransactions,
@@ -56,7 +58,7 @@ export const TxActionsWrapper = ({
   event,
   ...rest
 }: TxActionsWrapperProps) => {
-  const { txError } = useModalContext();
+  const { txError, close } = useModalContext();
   const { readOnlyModeAddress } = useWeb3Context();
   const hasApprovalError =
     requiresApproval && txError?.txAction === TxAction.APPROVAL && txError?.actionBlocked;
@@ -149,17 +151,32 @@ export const TxActionsWrapper = ({
         </Button>
       )}
 
-      <Button
-        variant="contained"
-        disabled={disabled || blocked || readOnlyModeAddress !== undefined}
-        onClick={handleClick}
-        size="large"
-        sx={{ minHeight: '44px', ...(approvalParams ? { mt: 2 } : {}) }}
-        data-cy="actionButton"
-      >
-        {loading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
-        {content}
-      </Button>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Button
+          variant="contained"
+          disabled={disabled || blocked || readOnlyModeAddress !== undefined}
+          onClick={handleClick}
+          size="large"
+          sx={{ minHeight: '44px', ...(approvalParams ? { mt: 2 } : {}) }}
+          data-cy="actionButton"
+        >
+          {loading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
+          {content}
+        </Button>
+        <Button
+          variant="contained"
+          disabled={blocked || readOnlyModeAddress !== undefined || !handleAddToBatch}
+          onClick={() => {
+            handleAddToBatch();
+            close();
+          }}
+          size="large"
+          sx={{ minHeight: '44px', ...(approvalParams ? { mt: 2 } : {}) }}
+          data-cy="batchButton"
+        >
+          Add to batch
+        </Button>
+      </Box>
       {readOnlyModeAddress && (
         <Typography variant="helperText" color="warning.main" sx={{ textAlign: 'center', mt: 2 }}>
           <Trans>Read-only mode. Connect to a wallet to perform transactions.</Trans>

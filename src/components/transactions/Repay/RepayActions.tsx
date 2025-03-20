@@ -1,5 +1,5 @@
-import { Trans } from "@lingui/react/macro";
 import { gasLimitRecommendations, InterestRate, ProtocolAction } from '@aave/contract-helpers';
+import { Trans } from '@lingui/react/macro';
 import { BoxProps } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { parseUnits } from 'ethers/lib/utils';
@@ -54,6 +54,7 @@ export const RepayActions = ({
     addTransaction,
     optimizedPath,
     currentMarketData,
+    addRepayAction,
   ] = useRootStore((store) => [
     store.repay,
     store.repayWithPermit,
@@ -65,6 +66,7 @@ export const RepayActions = ({
     store.addTransaction,
     store.useOptimizedPath,
     store.currentMarketData,
+    store.addRepayAction,
   ]);
   const { sendTx } = useWeb3Context();
   const queryClient = useQueryClient();
@@ -222,6 +224,18 @@ export const RepayActions = ({
     setGasLimit(supplyGasLimit.toString());
   }, [requiresApproval, approvalTxState, usePermit, setGasLimit]);
 
+  const handleAddToBatch = () => {
+    addRepayAction({
+      action: 'repay',
+      market: currentMarketData.market,
+      poolAddress: poolAddress,
+      amount: amountToRepay,
+      decimals: poolReserve.decimals,
+      symbol,
+      debtType,
+    });
+  };
+
   return (
     <TxActionsWrapper
       blocked={blocked}
@@ -237,6 +251,7 @@ export const RepayActions = ({
       {...props}
       handleAction={action}
       handleApproval={approval}
+      handleAddToBatch={handleAddToBatch}
       actionText={<Trans>Repay {symbol}</Trans>}
       actionInProgressText={<Trans>Repaying {symbol}</Trans>}
       tryPermit={permitAvailable}
