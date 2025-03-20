@@ -15,6 +15,7 @@ import { AppProps } from 'next/app';
 import dynamic from 'next/dynamic';
 import { ReactNode, useEffect, useState } from 'react';
 import { AddressBlocked } from 'src/components/AddressBlocked';
+import { SanctionRegion} from "src/components/SanctionRegion";
 import { Meta } from 'src/components/Meta';
 import { TransactionEventHandler } from 'src/components/TransactionEventHandler';
 import { GasStationProvider } from 'src/components/transactions/GasStation/GasStationProvider';
@@ -129,31 +130,33 @@ export default function MyApp(props: MyAppProps) {
               <Web3ReactProvider getLibrary={getWeb3Library}>
                 <Web3ContextProvider>
                   <AppGlobalStyles>
-                    <AddressBlocked>
-                      <ModalContextProvider>
-                        <SharedDependenciesProvider>
-                          <AppDataProvider>
-                            <GasStationProvider>
-                              {getLayout(<Component {...pageProps} />)}
-                              <WelcomeModal />
-                              <SupplyModal />
-                              <WithdrawModal />
-                              <BorrowModal />
-                              <RepayModal />
-                              <CollateralChangeModal />
-                              <DebtSwitchModal />
-                              <RateSwitchModal />
-                              <ClaimRewardsModal />
-                              <EmodeModal />
-                              <SwapModal />
-                              <FaucetModal />
-                              <TransactionEventHandler />
-                              <SwitchModal />
-                            </GasStationProvider>
-                          </AppDataProvider>
-                        </SharedDependenciesProvider>
-                      </ModalContextProvider>
-                    </AddressBlocked>
+                    <SanctionRegion>
+                      <AddressBlocked>
+                        <ModalContextProvider>
+                          <SharedDependenciesProvider>
+                            <AppDataProvider>
+                              <GasStationProvider>
+                                {getLayout(<Component {...pageProps} />)}
+                                <WelcomeModal />
+                                <SupplyModal />
+                                <WithdrawModal />
+                                <BorrowModal />
+                                <RepayModal />
+                                <CollateralChangeModal />
+                                <DebtSwitchModal />
+                                <RateSwitchModal />
+                                <ClaimRewardsModal />
+                                <EmodeModal />
+                                <SwapModal />
+                                <FaucetModal />
+                                <TransactionEventHandler />
+                                <SwitchModal />
+                              </GasStationProvider>
+                            </AppDataProvider>
+                          </SharedDependenciesProvider>
+                        </ModalContextProvider>
+                      </AddressBlocked>
+                    </SanctionRegion>
                   </AppGlobalStyles>
                 </Web3ContextProvider>
               </Web3ReactProvider>
