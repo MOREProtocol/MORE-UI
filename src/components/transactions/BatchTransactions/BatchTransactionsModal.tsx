@@ -77,7 +77,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
           amountUSD,
         };
       })
-      .filter((transaction) => !transaction.isHidden);
+      .filter((transaction) => !!transaction.isHidden && !transaction.isHidden);
   }, [batchTransactions, reserves, marketReferencePriceInUsd]);
 
   const handleClose = () => {

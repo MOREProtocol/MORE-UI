@@ -12,12 +12,12 @@ const MULTICALL_ADDRESS = '0xF7d11c74B5706155d7C6DBe931d590611a371a8a';
 
 export interface BatchTransaction {
   action: 'supply' | 'borrow' | 'repay' | 'withdraw' | 'transfer';
-  isHidden: boolean;
   market: CustomMarket;
   poolAddress: string;
   amount: string;
   symbol: string;
   decimals: number;
+  isHidden?: boolean;
   debtTokenAddress?: string;
   debtType?: InterestRate;
   aTokenAddress?: string;
