@@ -9,6 +9,7 @@ import { BasicModal } from './primitives/BasicModal';
 import { Link } from './primitives/Link';
 
 export const SanctionRegion = ({ children }: { children: ReactNode }) => {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
   const setOpen = (_value: boolean) => {}; // ignore, we want the modal to not be dismissable
   const [sanctioned, setSanctioned] = useState(false);
 
@@ -82,5 +83,5 @@ export const SanctionRegion = ({ children }: { children: ReactNode }) => {
     );
   }
 
-  return <>{children}</>; 
+  return <>{children}</>;
 };
