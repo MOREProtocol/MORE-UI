@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { Box, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 
 export type MarketType = 'all' | 'earn' | 'borrow';
@@ -19,7 +18,7 @@ export const MarketTypeFilter = ({
       }}
     >
       <Typography variant="description" color="text.secondary" gutterBottom flexWrap="wrap">
-        <Trans>Market Type</Trans>
+        Market Type
       </Typography>
       <ToggleButtonGroup
         value={value}
@@ -54,15 +53,9 @@ export const MarketTypeFilter = ({
           },
         }}
       >
-        <ToggleButton value="all">
-          <Trans>All</Trans>
-        </ToggleButton>
-        <ToggleButton value="earn">
-          <Trans>Earn</Trans>
-        </ToggleButton>
-        <ToggleButton value="borrow">
-          <Trans>Borrow</Trans>
-        </ToggleButton>
+        <ToggleButton value="all">All</ToggleButton>
+        <ToggleButton value="earn">Earn</ToggleButton>
+        <ToggleButton value="borrow">Borrow</ToggleButton>
       </ToggleButtonGroup>
     </Box>
   );

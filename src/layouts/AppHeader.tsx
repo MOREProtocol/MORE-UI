@@ -1,5 +1,4 @@
 import { InformationCircleIcon } from '@heroicons/react/outline';
-import { Trans } from '@lingui/react/macro';
 import {
   // Badge,
   Button,
@@ -145,11 +144,9 @@ export function AppHeader() {
 
   const testnetTooltip = (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: 1 }}>
-      <Typography variant="subheader1">
-        <Trans>Testnet mode is ON</Trans>
-      </Typography>
+      <Typography variant="subheader1">Testnet mode is ON</Typography>
       <Typography variant="description">
-        <Trans>The app is running in testnet mode. Learn how it works in</Trans>{' '}
+        The app is running in testnet mode. Learn how it works in{' '}
         <Link
           href="https://docs.aave.com/faq/testing-aave"
           style={{ fontSize: '14px', fontWeight: 400, textDecoration: 'underline' }}
@@ -158,21 +155,17 @@ export function AppHeader() {
         </Link>
       </Typography>
       <Button variant="outlined" sx={{ mt: '12px' }} onClick={disableTestnet}>
-        <Trans>Disable testnet</Trans>
+        Disable testnet
       </Button>
     </Box>
   );
 
   const forkTooltip = (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: 1 }}>
-      <Typography variant="subheader1">
-        <Trans>Fork mode is ON</Trans>
-      </Typography>
-      <Typography variant="description">
-        <Trans>The app is running in fork mode.</Trans>
-      </Typography>
+      <Typography variant="subheader1">Fork mode is ON</Typography>
+      <Typography variant="description">The app is running in fork mode.</Typography>
       <Button variant="outlined" sx={{ mt: '12px' }} onClick={disableFork}>
-        <Trans>Disable fork</Trans>
+        Disable fork
       </Button>
     </Box>
   );

@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ExternalLinkIcon } from '@heroicons/react/outline';
 import { Box, Skeleton, SvgIcon, useMediaQuery, useTheme } from '@mui/material';
 import { CircleIcon } from 'src/components/CircleIcon';
@@ -43,7 +42,7 @@ export const ReserveTopDetails = ({ underlyingAsset }: ReserveTopDetailsProps) =
 
   return (
     <>
-      <TopInfoPanelItem title={<Trans>Reserve Size</Trans>} loading={loading} hideIcon>
+      <TopInfoPanelItem title={'Reserve Size'} loading={loading} hideIcon>
         <FormattedNumber
           value={Math.max(Number(poolReserve?.totalLiquidityUSD), 0)}
           symbol="USD"
@@ -53,7 +52,7 @@ export const ReserveTopDetails = ({ underlyingAsset }: ReserveTopDetailsProps) =
         />
       </TopInfoPanelItem>
 
-      <TopInfoPanelItem title={<Trans>Available liquidity</Trans>} loading={loading} hideIcon>
+      <TopInfoPanelItem title={'Available liquidity'} loading={loading} hideIcon>
         <FormattedNumber
           value={Math.max(Number(poolReserve?.availableLiquidityUSD), 0)}
           symbol="USD"
@@ -63,7 +62,7 @@ export const ReserveTopDetails = ({ underlyingAsset }: ReserveTopDetailsProps) =
         />
       </TopInfoPanelItem>
 
-      <TopInfoPanelItem title={<Trans>Utilization Rate</Trans>} loading={loading} hideIcon>
+      <TopInfoPanelItem title={'Utilization Rate'} loading={loading} hideIcon>
         <FormattedNumber
           value={poolReserve?.borrowUsageRatio}
           percent
@@ -73,7 +72,7 @@ export const ReserveTopDetails = ({ underlyingAsset }: ReserveTopDetailsProps) =
         />
       </TopInfoPanelItem>
 
-      <TopInfoPanelItem title={<Trans>Oracle price</Trans>} loading={loading} hideIcon>
+      <TopInfoPanelItem title={'Oracle price'} loading={loading} hideIcon>
         <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
           <FormattedNumber
             value={poolReserve?.priceInUSD}

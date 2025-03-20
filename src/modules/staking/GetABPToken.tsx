@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, Button } from '@mui/material';
 import { useState } from 'react';
 import { DarkTooltip } from 'src/components/infoTooltips/DarkTooltip';
@@ -36,7 +35,7 @@ export const GetABPToken = () => {
             </Box>
           }
         >
-          <Trans>Get ABP Token</Trans>
+          Get ABP Token
         </Button>
       </DarkTooltip>
       <GetABPTokenModal open={open} close={handleClose} />

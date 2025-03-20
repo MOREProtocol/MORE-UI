@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, Button, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { ReactNode } from 'react';
 
@@ -61,7 +60,7 @@ export const PageTitle = ({ pageTitle, withMarketSwitcher, withMigrateButton }: 
         {isMigrateToV3Available && withMigrateButton && (
           <Link href={ROUTES.migrationTool} sx={{ mt: { xs: 2, xsm: 0 } }}>
             <Button variant="gradient" size="small">
-              <Trans>Migrate to V3</Trans>
+              Migrate to V3
             </Button>
           </Link>
         )}

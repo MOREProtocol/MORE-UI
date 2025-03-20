@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, Button, Skeleton } from '@mui/material';
 
 import { ListColumn } from '../../components/lists/ListColumn';
@@ -15,7 +14,7 @@ export const FaucetMobileItemLoader = () => {
       </ListColumn>
       <ListColumn maxWidth={280} align="right">
         <Button variant="contained">
-          <Trans>Faucet</Trans>
+          Faucet
         </Button>
       </ListColumn>
     </ListItem>

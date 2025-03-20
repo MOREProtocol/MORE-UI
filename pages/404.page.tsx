@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, Button, Paper, Typography, useTheme } from '@mui/material';
 import Link from 'next/link';
 import { useEffect } from 'react';
@@ -36,16 +35,16 @@ export default function Aave404Page() {
             <img width="100%" height="auto" src="/404/404.svg" alt="404 - Page not found" />
           </Box>
           <Typography variant="display1" sx={{ mt: 2 }}>
-            <Trans>Page not found</Trans>
+            Page not found
           </Typography>
           <Typography sx={{ mt: 3, mb: 5, maxWidth: 480 }}>
-            <Trans>Sorry, we couldn&apos;t find the page you were looking for.</Trans>
+            Sorry, we couldn&apos;t find the page you were looking for.
             <br />
-            <Trans>We suggest you go back to the Dashboard.</Trans>
+            We suggest you go back to the Dashboard.
           </Typography>
           <Link href="/" passHref>
             <Button variant="outlined" color="primary">
-              <Trans>Back to Dashboard</Trans>
+              Back to Dashboard
             </Button>
           </Link>
         </Paper>

@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, Typography } from '@mui/material';
 import { Warning } from 'src/components/primitives/Warning';
 import { TxErrorType } from 'src/ui-config/errorMapping';
@@ -21,7 +20,7 @@ export const ParaswapErrorDisplay: React.FC<ErrorProps> = ({ txError }) => {
             <Warning severity="info">
               <Typography variant="description">
                 {' '}
-                <Trans> Tip: Try increasing slippage or reduce input amount</Trans>
+                Tip: Try increasing slippage or reduce input amount
               </Typography>
             </Warning>
           </Box>

@@ -5,7 +5,6 @@ import {
   ChevronUpIcon,
   ExternalLinkIcon,
 } from '@heroicons/react/outline';
-import { Trans } from '@lingui/react/macro';
 import {
   Box,
   Button,
@@ -82,7 +81,7 @@ export const ListItemAPYButton = ({
         data-cy={`apyMenu_${borrowRateMode}`}
       >
         <Typography variant="subheader2" sx={{ px: 4, py: 3 }}>
-          <Trans>Select APY type to switch</Trans>
+          Select APY type to switch
         </Typography>
 
         <MenuItem
@@ -99,7 +98,7 @@ export const ListItemAPYButton = ({
             <SvgIcon>{borrowRateMode === InterestRate.Variable && <CheckIcon />}</SvgIcon>
           </ListItemIcon>
           <ListItemText primaryTypographyProps={{ variant: 'description' }}>
-            <Trans>APY, variable</Trans>
+            APY, variable
           </ListItemText>
           <FormattedNumber value={Number(variableBorrowAPY)} percent variant="description" />
         </MenuItem>
@@ -118,7 +117,7 @@ export const ListItemAPYButton = ({
             <SvgIcon>{borrowRateMode === InterestRate.Stable && <CheckIcon />}</SvgIcon>
           </ListItemIcon>
           <ListItemText primaryTypographyProps={{ variant: 'description' }}>
-            <Trans>APY, stable</Trans>
+            APY, stable
           </ListItemText>
           <FormattedNumber value={Number(stableBorrowAPY)} percent variant="description" />
         </MenuItem>
@@ -138,7 +137,7 @@ export const ListItemAPYButton = ({
               </SvgIcon>
             }
           >
-            <Trans>SEE CHARTS</Trans>
+            SEE CHARTS
           </Button>
         </Box>
       </Menu>

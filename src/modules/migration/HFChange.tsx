@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ArrowNarrowRightIcon } from '@heroicons/react/solid';
 import { Box, Skeleton, SvgIcon, Typography } from '@mui/material';
 import { ReactNode } from 'react';
@@ -28,7 +27,7 @@ export const HFChange = ({ caption, hfCurrent, hfAfter, loading }: HFChangeProps
           {!loading ? <HealthFactorNumber value={hfAfter} /> : <Skeleton width={50} />}
         </Box>
         <Typography variant="helperText" color="text.secondary">
-          <Trans>Liquidation at</Trans>
+          Liquidation at
           {' <1.0'}
         </Typography>
       </Box>

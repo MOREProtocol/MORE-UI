@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
 import { valueToBigNumber } from '@aave/math-utils';
 import { Box, Checkbox, Typography } from '@mui/material';
@@ -102,7 +101,7 @@ export const WithdrawModalContent = ({
   if (withdrawTxState.success)
     return (
       <TxSuccessView
-        action={<Trans>withdrew</Trans>}
+        action={'withdrew'}
         amount={amountRef.current}
         symbol={
           withdrawUnWrapped && poolReserve.isWrappedBaseAsset
@@ -132,13 +131,7 @@ export const WithdrawModalContent = ({
         isMaxSelected={isMaxSelected}
         disabled={withdrawTxState.loading}
         maxValue={maxAmountToWithdraw.toString(10)}
-        balanceText={
-          unborrowedLiquidity.lt(underlyingBalance) ? (
-            <Trans>Available</Trans>
-          ) : (
-            <Trans>Supply balance</Trans>
-          )
-        }
+        balanceText={unborrowedLiquidity.lt(underlyingBalance) ? 'Available' : 'Supply balance'}
       />
 
       {blockingError !== undefined && (
@@ -159,7 +152,7 @@ export const WithdrawModalContent = ({
 
       <TxModalDetails gasLimit={gasLimit}>
         <DetailsNumberLine
-          description={<Trans>Remaining supply</Trans>}
+          description={'Remaining supply'}
           value={underlyingBalance.minus(withdrawAmount || '0').toString(10)}
           symbol={
             poolReserve.isWrappedBaseAsset
@@ -179,10 +172,7 @@ export const WithdrawModalContent = ({
       {displayRiskCheckbox && (
         <>
           <Warning severity="error" sx={{ my: 6 }}>
-            <Trans>
-              Withdrawing this amount will reduce your health factor and increase risk of
-              liquidation.
-            </Trans>
+            Withdrawing this amount will reduce your health factor and increase risk of liquidation.
           </Warning>
           <Box
             sx={{
@@ -206,9 +196,7 @@ export const WithdrawModalContent = ({
               size="small"
               data-cy={`risk-checkbox`}
             />
-            <Typography variant="description">
-              <Trans>I acknowledge the risks involved.</Trans>
-            </Typography>
+            <Typography variant="description">I acknowledge the risks involved.</Typography>
           </Box>
         </>
       )}

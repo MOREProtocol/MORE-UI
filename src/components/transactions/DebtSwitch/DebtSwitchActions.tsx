@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import {
   ApproveDelegationType,
   gasLimitRecommendations,
@@ -282,14 +281,14 @@ export const DebtSwitchActions = ({
       amount={amountToSwap}
       handleApproval={() => approval()}
       requiresApproval={requiresApproval}
-      actionText={<Trans>Switch</Trans>}
-      actionInProgressText={<Trans>Switching</Trans>}
+      actionText={'Switch'}
+      actionInProgressText={'Switching'}
       sx={sx}
       fetchingData={loading}
       errorParams={{
         loading: false,
         disabled: blocked || !approvalTxState?.success,
-        content: <Trans>Switch</Trans>,
+        content: 'Switch',
         handleClick: action,
       }}
       blocked={blocked}

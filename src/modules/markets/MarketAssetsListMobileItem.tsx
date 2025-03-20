@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { Box, Button, Divider } from '@mui/material';
 import { VariableAPYTooltip } from 'src/components/infoTooltips/VariableAPYTooltip';
 import { NoData } from 'src/components/primitives/NoData';
@@ -37,7 +36,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveDataWi
       currentMarket={reserve.market.market}
       isIsolated={reserve.isIsolated}
     >
-      <Row caption={<Trans>Total supplied</Trans>} captionVariant="description" mb={3}>
+      <Row caption={'Total supplied'} captionVariant="description" mb={3}>
         <Box
           sx={{
             display: 'flex',
@@ -51,12 +50,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveDataWi
           <ReserveSubheader value={reserve.totalLiquidityUSD} rightAlign={true} />
         </Box>
       </Row>
-      <Row
-        caption={<Trans>Supply APY</Trans>}
-        captionVariant="description"
-        mb={3}
-        align="flex-start"
-      >
+      <Row caption={'Supply APY'} captionVariant="description" mb={3} align="flex-start">
         <IncentivesCard
           align="flex-end"
           value={reserve.supplyAPY}
@@ -68,7 +62,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveDataWi
 
       <Divider sx={{ mb: 3 }} />
 
-      <Row caption={<Trans>Total borrowed</Trans>} captionVariant="description" mb={3}>
+      <Row caption={'Total borrowed'} captionVariant="description" mb={3}>
         <Box
           sx={{
             display: 'flex',
@@ -91,7 +85,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveDataWi
       <Row
         caption={
           <VariableAPYTooltip
-            text={<Trans>Borrow APY, variable</Trans>}
+            text={'Borrow APY, variable'}
             key="APY_list_mob_variable_type"
             variant="description"
           />
@@ -116,7 +110,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveDataWi
       {/* <Row
         caption={
           <StableAPYTooltip
-            text={<Trans>Borrow APY, stable</Trans>}
+            text={Borrow APY, stable}
             key="APY_list_mob_stable_type"
             variant="description"
           />
@@ -150,7 +144,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveDataWi
               openSupply(reserve.underlyingAsset, reserve.market.market, reserve.name, 'dashboard');
             }}
           >
-            <Trans>Supply</Trans>
+            Supply
           </Button>
           <Button
             disabled={disableBorrow}
@@ -161,7 +155,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveDataWi
               openBorrow(reserve.underlyingAsset, reserve.market.market, reserve.name, 'dashboard');
             }}
           >
-            <Trans>Borrow</Trans>
+            Borrow
           </Button>
         </Box>
       ) : (
@@ -180,7 +174,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveDataWi
             setCurrentMarket(reserve.market.market);
           }}
         >
-          <Trans>View details</Trans>
+          View details
         </Button>
       )}
     </ListMobileItemWrapper>

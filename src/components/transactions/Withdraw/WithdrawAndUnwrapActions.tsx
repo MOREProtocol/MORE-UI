@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { gasLimitRecommendations, ProtocolAction, valueToWei } from '@aave/contract-helpers';
 import { SignatureLike } from '@ethersproject/bytes';
 import { BoxProps } from '@mui/material';
@@ -183,8 +182,8 @@ export const WithdrawAndUnwrapAction = ({
       amount={amountToWithdraw}
       isWrongNetwork={isWrongNetwork}
       requiresAmount
-      actionInProgressText={<Trans>Withdrawing</Trans>}
-      actionText={<Trans>Withdraw</Trans>}
+      actionInProgressText={'Withdrawing'}
+      actionText={'Withdraw'}
       handleAction={action}
       requiresApproval={requiresApproval}
       handleApproval={approvalAction}

@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, SvgIcon, Typography } from '@mui/material';
 import { LiquidationPenaltyTooltip } from 'src/components/infoTooltips/LiquidationPenaltyTooltip';
 import { LiquidationThresholdTooltip } from 'src/components/infoTooltips/LiquidationThresholdTooltip';
@@ -28,7 +27,7 @@ export const ReserveEModePanel: React.FC<ReserverEModePanelProps> = ({ reserve }
       <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
         <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
           <Typography variant="secondary14" color="text.secondary">
-            <Trans>E-Mode Category</Trans>
+            E-Mode Category
           </Typography>
           <SvgIcon sx={{ fontSize: '14px', mr: 0.5, ml: 2 }}>
             <LightningBoltGradient />
@@ -43,9 +42,7 @@ export const ReserveEModePanel: React.FC<ReserverEModePanelProps> = ({ reserve }
             pt: '12px',
           }}
         >
-          <ReserveOverviewBox
-            title={<MaxLTVTooltip variant="description" text={<Trans>Max LTV</Trans>} />}
-          >
+          <ReserveOverviewBox title={<MaxLTVTooltip variant="description" text={'Max LTV'} />}>
             <FormattedNumber
               value={reserve.formattedEModeLtv}
               percent
@@ -55,10 +52,7 @@ export const ReserveEModePanel: React.FC<ReserverEModePanelProps> = ({ reserve }
           </ReserveOverviewBox>
           <ReserveOverviewBox
             title={
-              <LiquidationThresholdTooltip
-                variant="description"
-                text={<Trans>Liquidation threshold</Trans>}
-              />
+              <LiquidationThresholdTooltip variant="description" text={'Liquidation threshold'} />
             }
           >
             <FormattedNumber
@@ -69,12 +63,7 @@ export const ReserveEModePanel: React.FC<ReserverEModePanelProps> = ({ reserve }
             />
           </ReserveOverviewBox>
           <ReserveOverviewBox
-            title={
-              <LiquidationPenaltyTooltip
-                variant="description"
-                text={<Trans>Liquidation penalty</Trans>}
-              />
-            }
+            title={<LiquidationPenaltyTooltip variant="description" text={'Liquidation penalty'} />}
           >
             <FormattedNumber
               value={reserve.formattedEModeLiquidationBonus}
@@ -85,47 +74,45 @@ export const ReserveEModePanel: React.FC<ReserverEModePanelProps> = ({ reserve }
           </ReserveOverviewBox>
         </Box>
         <Typography variant="caption" color="text.secondary" paddingTop="24px">
-          <Trans>
-            E-Mode increases your LTV for a selected category of assets, meaning that when E-mode is
-            enabled, you will have higher borrowing power over assets of the same E-mode category
-            which are defined by Aave Governance. You can enter E-Mode from your{' '}
-            <Link
-              href={ROUTES.dashboard}
-              sx={{ textDecoration: 'underline' }}
-              variant="caption"
-              color="text.secondary"
-              onClick={() => {
-                trackEvent(RESERVE_DETAILS.GO_DASHBOARD_EMODE);
-              }}
-            >
-              Dashboard
-            </Link>
-            . To learn more about E-Mode and applied restrictions in{' '}
-            <Link
-              href="https://docs.aave.com/faq/aave-v3-features#high-efficiency-mode-e-mode"
-              sx={{ textDecoration: 'underline' }}
-              variant="caption"
-              color="text.secondary"
-              onClick={() => {
-                trackEvent(GENERAL.EXTERNAL_LINK, { Link: 'E-mode FAQ' });
-              }}
-            >
-              FAQ
-            </Link>{' '}
-            or{' '}
-            <Link
-              href="https://github.com/aave/aave-v3-core/blob/master/techpaper/Aave_V3_Technical_Paper.pdf"
-              sx={{ textDecoration: 'underline' }}
-              variant="caption"
-              color="text.secondary"
-              onClick={() => {
-                trackEvent(GENERAL.EXTERNAL_LINK, { Link: 'V3 Tech Paper' });
-              }}
-            >
-              Aave V3 Technical Paper
-            </Link>
-            .
-          </Trans>
+          E-Mode increases your LTV for a selected category of assets, meaning that when E-mode is
+          enabled, you will have higher borrowing power over assets of the same E-mode category
+          which are defined by Aave Governance. You can enter E-Mode from your{' '}
+          <Link
+            href={ROUTES.dashboard}
+            sx={{ textDecoration: 'underline' }}
+            variant="caption"
+            color="text.secondary"
+            onClick={() => {
+              trackEvent(RESERVE_DETAILS.GO_DASHBOARD_EMODE);
+            }}
+          >
+            Dashboard
+          </Link>
+          . To learn more about E-Mode and applied restrictions in{' '}
+          <Link
+            href="https://docs.aave.com/faq/aave-v3-features#high-efficiency-mode-e-mode"
+            sx={{ textDecoration: 'underline' }}
+            variant="caption"
+            color="text.secondary"
+            onClick={() => {
+              trackEvent(GENERAL.EXTERNAL_LINK, { Link: 'E-mode FAQ' });
+            }}
+          >
+            FAQ
+          </Link>{' '}
+          or{' '}
+          <Link
+            href="https://github.com/aave/aave-v3-core/blob/master/techpaper/Aave_V3_Technical_Paper.pdf"
+            sx={{ textDecoration: 'underline' }}
+            variant="caption"
+            color="text.secondary"
+            onClick={() => {
+              trackEvent(GENERAL.EXTERNAL_LINK, { Link: 'V3 Tech Paper' });
+            }}
+          >
+            Aave V3 Technical Paper
+          </Link>
+          .
         </Typography>
       </Box>
     </PanelRow>

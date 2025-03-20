@@ -1,6 +1,4 @@
 import { MenuIcon } from '@heroicons/react/outline';
-import { useLingui } from '@lingui/react';
-import { Trans } from '@lingui/react/macro';
 import {
   Box,
   Button,
@@ -12,14 +10,13 @@ import {
   SvgIcon,
   Typography,
 } from '@mui/material';
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { ReactNode } from 'react';
 import { PROD_ENV } from 'src/utils/marketsAndNetworksConfig';
 
 import { Link } from '../components/primitives/Link';
 import { moreNavigation } from '../ui-config/menu-items';
 import { DarkModeSwitcher } from './components/DarkModeSwitcher';
 import { DrawerWrapper } from './components/DrawerWrapper';
-import { LanguageListItem, LanguagesList } from './components/LanguageSwitcher';
 import { MobileCloseButton } from './components/MobileCloseButton';
 import { NavItems } from './components/NavItems';
 import { TestNetModeSwitcher } from './components/TestNetModeSwitcher';
@@ -45,11 +42,6 @@ const MenuItemsWrapper = ({ children, title }: { children: ReactNode; title: Rea
 );
 
 export const MobileMenu = ({ open, setOpen, headerHeight }: MobileMenuProps) => {
-  const { i18n } = useLingui();
-  const [isLanguagesListOpen, setIsLanguagesListOpen] = useState(false);
-
-  useEffect(() => setIsLanguagesListOpen(false), [open]);
-
   return (
     <>
       {open ? (
@@ -68,56 +60,38 @@ export const MobileMenu = ({ open, setOpen, headerHeight }: MobileMenuProps) => 
       )}
 
       <DrawerWrapper open={open} setOpen={setOpen} headerHeight={headerHeight}>
-        {!isLanguagesListOpen ? (
-          <>
-            <MenuItemsWrapper title={<Trans>Menu</Trans>}>
-              <NavItems setOpen={setOpen} />
-            </MenuItemsWrapper>
-            <MenuItemsWrapper title={<Trans>Global settings</Trans>}>
-              <List>
-                <DarkModeSwitcher />
-                {PROD_ENV && <TestNetModeSwitcher />}
-                <LanguageListItem onClick={() => setIsLanguagesListOpen(true)} />
-              </List>
-            </MenuItemsWrapper>
-            <MenuItemsWrapper title={<Trans>Links</Trans>}>
-              <List>
-                <ListItem
-                  sx={{ color: '#F1F1F3' }}
-                  component={Link}
-                  href={'/v3-migration'}
-                  onClick={() => setOpen(false)}
-                >
-                  <ListItemText>
-                    <Trans>Migrate to Aave V3</Trans>
-                  </ListItemText>
-                </ListItem>
-                {moreNavigation.length > 0 ? (
-                  moreNavigation.map((item, index) => (
-                    <ListItem
-                      component={Link}
-                      href={item.link}
-                      sx={{ color: '#F1F1F3' }}
-                      key={index}
-                    >
-                      <ListItemIcon sx={{ minWidth: 'unset', mr: 3 }}>
-                        <SvgIcon sx={{ fontSize: '20px', color: '#F1F1F3' }}>{item.icon}</SvgIcon>
-                      </ListItemIcon>
-
-                      <ListItemText>{i18n._(item.title)}</ListItemText>
-                    </ListItem>
-                  ))
-                ) : (
-                  <></>
-                )}
-              </List>
-            </MenuItemsWrapper>
-          </>
-        ) : (
-          <List sx={{ px: 2 }}>
-            <LanguagesList onClick={() => setIsLanguagesListOpen(false)} />
+        <MenuItemsWrapper title={'Menu'}>
+          <NavItems />
+        </MenuItemsWrapper>
+        <MenuItemsWrapper title={'Global settings'}>
+          <List>
+            <DarkModeSwitcher />
+            {PROD_ENV && <TestNetModeSwitcher />}
           </List>
-        )}
+        </MenuItemsWrapper>
+        <MenuItemsWrapper title={'Links'}>
+          <List>
+            <ListItem
+              sx={{ color: '#F1F1F3' }}
+              component={Link}
+              href={'/v3-migration'}
+              onClick={() => setOpen(false)}
+            >
+              <ListItemText>Migrate to Aave V3</ListItemText>
+            </ListItem>
+            {moreNavigation.length > 0 ? (
+              moreNavigation.map((item, index) => (
+                <ListItem component={Link} href={item.link} sx={{ color: '#F1F1F3' }} key={index}>
+                  <ListItemIcon sx={{ minWidth: 'unset', mr: 3 }}>
+                    <SvgIcon sx={{ fontSize: '20px', color: '#F1F1F3' }}>{item.icon}</SvgIcon>
+                  </ListItemIcon>
+                </ListItem>
+              ))
+            ) : (
+              <></>
+            )}
+          </List>
+        </MenuItemsWrapper>
       </DrawerWrapper>
     </>
   );

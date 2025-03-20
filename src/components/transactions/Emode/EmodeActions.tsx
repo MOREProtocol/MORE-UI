@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ProtocolAction } from '@aave/contract-helpers';
 import { EmodeCategory } from 'src/helpers/types';
 import { useTransactionHandler } from 'src/helpers/useTransactionHandler';
@@ -46,22 +45,18 @@ export const EmodeActions = ({
       preparingTransactions={loadingTxns}
       handleAction={action}
       actionText={
-        activeEmode === 0 ? (
-          <Trans>Enable E-Mode</Trans>
-        ) : selectedEmode !== 0 ? (
-          <Trans>Switch E-Mode</Trans>
-        ) : (
-          <Trans>Disable E-Mode</Trans>
-        )
+        activeEmode === 0
+          ? 'Enable E-Mode'
+          : selectedEmode !== 0
+          ? 'Switch E-Mode'
+          : 'Disable E-Mode'
       }
       actionInProgressText={
-        activeEmode === 0 ? (
-          <Trans>Enabling E-Mode</Trans>
-        ) : selectedEmode !== 0 ? (
-          <Trans>Switching E-Mode</Trans>
-        ) : (
-          <Trans>Disabling E-Mode</Trans>
-        )
+        activeEmode === 0
+          ? 'Enabling E-Mode'
+          : selectedEmode !== 0
+          ? 'Switching E-Mode'
+          : 'Disabling E-Mode'
       }
       isWrongNetwork={isWrongNetwork}
     />

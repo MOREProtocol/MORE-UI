@@ -1,6 +1,5 @@
 import { valueToBigNumber } from '@aave/math-utils';
 import { ExclamationIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/react/macro';
 import ArrowDownward from '@mui/icons-material/ArrowDownward';
 import {
   Box,
@@ -91,29 +90,27 @@ const getBlockingError = (
 const BlockErrorText = ({ blockingError }: BlockErrorTextProps) => {
   switch (blockingError) {
     case ErrorType.NO_SELECTION:
-      return <Trans>No assets selected to migrate.</Trans>;
+      return 'No assets selected to migrate.';
     case ErrorType.V2_HF_TOO_LOW:
       return (
-        <Trans>
+        <>
           This action will reduce V2 health factor below liquidation threshold. retain collateral or
           migrate borrow position to continue.
-        </Trans>
+        </>
       );
     case ErrorType.V3_HF_TOO_LOW:
       return (
         <>
-          <Trans>
-            This action will reduce health factor of V3 below liquidation threshold. Increase
-            migrated collateral or reduce migrated borrow to continue.
-          </Trans>
+          This action will reduce health factor of V3 below liquidation threshold. Increase migrated
+          collateral or reduce migrated borrow to continue.
         </>
       );
     case ErrorType.INSUFFICIENT_LTV:
       return (
-        <Trans>
+        <>
           The loan to value of the migrated positions would cause liquidation. Increase migrated
           collateral or reduce migrated borrow to continue.
-        </Trans>
+        </>
       );
     default:
       return <></>;
@@ -157,7 +154,7 @@ export const MigrationBottomPanel = ({
           mb: { xs: 6, md: 0 },
         }}
       >
-        <Row caption={<Trans>Migrate your assets</Trans>} captionVariant="h3" sx={{ mb: 6 }} />
+        <Row caption={'Migrate your assets'} captionVariant="h3" sx={{ mb: 6 }} />
 
         <Box
           sx={{
@@ -233,7 +230,7 @@ export const MigrationBottomPanel = ({
               }
               label={
                 <Typography variant="description" sx={{ position: 'relative', top: 1 }}>
-                  <Trans>I fully understand the risks of migrating.</Trans>
+                  I fully understand the risks of migrating.
                 </Typography>
               }
             />
@@ -249,7 +246,7 @@ export const MigrationBottomPanel = ({
             size="medium"
             data-cy={`migration-button`}
           >
-            <Trans>Preview tx and migrate</Trans>
+            Preview tx and migrate
           </Button>
         </Box>
         <Box
@@ -265,26 +262,22 @@ export const MigrationBottomPanel = ({
             <SvgIcon sx={{ fontSize: '24px', color: 'warning.main', mr: 2 }}>
               <ExclamationIcon />
             </SvgIcon>
-            <Trans>Migration risks</Trans>
+            Migration risks
           </Typography>
           <Typography sx={{ mb: { xs: 3, lg: 4 } }}>
-            <Trans>
-              Please always be aware of your <b>Health Factor (HF)</b> when partially migrating a
-              position and that your rates will be updated to V3 rates.
-            </Trans>
+            Please always be aware of your <b>Health Factor (HF)</b> when partially migrating a
+            position and that your rates will be updated to V3 rates.
           </Typography>
           <Typography sx={{ mb: { xs: 3, lg: 4 } }}>
-            <Trans>
-              Migrating multiple collaterals and borrowed assets at the same time can be an
-              expensive operation and might fail in certain situations.
-              <b>
-                Therefore it’s not recommended to migrate positions with more than 5 assets
-                (deposited + borrowed) at the same time.
-              </b>
-            </Trans>
+            Migrating multiple collaterals and borrowed assets at the same time can be an expensive
+            operation and might fail in certain situations.
+            <b>
+              Therefore it’s not recommended to migrate positions with more than 5 assets (deposited
+              + borrowed) at the same time.
+            </b>
           </Typography>
           <Typography sx={{ mb: { xs: 4, lg: 6 } }}>
-            <Trans>Be mindful of the network congestion and gas prices.</Trans>
+            Be mindful of the network congestion and gas prices.
           </Typography>
         </Box>
       </Paper>

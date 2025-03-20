@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { valueToBigNumber } from '@aave/math-utils';
 import { ArrowNarrowRightIcon } from '@heroicons/react/solid';
 import { Box, Skeleton, Stack, SvgIcon, Typography } from '@mui/material';
@@ -79,7 +78,7 @@ export const DebtSwitchModalDetails = ({
 
   return (
     <>
-      <Row caption={<Trans>Borrow apy</Trans>} captionVariant="description" mb={4}>
+      <Row caption={'Borrow apy'} captionVariant="description" mb={4}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           {loading ? (
             <Skeleton variant="rectangular" height={20} width={100} sx={{ borderRadius: '4px' }} />
@@ -96,12 +95,12 @@ export const DebtSwitchModalDetails = ({
         <Row
           caption={
             <Stack direction="row">
-              <Trans>APY type</Trans>
+              APY type
               <TextWithTooltip>
-                <Trans>
+                <>
                   You can only switch to tokens with variable APY types. After this transaction, you
                   may change the variable rate to a stable one if available.
-                </Trans>
+                </>
               </TextWithTooltip>
             </Stack>
           }
@@ -126,21 +125,17 @@ export const DebtSwitchModalDetails = ({
             ) : (
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 {switchSource.reserve.symbol === 'GHO' ? (
-                  <FixedAPYTooltip text={<Trans>Fixed</Trans>} typography="secondary14" />
+                  <FixedAPYTooltip text={'Fixed'} typography="secondary14" />
                 ) : (
-                  <Typography variant="secondary14">
-                    <Trans>Stable</Trans>
-                  </Typography>
+                  <Typography variant="secondary14">Stable</Typography>
                 )}
                 <SvgIcon color="primary" sx={{ fontSize: '14px', mx: 1 }}>
                   <ArrowNarrowRightIcon />
                 </SvgIcon>
                 {switchTarget.reserve.symbol === 'GHO' ? (
-                  <FixedAPYTooltip text={<Trans>Fixed</Trans>} typography="secondary14" />
+                  <FixedAPYTooltip text={'Fixed'} typography="secondary14" />
                 ) : (
-                  <Typography variant="secondary14">
-                    <Trans>Variable</Trans>
-                  </Typography>
+                  <Typography variant="secondary14">Variable</Typography>
                 )}
               </Box>
             )}
@@ -156,7 +151,7 @@ export const DebtSwitchModalDetails = ({
       />
 
       <Row
-        caption={<Trans>Borrow balance after switch</Trans>}
+        caption={'Borrow balance after switch'}
         captionVariant="description"
         mb={4}
         align="flex-start"

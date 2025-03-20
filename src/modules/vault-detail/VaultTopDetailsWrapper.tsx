@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import { Box, Button, SvgIcon, Tab, Tabs, useMediaQuery, useTheme } from '@mui/material';
 import { useRouter } from 'next/router';
@@ -48,7 +47,7 @@ export const VaultTopDetailsWrapper = () => {
               }}
               sx={{ mr: 3, mb: downToSM ? '24px' : '0' }}
             >
-              <Trans>Go Back</Trans>
+              Go Back
             </Button>
           </Box>
         </Box>

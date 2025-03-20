@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, Typography } from '@mui/material';
 import { StyledTxModalToggleButton } from 'src/components/StyledToggleButton';
 import { StyledTxModalToggleGroup } from 'src/components/StyledToggleButtonGroup';
@@ -24,7 +23,7 @@ export function RepayTypeSelector({
   return (
     <Box sx={{ mb: 6 }}>
       <Typography mb={1} color="text.secondary">
-        <Trans>Repay with</Trans>
+        Repay with
       </Typography>
 
       <StyledTxModalToggleGroup
@@ -39,7 +38,7 @@ export function RepayTypeSelector({
           onClick={() => trackEvent(REPAY_MODAL.SWITCH_REPAY_TYPE, { repayType: 'Wallet Balance' })}
         >
           <Typography variant="buttonM">
-            <Trans>Wallet balance</Trans>
+            Wallet balance
           </Typography>
         </StyledTxModalToggleButton>
 
@@ -49,7 +48,7 @@ export function RepayTypeSelector({
           onClick={() => trackEvent(REPAY_MODAL.SWITCH_REPAY_TYPE, { repayType: 'Collateral' })}
         >
           <Typography variant="buttonM">
-            <Trans>Collateral</Trans>
+            Collateral
           </Typography>
         </StyledTxModalToggleButton>
       </StyledTxModalToggleGroup>

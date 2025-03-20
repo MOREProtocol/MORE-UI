@@ -1,5 +1,4 @@
 import { ProtocolAction } from '@aave/contract-helpers';
-import { Trans } from '@lingui/react/macro';
 import { BoxProps } from '@mui/material';
 import { useTransactionHandler } from 'src/helpers/useTransactionHandler';
 import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
@@ -68,8 +67,8 @@ export const WithdrawActions = ({
       amount={amountToWithdraw}
       isWrongNetwork={isWrongNetwork}
       requiresAmount
-      actionInProgressText={<Trans>Withdrawing {symbol}</Trans>}
-      actionText={<Trans>Withdraw {symbol}</Trans>}
+      actionInProgressText={`Withdrawing ${symbol}`}
+      actionText={`Withdraw ${symbol}`}
       handleAction={action}
       handleAddToBatch={handleAddToBatch}
       handleApproval={() => approval([{ amount: amountToWithdraw, underlyingAsset: poolAddress }])}

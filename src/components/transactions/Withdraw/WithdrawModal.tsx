@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import React, { useState } from 'react';
 import { UserAuthenticated } from 'src/components/UserAuthenticated';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
@@ -36,7 +35,7 @@ export const WithdrawModal = () => {
   return (
     <BasicModal open={type === ModalType.Withdraw} setOpen={handleClose}>
       <ModalWrapper
-        title={<Trans>Withdraw</Trans>}
+        title={<>{'Withdraw'}</>}
         underlyingAsset={args.underlyingAsset}
         keepWrappedSymbol={!withdrawUnWrapped}
       >

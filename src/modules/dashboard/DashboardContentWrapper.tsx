@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ChainId } from '@aave/contract-helpers';
 import { Box, Button, useMediaQuery, useTheme } from '@mui/material';
 import { useRouter } from 'next/router';
@@ -64,7 +63,7 @@ export const DashboardContentWrapper = ({ isBorrow }: DashboardContentWrapperPro
                 variant="surface"
                 size="small"
               >
-                <Trans>View Transactions</Trans>
+                View Transactions
               </Button>
             </Box>
           )}
@@ -100,7 +99,7 @@ export const DashboardContentWrapper = ({ isBorrow }: DashboardContentWrapperPro
                 variant="surface"
                 size="small"
               >
-                <Trans>View Transactions</Trans>
+                View Transactions
               </Button>
             </Box>
           )}

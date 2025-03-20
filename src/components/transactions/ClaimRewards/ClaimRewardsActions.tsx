@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ProtocolAction } from '@aave/contract-helpers';
 import { Reward } from 'src/helpers/types';
 import { useTransactionHandler } from 'src/helpers/useTransactionHandler';
@@ -42,14 +41,8 @@ export const ClaimRewardsActions = ({
       preparingTransactions={loadingTxns}
       mainTxState={mainTxState}
       handleAction={action}
-      actionText={
-        selectedReward.symbol === 'all' ? (
-          <Trans>Claim all</Trans>
-        ) : (
-          <Trans>Claim {selectedReward.symbol}</Trans>
-        )
-      }
-      actionInProgressText={<Trans>Claiming</Trans>}
+      actionText={selectedReward.symbol === 'all' ? 'Claim all' : `Claim ${selectedReward.symbol}`}
+      actionInProgressText={'Claiming'}
       isWrongNetwork={isWrongNetwork}
     />
   );

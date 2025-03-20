@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import StyledToggleButton from 'src/components/StyledToggleButton';
@@ -8,8 +7,8 @@ import { useRootStore } from 'src/store/root';
 
 import { ConnectWalletPaper } from '../src/components/ConnectWalletPaper';
 import { ContentContainer } from '../src/components/ContentContainer';
-import { MainLayout } from '../src/layouts/MainLayout';
 import { useModalContext } from '../src/hooks/useModal';
+import { MainLayout } from '../src/layouts/MainLayout';
 import { useWeb3Context } from '../src/libs/hooks/useWeb3Context';
 import { DashboardContentWrapper } from '../src/modules/dashboard/DashboardContentWrapper';
 import { DashboardTopPanel } from '../src/modules/dashboard/DashboardTopPanel';
@@ -55,14 +54,10 @@ export default function Home() {
               sx={{ width: { xs: '100%', xsm: '359px' }, height: '44px' }}
             >
               <StyledToggleButton value="supply" disabled={mode === 'supply'}>
-                <Typography variant="subheader1">
-                  <Trans>Supply</Trans>
-                </Typography>
+                <Typography variant="subheader1">Supply</Typography>
               </StyledToggleButton>
               <StyledToggleButton value="borrow" disabled={mode === 'borrow'}>
-                <Typography variant="subheader1">
-                  <Trans>Borrow</Trans>
-                </Typography>
+                <Typography variant="subheader1">Borrow</Typography>
               </StyledToggleButton>
             </StyledToggleButtonGroup>
           </Box>

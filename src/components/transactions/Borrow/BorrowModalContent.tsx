@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { API_ETH_MOCK_ADDRESS, InterestRate } from '@aave/contract-helpers';
 import {
   calculateHealthFactorFromBalancesBigUnits,
@@ -62,11 +61,7 @@ const BorrowModeSwitch = ({
   return (
     <Row
       caption={
-        <APYTypeTooltip
-          text={<Trans>Borrow APY rate</Trans>}
-          key="APY type_modal"
-          variant="description"
-        />
+        <APYTypeTooltip text={'Borrow APY rate'} key="APY type_modal" variant="description" />
       }
       captionVariant="description"
       mb={5}
@@ -86,7 +81,7 @@ const BorrowModeSwitch = ({
           disabled={interestRateMode === InterestRate.Variable}
         >
           <Typography variant="buttonM" sx={{ mr: 1 }}>
-            <Trans>Variable</Trans>
+            Variable
           </Typography>
           <FormattedNumber value={variableRate} percent variant="secondary14" />
         </StyledTxModalToggleButton>
@@ -95,7 +90,7 @@ const BorrowModeSwitch = ({
           disabled={interestRateMode === InterestRate.Stable}
         >
           <Typography variant="buttonM" sx={{ mr: 1 }}>
-            <Trans>Stable</Trans>
+            Stable
           </Typography>
           <FormattedNumber value={stableRate} percent variant="secondary14" />
         </StyledTxModalToggleButton>
@@ -182,26 +177,19 @@ export const BorrowModalContent = ({
   const handleBlocked = () => {
     switch (blockingError) {
       case ErrorType.BORROWING_NOT_AVAILABLE:
-        return <Trans>Borrowing is currently unavailable for {poolReserve.symbol}.</Trans>;
+        return `Borrowing is currently unavailable for ${poolReserve.symbol}.`;
       case ErrorType.NOT_ENOUGH_BORROWED:
         return (
-          <Trans>
-            You can borrow this asset with a stable rate only if you borrow more than the amount you
-            are supplying as collateral.
-          </Trans>
-        );
-      case ErrorType.NOT_ENOUGH_LIQUIDITY:
-        return (
           <>
-            <Trans>
-              There are not enough funds in the
-              {poolReserve.symbol}
-              reserve to borrow
-            </Trans>
+            {
+              'You can borrow this asset with a stable rate only if you borrow more than the amount you are supplying as collateral. '
+            }
           </>
         );
+      case ErrorType.NOT_ENOUGH_LIQUIDITY:
+        return <>{`There are not enough funds in the ${poolReserve.symbol} reserve to borrow`}</>;
       case ErrorType.STABLE_RATE_NOT_ENABLED:
-        return <Trans>The Stable Rate is not enabled for this currency</Trans>;
+        return `The Stable Rate is not enabled for this currency`;
       default:
         return null;
     }
@@ -222,7 +210,7 @@ export const BorrowModalContent = ({
   if (borrowTxState.success)
     return (
       <TxSuccessView
-        action={<Trans>Borrowed</Trans>}
+        action={'Borrowed'}
         amount={amount}
         symbol={iconSymbol}
         addToken={borrowUnWrapped && poolReserve.isWrappedBaseAsset ? undefined : addToken}
@@ -261,7 +249,7 @@ export const BorrowModalContent = ({
         capType={CapType.borrowCap}
         isMaxSelected={isMaxSelected}
         maxValue={maxAmountToBorrow}
-        balanceText={<Trans>Available</Trans>}
+        balanceText={'Available'}
         event={{
           eventName: GENERAL.MAX_INPUT_SELECTION,
           eventParams: {

@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ReserveIncentiveResponse } from '@aave/math-utils/dist/esm/formatters/incentive/calculate-reserve-incentives';
 import { Box, Typography } from '@mui/material';
 
@@ -26,14 +25,14 @@ export const IncentivesTooltipContent = ({
           <>
             <FormattedNumber value={+incentiveAPR} percent variant={typographyVariant} />
             <Typography variant={typographyVariant} sx={{ ml: 1 }}>
-              <Trans>APR</Trans>
+              APR
             </Typography>
           </>
         ) : (
           <>
             <Typography variant={typographyVariant}>∞ %</Typography>
             <Typography variant={typographyVariant} sx={{ ml: 1 }}>
-              <Trans>APR</Trans>
+              APR
             </Typography>
           </>
         )}
@@ -51,7 +50,7 @@ export const IncentivesTooltipContent = ({
       }}
     >
       <Typography variant="caption" color="text.secondary" mb={3}>
-        <Trans>Participating in this {symbol} reserve gives annualized rewards.</Trans>
+        Participating in this {symbol} reserve gives annualized rewards.
       </Typography>
 
       <Box sx={{ width: '100%' }}>
@@ -79,7 +78,7 @@ export const IncentivesTooltipContent = ({
 
         {incentives.length > 1 && (
           <Box sx={(theme) => ({ pt: 1, mt: 1, border: `1px solid ${theme.palette.divider}` })}>
-            <Row caption={<Trans>Net APR</Trans>} height={32}>
+            <Row caption="Net APR" height={32}>
               <Number incentiveAPR={incentivesNetAPR} />
             </Row>
           </Box>

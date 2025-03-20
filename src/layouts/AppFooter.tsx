@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import GitHub from '@mui/icons-material/GitHub';
 import X from '@mui/icons-material/X';
 import { Box, styled, SvgIcon, Typography } from '@mui/material';
@@ -49,32 +48,32 @@ export function AppFooter() {
   const FOOTER_LINKS = [
     {
       href: '#',
-      label: <Trans>Terms</Trans>,
+      label: 'Terms',
       key: 'Terms',
     },
     {
       href: '#',
-      label: <Trans>Privacy</Trans>,
+      label: 'Privacy',
       key: 'Privacy',
     },
     {
       href: 'https://docs.more.markets/',
-      label: <Trans>Docs</Trans>,
+      label: 'Docs',
       key: 'Docs',
     },
     {
       href: 'https://discord.gg/XnU7hHQgYF',
-      label: <Trans>Send feedback</Trans>,
+      label: 'Send feedback',
       key: 'Send feedback',
     },
     // {
     //   href: 'https://docs.aave.com/faq/',
-    //   label: <Trans>FAQS</Trans>,
+    //   label: FAQS,
     //   key: 'FAQS',
     // },
     // {
     //   href: 'https://discord.com/invite/aave',
-    //   label: <Trans>Send feedback</Trans>,
+    //   label: Send feedback,
     //   key: 'Send feedback',
     //   onClick: (event: React.MouseEvent) => {
     //     event.preventDefault();
@@ -83,7 +82,7 @@ export function AppFooter() {
     // },
     {
       href: '/',
-      label: <Trans>Manage analytics</Trans>,
+      label: 'Manage analytics',
       key: 'Manage analytics',
       onClick: (event: React.MouseEvent) => {
         event.preventDefault();

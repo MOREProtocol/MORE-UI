@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import React from 'react';
 import { UserAuthenticated } from 'src/components/UserAuthenticated';
 import { ModalContextType, ModalType, useModalContext } from 'src/hooks/useModal';
@@ -14,11 +13,7 @@ export const SupplyModal = () => {
 
   return (
     <BasicModal open={type === ModalType.Supply} setOpen={close}>
-      <ModalWrapper
-        action="supply"
-        title={<Trans>Supply</Trans>}
-        underlyingAsset={args.underlyingAsset}
-      >
+      <ModalWrapper action="supply" title={<>{'Supply'}</>} underlyingAsset={args.underlyingAsset}>
         {(params) => (
           <UserAuthenticated>
             {(user) => <SupplyModalContentWrapper {...params} user={user} />}

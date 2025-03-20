@@ -6,7 +6,6 @@ import {
   MAX_UINT_AMOUNT,
   ProtocolAction,
 } from '@aave/contract-helpers';
-import { Trans } from '@lingui/react/macro';
 import { BoxProps } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { parseUnits } from 'ethers/lib/utils';
@@ -233,8 +232,8 @@ export const BorrowActions = React.memo(
         isWrongNetwork={isWrongNetwork}
         handleAction={action}
         handleAddToBatch={handleAddToBatch}
-        actionText={<Trans>Borrow {symbol}</Trans>}
-        actionInProgressText={<Trans>Borrowing {symbol}</Trans>}
+        actionText={`Borrow ${symbol}`}
+        actionInProgressText={`Borrowing ${symbol}`}
         handleApproval={() => approval()}
         requiresApproval={requiresApproval}
         preparingTransactions={loadingTxns}

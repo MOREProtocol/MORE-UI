@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { DuplicateIcon, RefreshIcon } from '@heroicons/react/outline';
 import { Box, Button, Link, Paper, SvgIcon, Typography, useTheme } from '@mui/material';
 import { useEffect } from 'react';
@@ -37,13 +36,11 @@ export default function Aave500Page() {
           }}
         >
           <Typography variant="display1" sx={{ mt: 8, mb: 3 }}>
-            <Trans>Something went wrong</Trans>
+            Something went wrong
           </Typography>
           <Typography sx={{ mt: 2, mb: 5, maxWidth: 480 }}>
-            <Trans>
-              Sorry, an unexpected error happened. In the meantime you may try reloading the page,
-              or come back later.
-            </Trans>
+            Sorry, an unexpected error happened. In the meantime you may try reloading the page, or
+            come back later.
           </Typography>
           <Button
             variant="outlined"
@@ -56,7 +53,7 @@ export default function Aave500Page() {
             onClick={() => window.location.reload()}
             sx={{ mb: 10 }}
           >
-            <Trans>Reload the page</Trans>
+            Reload the page
           </Button>
           <Box
             display="flex"
@@ -66,12 +63,10 @@ export default function Aave500Page() {
             mt={10}
           >
             <Typography sx={{ mb: 4 }}>
-              <Trans>
-                If the error continues to happen,
-                <br /> you may report it to this
-              </Trans>{' '}
+              If the error continues to happen,
+              <br /> you may report it to this{' '}
               <Link href="https://discord.com/invite/aave" color="inherit" target="_blank">
-                <Trans>Discord channel</Trans>
+                Discord channel
               </Link>
               .
             </Typography>
@@ -84,7 +79,7 @@ export default function Aave500Page() {
               }
               onClick={handleCopyError}
             >
-              <Trans>Copy error message</Trans>
+              Copy error message
             </Button>
           </Box>
         </Paper>

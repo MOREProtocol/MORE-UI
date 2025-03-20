@@ -1,6 +1,5 @@
 import { ChainId } from '@aave/contract-helpers';
 import { normalize, UserIncentiveData, valueToBigNumber } from '@aave/math-utils';
-import { Trans } from '@lingui/react/macro';
 import { Box, Button, Typography, useMediaQuery, useTheme } from '@mui/material';
 import Link from 'next/link';
 import * as React from 'react';
@@ -104,9 +103,7 @@ export const DashboardTopPanel = () => {
                 width: '100%',
               }}
             >
-              <Typography variant="buttonM">
-                <Trans>Migrate to {market.marketTitle} v3 Market</Trans>
-              </Typography>
+              <Typography variant="buttonM">Migrate to {market.marketTitle} v3 Market</Typography>
             </Button>
           </Link>
         </Box>
@@ -115,7 +112,7 @@ export const DashboardTopPanel = () => {
         titleComponent={
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <PageTitle
-              pageTitle={<Trans>Dashboard</Trans>}
+              pageTitle={'Dashboard'}
               withMarketSwitcher={true}
               bridge={currentNetworkConfig.bridge}
             />
@@ -124,7 +121,7 @@ export const DashboardTopPanel = () => {
                 <Link href={ROUTES.marketMigrationTool(currentMarket)}>
                   <Button variant="gradient" sx={{ height: '20px' }}>
                     <Typography variant="buttonS" data-cy={`migration-button`}>
-                      <Trans>Migrate to v3</Trans>
+                      Migrate to v3
                     </Typography>
                   </Button>
                 </Link>
@@ -133,7 +130,7 @@ export const DashboardTopPanel = () => {
           </Box>
         }
       >
-        <TopInfoPanelItem title={<Trans>Net worth</Trans>} loading={loading} hideIcon>
+        <TopInfoPanelItem title={'Net worth'} loading={loading} hideIcon>
           {currentAccount ? (
             <FormattedNumber
               value={Number(user?.netWorthUSD || 0)}
@@ -152,7 +149,7 @@ export const DashboardTopPanel = () => {
         <TopInfoPanelItem
           title={
             <div style={{ display: 'flex' }}>
-              <Trans>Net APY</Trans>
+              Net APY
               <NetAPYTooltip
                 event={{
                   eventName: GENERAL.TOOL_TIP,
@@ -180,11 +177,7 @@ export const DashboardTopPanel = () => {
 
         {currentAccount && user?.healthFactor !== '-1' && (
           <TopInfoPanelItem
-            title={
-              <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
-                <Trans>Health factor</Trans>
-              </Box>
-            }
+            title={<Box sx={{ display: 'inline-flex', alignItems: 'center' }}>Health factor</Box>}
             loading={loading}
             hideIcon
           >
@@ -209,7 +202,7 @@ export const DashboardTopPanel = () => {
         )}
 
         {currentAccount && claimableRewardsUsd > 0 && (
-          <TopInfoPanelItem title={<Trans>Available rewards</Trans>} loading={loading} hideIcon>
+          <TopInfoPanelItem title={'Available rewards'} loading={loading} hideIcon>
             <Box
               sx={{
                 display: 'flex',
@@ -237,7 +230,7 @@ export const DashboardTopPanel = () => {
                 sx={{ minWidth: 'unset', ml: { xs: 0, xsm: 2 } }}
                 data-cy={'Dashboard_Claim_Button'}
               >
-                <Trans>Claim</Trans>
+                Claim
               </Button>
             </Box>
           </TopInfoPanelItem>

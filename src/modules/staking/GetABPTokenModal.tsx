@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ExternalLinkIcon } from '@heroicons/react/outline';
 import { Box, Button, SvgIcon, Typography } from '@mui/material';
 import { BasicModal } from 'src/components/primitives/BasicModal';
@@ -18,14 +17,14 @@ export const GetABPTokenModal = ({ open, close }: GetABPTokenModalProps) => {
     <>
       <BasicModal open={open} setOpen={close}>
         <Typography variant="h2">
-          <Trans>Get ABP v2 Token</Trans>
+          Get ABP v2 Token
         </Typography>
         <Typography sx={{ my: 6 }}>
-          <Trans>
+          
             The Aave Balancer Pool Token (ABPT) is a liquidity pool token. You can receive ABPT by
             depositing a combination of AAVE + wstETH in the Balancer liquidity pool. You can then
             stake your BPT in the Safety Module to secure the protocol and earn Safety Incentives.
-          </Trans>
+          
         </Typography>
         <Button
           variant="outlined"
@@ -48,7 +47,7 @@ export const GetABPTokenModal = ({ open, close }: GetABPTokenModalProps) => {
         >
           <Box sx={{ display: 'flex', flexGrow: 1 }}>
             <TokenIcon symbol="BAL" sx={{ mr: 2 }} />
-            <Trans>Go to Balancer Pool</Trans>
+            Go to Balancer Pool
           </Box>
         </Button>
       </BasicModal>

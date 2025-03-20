@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { useMediaQuery, useTheme } from '@mui/material';
 import { marketContainerProps } from 'pages/markets.page';
 import * as React from 'react';
@@ -34,10 +33,10 @@ export const VaultsTopPanel = () => {
   return (
     <TopInfoPanel
       containerProps={marketContainerProps}
-      pageTitle={<Trans>Vaults</Trans>}
+      pageTitle={'Vaults'}
       // withMarketSwitcher
     >
-      <TopInfoPanelItem hideIcon title={<Trans>TVL</Trans>} loading={loading}>
+      <TopInfoPanelItem hideIcon title={'TVL'} loading={loading}>
         <FormattedNumber
           value={'123000'} // TODO: get from vaults
           symbol="USD"

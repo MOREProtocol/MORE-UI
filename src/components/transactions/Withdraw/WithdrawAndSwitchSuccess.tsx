@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ArrowRightIcon } from '@heroicons/react/outline';
 import { Box, SvgIcon, Typography } from '@mui/material';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
@@ -34,7 +33,7 @@ export const WithdrawAndSwitchTxSuccessView = ({
         }}
       >
         <Typography>
-          <Trans>You&apos;ve successfully withdrew & switched tokens.</Trans>
+          You&apos;ve successfully withdrew & switched tokens.
         </Typography>
         <Box
           sx={{

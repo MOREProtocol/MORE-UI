@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import React from 'react';
 import { ModalContextType, ModalType, useModalContext } from 'src/hooks/useModal';
 
@@ -13,7 +12,7 @@ export const FaucetModal = () => {
 
   return (
     <BasicModal open={type === ModalType.Faucet} setOpen={close}>
-      <ModalWrapper title={<Trans>Faucet</Trans>} underlyingAsset={args.underlyingAsset}>
+      <ModalWrapper title={<>{'Faucet'}</>} underlyingAsset={args.underlyingAsset}>
         {(params) => <FaucetModalContent {...params} />}
       </ModalWrapper>
     </BasicModal>

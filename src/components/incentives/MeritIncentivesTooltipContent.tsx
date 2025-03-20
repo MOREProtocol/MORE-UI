@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ReserveIncentiveResponse } from '@aave/math-utils/dist/esm/formatters/incentive/calculate-reserve-incentives';
 import { Box, Typography } from '@mui/material';
 
@@ -23,14 +22,13 @@ export const MeritIncentivesTooltipContent = ({
       }}
     >
       <Typography variant="caption" color="text.primary" mb={3}>
-        <Trans>Eligible for the merit program.</Trans>
+        Eligible for the merit program.
       </Typography>
 
       <Typography variant="caption" color="text.secondary" mb={3}>
-        <Trans>
-          This is a program initiated and implemented by the decentralised Aave community. Aave Labs
-          does not guarantee the program and accepts no liability.
-        </Trans>{' '}
+        {
+          'This is a program initiated and implemented by the decentralised Aave community. Aave Labs does not guarantee the program and accepts no liability. '
+        }
         <Link
           href="https://governance.aave.com/t/arfc-merit-a-new-aave-alignment-user-reward-system/16646"
           sx={{ textDecoration: 'underline' }}
@@ -61,7 +59,7 @@ export const MeritIncentivesTooltipContent = ({
           <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
             <FormattedNumber value={+incentiveAPR} percent variant={typographyVariant} />
             <Typography variant={typographyVariant} sx={{ ml: 1 }}>
-              <Trans>APR</Trans>
+              APR
             </Typography>
           </Box>
         </Row>

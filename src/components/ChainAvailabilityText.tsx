@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ChainId } from '@aave/contract-helpers';
 import { Box, BoxProps, Typography } from '@mui/material';
 import { BaseNetworkConfig, networkConfigs } from 'src/ui-config/networksConfig';
@@ -26,7 +25,7 @@ export const ChainAvailabilityText: React.FC<ChainAvailabilityTextProps> = ({
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', ...wrapperSx }}>
       <Typography variant="subheader2" sx={{ mr: 2, color: '#C0CBF6' }}>
-        <Trans>Available on</Trans>
+        Available on
       </Typography>
       <Box
         sx={{

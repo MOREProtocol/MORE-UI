@@ -1,5 +1,4 @@
 import { XCircleIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/react/macro';
 import CheckIcon from '@mui/icons-material/Check';
 import SortIcon from '@mui/icons-material/Sort';
 import {
@@ -32,19 +31,19 @@ interface FilterLabelProps {
 const FilterLabel: React.FC<FilterLabelProps> = ({ filter }) => {
   switch (filter) {
     case FilterOptions.SUPPLY:
-      return <Trans>Supply</Trans>;
+      return 'Supply';
     case FilterOptions.BORROW:
-      return <Trans>Borrow</Trans>;
+      return 'Borrow';
     case FilterOptions.WITHDRAW:
-      return <Trans>Withdraw</Trans>;
+      return 'Withdraw';
     case FilterOptions.REPAY:
-      return <Trans>Repay</Trans>;
+      return 'Repay';
     case FilterOptions.RATECHANGE:
-      return <Trans>Rate change</Trans>;
+      return 'Rate change';
     case FilterOptions.COLLATERALCHANGE:
-      return <Trans>Collateral change</Trans>;
+      return 'Collateral change';
     case FilterOptions.LIQUIDATION:
-      return <Trans>Liqudation</Trans>;
+      return 'Liquidation';
   }
 };
 
@@ -94,7 +93,7 @@ export const HistoryFilterMenu: React.FC<HistoryFilterMenuProps> = ({
 
   const FilterButtonLabel = () => {
     if (allSelected) {
-      return <Trans>All transactions</Trans>;
+      return 'All transactions';
     } else {
       const displayLimit = 2;
       const hiddenCount = currentFilter.length - displayLimit;
@@ -166,7 +165,7 @@ export const HistoryFilterMenu: React.FC<HistoryFilterMenuProps> = ({
           <DarkTooltip
             title={
               <Typography variant="caption" color="common.white">
-                <Trans>Reset</Trans>
+                Reset
               </Typography>
             }
           >
@@ -209,7 +208,7 @@ export const HistoryFilterMenu: React.FC<HistoryFilterMenuProps> = ({
           }}
         >
           <Typography variant="subheader1" color="text.primary">
-            <Trans>All transactions</Trans>
+            All transactions
           </Typography>
           {allSelected && (
             <SvgIcon sx={{ fontSize: '16px' }}>

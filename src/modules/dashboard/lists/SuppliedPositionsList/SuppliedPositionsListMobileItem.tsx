@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, Button } from '@mui/material';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useAssetCaps } from 'src/hooks/useAssetCaps';
@@ -61,18 +60,13 @@ export const SuppliedPositionsListMobileItem = ({
       showDebtCeilingTooltips
     >
       <ListValueRow
-        title={<Trans>Supply balance</Trans>}
+        title={'Supply balance'}
         value={Number(underlyingBalance)}
         subValue={Number(underlyingBalanceUSD)}
         disabled={Number(underlyingBalance) === 0}
       />
 
-      <Row
-        caption={<Trans>Supply APY</Trans>}
-        align="flex-start"
-        captionVariant="description"
-        mb={2}
-      >
+      <Row caption={'Supply APY'} align="flex-start" captionVariant="description" mb={2}>
         <IncentivesCard
           value={Number(supplyAPY)}
           incentives={aIncentivesData}
@@ -82,7 +76,7 @@ export const SuppliedPositionsListMobileItem = ({
       </Row>
 
       <Row
-        caption={<Trans>Used as collateral</Trans>}
+        caption={'Used as collateral'}
         align={isIsolated ? 'flex-start' : 'center'}
         captionVariant="description"
         mb={2}
@@ -112,7 +106,7 @@ export const SuppliedPositionsListMobileItem = ({
             onClick={() => openSwap(underlyingAsset)}
             fullWidth
           >
-            <Trans>Switch</Trans>
+            Switch
           </Button>
         ) : (
           <Button
@@ -121,7 +115,7 @@ export const SuppliedPositionsListMobileItem = ({
             onClick={() => openSupply(underlyingAsset, currentMarket, reserve.name, 'dashboard')}
             fullWidth
           >
-            <Trans>Supply</Trans>
+            Supply
           </Button>
         )}
         <Button
@@ -131,7 +125,7 @@ export const SuppliedPositionsListMobileItem = ({
           sx={{ ml: 1.5 }}
           fullWidth
         >
-          <Trans>Withdraw</Trans>
+          Withdraw
         </Button>
       </Box>
     </ListMobileItemWrapper>

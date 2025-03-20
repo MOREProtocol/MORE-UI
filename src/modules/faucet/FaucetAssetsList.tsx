@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { valueToBigNumber } from '@aave/math-utils';
 import { ExternalLinkIcon } from '@heroicons/react/solid';
 import { Box, Button, SvgIcon, Typography, useMediaQuery, useTheme } from '@mui/material';
@@ -50,7 +49,7 @@ export default function FaucetAssetsList() {
     return (
       <ConnectWalletPaper
         loading={web3Loading}
-        description={<Trans>Please connect your wallet to get free testnet assets.</Trans>}
+        description="Please connect your wallet to get free testnet assets."
       />
     );
   }
@@ -59,22 +58,18 @@ export default function FaucetAssetsList() {
     <ListWrapper
       titleComponent={
         <Typography component="div" variant="h2" sx={{ mr: 4 }}>
-          <Trans>Test Assets</Trans>
+          Test Assets
         </Typography>
       }
     >
       <ListHeaderWrapper px={downToXSM ? 4 : 6}>
         <ListColumn isRow maxWidth={280}>
-          <ListHeaderTitle>
-            <Trans>Asset</Trans>
-          </ListHeaderTitle>
+          <ListHeaderTitle>Asset</ListHeaderTitle>
         </ListColumn>
 
         {!downToXSM && (
           <ListColumn>
-            <ListHeaderTitle>
-              <Trans>Wallet balance</Trans>
-            </ListHeaderTitle>
+            <ListHeaderTitle>Wallet balance</ListHeaderTitle>
           </ListColumn>
         )}
 
@@ -144,11 +139,11 @@ export default function FaucetAssetsList() {
                     </SvgIcon>
                   }
                 >
-                  <Trans>Faucet</Trans>
+                  Faucet
                 </Button>
               ) : (
                 <Button variant="contained" onClick={() => openFaucet(reserve.underlyingAsset)}>
-                  <Trans>Faucet</Trans>
+                  Faucet
                 </Button>
               )}
             </ListColumn>

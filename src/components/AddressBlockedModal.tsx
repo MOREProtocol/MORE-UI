@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ExclamationCircleIcon, LogoutIcon } from '@heroicons/react/outline';
 import { Box, Button, SvgIcon, Typography } from '@mui/material';
 
@@ -28,17 +27,17 @@ export const AddressBlockedModal = ({ address, onDisconnectWallet }: AddressBloc
           <ExclamationCircleIcon />
         </SvgIcon>
         <Typography variant="h2">
-          <Trans>Blocked Address</Trans>
+          Blocked Address
         </Typography>
         <Typography variant="helperText" sx={{ my: 4 }}>
           {address}
         </Typography>
         <Typography variant="description" sx={{ textAlign: 'center', mb: 4 }}>
-          <Trans>
+          
             This address is blocked on app.more.markets because it is associated with one or more
-          </Trans>{' '}
+          {' '}
           <Link href="https://docs.more.markets/faq/#address-screening" underline="always">
-            <Trans>blocked activities</Trans>
+            blocked activities
           </Link>
           {'.'}
         </Typography>
@@ -46,7 +45,7 @@ export const AddressBlockedModal = ({ address, onDisconnectWallet }: AddressBloc
           <SvgIcon fontSize="small" sx={{ mx: 1 }}>
             <LogoutIcon />
           </SvgIcon>
-          <Trans>Disconnect Wallet</Trans>
+          Disconnect Wallet
         </Button>
       </Box>
     </BasicModal>

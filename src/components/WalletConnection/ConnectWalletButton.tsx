@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Button } from '@mui/material';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useRootStore } from 'src/store/root';
@@ -21,7 +20,7 @@ export const ConnectWalletButton: React.FC<ConnectWalletProps> = ({ funnel }) =>
           openConnectModal();
         }}
       >
-        <Trans>Connect wallet</Trans>
+        Connect wallet
       </Button>
     </>
   );

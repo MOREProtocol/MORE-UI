@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { Box, Button, Link, Typography } from '@mui/material';
 import { useRouter } from 'next/router';
 import { useMemo } from 'react';
@@ -161,7 +160,7 @@ export const MarketAssetsListItem = ({
                 openSupply(reserve.underlyingAsset, currentMarket, reserve.name, 'dashboard');
               }}
             >
-              <Trans>Supply</Trans>
+              Supply
             </Button>
             <Button
               disabled={disableBorrow}
@@ -171,7 +170,7 @@ export const MarketAssetsListItem = ({
                 openBorrow(reserve.underlyingAsset, currentMarket, reserve.name, 'dashboard');
               }}
             >
-              <Trans>Borrow</Trans>
+              Borrow
             </Button>
           </Box>
         ) : (
@@ -189,7 +188,7 @@ export const MarketAssetsListItem = ({
               setCurrentMarket(reserve.market.market);
             }}
           >
-            <Trans>Details</Trans>
+            Details
           </Button>
         )}
       </ListColumn>

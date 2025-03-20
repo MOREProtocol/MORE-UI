@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { useMediaQuery } from '@mui/material';
 import { useMemo, useState } from 'react';
 import { VariableAPYTooltip } from 'src/components/infoTooltips/VariableAPYTooltip';
@@ -16,25 +15,25 @@ import { MarketAssetsListMobileItemLoader } from './MarketAssetsListMobileItemLo
 
 const listHeaders = [
   {
-    title: <Trans>Asset</Trans>,
+    title: 'Asset',
     sortKey: 'symbol',
   },
   {
-    title: <Trans>Total supplied</Trans>,
+    title: 'Total supplied',
     sortKey: 'totalLiquidityUSD',
   },
   {
-    title: <Trans>Supply APY</Trans>,
+    title: 'Supply APY',
     sortKey: 'supplyAPY',
   },
   {
-    title: <Trans>Total borrowed</Trans>,
+    title: 'Total borrowed',
     sortKey: 'totalDebtUSD',
   },
   {
     title: (
       <VariableAPYTooltip
-        text={<Trans>Borrow APY, variable</Trans>}
+        text={'Borrow APY, variable'}
         key="APY_list_variable_type"
         variant="subheader2"
       />
@@ -44,7 +43,7 @@ const listHeaders = [
   // {
   //   title: (
   //     <StableAPYTooltip
-  //       text={<Trans>Borrow APY, stable</Trans>}
+  //       text={Borrow APY, stable}
   //       key="APY_list_stable_type"
   //       variant="subheader2"
   //     />
