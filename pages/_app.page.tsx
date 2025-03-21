@@ -5,7 +5,6 @@ import '/src/styles/variables.css';
 import '@rainbow-me/rainbowkit/styles.css';
 
 import { CacheProvider, EmotionCache } from '@emotion/react';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Web3ReactProvider } from '@web3-react/core';
 import { providers } from 'ethers';
@@ -76,6 +75,11 @@ const WithdrawModal = dynamic(() =>
   import('src/components/transactions/Withdraw/WithdrawModal').then(
     (module) => module.WithdrawModal
   )
+);
+
+const RainbowKitProvider = dynamic(
+  () => import('@rainbow-me/rainbowkit').then((mod) => mod.RainbowKitProvider),
+  { ssr: false }
 );
 
 // Client-side cache, shared for the whole session of the user in the browser.

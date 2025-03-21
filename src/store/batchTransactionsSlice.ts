@@ -21,6 +21,7 @@ export interface BatchTransaction {
   debtTokenAddress?: string;
   debtType?: InterestRate;
   aTokenAddress?: string;
+  status?: 'pending' | 'approved' | 'failed';
   tx?: PopulatedTransaction;
 }
 
