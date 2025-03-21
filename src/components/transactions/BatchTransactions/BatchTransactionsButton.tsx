@@ -44,11 +44,13 @@ export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps
           </Button>
         </Box>
       )}
-      <UserAuthenticated>
-        {(user) => (
-          <BatchTransactionsModal open={open} setOpen={setOpen} user={user} />
-        )}
-      </UserAuthenticated>
+      {batchTransactionGroups.length > 0 && (
+        <UserAuthenticated>
+          {(user) => (
+            <BatchTransactionsModal open={open} setOpen={setOpen} user={user} />
+          )}
+        </UserAuthenticated>
+      )}
     </>
   );
 };
