@@ -33,53 +33,52 @@ interface BatchTransactionsModalProps {
 export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModalProps) => {
   const router = useRouter();
 
-  const {
-    batchTransactions,
-    approvalTransactions,
-    removeBatchItem,
-    getBatchTx,
-    clearBatch,
-    setSigner,
-    signer,
-  } = useRootStore((state) => ({
-    batchTransactions: state.batchTransactions,
-    approvalTransactions: state.approvalTransactions,
-    getBatchTx: state.getBatchTx,
-    removeBatchItem: state.removeBatchItem,
-    clearBatch: state.clearBatch,
-    setSigner: state.setSigner,
-    signer: state.signer,
-  }));
+  const { batchTransactionGroups, removeBatchItem, getBatchTx, clearBatch, setSigner, signer } =
+    useRootStore((state) => ({
+      batchTransactionGroups: state.batchTransactionGroups,
+      getBatchTx: state.getBatchTx,
+      removeBatchItem: state.removeBatchItem,
+      clearBatch: state.clearBatch,
+      setSigner: state.setSigner,
+      signer: state.signer,
+    }));
   const { sendTx } = useWeb3Context();
   const { reserves, marketReferencePriceInUsd } = useAppDataContext();
-  console.log('batchTransactions', batchTransactions);
 
   // Calculate USD values for each transaction
   const transactionsWithUsdValues = useMemo(() => {
-    return batchTransactions
-      .map((transaction) => {
-        // Find the reserve that matches this transaction's asset
-        const matchingReserve = reserves.find(
-          (reserve) => reserve.symbol.toLowerCase() === transaction.symbol.toLowerCase()
-        );
-        let amountUSD = '0';
-        if (matchingReserve) {
-          // Calculate USD value using the reserve's price data
-          const amountInTokens = valueToBigNumber(transaction.amount);
-          amountUSD = amountInTokens
-            .multipliedBy(matchingReserve.formattedPriceInMarketReferenceCurrency)
-            .multipliedBy(marketReferencePriceInUsd)
-            .shiftedBy(-USD_DECIMALS)
-            .toString();
-        }
+    return batchTransactionGroups
+      .map((group, index) => {
+        return group
+          .filter((transaction) =>
+            ['supply', 'borrow', 'repay', 'withdraw'].includes(transaction.action)
+          )
+          .map((transaction) => {
+            // Find the reserve that matches this transaction's asset
+            const matchingReserve = reserves.find(
+              (reserve) => reserve.symbol.toLowerCase() === transaction.symbol.toLowerCase()
+            );
+            let amountUSD = '0';
+            if (matchingReserve) {
+              // Calculate USD value using the reserve's price data
+              const amountInTokens = valueToBigNumber(transaction.amount);
+              amountUSD = amountInTokens
+                .multipliedBy(matchingReserve.formattedPriceInMarketReferenceCurrency)
+                .multipliedBy(marketReferencePriceInUsd)
+                .shiftedBy(-USD_DECIMALS)
+                .toString();
+            }
 
-        return {
-          ...transaction,
-          amountUSD,
-        };
+            return {
+              ...transaction,
+              amountUSD,
+              groupIndex: index,
+            };
+          })
+          .filter((transaction) => !transaction.isHidden);
       })
-      .filter((transaction) => !transaction.isHidden);
-  }, [batchTransactions, reserves, marketReferencePriceInUsd]);
+      .flat();
+  }, [batchTransactionGroups, reserves, marketReferencePriceInUsd]);
 
   const handleClose = () => {
     setOpen(false);
@@ -94,10 +93,14 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
 
   const handleExecuteBatch = async () => {
     try {
-      console.log('batchTransactions', batchTransactions);
-      if (batchTransactions.length === 0) {
+      console.log('batchTransactionGroups', batchTransactionGroups);
+      if (batchTransactionGroups.length === 0) {
         throw new Error('No transactions in batch');
       }
+
+      const approvalTransactions = batchTransactionGroups
+        .flat()
+        .filter((transaction) => ['approve', 'delegate'].includes(transaction.action));
       console.log('approvalTransactions', approvalTransactions);
 
       // // Process each delegation sequentially
@@ -123,14 +126,12 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
 
   // Generate dynamic button text based on batch transactions
   const getButtonText = () => {
-    if (batchTransactions.length === 0) return 'Execute Batch';
+    if (batchTransactionGroups.length === 0) return 'Execute Batch';
 
     // const hasApprovals = getApprovals().length > 0;
-    const actionTypes = new Set(batchTransactions.map((tx) => tx.action));
+    const actionTypes = new Set(batchTransactionGroups.flat().map((tx) => tx.action));
 
     const actionTexts = [];
-    if (approvalTransactions.length > 0) actionTexts.push('Approve');
-
     if (actionTypes.has('supply')) actionTexts.push('Supply');
     if (actionTypes.has('borrow')) actionTexts.push('Borrow');
     if (actionTypes.has('repay')) actionTexts.push('Repay');
@@ -189,41 +190,45 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
       </Box>
 
       <Box sx={{ p: 2, flex: 1, overflow: 'auto' }}>
-        {approvalTransactions.length > 0 && (
+        {batchTransactionGroups.flat().filter((tx) => ['approve', 'delegate'].includes(tx.action))
+          .length > 0 && (
           <Box sx={{ mb: 5 }}>
             <Typography variant="h4" color="text.secondary" sx={{ mb: 1 }}>
               Approvals and delegations
             </Typography>
-            {approvalTransactions.map((approval, index) => {
-              const tokenReserve = reserves.find(
-                (reserve) =>
-                  reserve.underlyingAsset.toLowerCase() === approval.tx?.to?.toLowerCase()
-              );
-              return (
-                <Box
-                  key={`approval-${index}`}
-                  sx={{
-                    mb: 1,
-                    p: 2,
-                    borderRadius: '8px',
-                    bgcolor: 'background.surface',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box display="flex" flexDirection="row" alignItems="flex-start">
-                    <Typography variant="h3" color="text">
-                      {approval.action === 'approve' ? 'Approve ' : 'Delegate '}
-                    </Typography>
-                    <Typography variant="h3" color="text.secondary">
-                      {tokenReserve?.symbol || ''}
-                    </Typography>
+            {batchTransactionGroups
+              .flat()
+              .filter((tx) => ['approve', 'delegate'].includes(tx.action))
+              .map((approval, index) => {
+                const tokenReserve = reserves.find(
+                  (reserve) =>
+                    reserve.underlyingAsset.toLowerCase() === approval.tx?.to?.toLowerCase()
+                );
+                return (
+                  <Box
+                    key={`approval-${index}`}
+                    sx={{
+                      mb: 1,
+                      p: 2,
+                      borderRadius: '8px',
+                      bgcolor: 'background.surface',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Box display="flex" flexDirection="row" alignItems="flex-start">
+                      <Typography variant="h3" color="text">
+                        {approval.action === 'approve' ? 'Approve ' : 'Delegate '}
+                      </Typography>
+                      <Typography variant="h3" color="text.secondary">
+                        {tokenReserve?.symbol || ''}
+                      </Typography>
+                    </Box>
+                    <TokenIcon symbol={tokenReserve?.symbol || 'TOKEN'} sx={{ fontSize: '24px' }} />
                   </Box>
-                  <TokenIcon symbol={tokenReserve?.symbol || 'TOKEN'} sx={{ fontSize: '24px' }} />
-                </Box>
-              );
-            })}
+                );
+              })}
           </Box>
         )}
         {transactionsWithUsdValues.length > 0 && (
@@ -385,11 +390,11 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
 
         <Box>
           <Button
-            variant={batchTransactions.length === 0 ? 'contained' : 'gradient'}
+            variant={batchTransactionGroups.length === 0 ? 'contained' : 'gradient'}
             fullWidth
             size="large"
             onClick={handleExecuteBatch}
-            disabled={batchTransactions.length === 0}
+            disabled={batchTransactionGroups.length === 0}
             sx={{ borderRadius: '6px', py: 2 }}
           >
             {getButtonText()}
