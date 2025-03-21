@@ -25,26 +25,25 @@ export interface BatchTransaction {
 }
 
 export interface BatchTransactionsSlice {
-  batchTransactions: BatchTransaction[];
-  approvalTransactions: BatchTransaction[];
-  addToBatch: (transaction: BatchTransaction) => void;
-  removeBatchItem: (index: number) => void;
+  batchTransactionGroups: BatchTransaction[][];
+  addToBatch: (transaction: BatchTransaction[]) => void;
+  removeBatchItem: (groupIndex: number) => void;
   clearBatch: () => void;
   signer: ethers.providers.JsonRpcSigner | undefined;
   setSigner: (signer: ethers.providers.JsonRpcSigner) => void;
-  checkAndAddTokenApproval: (
+  checkAndGetTokenApproval: (
     market: CustomMarket,
     assetAddress: string,
     assetSymbol: string,
     spender: string,
     amountInWei: ethers.BigNumber,
     approvalType: 'standard' | 'delegation'
-  ) => Promise<boolean>;
+  ) => Promise<BatchTransaction | undefined>;
   addSupplyAction: (transaction: BatchTransaction) => Promise<void>;
   addWithdrawAction: (transaction: BatchTransaction) => Promise<void>;
   addBorrowAction: (transaction: BatchTransaction) => Promise<void>;
   addRepayAction: (transaction: BatchTransaction) => Promise<void>;
-  addTransferFromSignerToMulticall: (
+  getTransferFromSignerToMulticall: (
     tokenAddress: string,
     tokenSymbol: string,
     amountInWei: ethers.BigNumber
@@ -71,29 +70,30 @@ export const createBatchTransactionsSlice: StateCreator<
   [],
   BatchTransactionsSlice
 > = (set, get) => ({
-  batchTransactions: [],
-  approvalTransactions: [],
+  batchTransactionGroups: [],
   addToBatch: (transaction) =>
-    set((state) => ({ batchTransactions: [...state.batchTransactions, transaction] })),
-  removeBatchItem: (index) =>
     set((state) => ({
-      batchTransactions: state.batchTransactions.filter((_, i) => i !== index),
+      batchTransactionGroups: [...state.batchTransactionGroups, transaction],
     })),
-  clearBatch: () => set({ batchTransactions: [] }),
+  removeBatchItem: (groupIndex) =>
+    set((state) => ({
+      batchTransactionGroups: state.batchTransactionGroups.filter((_, i) => i !== groupIndex),
+    })),
+  clearBatch: () => set({ batchTransactionGroups: [] }),
   signer: undefined,
   setSigner: (signer: ethers.providers.JsonRpcSigner) => {
     if (signer) {
       set({ signer });
     }
   },
-  checkAndAddTokenApproval: async (
+  checkAndGetTokenApproval: async (
     market: CustomMarket,
     assetAddress: string,
     assetSymbol: string,
     spender: string,
     amountInWei: ethers.BigNumber,
     approvalType: 'standard' | 'delegation' = 'standard'
-  ): Promise<boolean> => {
+  ): Promise<BatchTransaction | undefined> => {
     console.log(
       'Checking and adding token approval for:',
       assetAddress,
@@ -108,7 +108,7 @@ export const createBatchTransactionsSlice: StateCreator<
         assetAddress.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'.toLowerCase()
       ) {
         console.log('Native token (ETH) detected, no approval needed');
-        return false;
+        return;
       }
 
       const signerAddress = await get().signer?.getAddress();
@@ -148,8 +148,9 @@ export const createBatchTransactionsSlice: StateCreator<
       if (currentAllowance.lt(amountInWei)) {
         console.log(`Adding ${approvalType} approval for ${assetSymbol}`);
 
-        // Check if we already have an approval/delegation for this asset
-        const existingApproval = get().approvalTransactions.find(
+        // Check if we already have an approval/delegation for this asset in the current group
+        const currentGroup = get().batchTransactionGroups[get().batchTransactionGroups.length - 1];
+        const existingApproval = currentGroup?.find(
           (tx) =>
             tx.tx?.to?.toLowerCase() === assetAddress.toLowerCase() &&
             tx.action === (approvalType === 'standard' ? 'approve' : 'delegate')
@@ -170,35 +171,36 @@ export const createBatchTransactionsSlice: StateCreator<
               ethers.constants.MaxUint256 // Approve max amount
             );
           }
-
-          // Add the approval action to the separate approvals array
-          get().approvalTransactions.push({
+          const approvalTransaction: BatchTransaction = {
             action: approvalType === 'standard' ? 'approve' : 'delegate',
             market: market,
             poolAddress: '',
             amount: '',
             symbol: assetSymbol,
             decimals: 0,
+            isHidden: true,
             tx: {
               to: assetAddress,
               value: ethers.BigNumber.from(0),
               data: approvalTx.data || '',
               gasLimit: ethers.BigNumber.from(200000),
             },
-          });
+          };
 
-          return true;
+          return approvalTransaction;
+
+          // return true;
         } else {
           console.log(`Approval/delegation already exists for ${assetSymbol}`);
-          return false;
+          // return false;
         }
       }
 
       console.log(`Sufficient ${approvalType} allowance already exists for ${assetSymbol}`);
-      return false;
+      return;
     } catch (error) {
       console.error(`Error checking/adding ${approvalType} approval:`, error);
-      return false;
+      return;
     }
   },
   getAssetAddressForChain: (chainId: number, assetSymbol: string): string => {
@@ -259,7 +261,7 @@ export const createBatchTransactionsSlice: StateCreator<
       wethGatewayAddress: marketConfig.addresses.WETH_GATEWAY,
     };
   },
-  addTransferFromSignerToMulticall: async (
+  getTransferFromSignerToMulticall: async (
     tokenAddress: string,
     tokenSymbol: string,
     amountInWei: ethers.BigNumber
@@ -300,6 +302,7 @@ export const createBatchTransactionsSlice: StateCreator<
     }
   },
   addSupplyAction: async (transaction: BatchTransaction) => {
+    const supplyTransactions: BatchTransaction[] = [];
     const { assetAddress, isNativeToken, amountInWei } = get().getTokenInfoAndAmount(
       transaction.market,
       transaction.symbol,
@@ -313,12 +316,12 @@ export const createBatchTransactionsSlice: StateCreator<
 
     // For non-native tokens, we need to transfer them from the user to the multicall contract
     if (!isNativeToken) {
-      const transferActionTx = await get().addTransferFromSignerToMulticall(
+      const transferActionTx = await get().getTransferFromSignerToMulticall(
         assetAddress,
         transaction.symbol,
         amountInWei
       );
-      get().addToBatch({
+      supplyTransactions.push({
         ...transaction,
         isHidden: true,
         action: 'transfer',
@@ -328,7 +331,7 @@ export const createBatchTransactionsSlice: StateCreator<
 
     // Check and add approval if needed for non-native tokens
     if (!isNativeToken) {
-      await get().checkAndAddTokenApproval(
+      const approvalTransaction = await get().checkAndGetTokenApproval(
         transaction.market,
         assetAddress,
         transaction.symbol,
@@ -336,17 +339,22 @@ export const createBatchTransactionsSlice: StateCreator<
         amountInWei,
         'standard'
       );
+      approvalTransaction && supplyTransactions.push(approvalTransaction);
     }
 
     // TODO: Unwrap WETH if needed to be able to supply
 
-    get().addToBatch({
+    supplyTransactions.push({
       ...transaction,
       isHidden: false,
       tx: supplyTx,
     });
+
+    get().addToBatch(supplyTransactions);
   },
   addWithdrawAction: async (transaction: BatchTransaction) => {
+    const withdrawTransactions: BatchTransaction[] = [];
+
     const { assetAddress, isNativeToken, amountInWei, wethGatewayAddress, decimals } =
       get().getTokenInfoAndAmount(transaction.market, transaction.symbol, transaction.amount);
     const aTokenAddress = transaction.aTokenAddress;
@@ -355,7 +363,7 @@ export const createBatchTransactionsSlice: StateCreator<
       throw new Error(`No aToken address found for ${transaction.symbol}`);
     }
 
-    await get().checkAndAddTokenApproval(
+    const approvalTransaction = await get().checkAndGetTokenApproval(
       transaction.market,
       aTokenAddress,
       `${transaction.symbol} aToken`,
@@ -363,13 +371,22 @@ export const createBatchTransactionsSlice: StateCreator<
       amountInWei,
       'standard'
     );
+    approvalTransaction && withdrawTransactions.push(approvalTransaction);
 
     // Transfer aTokens from user to multicall contract
-    await get().addTransferFromSignerToMulticall(
+    const transferActionTx = await get().getTransferFromSignerToMulticall(
       aTokenAddress,
       `${transaction.symbol} aToken`,
       amountInWei
     );
+    transferActionTx &&
+      withdrawTransactions.push({
+        ...transaction,
+        isHidden: true,
+        action: 'transfer',
+        tx: transferActionTx,
+      });
+
     // TODO: Withdraw and wrap WETH if needed to be able to withdraw
     if (isNativeToken) {
       // WETH Gateway ABI for withdrawETH
@@ -389,7 +406,7 @@ export const createBatchTransactionsSlice: StateCreator<
         amountInWei.toString(),
         get().account
       );
-      get().addToBatch({
+      withdrawTransactions.push({
         ...transaction,
         isHidden: false,
         action: 'withdraw',
@@ -413,19 +430,20 @@ export const createBatchTransactionsSlice: StateCreator<
       }
 
       // Transfer aTokens from user to multicall contract
-      const transferActionTx = await get().addTransferFromSignerToMulticall(
+      const transferActionTx = await get().getTransferFromSignerToMulticall(
         aTokenAddress,
         `${transaction.symbol} aToken`,
         amountInWei
       );
-      get().addToBatch({
-        ...transaction,
-        isHidden: true,
-        action: 'transfer',
-        tx: transferActionTx,
-      });
+      transferActionTx &&
+        withdrawTransactions.push({
+          ...transaction,
+          isHidden: true,
+          action: 'transfer',
+          tx: transferActionTx,
+        });
 
-      await get().checkAndAddTokenApproval(
+      const approvalTransaction = await get().checkAndGetTokenApproval(
         transaction.market,
         aTokenAddress,
         `${transaction.symbol} aToken`,
@@ -433,7 +451,7 @@ export const createBatchTransactionsSlice: StateCreator<
         amountInWei,
         'standard'
       );
-
+      approvalTransaction && withdrawTransactions.push(approvalTransaction);
       const poolAbi = [
         'function withdraw(address asset, uint256 amount, address to) external returns (uint256)',
       ];
@@ -444,15 +462,19 @@ export const createBatchTransactionsSlice: StateCreator<
         get().account
       );
 
-      get().addToBatch({
+      withdrawTransactions.push({
         ...transaction,
         isHidden: false,
         action: 'withdraw',
         tx: { ...withdrawTx, gasLimit: ethers.BigNumber.from(200000) },
       });
+
+      get().addToBatch(withdrawTransactions);
     }
   },
   addBorrowAction: async (transaction: BatchTransaction) => {
+    const borrowTransactions: BatchTransaction[] = [];
+
     const { assetAddress, isNativeToken, amountInWei } = get().getTokenInfoAndAmount(
       transaction.market,
       transaction.symbol,
@@ -460,7 +482,7 @@ export const createBatchTransactionsSlice: StateCreator<
     );
 
     if (!isNativeToken && transaction.debtTokenAddress) {
-      await get().checkAndAddTokenApproval(
+      const approvalTransaction = await get().checkAndGetTokenApproval(
         transaction.market,
         transaction.debtTokenAddress,
         transaction.symbol,
@@ -468,6 +490,7 @@ export const createBatchTransactionsSlice: StateCreator<
         amountInWei,
         'delegation'
       );
+      approvalTransaction && borrowTransactions.push(approvalTransaction);
     }
 
     const borrowTx = get().borrow({
@@ -478,7 +501,7 @@ export const createBatchTransactionsSlice: StateCreator<
       onBehalfOf: get().account,
     });
 
-    get().addToBatch({
+    borrowTransactions.push({
       ...transaction,
       isHidden: false,
       action: 'borrow',
@@ -496,7 +519,7 @@ export const createBatchTransactionsSlice: StateCreator<
         get().account,
         amountInWei,
       ]);
-      get().addToBatch({
+      borrowTransactions.push({
         ...transaction,
         isHidden: true,
         action: 'transfer',
@@ -508,8 +531,12 @@ export const createBatchTransactionsSlice: StateCreator<
         },
       });
     }
+
+    get().addToBatch(borrowTransactions);
   },
   addRepayAction: async (transaction: BatchTransaction) => {
+    const repayTransactions: BatchTransaction[] = [];
+
     const { assetAddress, isNativeToken, amountInWei } = get().getTokenInfoAndAmount(
       transaction.market,
       transaction.symbol,
@@ -518,19 +545,19 @@ export const createBatchTransactionsSlice: StateCreator<
 
     // For non-native tokens, we need to transfer them from the user to the multicall contract
     if (!isNativeToken) {
-      const transferActionTx = await get().addTransferFromSignerToMulticall(
+      const transferActionTx = await get().getTransferFromSignerToMulticall(
         assetAddress,
         transaction.symbol,
         amountInWei
       );
-      get().addToBatch({
+      repayTransactions.push({
         ...transaction,
         isHidden: true,
         action: 'transfer',
         tx: transferActionTx,
       });
 
-      await get().checkAndAddTokenApproval(
+      const approvalTransaction = await get().checkAndGetTokenApproval(
         transaction.market,
         assetAddress,
         transaction.symbol,
@@ -538,6 +565,7 @@ export const createBatchTransactionsSlice: StateCreator<
         amountInWei,
         'standard'
       );
+      approvalTransaction && repayTransactions.push(approvalTransaction);
     }
 
     // TODO: repay with aTokens ??
@@ -548,19 +576,26 @@ export const createBatchTransactionsSlice: StateCreator<
       debtType: transaction.debtType,
     });
 
-    get().addToBatch({
+    repayTransactions.push({
       ...transaction,
       isHidden: false,
       action: 'repay',
       tx: repayTx,
     });
+
+    get().addToBatch(repayTransactions);
   },
   getBatchTx: async () => {
     const user = get().account;
     const multicallContract = new ethers.Contract(MULTICALL_ADDRESS, multicallAbi, get().signer);
 
-    const actions = get()
-      .batchTransactions.map((t) => t.tx)
+    // Flatten all transactions from all groups
+    const allTransactions = get()
+      .batchTransactionGroups.flat()
+      .filter((t) => !['approve', 'delegate'].includes(t.action));
+
+    const actions = allTransactions
+      .map((t) => t.tx)
       .map((tx) => ({
         target: tx.to,
         allowFailure: false,
@@ -585,15 +620,14 @@ export const createBatchTransactionsSlice: StateCreator<
     );
     console.log('totalValue', totalValue, totalValue.toString());
     console.log('totalGasLimit', totalGasLimit, totalGasLimit.toString());
-    // const baseFee = await multicallContract.getBasefee();
-    // console.log('baseFee', baseFee, baseFee.toString());
+
     const tx = multicallContract.interface.encodeFunctionData('aggregate3Value', [actions]);
     return {
       data: tx,
       to: MULTICALL_ADDRESS,
       from: user,
       value: totalValue,
-      gasLimit: ethers.BigNumber.from(5000000000), //totalGasLimit,
+      gasLimit: ethers.BigNumber.from(5000000000),
     };
   },
 });

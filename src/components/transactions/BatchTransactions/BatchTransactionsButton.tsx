@@ -11,7 +11,7 @@ interface BatchTransactionProps {
 }
 
 export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps) => {
-  const batchTransactions = useRootStore((state) => state.batchTransactions);
+  const batchTransactionGroups = useRootStore((state) => state.batchTransactionGroups);
 
   const handleToggle = () => {
     setOpen(!open);
@@ -19,7 +19,7 @@ export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps
 
   return (
     <>
-      {batchTransactions?.length > 0 && (
+      {batchTransactionGroups.length > 0 && (
         <Box paddingX={2}>
           <Button
             variant={open ? 'surface' : 'gradient'}
