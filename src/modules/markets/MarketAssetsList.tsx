@@ -12,6 +12,7 @@ import { MarketAssetsListItem } from './MarketAssetsListItem';
 import { MarketAssetsListItemLoader } from './MarketAssetsListItemLoader';
 import { MarketAssetsListMobileItem } from './MarketAssetsListMobileItem';
 import { MarketAssetsListMobileItemLoader } from './MarketAssetsListMobileItemLoader';
+import { useRootStore } from 'src/store/root';
 
 const listHeaders = [
   {
@@ -64,7 +65,8 @@ export default function MarketAssetsList({
   walletBalances,
 }: MarketAssetsListProps) {
   const { currentAccount } = useWeb3Context();
-  const lastColumnSize = useMemo(() => (!!currentAccount ? 180 : 95), [currentAccount]);
+  const { currentMarket } = useRootStore()
+  const lastColumnSize = useMemo(() => (!!currentAccount && currentMarket !== 'all_markets' ? 180 : 95), [currentAccount, currentMarket]);
   const isTableChangedToCards = useMediaQuery('(max-width:1125px)');
   const [sortName, setSortName] = useState('');
   const [sortDesc, setSortDesc] = useState(false);
@@ -130,7 +132,7 @@ export default function MarketAssetsList({
             </ListColumn>
           ))}
           {/* Width for buttons */}
-          <ListColumn maxWidth={lastColumnSize} minWidth={lastColumnSize} />
+            <ListColumn maxWidth={lastColumnSize} minWidth={lastColumnSize} />
         </ListHeaderWrapper>
       )}
 

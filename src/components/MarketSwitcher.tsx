@@ -151,11 +151,17 @@ export const MarketSwitcher = () => {
           const { market, network } = getMarketInfoById(marketId as CustomMarket | 'all_markets');
           return (
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              {marketId !== 'all_markets' && (
+              {marketId !== 'all_markets' ? (
                 <MarketLogo
                   size={upToLG ? 32 : 28}
                   logo={network.networkLogoPath}
                   testChainName={getMarketHelpData(market.marketTitle).testChainName}
+                />
+              ) : (
+                <MarketLogo
+                  size={upToLG ? 32 : 28}
+                  logo='/loveMore.svg'
+                  testChainName=''
                 />
               )}
               <Box sx={{ mr: 1, display: 'inline-flex', alignItems: 'flex-start' }}>
@@ -224,14 +230,6 @@ export const MarketSwitcher = () => {
         },
       }}
     >
-      <Box>
-        <Typography variant="subheader2" color="text.secondary" sx={{ px: 4, pt: 2 }}>
-          
-            {ENABLE_TESTNET || STAGING_ENV ? 'Select More Testnet Market' : 'Select More Market'}
-          
-        </Typography>
-      </Box>
-
       <MenuItem
         data-cy={`marketSelector_all_markets`}
         value="all_markets"
@@ -240,8 +238,19 @@ export const MarketSwitcher = () => {
           '.MuiListItemIcon-root': { minWidth: 'unset' },
         }}
       >
+        <MarketLogo
+          size={32}
+          logo="/loveMore.svg"
+          testChainName=""
+        />
         <ListItemText sx={{ mr: 0 }}>All markets</ListItemText>
       </MenuItem>
+
+      <Box>
+        <Typography variant="subheader2" color="text.secondary" sx={{ px: 4, pt: 2 }}>
+            {ENABLE_TESTNET || STAGING_ENV ? 'Select More Testnet Market' : 'Select More Market'}
+        </Typography>
+      </Box>
 
       {availableMarkets.map((marketId: CustomMarket) => {
         const { market, network } = getMarketInfoById(marketId);

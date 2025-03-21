@@ -150,14 +150,14 @@ export const MarketAssetsListItem = ({
       </ListColumn> */}
 
       <ListColumn minWidth={lastColumnSize} maxWidth={lastColumnSize} align="right">
-        {currentAccount ? (
+        {currentAccount && currentMarket !== 'all_markets' ? (
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
               disabled={disableSupply}
               variant="contained"
               onClick={(event) => {
                 event.stopPropagation();
-                openSupply(reserve.underlyingAsset, currentMarket, reserve.name, 'dashboard');
+                openSupply(reserve.underlyingAsset, reserve.market.market, reserve.name, 'dashboard');
               }}
             >
               Supply
@@ -167,7 +167,7 @@ export const MarketAssetsListItem = ({
               variant="contained"
               onClick={(event) => {
                 event.stopPropagation();
-                openBorrow(reserve.underlyingAsset, currentMarket, reserve.name, 'dashboard');
+                openBorrow(reserve.underlyingAsset, reserve.market.market, reserve.name, 'dashboard');
               }}
             >
               Borrow
