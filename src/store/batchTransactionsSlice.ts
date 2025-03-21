@@ -49,10 +49,9 @@ export interface BatchTransactionsSlice {
     tokenSymbol: string,
     amountInWei: ethers.BigNumber
   ) => Promise<PopulatedTransaction>;
-  getAssetAddressForChain: (chainId: number, assetSymbol: string) => string;
   getTokenInfoAndAmount: (
     market: CustomMarket,
-    assetSymbol: string,
+    underlyingAsset: string,
     amount: string
   ) => {
     assetAddress: string;
@@ -62,6 +61,7 @@ export interface BatchTransactionsSlice {
     wethGatewayAddress: string;
     decimals: number;
   };
+  getGasLimit: () => string;
   getBatchTx: () => Promise<PopulatedTransaction>;
 }
 
@@ -204,20 +204,9 @@ export const createBatchTransactionsSlice: StateCreator<
       return;
     }
   },
-  getAssetAddressForChain: (chainId: number, assetSymbol: string): string => {
-    const assetToken = TOKEN_LIST.tokens.find(
-      (token) => token.chainId === chainId && token.symbol === assetSymbol
-    );
-
-    if (!assetToken) {
-      throw new Error(`${assetSymbol} token not found for chain ID ${chainId}`);
-    }
-
-    return assetToken.address;
-  },
   getTokenInfoAndAmount: (
     market: CustomMarket,
-    assetSymbol: string,
+    underlyingAsset: string,
     amount: string
   ): {
     assetAddress: string;
@@ -229,21 +218,22 @@ export const createBatchTransactionsSlice: StateCreator<
   } => {
     // Get market and asset information
     const marketConfig = marketsData[market];
-    const assetAddress = get().getAssetAddressForChain(marketConfig.chainId, assetSymbol);
     const poolAddress = marketConfig.addresses.LENDING_POOL;
+    
+    // Convert amount to token units
+    const tokenInfo = TOKEN_LIST.tokens.find(
+      (token) => token.chainId === marketConfig.chainId && token.address.toLowerCase() === underlyingAsset.toLowerCase()
+    );
+
+    if (!tokenInfo) {
+      throw new Error(`Token info not found for ${underlyingAsset}`);
+    }
+    const assetAddress = tokenInfo.address;
 
     // Check if native token
     const isNativeToken =
       assetAddress.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'.toLowerCase();
 
-    // Convert amount to token units
-    const tokenInfo = TOKEN_LIST.tokens.find(
-      (token) => token.chainId === marketConfig.chainId && token.symbol === assetSymbol
-    );
-
-    if (!tokenInfo) {
-      throw new Error(`Token info not found for ${assetSymbol}`);
-    }
 
     // Determine amount in wei
     let amountInWei;
@@ -306,7 +296,7 @@ export const createBatchTransactionsSlice: StateCreator<
     const supplyTransactions: BatchTransaction[] = [];
     const { assetAddress, isNativeToken, amountInWei } = get().getTokenInfoAndAmount(
       transaction.market,
-      transaction.symbol,
+      transaction.poolAddress,
       transaction.amount
     );
     const supplyTx = get().supply({
@@ -357,7 +347,7 @@ export const createBatchTransactionsSlice: StateCreator<
     const withdrawTransactions: BatchTransaction[] = [];
 
     const { assetAddress, isNativeToken, amountInWei, wethGatewayAddress, decimals } =
-      get().getTokenInfoAndAmount(transaction.market, transaction.symbol, transaction.amount);
+      get().getTokenInfoAndAmount(transaction.market, transaction.poolAddress, transaction.amount);
     const aTokenAddress = transaction.aTokenAddress;
 
     if (!aTokenAddress) {
@@ -478,7 +468,7 @@ export const createBatchTransactionsSlice: StateCreator<
 
     const { assetAddress, isNativeToken, amountInWei } = get().getTokenInfoAndAmount(
       transaction.market,
-      transaction.symbol,
+      transaction.poolAddress,
       transaction.amount
     );
 
@@ -540,7 +530,7 @@ export const createBatchTransactionsSlice: StateCreator<
 
     const { assetAddress, isNativeToken, amountInWei } = get().getTokenInfoAndAmount(
       transaction.market,
-      transaction.symbol,
+      transaction.poolAddress,
       transaction.amount
     );
 
@@ -586,6 +576,14 @@ export const createBatchTransactionsSlice: StateCreator<
 
     get().addToBatch(repayTransactions);
   },
+  // TODO: get gas limit from multicall contract
+  getGasLimit: () => {
+    const gasLimitInWei = get().batchTransactionGroups.flat().reduce(
+      (acc, action) => acc.add(action.tx?.gasLimit || ethers.BigNumber.from(0)),
+      ethers.BigNumber.from(0)
+    );
+    return ethers.utils.formatUnits(gasLimitInWei);
+  },
   getBatchTx: async () => {
     const user = get().account;
     const multicallContract = new ethers.Contract(MULTICALL_ADDRESS, multicallAbi, get().signer);
@@ -628,7 +626,8 @@ export const createBatchTransactionsSlice: StateCreator<
       to: MULTICALL_ADDRESS,
       from: user,
       value: totalValue,
-      gasLimit: ethers.BigNumber.from(5000000000),
+      // gasLimit: ethers.BigNumber.from(5000000000),
+      gasLimit: totalGasLimit,
     };
   },
 });

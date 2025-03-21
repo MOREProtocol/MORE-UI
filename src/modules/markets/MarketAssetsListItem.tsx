@@ -154,7 +154,7 @@ export const MarketAssetsListItem = ({
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
               disabled={disableSupply}
-              variant="contained"
+              variant="gradient"
               onClick={(event) => {
                 event.stopPropagation();
                 openSupply(reserve.underlyingAsset, reserve.market.market, reserve.name, 'dashboard');
@@ -164,7 +164,7 @@ export const MarketAssetsListItem = ({
             </Button>
             <Button
               disabled={disableBorrow}
-              variant="contained"
+              variant="gradient"
               onClick={(event) => {
                 event.stopPropagation();
                 openBorrow(reserve.underlyingAsset, reserve.market.market, reserve.name, 'dashboard');

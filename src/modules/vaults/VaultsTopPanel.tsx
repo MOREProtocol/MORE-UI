@@ -34,7 +34,6 @@ export const VaultsTopPanel = () => {
     <TopInfoPanel
       containerProps={marketContainerProps}
       pageTitle={'Vaults'}
-      // withMarketSwitcher
     >
       <TopInfoPanelItem hideIcon title={'TVL'} loading={loading}>
         <FormattedNumber

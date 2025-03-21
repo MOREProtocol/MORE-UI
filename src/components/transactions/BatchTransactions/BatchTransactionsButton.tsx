@@ -4,6 +4,7 @@ import { Box, Button, SvgIcon } from '@mui/material';
 import { useRootStore } from 'src/store/root';
 
 import { BatchTransactionsModal } from './BatchTransactionsModal';
+import { UserAuthenticated } from 'src/components/UserAuthenticated';
 
 interface BatchTransactionProps {
   open: boolean;
@@ -43,7 +44,11 @@ export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps
           </Button>
         </Box>
       )}
-      <BatchTransactionsModal open={open} setOpen={setOpen} />
+      <UserAuthenticated>
+        {(user) => (
+          <BatchTransactionsModal open={open} setOpen={setOpen} user={user} />
+        )}
+      </UserAuthenticated>
     </>
   );
 };
