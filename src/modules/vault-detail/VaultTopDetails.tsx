@@ -71,7 +71,7 @@ export const VaultTopDetails = () => {
           Deposit
         </Button>
         <Button
-          variant="gradient"
+          variant="contained"
           fullWidth
           size="medium"
           onClick={() => console.log('manage')}

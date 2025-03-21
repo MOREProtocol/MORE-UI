@@ -1,15 +1,16 @@
-import { USD_DECIMALS, valueToBigNumber } from '@aave/math-utils';
-import { ArrowRightIcon, XIcon } from '@heroicons/react/outline';
+import { calculateHealthFactorFromBalancesBigUnits, USD_DECIMALS, valueToBigNumber } from '@aave/math-utils';
+import { ArrowNarrowRightIcon, ArrowRightIcon, XIcon } from '@heroicons/react/outline';
 import { Box, Button, Drawer, IconButton, Stack, SvgIcon, Typography } from '@mui/material';
 import { ethers } from 'ethers';
 import { useRouter } from 'next/router';
 import { useEffect, useMemo } from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
-import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { ExtendedFormattedUser, useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
 import { useAccount, useWalletClient } from 'wagmi';
+import { HealthFactorNumber } from 'src/components/HealthFactorNumber';
 
 const useSigner = () => {
   const { isConnected } = useAccount();
@@ -28,15 +29,17 @@ const useSigner = () => {
 interface BatchTransactionsModalProps {
   open: boolean;
   setOpen: (value: boolean) => void;
+  user: ExtendedFormattedUser;
 }
 
-export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModalProps) => {
+export const BatchTransactionsModal = ({ open, setOpen, user }: BatchTransactionsModalProps) => {
   const router = useRouter();
 
-  const { batchTransactionGroups, removeBatchItem, getBatchTx, clearBatch, setSigner, signer } =
+  const { batchTransactionGroups, removeBatchItem, getBatchTx, getGasLimit, clearBatch, setSigner, signer } =
     useRootStore((state) => ({
       batchTransactionGroups: state.batchTransactionGroups,
       getBatchTx: state.getBatchTx,
+      getGasLimit: state.getGasLimit,
       removeBatchItem: state.removeBatchItem,
       clearBatch: state.clearBatch,
       setSigner: state.setSigner,
@@ -56,7 +59,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
           .map((transaction) => {
             // Find the reserve that matches this transaction's asset
             const matchingReserve = reserves.find(
-              (reserve) => reserve.symbol.toLowerCase() === transaction.symbol.toLowerCase()
+              (reserve) => reserve.underlyingAsset.toLowerCase() === transaction.poolAddress.toLowerCase()
             );
             let amountUSD = '0';
             if (matchingReserve) {
@@ -152,11 +155,39 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
   };
 
   // Calculate total gas cost
-  const totalGasCost = 0.0023; // ETH
-  const totalGasCostUSD = 23.92; // USD
+  const totalGasCost = getGasLimit();
+  const nativeTokenPriceInUSD = useMemo(() => reserves.find(
+    (reserve) => reserve.symbol.toLowerCase() === 'wflow' // TODO: make it dynamic to chain
+  )?.priceInUSD, [reserves]);
+  const totalGasCostUSD = Number(totalGasCost) * Number(nativeTokenPriceInUSD);
 
   // Calculate health factor after transactions
-  const healthFactorAfter = 4.9;
+  const totalCollateralAmountInUsd = transactionsWithUsdValues.flat().reduce((acc, tx) => {
+    if (tx.action === 'supply') {
+      return acc.plus(tx.amountUSD);
+    }
+    if (tx.action === 'withdraw') {
+      return acc.minus(tx.amountUSD);
+    }
+    return acc;
+  }, valueToBigNumber(0));
+  const totalBorrowAmountInUsd = transactionsWithUsdValues.flat().reduce((acc, tx) => {
+    if (tx.action === 'borrow') {
+      return acc.plus(tx.amountUSD);
+    }
+    if (tx.action === 'repay') {
+      return acc.minus(tx.amountUSD);
+    }
+    return acc;
+  }, valueToBigNumber(0));
+  
+  const newHealthFactor = calculateHealthFactorFromBalancesBigUnits({
+    collateralBalanceMarketReferenceCurrency: valueToBigNumber(user.totalCollateralUSD).plus(totalCollateralAmountInUsd),
+    borrowBalanceMarketReferenceCurrency: valueToBigNumber(user.totalBorrowsUSD).plus(
+      totalBorrowAmountInUsd
+    ),
+    currentLiquidationThreshold: user.currentLiquidationThreshold,
+  });
 
   return (
     <Drawer
@@ -357,21 +388,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
       >
         <Box sx={{ mb: 3 }}>
           <Stack spacing={1.5}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <SvgIcon sx={{ mr: 1, fontSize: '16px' }}>
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z" />
-                  </svg>
-                </SvgIcon>
-                <Typography variant="description" color="text.secondary">
-                  Cumulated cost
-                </Typography>
-              </Box>
-              <Typography variant="description">${totalGasCostUSD}</Typography>
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'top' }}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <SvgIcon sx={{ mr: 1, fontSize: '16px' }}>
                   <svg viewBox="0 0 24 24" fill="currentColor">
@@ -382,9 +399,16 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
                   Health factor after transactions
                 </Typography>
               </Box>
-              <Typography variant="description" color="success.main">
-                {healthFactorAfter}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <HealthFactorNumber value={user.healthFactor} variant="secondary14" />
+                <SvgIcon color="primary" sx={{ fontSize: '14px', mx: 1 }}>
+                  <ArrowNarrowRightIcon />
+                </SvgIcon>
+                <HealthFactorNumber
+                  value={isNaN(Number(newHealthFactor.toString())) ? user.healthFactor : newHealthFactor.toString()}
+                  variant="secondary14"
+                />
+              </Box>
             </Box>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -398,9 +422,12 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
                   Max gas cost
                 </Typography>
               </Box>
-              <Typography variant="description">
-                {totalGasCost} ETH (${totalGasCostUSD})
-              </Typography>
+              <Box>
+                <FormattedNumber value={totalGasCost} symbol="FLOW" variant="description" />
+                {' ('}
+                <FormattedNumber value={totalGasCostUSD} symbol="USD" variant="description" />
+                {')'}
+              </Box>
             </Box>
           </Stack>
         </Box>
