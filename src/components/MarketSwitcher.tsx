@@ -110,7 +110,7 @@ export const MarketLogo = ({ size, logo, testChainName, sx }: MarketLogoProps) =
   );
 };
 
-export const MarketSwitcher = () => {
+export const MarketSwitcher = ( {showAllMarkets = true}: {showAllMarkets?: boolean} ) => {
   const { currentMarket, setCurrentMarket } = useRootStore();
   const theme = useTheme();
   const upToLG = useMediaQuery(theme.breakpoints.up('lg'));
@@ -230,10 +230,11 @@ export const MarketSwitcher = () => {
         },
       }}
     >
-      <MenuItem
-        data-cy={`marketSelector_all_markets`}
-        value="all_markets"
-        onClick={() => handleMarketChange('all_markets')}
+      {showAllMarkets && (
+        <MenuItem
+          data-cy={`marketSelector_all_markets`}
+          value="all_markets"
+          onClick={() => handleMarketChange('all_markets')}
         sx={{
           '.MuiListItemIcon-root': { minWidth: 'unset' },
         }}
@@ -243,8 +244,9 @@ export const MarketSwitcher = () => {
           logo="/loveMore.svg"
           testChainName=""
         />
-        <ListItemText sx={{ mr: 0 }}>All markets</ListItemText>
-      </MenuItem>
+          <ListItemText sx={{ mr: 0 }}>All markets</ListItemText>
+        </MenuItem>
+      )}
 
       <Box>
         <Typography variant="subheader2" color="text.secondary" sx={{ px: 4, pt: 2 }}>
