@@ -269,11 +269,10 @@ export const createBatchTransactionsSlice: StateCreator<
 
       // Encode the transferFrom function call
       // This will transfer tokens from the user to the multicall contract
-      console.log('signerAddress', signerAddress);
       const transferFromCalldata = erc20Interface.encodeFunctionData('transferFrom', [
         signerAddress,
         MULTICALL_ADDRESS,
-        amountInWei,
+        Number(amountInWei),
       ]);
 
       // Add the transferFrom action
