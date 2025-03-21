@@ -108,7 +108,10 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
       if (approvalTransactions.length > 0) {
         for (const approval of approvalTransactions) {
           console.log('Processing approval:', approval);
+          // approval.status = 'pending';
           const approvalResult = await sendTx(approval.tx);
+          // TODO: doesn't work, need to use better state management
+          // approval.status = 'approved';
           console.log('Approval transaction result:', approvalResult);
         }
       }
@@ -211,7 +214,14 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
                       mb: 1,
                       p: 2,
                       borderRadius: '8px',
-                      bgcolor: 'background.surface',
+                      bgcolor:
+                        approval.status === 'pending'
+                          ? 'warning.200'
+                          : approval.status === 'approved'
+                          ? 'success.200'
+                          : approval.status === 'failed'
+                          ? 'error.200'
+                          : 'background.surface',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
@@ -243,7 +253,14 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
                   mb: 4,
                   p: 3,
                   borderRadius: '12px',
-                  bgcolor: 'background.surface',
+                  bgcolor:
+                    transaction.status === 'pending'
+                      ? 'warning.200'
+                      : transaction.status === 'approved'
+                      ? 'success.200'
+                      : transaction.status === 'failed'
+                      ? 'error.200'
+                      : 'background.surface',
                   position: 'relative',
                 }}
               >
