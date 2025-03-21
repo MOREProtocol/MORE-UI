@@ -1,4 +1,4 @@
-import { Box, Container } from '@mui/material';
+import { Box, Container, useTheme } from '@mui/material';
 import { ReactNode } from 'react';
 import { VaultProvider } from 'src/hooks/useVaultInfo';
 import { MainLayout } from 'src/layouts/MainLayout';
@@ -10,13 +10,14 @@ interface ContentContainerProps {
 }
 
 const ContentContainer = ({ children }: ContentContainerProps) => {
+  const theme = useTheme();
   return (
     <Box
       sx={{
         display: 'flex',
         flexDirection: 'column',
         flex: 1,
-        background: '#FFFFFF',
+        background: theme.palette.background.paper,
         // mt: { xs: '-32px', lg: '-46px', xl: '-44px', xxl: '-48px' },
       }}
     >
