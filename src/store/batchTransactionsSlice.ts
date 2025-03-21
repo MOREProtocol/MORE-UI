@@ -11,7 +11,7 @@ import { RootStore } from './root';
 const MULTICALL_ADDRESS = '0xF7d11c74B5706155d7C6DBe931d590611a371a8a';
 
 export interface BatchTransaction {
-  action: 'supply' | 'borrow' | 'repay' | 'withdraw' | 'transfer';
+  action: 'supply' | 'borrow' | 'repay' | 'withdraw' | 'transfer' | 'approve' | 'delegate';
   market: CustomMarket;
   poolAddress: string;
   amount: string;
@@ -26,13 +26,14 @@ export interface BatchTransaction {
 
 export interface BatchTransactionsSlice {
   batchTransactions: BatchTransaction[];
-  approvalTransactions: PopulatedTransaction[];
+  approvalTransactions: BatchTransaction[];
   addToBatch: (transaction: BatchTransaction) => void;
   removeBatchItem: (index: number) => void;
   clearBatch: () => void;
   signer: ethers.providers.JsonRpcSigner | undefined;
   setSigner: (signer: ethers.providers.JsonRpcSigner) => void;
   checkAndAddTokenApproval: (
+    market: CustomMarket,
     assetAddress: string,
     assetSymbol: string,
     spender: string,
@@ -86,6 +87,7 @@ export const createBatchTransactionsSlice: StateCreator<
     }
   },
   checkAndAddTokenApproval: async (
+    market: CustomMarket,
     assetAddress: string,
     assetSymbol: string,
     spender: string,
@@ -146,30 +148,50 @@ export const createBatchTransactionsSlice: StateCreator<
       if (currentAllowance.lt(amountInWei)) {
         console.log(`Adding ${approvalType} approval for ${assetSymbol}`);
 
-        let approvalTx;
-        if (approvalType === 'standard') {
-          // Generate standard approval transaction
-          approvalTx = await tokenContract.populateTransaction.approve(
-            spender,
-            ethers.constants.MaxUint256 // Approve max amount
-          );
+        // Check if we already have an approval/delegation for this asset
+        const existingApproval = get().approvalTransactions.find(
+          (tx) =>
+            tx.tx?.to?.toLowerCase() === assetAddress.toLowerCase() &&
+            tx.action === (approvalType === 'standard' ? 'approve' : 'delegate')
+        );
+
+        if (!existingApproval) {
+          let approvalTx;
+          if (approvalType === 'standard') {
+            // Generate standard approval transaction
+            approvalTx = await tokenContract.populateTransaction.approve(
+              spender,
+              ethers.constants.MaxUint256 // Approve max amount
+            );
+          } else {
+            // Generate delegation approval transaction
+            approvalTx = await tokenContract.populateTransaction.approveDelegation(
+              spender,
+              ethers.constants.MaxUint256 // Approve max amount
+            );
+          }
+
+          // Add the approval action to the separate approvals array
+          get().approvalTransactions.push({
+            action: approvalType === 'standard' ? 'approve' : 'delegate',
+            market: market,
+            poolAddress: '',
+            amount: '',
+            symbol: assetSymbol,
+            decimals: 0,
+            tx: {
+              to: assetAddress,
+              value: ethers.BigNumber.from(0),
+              data: approvalTx.data || '',
+              gasLimit: ethers.BigNumber.from(200000),
+            },
+          });
+
+          return true;
         } else {
-          // Generate delegation approval transaction
-          approvalTx = await tokenContract.populateTransaction.approveDelegation(
-            spender,
-            ethers.constants.MaxUint256 // Approve max amount
-          );
+          console.log(`Approval/delegation already exists for ${assetSymbol}`);
+          return false;
         }
-
-        // Add the approval action to the separate approvals array
-        get().approvalTransactions.push({
-          to: assetAddress,
-          value: ethers.BigNumber.from(0),
-          data: approvalTx.data || '',
-          gasLimit: ethers.BigNumber.from(200000),
-        });
-
-        return true;
       }
 
       console.log(`Sufficient ${approvalType} allowance already exists for ${assetSymbol}`);
@@ -307,6 +329,7 @@ export const createBatchTransactionsSlice: StateCreator<
     // Check and add approval if needed for non-native tokens
     if (!isNativeToken) {
       await get().checkAndAddTokenApproval(
+        transaction.market,
         assetAddress,
         transaction.symbol,
         MULTICALL_ADDRESS,
@@ -333,6 +356,7 @@ export const createBatchTransactionsSlice: StateCreator<
     }
 
     await get().checkAndAddTokenApproval(
+      transaction.market,
       aTokenAddress,
       `${transaction.symbol} aToken`,
       MULTICALL_ADDRESS,
@@ -402,6 +426,7 @@ export const createBatchTransactionsSlice: StateCreator<
       });
 
       await get().checkAndAddTokenApproval(
+        transaction.market,
         aTokenAddress,
         `${transaction.symbol} aToken`,
         MULTICALL_ADDRESS,
@@ -436,6 +461,7 @@ export const createBatchTransactionsSlice: StateCreator<
 
     if (!isNativeToken && transaction.debtTokenAddress) {
       await get().checkAndAddTokenApproval(
+        transaction.market,
         transaction.debtTokenAddress,
         transaction.symbol,
         MULTICALL_ADDRESS,
@@ -505,6 +531,7 @@ export const createBatchTransactionsSlice: StateCreator<
       });
 
       await get().checkAndAddTokenApproval(
+        transaction.market,
         assetAddress,
         transaction.symbol,
         MULTICALL_ADDRESS,
