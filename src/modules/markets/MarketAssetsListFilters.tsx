@@ -146,11 +146,11 @@ export const FilterComponent = ({ filters, onFiltersChange }: FilterComponentPro
         valueLabelFormat={(value) => `${value}%`}
       />
       <FilterSlider
-        label="LLTV"
+        label="Max LTV"
         value={filters.maxLtv.value}
         min={filters.maxLtv.min}
         max={filters.maxLtv.max}
-        ariaLabel="LLTV filter"
+        ariaLabel="Max LTV filter"
         onChange={handleFilterChange('maxLtv')}
         valueLabelFormat={(value) => `${value}%`}
       />
