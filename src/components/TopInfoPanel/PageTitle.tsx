@@ -12,9 +12,10 @@ export interface PageTitleProps extends Pick<NetworkConfig, 'bridge'> {
   pageTitle?: ReactNode;
   withMarketSwitcher?: boolean;
   withMigrateButton?: boolean;
+  showAllMarkets?: boolean;
 }
 
-export const PageTitle = ({ pageTitle, withMarketSwitcher, withMigrateButton }: PageTitleProps) => {
+export const PageTitle = ({ pageTitle, withMarketSwitcher, withMigrateButton, showAllMarkets }: PageTitleProps) => {
   const isMigrateToV3Available = useRootStore((state) => selectIsMigrationAvailable(state));
 
   const theme = useTheme();
@@ -54,7 +55,7 @@ export const PageTitle = ({ pageTitle, withMarketSwitcher, withMigrateButton }: 
           mb: !pageTitle ? 4 : 0,
         }}
       >
-        {withMarketSwitcher && <MarketSwitcher />}
+        {withMarketSwitcher && <MarketSwitcher showAllMarkets={showAllMarkets} />}
         {/* <BridgeButton bridge={bridge} variant="surface" withoutIcon={!upToMD} /> */}
         {/* NOTE:// Removing for now  */}
         {isMigrateToV3Available && withMigrateButton && (

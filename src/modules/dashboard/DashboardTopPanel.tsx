@@ -114,6 +114,7 @@ export const DashboardTopPanel = () => {
             <PageTitle
               pageTitle={'Dashboard'}
               withMarketSwitcher={true}
+              showAllMarkets={false}
               bridge={currentNetworkConfig.bridge}
             />
             {showMigrateButton && !downToSM && (
