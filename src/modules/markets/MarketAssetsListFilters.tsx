@@ -286,7 +286,7 @@ export const calculateFilterOptions = (reserves: ComputedReserveData[]) => {
     const utilRate = Math.round(Number(reserve.borrowUsageRatio) * 100);
     options.utilizationRate.max = Math.max(options.utilizationRate.max, utilRate);
     // Max LTV
-    const ltv = Math.round(Number(reserve.formattedBaseLTVasCollateral));
+    const ltv = Math.round(Number(reserve.formattedBaseLTVasCollateral) * 100);
     options.maxLtv.max = Math.max(options.maxLtv.max, ltv);
     // APY
     const supplyApy = Math.round(Number(reserve.supplyAPY) * 100);
