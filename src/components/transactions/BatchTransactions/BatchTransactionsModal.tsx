@@ -52,6 +52,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
   }));
   const { sendTx } = useWeb3Context();
   const { reserves, marketReferencePriceInUsd } = useAppDataContext();
+  console.log('batchTransactions', batchTransactions);
 
   // Calculate USD values for each transaction
   const transactionsWithUsdValues = useMemo(() => {
@@ -77,7 +78,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
           amountUSD,
         };
       })
-      .filter((transaction) => !!transaction.isHidden && !transaction.isHidden);
+      .filter((transaction) => !transaction.isHidden);
   }, [batchTransactions, reserves, marketReferencePriceInUsd]);
 
   const handleClose = () => {
@@ -104,7 +105,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
       if (approvalTransactions.length > 0) {
         for (const approval of approvalTransactions) {
           console.log('Processing approval:', approval);
-          const approvalResult = await sendTx(approval);
+          const approvalResult = await sendTx(approval.tx);
           console.log('Approval transaction result:', approvalResult);
         }
       }
@@ -188,82 +189,126 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
       </Box>
 
       <Box sx={{ p: 2, flex: 1, overflow: 'auto' }}>
-        {transactionsWithUsdValues.map((transaction, index) => (
-          <Box
-            key={index}
-            sx={{
-              mb: 4,
-              p: 3,
-              borderRadius: '12px',
-              bgcolor: 'background.surface',
-              position: 'relative',
-            }}
-          >
-            <IconButton
-              onClick={() => removeBatchItem(index)}
-              sx={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                p: 0.5,
-                bgcolor: 'background.paper',
-                '&:hover': {
-                  bgcolor: 'error.main',
-                  color: 'error.contrastText',
-                },
-              }}
-              size="small"
-              aria-label="remove transaction"
-            >
-              <SvgIcon fontSize="small">
-                <XIcon />
-              </SvgIcon>
-            </IconButton>
-
-            <Typography variant="h3" component="div" sx={{ mb: 2 }}>
-              {transaction.action === 'supply'
-                ? 'Supply'
-                : transaction.action === 'borrow'
-                ? 'Borrow'
-                : transaction.action === 'repay'
-                ? 'Repay'
-                : transaction.action === 'withdraw'
-                ? 'Withdraw'
-                : transaction.action === 'transfer'
-                ? 'Transfer'
-                : 'Unknown Action'}
+        {approvalTransactions.length > 0 && (
+          <Box sx={{ mb: 5 }}>
+            <Typography variant="h4" color="text.secondary" sx={{ mb: 1 }}>
+              Approvals and delegations
             </Typography>
-            <Typography variant="description" color="text.secondary" sx={{ mb: 1 }}>
-              Amount
-            </Typography>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <Box display="flex" flexDirection="column" alignItems="flex-start">
-                <FormattedNumber
-                  value={transaction.amount}
-                  variant="h3"
-                  symbol={transaction.symbol}
-                />
-                <FormattedNumber
-                  value={parseFloat(transaction.amountUSD)}
-                  variant="description"
-                  color="text.secondary"
-                  symbol="USD"
-                  prefix="$"
-                />
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <TokenIcon symbol={transaction.symbol} sx={{ fontSize: '32px', mr: 1 }} />
-                {/* <Typography variant="h3">{transaction.symbol}</Typography> */}
-              </Box>
-            </Box>
+            {approvalTransactions.map((approval, index) => {
+              const tokenReserve = reserves.find(
+                (reserve) =>
+                  reserve.underlyingAsset.toLowerCase() === approval.tx?.to?.toLowerCase()
+              );
+              return (
+                <Box
+                  key={`approval-${index}`}
+                  sx={{
+                    mb: 1,
+                    p: 2,
+                    borderRadius: '8px',
+                    bgcolor: 'background.surface',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Box display="flex" flexDirection="row" alignItems="flex-start">
+                    <Typography variant="h3" color="text">
+                      {approval.action === 'approve' ? 'Approve ' : 'Delegate '}
+                    </Typography>
+                    <Typography variant="h3" color="text.secondary">
+                      {tokenReserve?.symbol || ''}
+                    </Typography>
+                  </Box>
+                  <TokenIcon symbol={tokenReserve?.symbol || 'TOKEN'} sx={{ fontSize: '24px' }} />
+                </Box>
+              );
+            })}
           </Box>
-        ))}
+        )}
+        {transactionsWithUsdValues.length > 0 && (
+          <Box sx={{ mb: 5 }}>
+            <Typography variant="h4" color="text.secondary" sx={{ mb: 1 }}>
+              Transactions
+            </Typography>
+            {transactionsWithUsdValues.map((transaction, index) => (
+              <Box
+                key={index}
+                sx={{
+                  mb: 4,
+                  p: 3,
+                  borderRadius: '12px',
+                  bgcolor: 'background.surface',
+                  position: 'relative',
+                }}
+              >
+                <IconButton
+                  onClick={() => removeBatchItem(index)}
+                  sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    p: 0.5,
+                    bgcolor: 'background.paper',
+                    '&:hover': {
+                      bgcolor: 'error.main',
+                      color: 'error.contrastText',
+                    },
+                  }}
+                  size="small"
+                  aria-label="remove transaction"
+                >
+                  <SvgIcon fontSize="small">
+                    <XIcon />
+                  </SvgIcon>
+                </IconButton>
+
+                <Typography variant="h3" sx={{ mb: 2 }}>
+                  {transaction.action === 'supply'
+                    ? 'Supply'
+                    : transaction.action === 'borrow'
+                    ? 'Borrow'
+                    : transaction.action === 'repay'
+                    ? 'Repay'
+                    : transaction.action === 'withdraw'
+                    ? 'Withdraw'
+                    : transaction.action === 'transfer'
+                    ? 'Transfer'
+                    : 'Unknown Action'}
+                </Typography>
+                <Typography variant="description" color="text.secondary" sx={{ mb: 1 }}>
+                  Amount
+                </Typography>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Box display="flex" flexDirection="column" alignItems="flex-start">
+                    <FormattedNumber
+                      value={parseFloat(transaction.amount)}
+                      symbol={transaction.symbol}
+                      variant="h3"
+                    />
+                    <FormattedNumber
+                      value={parseFloat(transaction.amountUSD)}
+                      variant="description"
+                      color="text.secondary"
+                      symbol="USD"
+                      prefix="$"
+                    />
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <TokenIcon symbol={transaction.symbol} sx={{ fontSize: '32px', mr: 1 }} />
+                    {/* <Typography variant="h3">{transaction.symbol}</Typography> */}
+                  </Box>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        )}
 
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
           <Button
