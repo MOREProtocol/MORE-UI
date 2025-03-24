@@ -26,7 +26,6 @@ import { WagmiProvider } from 'wagmi';
 
 import createEmotionCache from '../src/createEmotionCache';
 import { AppGlobalStyles } from '../src/layouts/AppGlobalStyles';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 
 const WelcomeModal = dynamic(() =>
   import('src/components/transactions/Welcome/WelcomeModal').then((module) => module.WelcomeModal)
@@ -76,6 +75,14 @@ const WithdrawModal = dynamic(() =>
   import('src/components/transactions/Withdraw/WithdrawModal').then(
     (module) => module.WithdrawModal
   )
+);
+
+// Preventing SSR issues with RainbowKitProvider
+const RainbowKitProvider = dynamic(
+  () => import('@rainbow-me/rainbowkit').then((module) => module.RainbowKitProvider),
+  {
+    ssr: false,
+  }
 );
 
 // Client-side cache, shared for the whole session of the user in the browser.

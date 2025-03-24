@@ -21,7 +21,7 @@ export interface BatchTransaction {
   debtTokenAddress?: string;
   debtType?: InterestRate;
   aTokenAddress?: string;
-  status?: 'pending' | 'approved' | 'failed';
+  status?: 'waiting' | 'pending' | 'approved' | 'failed';
   tx?: PopulatedTransaction;
 }
 
@@ -29,6 +29,11 @@ export interface BatchTransactionsSlice {
   batchTransactionGroups: BatchTransaction[][];
   addToBatch: (transaction: BatchTransaction[]) => void;
   removeBatchItem: (groupIndex: number) => void;
+  updateBatchItemStatus: (
+    groupIndex: number,
+    transactionIndex: number,
+    status: 'waiting' | 'pending' | 'approved' | 'failed'
+  ) => void;
   clearBatch: () => void;
   signer: ethers.providers.JsonRpcSigner | undefined;
   setSigner: (signer: ethers.providers.JsonRpcSigner) => void;
@@ -58,6 +63,7 @@ export interface BatchTransactionsSlice {
     poolAddress: string;
     amountInWei: ethers.BigNumber;
     isNativeToken: boolean;
+    isWrappedToken: boolean;
     wethGatewayAddress: string;
     decimals: number;
   };
@@ -79,6 +85,14 @@ export const createBatchTransactionsSlice: StateCreator<
   removeBatchItem: (groupIndex) =>
     set((state) => ({
       batchTransactionGroups: state.batchTransactionGroups.filter((_, i) => i !== groupIndex),
+    })),
+  updateBatchItemStatus: (groupIndex, transactionIndex, status) =>
+    set((state) => ({
+      batchTransactionGroups: state.batchTransactionGroups.map((group, i) =>
+        i === groupIndex
+          ? group.map((tx, j) => (j === transactionIndex ? { ...tx, status } : tx))
+          : group
+      ),
     })),
   clearBatch: () => set({ batchTransactionGroups: [] }),
   signer: undefined,
@@ -213,27 +227,41 @@ export const createBatchTransactionsSlice: StateCreator<
     poolAddress: string;
     amountInWei: ethers.BigNumber;
     isNativeToken: boolean;
+    isWrappedToken: boolean;
     wethGatewayAddress: string;
     decimals: number;
   } => {
     // Get market and asset information
     const marketConfig = marketsData[market];
     const poolAddress = marketConfig.addresses.LENDING_POOL;
-    
+
+    if (underlyingAsset.toLowerCase() === poolAddress.toLowerCase()) {
+      return {
+        assetAddress: poolAddress,
+        poolAddress: poolAddress,
+        amountInWei: ethers.utils.parseUnits(amount, 18),
+        isNativeToken: false,
+        isWrappedToken: true,
+        wethGatewayAddress: marketConfig.addresses.WETH_GATEWAY,
+        decimals: 18,
+      };
+    }
+
     // Convert amount to token units
     const tokenInfo = TOKEN_LIST.tokens.find(
-      (token) => token.chainId === marketConfig.chainId && token.address.toLowerCase() === underlyingAsset.toLowerCase()
+      (token) =>
+        token.chainId === marketConfig.chainId &&
+        token.address.toLowerCase() === underlyingAsset.toLowerCase()
     );
 
     if (!tokenInfo) {
       throw new Error(`Token info not found for ${underlyingAsset}`);
     }
-    const assetAddress = tokenInfo.address;
+    const assetAddress = tokenInfo?.address || underlyingAsset;
 
     // Check if native token
     const isNativeToken =
-      assetAddress.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'.toLowerCase();
-
+      underlyingAsset.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'.toLowerCase();
 
     // Determine amount in wei
     let amountInWei;
@@ -249,6 +277,7 @@ export const createBatchTransactionsSlice: StateCreator<
       amountInWei,
       decimals: tokenInfo.decimals,
       isNativeToken,
+      isWrappedToken: false,
       wethGatewayAddress: marketConfig.addresses.WETH_GATEWAY,
     };
   },
@@ -272,7 +301,7 @@ export const createBatchTransactionsSlice: StateCreator<
       const transferFromCalldata = erc20Interface.encodeFunctionData('transferFrom', [
         signerAddress,
         MULTICALL_ADDRESS,
-        Number(amountInWei),
+        amountInWei,
       ]);
 
       // Add the transferFrom action
@@ -345,7 +374,7 @@ export const createBatchTransactionsSlice: StateCreator<
   addWithdrawAction: async (transaction: BatchTransaction) => {
     const withdrawTransactions: BatchTransaction[] = [];
 
-    const { assetAddress, isNativeToken, amountInWei, wethGatewayAddress, decimals } =
+    const { assetAddress, isNativeToken, amountInWei, wethGatewayAddress, decimals, poolAddress } =
       get().getTokenInfoAndAmount(transaction.market, transaction.poolAddress, transaction.amount);
     const aTokenAddress = transaction.aTokenAddress;
 
@@ -363,6 +392,7 @@ export const createBatchTransactionsSlice: StateCreator<
     );
     approvalTransaction && withdrawTransactions.push(approvalTransaction);
 
+    console.log(aTokenAddress, `${transaction.symbol} aToken`, amountInWei);
     // Transfer aTokens from user to multicall contract
     const transferActionTx = await get().getTransferFromSignerToMulticall(
       aTokenAddress,
@@ -377,6 +407,7 @@ export const createBatchTransactionsSlice: StateCreator<
         tx: transferActionTx,
       });
 
+    console.log('isNativeToken', isNativeToken);
     // TODO: Withdraw and wrap WETH if needed to be able to withdraw
     if (isNativeToken) {
       // WETH Gateway ABI for withdrawETH
@@ -392,7 +423,7 @@ export const createBatchTransactionsSlice: StateCreator<
 
       // Generate transaction data for withdrawing ETH
       const withdrawEthTx = await wethGatewayContract.populateTransaction.withdrawETH(
-        transaction.poolAddress, // LENDING POOL?????
+        transaction.poolAddress,
         amountInWei.toString(),
         get().account
       );
@@ -419,33 +450,10 @@ export const createBatchTransactionsSlice: StateCreator<
         console.error('Error checking aToken balance:', balanceError);
       }
 
-      // Transfer aTokens from user to multicall contract
-      const transferActionTx = await get().getTransferFromSignerToMulticall(
-        aTokenAddress,
-        `${transaction.symbol} aToken`,
-        amountInWei
-      );
-      transferActionTx &&
-        withdrawTransactions.push({
-          ...transaction,
-          isHidden: true,
-          action: 'transfer',
-          tx: transferActionTx,
-        });
-
-      const approvalTransaction = await get().checkAndGetTokenApproval(
-        transaction.market,
-        aTokenAddress,
-        `${transaction.symbol} aToken`,
-        MULTICALL_ADDRESS,
-        amountInWei,
-        'standard'
-      );
-      approvalTransaction && withdrawTransactions.push(approvalTransaction);
       const poolAbi = [
         'function withdraw(address asset, uint256 amount, address to) external returns (uint256)',
       ];
-      const poolContract = new ethers.Contract(transaction.poolAddress, poolAbi, get().signer);
+      const poolContract = new ethers.Contract(poolAddress, poolAbi, get().signer);
       const withdrawTx = await poolContract.populateTransaction.withdraw(
         assetAddress,
         amountInWei.toString(),
@@ -458,9 +466,9 @@ export const createBatchTransactionsSlice: StateCreator<
         action: 'withdraw',
         tx: { ...withdrawTx, gasLimit: ethers.BigNumber.from(200000) },
       });
-
-      get().addToBatch(withdrawTransactions);
     }
+
+    get().addToBatch(withdrawTransactions);
   },
   addBorrowAction: async (transaction: BatchTransaction) => {
     const borrowTransactions: BatchTransaction[] = [];
@@ -577,10 +585,14 @@ export const createBatchTransactionsSlice: StateCreator<
   },
   // TODO: get gas limit from multicall contract
   getGasLimit: () => {
-    const gasLimitInWei = get().batchTransactionGroups.flat().reduce(
-      (acc, action) => acc.add(action.tx?.gasLimit || ethers.BigNumber.from(0)),
-      ethers.BigNumber.from(0)
-    );
+    const gasLimitInWei = get()
+      .batchTransactionGroups.map((group) =>
+        group.reduce(
+          (acc, action) => acc.add(action.tx?.gasLimit || ethers.BigNumber.from(0)),
+          ethers.BigNumber.from(0)
+        )
+      )
+      .reduce((acc, action) => acc.add(action), ethers.BigNumber.from(0));
     return ethers.utils.formatUnits(gasLimitInWei);
   },
   getBatchTx: async () => {
@@ -589,7 +601,7 @@ export const createBatchTransactionsSlice: StateCreator<
 
     // Flatten all transactions from all groups
     const allTransactions = get()
-      .batchTransactionGroups.flat()
+      .batchTransactionGroups.flatMap((group) => group)
       .filter((t) => !['approve', 'delegate'].includes(t.action));
 
     const actions = allTransactions
@@ -625,7 +637,6 @@ export const createBatchTransactionsSlice: StateCreator<
       to: MULTICALL_ADDRESS,
       from: user,
       value: totalValue,
-      // gasLimit: ethers.BigNumber.from(5000000000),
       gasLimit: totalGasLimit,
     };
   },

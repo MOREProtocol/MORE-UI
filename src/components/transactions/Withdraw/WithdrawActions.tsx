@@ -47,16 +47,17 @@ export const WithdrawActions = ({
       },
       protocolAction: ProtocolAction.withdraw,
     });
-  const handleAddToBatch = () =>
-    addWithdrawAction({
+  const handleAddToBatch = async () => {
+    await addWithdrawAction({
       action: 'withdraw',
       market: currentMarketData.market,
-      poolAddress: poolReserve.market.addresses.LENDING_POOL,
+      poolAddress: poolAddress,
       aTokenAddress: poolReserve.aTokenAddress,
       amount: amountToWithdraw,
       decimals: poolReserve.decimals,
       symbol,
     });
+  };
 
   return (
     <TxActionsWrapper
