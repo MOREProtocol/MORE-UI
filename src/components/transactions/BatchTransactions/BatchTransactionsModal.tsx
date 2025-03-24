@@ -254,10 +254,6 @@ export const BatchTransactionsModal = ({ open, setOpen, user }: BatchTransaction
               return group
                 .filter((tx) => ['approve', 'delegate'].includes(tx.action))
                 .map((approval, approvalIndex) => {
-                  const tokenReserve = reserves.find(
-                    (reserve) =>
-                      reserve.underlyingAsset.toLowerCase() === approval.tx?.to?.toLowerCase()
-                  );
                   return (
                     <Box
                       key={`approval-${groupIndex}-${approvalIndex}`}
@@ -279,15 +275,12 @@ export const BatchTransactionsModal = ({ open, setOpen, user }: BatchTransaction
                       }}
                     >
                       <Box display="flex" flexDirection="row" alignItems="center" gap={2}>
-                        <TokenIcon
-                          symbol={tokenReserve?.symbol || 'TOKEN'}
-                          sx={{ fontSize: '24px' }}
-                        />
+                        <TokenIcon symbol={approval.symbol || 'TOKEN'} sx={{ fontSize: '24px' }} />
                         <Typography variant="h3" color="text">
                           {approval.action === 'approve' ? 'Approve' : 'Delegate'}
                         </Typography>
                         <Typography variant="h3" color="text.secondary">
-                          {tokenReserve?.symbol || ''}
+                          {approval.symbol || ''}
                         </Typography>
                       </Box>
                       {approval.status !== 'approved' && (

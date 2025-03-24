@@ -357,7 +357,7 @@ export const fakeVaultData: VaultData = {
 };
 
 // Define the tabs for your vault page
-export type VaultTab = 'overview' | 'financials' | 'allocations' | 'activity';
+export type VaultTab = 'overview' | 'financials' | 'allocations' | 'activity' | 'manage';
 
 // Define the context data structure
 export interface VaultContextData {

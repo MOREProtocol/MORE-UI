@@ -203,11 +203,8 @@ export const createBatchTransactionsSlice: StateCreator<
           };
 
           return approvalTransaction;
-
-          // return true;
         } else {
           console.log(`Approval/delegation already exists for ${assetSymbol}`);
-          // return false;
         }
       }
 
@@ -360,8 +357,6 @@ export const createBatchTransactionsSlice: StateCreator<
       );
       approvalTransaction && supplyTransactions.push(approvalTransaction);
     }
-
-    // TODO: Unwrap WETH if needed to be able to supply
 
     supplyTransactions.push({
       ...transaction,
