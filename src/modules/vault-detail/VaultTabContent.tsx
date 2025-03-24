@@ -5,6 +5,7 @@ import { useVaultInfo } from 'src/hooks/useVaultInfo';
 import { VaultActivity } from './VaultActivity';
 import { VaultAllocations } from './VaultAllocations';
 import { VaultFinancials } from './VaultFinancials';
+import { VaultManage } from './VaultManage';
 import { VaultOverview } from './VaultOverview';
 
 export const VaultTabContent: React.FC = () => {
@@ -17,6 +18,7 @@ export const VaultTabContent: React.FC = () => {
         {selectedTab === 'financials' && <VaultFinancials />}
         {selectedTab === 'allocations' && <VaultAllocations />}
         {selectedTab === 'activity' && <VaultActivity />}
+        {selectedTab === 'manage' && <VaultManage />}
       </div>
     </Box>
   );

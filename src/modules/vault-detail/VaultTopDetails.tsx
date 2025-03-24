@@ -2,7 +2,7 @@ import { Box, Button, Skeleton, Typography } from '@mui/material';
 import { useVaultInfo } from 'src/hooks/useVaultInfo';
 
 export const VaultTopDetails = () => {
-  const { vault, isLoading } = useVaultInfo();
+  const { vault, isLoading, setSelectedTab } = useVaultInfo();
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'row', gap: 20, alignItems: 'center' }}>
@@ -74,7 +74,7 @@ export const VaultTopDetails = () => {
           variant="contained"
           fullWidth
           size="medium"
-          onClick={() => console.log('manage')}
+          onClick={() => setSelectedTab('manage')}
           disabled={isLoading}
           sx={{ borderRadius: '6px', py: 2 }}
         >
