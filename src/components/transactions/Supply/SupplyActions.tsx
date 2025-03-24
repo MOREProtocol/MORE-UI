@@ -187,8 +187,8 @@ export const SupplyActions = React.memo(
       }
     };
 
-    const handleAddToBatch = () =>
-      addSupplyAction({
+    const handleAddToBatch = async () => {
+      await addSupplyAction({
         action: 'supply',
         market: currentMarketData.market,
         poolAddress: poolAddress,
@@ -196,6 +196,7 @@ export const SupplyActions = React.memo(
         decimals: decimals,
         symbol,
       });
+    };
 
     return (
       <TxActionsWrapper

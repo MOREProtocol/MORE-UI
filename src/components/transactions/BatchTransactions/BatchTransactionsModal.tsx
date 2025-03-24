@@ -1,30 +1,33 @@
-import { calculateHealthFactorFromBalancesBigUnits, USD_DECIMALS, valueToBigNumber } from '@aave/math-utils';
+import {
+  calculateHealthFactorFromBalancesBigUnits,
+  USD_DECIMALS,
+  valueToBigNumber,
+} from '@aave/math-utils';
 import { ArrowNarrowRightIcon, ArrowRightIcon, XIcon } from '@heroicons/react/outline';
-import { Box, Button, Drawer, IconButton, Stack, SvgIcon, Typography } from '@mui/material';
-import { ethers } from 'ethers';
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Drawer,
+  IconButton,
+  Stack,
+  SvgIcon,
+  Typography,
+} from '@mui/material';
+// import { ethers } from 'ethers';
 import { useRouter } from 'next/router';
-import { useEffect, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { HealthFactorNumber } from 'src/components/HealthFactorNumber';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
-import { ExtendedFormattedUser, useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
+import {
+  ExtendedFormattedUser,
+  useAppDataContext,
+} from 'src/hooks/app-data-provider/useAppDataProvider';
+import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
+import { BatchTransaction } from 'src/store/batchTransactionsSlice';
 import { useRootStore } from 'src/store/root';
-import { useAccount, useWalletClient } from 'wagmi';
-import { HealthFactorNumber } from 'src/components/HealthFactorNumber';
-
-const useSigner = () => {
-  const { isConnected } = useAccount();
-  const { data: walletClient } = useWalletClient();
-
-  if (isConnected && walletClient) {
-    const provider = new ethers.providers.Web3Provider(
-      walletClient as ethers.providers.ExternalProvider
-    );
-    const signer = provider.getSigner();
-    return signer;
-  }
-  return null;
-};
 
 interface BatchTransactionsModalProps {
   open: boolean;
@@ -34,17 +37,25 @@ interface BatchTransactionsModalProps {
 
 export const BatchTransactionsModal = ({ open, setOpen, user }: BatchTransactionsModalProps) => {
   const router = useRouter();
+  const [txCallResult, setTxCallResult] = useState<string | null>(null);
+  const [isBatchTransactionsLoading, setIsBatchTransactionsLoading] = useState<boolean>(false);
+  const { currentNetworkConfig } = useProtocolDataContext();
 
-  const { batchTransactionGroups, removeBatchItem, getBatchTx, getGasLimit, clearBatch, setSigner, signer } =
-    useRootStore((state) => ({
-      batchTransactionGroups: state.batchTransactionGroups,
-      getBatchTx: state.getBatchTx,
-      getGasLimit: state.getGasLimit,
-      removeBatchItem: state.removeBatchItem,
-      clearBatch: state.clearBatch,
-      setSigner: state.setSigner,
-      signer: state.signer,
-    }));
+  const {
+    batchTransactionGroups,
+    removeBatchItem,
+    getBatchTx,
+    getGasLimit,
+    clearBatch,
+    updateBatchItemStatus,
+  } = useRootStore((state) => ({
+    batchTransactionGroups: state.batchTransactionGroups,
+    getBatchTx: state.getBatchTx,
+    getGasLimit: state.getGasLimit,
+    removeBatchItem: state.removeBatchItem,
+    clearBatch: state.clearBatch,
+    updateBatchItemStatus: state.updateBatchItemStatus,
+  }));
   const { sendTx } = useWeb3Context();
   const { reserves, marketReferencePriceInUsd } = useAppDataContext();
 
@@ -59,7 +70,8 @@ export const BatchTransactionsModal = ({ open, setOpen, user }: BatchTransaction
           .map((transaction) => {
             // Find the reserve that matches this transaction's asset
             const matchingReserve = reserves.find(
-              (reserve) => reserve.underlyingAsset.toLowerCase() === transaction.poolAddress.toLowerCase()
+              (reserve) =>
+                reserve.underlyingAsset.toLowerCase() === transaction.poolAddress.toLowerCase()
             );
             let amountUSD = '0';
             if (matchingReserve) {
@@ -87,51 +99,53 @@ export const BatchTransactionsModal = ({ open, setOpen, user }: BatchTransaction
     setOpen(false);
   };
 
-  const currentWalletSigner = useSigner();
-  useEffect(() => {
-    if (currentWalletSigner && !signer) {
-      setSigner(currentWalletSigner);
-    }
-  }, [setSigner, currentWalletSigner, signer]);
+  const handleApproveOrDelegate = async (
+    approval: BatchTransaction,
+    groupIndex: number,
+    approvalIndex: number
+  ) => {
+    console.log('Approving:', approval);
+    updateBatchItemStatus(groupIndex, approvalIndex, 'pending');
+    const approvalResult = await sendTx(approval.tx);
+    console.log('Approval transaction result:', approvalResult);
+    updateBatchItemStatus(groupIndex, approvalIndex, 'approved');
+  };
 
   const handleExecuteBatch = async () => {
+    if (txCallResult) {
+      const explorerLink = currentNetworkConfig.explorerLinkBuilder({
+        tx: txCallResult,
+      });
+      window.open(explorerLink, '_blank');
+      return;
+    }
     try {
+      setIsBatchTransactionsLoading(true);
       console.log('batchTransactionGroups', batchTransactionGroups);
       if (batchTransactionGroups.length === 0) {
         throw new Error('No transactions in batch');
-      }
-
-      const approvalTransactions = batchTransactionGroups
-        .flat()
-        .filter((transaction) => ['approve', 'delegate'].includes(transaction.action));
-      console.log('approvalTransactions', approvalTransactions);
-
-      // // Process each delegation sequentially
-      // // TODO: can it be done all in once?
-      if (approvalTransactions.length > 0) {
-        for (const approval of approvalTransactions) {
-          console.log('Processing approval:', approval);
-          // approval.status = 'pending';
-          const approvalResult = await sendTx(approval.tx);
-          // TODO: doesn't work, need to use better state management
-          // approval.status = 'approved';
-          console.log('Approval transaction result:', approvalResult);
-        }
       }
 
       const batchTx = await getBatchTx();
       console.log('batchTx', batchTx);
       const response = await sendTx(batchTx);
       console.log('Batch transaction completed:', response);
-      setOpen(false);
-      clearBatch();
+      setTxCallResult(response);
+      // setOpen(false);
+      setTimeout(() => {
+        clearBatch();
+      }, 30000);
     } catch (error) {
       console.error('Error executing batch transactions:', error);
+    } finally {
+      setIsBatchTransactionsLoading(false);
     }
   };
 
   // Generate dynamic button text based on batch transactions
   const getButtonText = () => {
+    if (txCallResult) return 'See transaction on Flowscan';
+
     if (batchTransactionGroups.length === 0) return 'Execute Batch';
 
     // const hasApprovals = getApprovals().length > 0;
@@ -156,9 +170,13 @@ export const BatchTransactionsModal = ({ open, setOpen, user }: BatchTransaction
 
   // Calculate total gas cost
   const totalGasCost = getGasLimit();
-  const nativeTokenPriceInUSD = useMemo(() => reserves.find(
-    (reserve) => reserve.symbol.toLowerCase() === 'wflow' // TODO: make it dynamic to chain
-  )?.priceInUSD, [reserves]);
+  const nativeTokenPriceInUSD = useMemo(
+    () =>
+      reserves.find(
+        (reserve) => reserve.symbol.toLowerCase() === 'wflow' // TODO: make it dynamic to chain
+      )?.priceInUSD,
+    [reserves]
+  );
   const totalGasCostUSD = Number(totalGasCost) * Number(nativeTokenPriceInUSD);
 
   // Calculate health factor after transactions
@@ -180,9 +198,11 @@ export const BatchTransactionsModal = ({ open, setOpen, user }: BatchTransaction
     }
     return acc;
   }, valueToBigNumber(0));
-  
+
   const newHealthFactor = calculateHealthFactorFromBalancesBigUnits({
-    collateralBalanceMarketReferenceCurrency: valueToBigNumber(user.totalCollateralUSD).plus(totalCollateralAmountInUsd),
+    collateralBalanceMarketReferenceCurrency: valueToBigNumber(user.totalCollateralUSD).plus(
+      totalCollateralAmountInUsd
+    ),
     borrowBalanceMarketReferenceCurrency: valueToBigNumber(user.totalBorrowsUSD).plus(
       totalBorrowAmountInUsd
     ),
@@ -230,46 +250,63 @@ export const BatchTransactionsModal = ({ open, setOpen, user }: BatchTransaction
             <Typography variant="h4" color="text.secondary" sx={{ mb: 1 }}>
               Approvals and delegations
             </Typography>
-            {batchTransactionGroups
-              .flat()
-              .filter((tx) => ['approve', 'delegate'].includes(tx.action))
-              .map((approval, index) => {
-                const tokenReserve = reserves.find(
-                  (reserve) =>
-                    reserve.underlyingAsset.toLowerCase() === approval.tx?.to?.toLowerCase()
-                );
-                return (
-                  <Box
-                    key={`approval-${index}`}
-                    sx={{
-                      mb: 1,
-                      p: 2,
-                      borderRadius: '8px',
-                      bgcolor:
-                        approval.status === 'pending'
-                          ? 'warning.200'
-                          : approval.status === 'approved'
-                          ? 'success.200'
-                          : approval.status === 'failed'
-                          ? 'error.200'
-                          : 'background.surface',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Box display="flex" flexDirection="row" alignItems="flex-start">
-                      <Typography variant="h3" color="text">
-                        {approval.action === 'approve' ? 'Approve ' : 'Delegate '}
-                      </Typography>
-                      <Typography variant="h3" color="text.secondary">
-                        {tokenReserve?.symbol || ''}
-                      </Typography>
+            {batchTransactionGroups.map((group, groupIndex) => {
+              return group
+                .filter((tx) => ['approve', 'delegate'].includes(tx.action))
+                .map((approval, approvalIndex) => {
+                  const tokenReserve = reserves.find(
+                    (reserve) =>
+                      reserve.underlyingAsset.toLowerCase() === approval.tx?.to?.toLowerCase()
+                  );
+                  return (
+                    <Box
+                      key={`approval-${groupIndex}-${approvalIndex}`}
+                      sx={{
+                        mb: 1,
+                        p: 2,
+                        borderRadius: '4px',
+                        bgcolor:
+                          approval.status === 'pending'
+                            ? 'warning.200'
+                            : approval.status === 'approved'
+                            ? 'success.200'
+                            : approval.status === 'failed'
+                            ? 'error.200'
+                            : 'background.surface',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Box display="flex" flexDirection="row" alignItems="center" gap={2}>
+                        <TokenIcon
+                          symbol={tokenReserve?.symbol || 'TOKEN'}
+                          sx={{ fontSize: '24px' }}
+                        />
+                        <Typography variant="h3" color="text">
+                          {approval.action === 'approve' ? 'Approve' : 'Delegate'}
+                        </Typography>
+                        <Typography variant="h3" color="text.secondary">
+                          {tokenReserve?.symbol || ''}
+                        </Typography>
+                      </Box>
+                      {approval.status !== 'approved' && (
+                        <Button
+                          variant="contained"
+                          onClick={() => {
+                            handleApproveOrDelegate(approval, groupIndex, approvalIndex);
+                          }}
+                        >
+                          {approval.action === 'approve' ? 'Approve' : 'Delegate'}
+                          {approval.status === 'pending' && (
+                            <CircularProgress color="inherit" size="16px" sx={{ ml: 2 }} />
+                          )}
+                        </Button>
+                      )}
                     </Box>
-                    <TokenIcon symbol={tokenReserve?.symbol || 'TOKEN'} sx={{ fontSize: '24px' }} />
-                  </Box>
-                );
-              })}
+                  );
+                });
+            })}
           </Box>
         )}
         {transactionsWithUsdValues.length > 0 && (
@@ -283,7 +320,7 @@ export const BatchTransactionsModal = ({ open, setOpen, user }: BatchTransaction
                 sx={{
                   mb: 4,
                   p: 3,
-                  borderRadius: '12px',
+                  borderRadius: '4px',
                   bgcolor:
                     transaction.status === 'pending'
                       ? 'warning.200'
@@ -366,7 +403,7 @@ export const BatchTransactionsModal = ({ open, setOpen, user }: BatchTransaction
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
           <Button
             variant="outlined"
-            sx={{ borderRadius: '20px', px: 4 }}
+            sx={{ borderRadius: '4px', px: 4 }}
             onClick={() => {
               router.push('/markets');
               setOpen(false);
@@ -405,7 +442,11 @@ export const BatchTransactionsModal = ({ open, setOpen, user }: BatchTransaction
                   <ArrowNarrowRightIcon />
                 </SvgIcon>
                 <HealthFactorNumber
-                  value={isNaN(Number(newHealthFactor.toString())) ? user.healthFactor : newHealthFactor.toString()}
+                  value={
+                    isNaN(Number(newHealthFactor.toString()))
+                      ? user.healthFactor
+                      : newHealthFactor.toString()
+                  }
                   variant="secondary14"
                 />
               </Box>
@@ -434,14 +475,18 @@ export const BatchTransactionsModal = ({ open, setOpen, user }: BatchTransaction
 
         <Box>
           <Button
-            variant={batchTransactionGroups.length === 0 ? 'contained' : 'gradient'}
+            variant={batchTransactionGroups.length === 0 || txCallResult ? 'contained' : 'gradient'}
             fullWidth
             size="large"
             onClick={handleExecuteBatch}
             disabled={batchTransactionGroups.length === 0}
             sx={{ borderRadius: '6px', py: 2 }}
           >
-            {getButtonText()}
+            {isBatchTransactionsLoading ? (
+              <CircularProgress color="inherit" size="24px" sx={{ mr: 2 }} />
+            ) : (
+              getButtonText()
+            )}
           </Button>
         </Box>
       </Box>

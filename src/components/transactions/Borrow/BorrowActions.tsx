@@ -207,8 +207,8 @@ export const BorrowActions = React.memo(
       setGasLimit(borrowGasLimit.toString());
     }, [requiresApproval, approvalTxState, setGasLimit]);
 
-    const handleAddToBatch = () =>
-      addBorrowAction({
+    const handleAddToBatch = async () => {
+      await addBorrowAction({
         action: 'borrow',
         market: currentMarketData.market,
         poolAddress: poolAddress,
@@ -221,6 +221,7 @@ export const BorrowActions = React.memo(
         symbol,
         debtType: interestRateMode,
       });
+    };
 
     return (
       <TxActionsWrapper

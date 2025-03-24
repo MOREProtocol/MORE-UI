@@ -223,8 +223,8 @@ export const RepayActions = ({
     setGasLimit(supplyGasLimit.toString());
   }, [requiresApproval, approvalTxState, usePermit, setGasLimit]);
 
-  const handleAddToBatch = () => {
-    addRepayAction({
+  const handleAddToBatch = async () => {
+    await addRepayAction({
       action: 'repay',
       market: currentMarketData.market,
       poolAddress: poolAddress,

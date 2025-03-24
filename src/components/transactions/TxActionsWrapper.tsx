@@ -1,6 +1,6 @@
 import { CheckIcon } from '@heroicons/react/solid';
 import { Box, BoxProps, Button, CircularProgress, SvgIcon, Typography } from '@mui/material';
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { TxStateType, useModalContext } from 'src/hooks/useModal';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { TrackEventProps } from 'src/store/analyticsSlice';
@@ -16,7 +16,7 @@ interface TxActionsWrapperProps extends BoxProps {
   approvalTxState?: TxStateType;
   handleApproval?: () => Promise<void>;
   handleAction: () => Promise<void>;
-  handleAddToBatch?: () => void;
+  handleAddToBatch?: () => Promise<void>;
   isWrongNetwork: boolean;
   mainTxState: TxStateType;
   preparingTransactions: boolean;
@@ -124,6 +124,14 @@ export const TxActionsWrapper = ({
     };
   }
 
+  const [isBatchLoading, setIsBatchLoading] = useState(false);
+  const handleAddToBatchClick = async () => {
+    setIsBatchLoading(true);
+    await handleAddToBatch();
+    setIsBatchLoading(false);
+    close();
+  };
+
   const { content, disabled, loading, handleClick } = getMainParams();
   const approvalParams = getApprovalParams();
   return (
@@ -164,16 +172,19 @@ export const TxActionsWrapper = ({
         </Button>
         <Button
           variant="contained"
-          disabled={blocked || readOnlyModeAddress !== undefined || !handleAddToBatch}
-          onClick={() => {
-            handleAddToBatch();
-            close();
-          }}
+          disabled={
+            blocked || readOnlyModeAddress !== undefined || !handleAddToBatch || isAmountMissing
+          }
+          onClick={handleAddToBatchClick}
           size="large"
           sx={{ minHeight: '44px', ...(approvalParams ? { mt: 2 } : {}) }}
           data-cy="batchButton"
         >
-          Add to batch
+          {isBatchLoading ? (
+            <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />
+          ) : (
+            'Add to batch'
+          )}
         </Button>
       </Box>
       {readOnlyModeAddress && (
