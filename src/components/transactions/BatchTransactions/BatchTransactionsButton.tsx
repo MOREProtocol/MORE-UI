@@ -1,13 +1,12 @@
-import { ShoppingCartIcon } from '@heroicons/react/outline';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/solid';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { Box, Button, SvgIcon } from '@mui/material';
 import { ethers } from 'ethers';
-import { useEffect } from 'react';
-import { UserAuthenticated } from 'src/components/UserAuthenticated';
+import { useEffect, useMemo } from 'react';
 import { useRootStore } from 'src/store/root';
 import { useAccount, useWalletClient } from 'wagmi';
 
-import { BatchTransactionsModal } from './BatchTransactionsModal';
+import { BatchTransactionsModal } from './BatchTransactionsModal/BatchTransactionsModal';
 
 interface BatchTransactionProps {
   open: boolean;
@@ -15,14 +14,18 @@ interface BatchTransactionProps {
 }
 
 export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps) => {
-  const [batchTransactionGroups, setSigner, signer] = useRootStore((state) => [
-    state.batchTransactionGroups,
+  const [setSigner, signer, batchTransactionGroups] = useRootStore((state) => [
     state.setSigner,
     state.signer,
+    state.batchTransactionGroups,
   ]);
-
   const { isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
+
+  const hasBatchTransactions = useMemo(
+    () => batchTransactionGroups.length > 0,
+    [batchTransactionGroups]
+  );
 
   useEffect(() => {
     if (isConnected && walletClient) {
@@ -46,35 +49,44 @@ export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps
 
   return (
     <>
-      {batchTransactionGroups.length > 0 && (
-        <Box paddingX={2}>
-          <Button
-            variant={open ? 'surface' : 'gradient'}
-            onClick={handleToggle}
-            startIcon={
-              <SvgIcon>
+      <Box paddingX={2}>
+        <Button
+          variant={open || batchTransactionGroups.length === 0 ? 'surface' : 'gradient'}
+          onClick={handleToggle}
+          sx={{
+            ...(!hasBatchTransactions && { p: '7px 8px' }),
+            minWidth: 'unset',
+            ml: 2,
+          }}
+          startIcon={
+            hasBatchTransactions ? (
+              <SvgIcon sx={{ color: '#F1F1F3', ml: 1 }} fontSize="small">
                 <ShoppingCartIcon />
               </SvgIcon>
-            }
-            endIcon={
-              <SvgIcon
-                sx={{
-                  display: { xs: 'none', md: 'block' },
-                }}
-              >
-                {open ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-              </SvgIcon>
-            }
-          >
-            Batch Transactions
-          </Button>
-        </Box>
-      )}
-      {batchTransactionGroups.length > 0 && (
-        <UserAuthenticated>
-          {(user) => <BatchTransactionsModal open={open} setOpen={setOpen} user={user} />}
-        </UserAuthenticated>
-      )}
+            ) : (
+              <></>
+            )
+          }
+          endIcon={
+            <SvgIcon
+              sx={{
+                display: hasBatchTransactions ? { xs: 'none', md: 'block' } : 'none',
+              }}
+            >
+              {open ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+            </SvgIcon>
+          }
+        >
+          {hasBatchTransactions ? (
+            'Batch Transactions'
+          ) : (
+            <SvgIcon sx={{ color: '#F1F1F3' }} fontSize="small">
+              <ShoppingCartIcon />
+            </SvgIcon>
+          )}
+        </Button>
+      </Box>
+      <BatchTransactionsModal open={open} setOpen={setOpen} />
     </>
   );
 };
