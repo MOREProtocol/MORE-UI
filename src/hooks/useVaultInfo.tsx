@@ -1,4 +1,5 @@
-import React, { createContext, JSX, ReactNode, useContext, useState } from 'react';
+import { useRouter } from 'next/router';
+import React, { createContext, JSX, ReactNode, useContext, useEffect, useState } from 'react';
 
 // Define standardized types for monetary values
 export interface MonetaryValue {
@@ -624,11 +625,34 @@ export const VaultProvider = ({
   children: ReactNode;
   initialVaultId?: string;
 }): JSX.Element => {
+  const router = useRouter();
+  const { selectedTab: tabFromUrl } = router.query;
+
   // State for the vault data
   const [vault, setVault] = useState<VaultData | null>(fakeVaultData);
-  const [selectedTab, setSelectedTab] = useState<VaultTab>('overview');
+  const [selectedTab, setSelectedTab] = useState<VaultTab>((tabFromUrl as VaultTab) || 'overview');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Update URL when tab changes
+  const handleTabChange = (tab: VaultTab) => {
+    setSelectedTab(tab);
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, selectedTab: tab },
+      },
+      undefined,
+      { shallow: true }
+    );
+  };
+
+  // Sync with URL parameters
+  useEffect(() => {
+    if (tabFromUrl && typeof tabFromUrl === 'string') {
+      setSelectedTab(tabFromUrl as VaultTab);
+    }
+  }, [tabFromUrl]);
 
   // Function to fetch vault data
   const fetchVaultDataAndUpdateState = async (vaultId: string) => {
@@ -648,7 +672,7 @@ export const VaultProvider = ({
   };
 
   // Load initial data if ID is provided
-  React.useEffect(() => {
+  useEffect(() => {
     if (initialVaultId) {
       fetchVaultDataAndUpdateState(initialVaultId);
     }
@@ -665,7 +689,7 @@ export const VaultProvider = ({
   const contextValue: VaultContextData = {
     vault,
     selectedTab,
-    setSelectedTab,
+    setSelectedTab: handleTabChange,
     isLoading,
     error,
     refreshVault,
