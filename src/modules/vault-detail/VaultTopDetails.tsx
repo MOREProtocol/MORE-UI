@@ -2,7 +2,7 @@ import { Box, Button, Skeleton, Typography } from '@mui/material';
 import { useVaultInfo } from 'src/hooks/useVaultInfo';
 
 export const VaultTopDetails = () => {
-  const { vault, isLoading, setSelectedTab } = useVaultInfo();
+  const { vault, isLoading } = useVaultInfo();
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'row', gap: 20, alignItems: 'center' }}>
@@ -70,7 +70,7 @@ export const VaultTopDetails = () => {
         >
           Deposit
         </Button>
-        <Button
+        {/* <Button
           variant="contained"
           fullWidth
           size="medium"
@@ -79,7 +79,7 @@ export const VaultTopDetails = () => {
           sx={{ borderRadius: '6px', py: 2 }}
         >
           Manage
-        </Button>
+        </Button> */}
       </Box>
     </Box>
   );

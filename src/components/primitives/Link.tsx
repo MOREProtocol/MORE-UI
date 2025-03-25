@@ -124,6 +124,9 @@ export const ROUTES = {
     `/governance/v3/proposal?proposalId=${proposalId}`,
   reserveOverview: (underlyingAsset: string, marketName: CustomMarket | 'all_markets') =>
     `/reserve-overview/?underlyingAsset=${underlyingAsset}&marketName=${marketName}`,
-  vaultDetail: (vaultName: string) => `/vault-detail/?vaultName=${vaultName}`,
+  vaultDetail: (vaultId: string, selectedTab?: string) =>
+    selectedTab
+      ? `/vault-detail?vaultId=${vaultId}&selectedTab=${selectedTab}`
+      : `/vault-detail?vaultId=${vaultId}`,
   history: '/history',
 };
