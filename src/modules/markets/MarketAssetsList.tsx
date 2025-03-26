@@ -66,7 +66,7 @@ export default function MarketAssetsList({
 }: MarketAssetsListProps) {
   const { currentAccount } = useWeb3Context();
   const { currentMarket } = useRootStore()
-  const lastColumnSize = useMemo(() => (!!currentAccount && currentMarket !== 'all_markets' ? 180 : 95), [currentAccount, currentMarket]);
+  const lastColumnSize = useMemo(() => (!!currentAccount && currentMarket !== 'all_markets' ? 320 : 95), [currentAccount, currentMarket]);
   const isTableChangedToCards = useMediaQuery('(max-width:1125px)');
   const [sortName, setSortName] = useState('');
   const [sortDesc, setSortDesc] = useState(false);

@@ -20,7 +20,8 @@ import { ListItem } from '../../components/lists/ListItem';
 import { FormattedNumber } from '../../components/primitives/FormattedNumber';
 import { ROUTES } from '../../components/primitives/Link';
 import { TokenIcon } from '../../components/primitives/TokenIcon';
-import { ComputedReserveDataWithMarket } from '../../hooks/app-data-provider/useAppDataProvider';
+import { ComputedReserveDataWithMarket, useAppDataContext } from '../../hooks/app-data-provider/useAppDataProvider';
+import { InterestRate } from '@aave/contract-helpers';
 
 export const MarketAssetsListItem = ({
   reserve,
@@ -31,10 +32,14 @@ export const MarketAssetsListItem = ({
 }) => {
   const router = useRouter();
   const { currentMarket, setCurrentMarket } = useRootStore();
-  const { openSupply, openBorrow } = useModalContext();
+  const { openSupply, openBorrow, openWithdraw, openRepay } = useModalContext();
   const trackEvent = useRootStore((store) => store.trackEvent);
   const { currentAccount } = useWeb3Context();
-  const lastColumnSize = useMemo(() => (!!currentAccount ? 180 : 95), [currentAccount]);
+  const { user } = useAppDataContext();
+  const lastColumnSize = useMemo(() => (!!currentAccount ? 320 : 95), [currentAccount]);
+
+  const hasSupply = useMemo(() => user?.userReservesData.some((userReserve) => userReserve.reserve.underlyingAsset === reserve.underlyingAsset && userReserve.underlyingBalance !== '0'), [user, reserve]);
+  const hasBorrow = useMemo(() => user?.userReservesData.some((userReserve) => userReserve.reserve.underlyingAsset === reserve.underlyingAsset && userReserve.variableBorrows !== '0'), [user, reserve]);
 
   // Does not seem to work
   const disableSupply =
@@ -167,6 +172,23 @@ export const MarketAssetsListItem = ({
             >
               Supply
             </Button>
+            {hasSupply &&
+              <Button
+                disabled={disableSupply}
+                variant="outlined"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openWithdraw(
+                    reserve.underlyingAsset,
+                    reserve.market.market,
+                    reserve.name,
+                    'market-list'
+                  );
+                }}
+              >
+                Withdraw
+              </Button>
+            }
             <Button
               disabled={disableBorrow}
               variant="contained"
@@ -182,6 +204,25 @@ export const MarketAssetsListItem = ({
             >
               Borrow
             </Button>
+            {hasBorrow &&
+              <Button
+                disabled={disableBorrow}
+                variant="outlined"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openRepay(
+                    reserve.underlyingAsset,
+                    InterestRate.Variable,
+                    reserve.isFrozen,
+                    reserve.market.market,
+                    reserve.name,
+                    'market-list'
+                  );
+                }}
+              >
+                Repay
+              </Button>
+            }
           </Box>
         ) : (
           <Button
