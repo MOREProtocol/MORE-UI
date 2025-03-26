@@ -2,7 +2,9 @@ import { availableTokensDropdownOptions, deadlineDropdownOptions } from './const
 import { DisplayType, Facet, InputType } from './types';
 
 export const uniswapFacet: Facet = {
-  contractId: '0x31aC13517Ad9c55d8337dBeC2e352632f080bC8b',
+  contractAddress: {
+    testnet: '0x31aC13517Ad9c55d8337dBeC2e352632f080bC8b',
+  },
   name: 'Uniswap v2',
   icon: '/icons/protocols/uniswap.svg',
   description: 'Uniswap is a decentralized exchange for trading cryptocurrencies.',
@@ -31,7 +33,11 @@ export const uniswapFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
-          defaultValue: '', // TODO: get default value from the contract
+          defaultValue: {
+            // PunchSwapV2Router
+            testnet: '0xeD53235cC3E9d2d464E9c408B95948836648870B',
+            mainnet: '0xf45AFe28fd5519d5f8C1d4787a4D5f724C0eFa4d',
+          },
         },
         {
           id: 'tokenA',
@@ -113,7 +119,11 @@ export const uniswapFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
-          // defaultValue: '', // TODO: get default value from the contract
+          defaultValue: {
+            // PunchSwapV2Router
+            testnet: '0xeD53235cC3E9d2d464E9c408B95948836648870B',
+            mainnet: '0xf45AFe28fd5519d5f8C1d4787a4D5f724C0eFa4d',
+          },
         },
         {
           id: 'tokenA',
@@ -201,8 +211,11 @@ export const uniswapFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
-          // defaultValue: '', // TODO: get default value from the contract
-        },
+          defaultValue: {
+            // PunchSwapV2Router
+            testnet: '0xeD53235cC3E9d2d464E9c408B95948836648870B',
+            mainnet: '0xf45AFe28fd5519d5f8C1d4787a4D5f724C0eFa4d',
+          },        },
         {
           id: 'amountIn',
           name: 'Amount In',

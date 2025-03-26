@@ -1,7 +1,9 @@
 import { Facet } from './types';
 
 export const origamiFacet: Facet = {
-  contractId: '0x72eBEC124864D69a33638c5BA478bd9968798709',
+  contractAddress: {
+    testnet: '0x72eBEC124864D69a33638c5BA478bd9968798709',
+  },
   icon: '/icons/protocols/origami.svg',
   name: 'Origami',
   description: 'Origami is a decentralized exchange for trading cryptocurrencies.',

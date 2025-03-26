@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 // import { ethers } from 'ethers';
 import { useRouter } from 'next/router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { UserAuthenticated } from 'src/components/UserAuthenticated';
@@ -31,7 +31,9 @@ interface BatchTransactionsModalProps {
 
 export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModalProps) => {
   const router = useRouter();
-  const [txCallResult, setTxCallResult] = useState<string | null>(null);
+  const [txCallResult, setTxCallResult] = useState<{ isError: boolean; message?: string } | null>(
+    null
+  );
   const [isBatchTransactionsLoading, setIsBatchTransactionsLoading] = useState<boolean>(false);
   const { currentNetworkConfig } = useProtocolDataContext();
 
@@ -89,7 +91,15 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
       .flat();
   }, [batchTransactionGroups, reserves, marketReferencePriceInUsd]);
 
+  // Reset txCallResult when batchTransactionGroups evolves
+  useEffect(() => {
+    setTxCallResult(null);
+  }, [batchTransactionGroups]);
+
   const handleClose = () => {
+    if (txCallResult) {
+      clearBatch();
+    }
     setOpen(false);
   };
 
@@ -108,7 +118,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
   const handleExecuteBatch = async () => {
     if (txCallResult) {
       const explorerLink = currentNetworkConfig.explorerLinkBuilder({
-        tx: txCallResult,
+        tx: txCallResult.message,
       });
       window.open(explorerLink, '_blank');
       return;
@@ -124,13 +134,13 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
       console.log('batchTx', batchTx);
       const response = await sendTx(batchTx);
       console.log('Batch transaction completed:', response);
-      setTxCallResult(response);
-      // setOpen(false);
+      setTxCallResult({ isError: false, message: response });
       setTimeout(() => {
         clearBatch();
       }, 30000);
     } catch (error) {
       console.error('Error executing batch transactions:', error);
+      setTxCallResult({ isError: true });
     } finally {
       setIsBatchTransactionsLoading(false);
     }
@@ -138,7 +148,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
 
   // Generate dynamic button text based on batch transactions
   const getButtonText = () => {
-    if (txCallResult) return 'See transaction on Flowscan';
+    if (txCallResult && !txCallResult.isError) return 'See transaction on Flowscan';
 
     if (batchTransactionGroups.length === 0) return 'Execute Batch';
 
@@ -206,9 +216,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
                 Batched Transactions
               </Typography>
               <IconButton onClick={handleClose} sx={{ p: 1 }}>
-                <SvgIcon>
-                  <ArrowRightIcon />
-                </SvgIcon>
+                <SvgIcon>{txCallResult ? <XIcon /> : <ArrowRightIcon />}</SvgIcon>
               </IconButton>
             </Box>
 
@@ -404,10 +412,20 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
                 totalGasCostUSD={totalGasCostUSD.toString()}
               />
 
+              {txCallResult?.isError && (
+                <Box sx={{ mt: 1, p: 2 }}>
+                  <Typography variant="h4" color="error" textAlign="center">
+                    Error executing batch transactions
+                  </Typography>
+                </Box>
+              )}
+
               <Box>
                 <Button
                   variant={
-                    batchTransactionGroups.length === 0 || txCallResult ? 'contained' : 'gradient'
+                    batchTransactionGroups.length === 0 || (txCallResult && !txCallResult.isError)
+                      ? 'contained'
+                      : 'gradient'
                   }
                   fullWidth
                   size="large"

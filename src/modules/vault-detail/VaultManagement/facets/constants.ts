@@ -10,6 +10,7 @@ export const availableTokensDropdownOptions = availableTokens.map((token) => ({
   label: token.symbol,
   value: token.address,
   icon: token.logoURI,
+  decimals: token.decimals,
 }));
 
 export const deadlineDropdownOptions: DropdownOption[] = [
