@@ -30,9 +30,10 @@ import createEmotionCache from '../src/createEmotionCache';
 import { AppGlobalStyles } from '../src/layouts/AppGlobalStyles';
 import { LanguageProvider } from '../src/libs/LanguageProvider';
 
-const WelcomeModal = dynamic(() =>
+/* const WelcomeModal = dynamic(() =>
   import('src/components/transactions/Welcome/WelcomeModal').then((module) => module.WelcomeModal)
-);
+); */
+
 const SwitchModal = dynamic(() =>
   import('src/components/transactions/Switch/SwitchModal').then((module) => module.SwitchModal)
 );
@@ -137,7 +138,7 @@ export default function MyApp(props: MyAppProps) {
                             <AppDataProvider>
                               <GasStationProvider>
                                 {getLayout(<Component {...pageProps} />)}
-                                <WelcomeModal />
+                                {/* <WelcomeModal /> */}
                                 <SupplyModal />
                                 <WithdrawModal />
                                 <BorrowModal />
