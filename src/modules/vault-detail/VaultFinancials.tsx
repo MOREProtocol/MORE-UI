@@ -30,7 +30,7 @@ export const VaultFinancials: React.FC = () => {
   // TODO: Nice error handling
 
   return (
-    <Box sx={{ py: 8 }}>
+    <Box sx={{ py: 8, px: 5 }}>
       <Box sx={{ mb: 4 }}>
         <SectionTitle>Basics</SectionTitle>
         <Grid container spacing={3}>

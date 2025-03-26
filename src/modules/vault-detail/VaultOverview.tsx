@@ -1,6 +1,6 @@
 import DownloadIcon from '@mui/icons-material/Download';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Grid, Typography, useMediaQuery, useTheme } from '@mui/material';
 import React from 'react';
 import { Address } from 'src/components/Address';
 import { CompactMode } from 'src/components/CompactableTypography';
@@ -35,11 +35,11 @@ export const VaultOverview: React.FC = () => {
   // TODO: Nice error handling
 
   return (
-    <Box sx={{ py: 5 }}>
-      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 30, paddingY: 5 }}>
-        <Box>
+    <Box sx={{ py: 5, px: 5 }}>
+      <Grid container spacing={6} sx={{ pb: 10 }}>
+        <Grid item xs={12} md={8} sx={{ gap: 30, paddingY: 5 }}>
           <Typography variant="h4" sx={{ mb: 2, pb: 4 }}>
-            Vault Info
+              Vault Info
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
             <InfoOutlinedIcon sx={{ mr: 2, color: 'text.secondary' }} />
@@ -57,20 +57,19 @@ export const VaultOverview: React.FC = () => {
             </Typography>
             <Typography variant="secondary14"> the vault brochure</Typography>
           </Box>
-        </Box>
+        </Grid>
 
-        <Box
+        <Grid item xs={12} md={4}
           sx={{
             display: 'flex',
             flexDirection: 'column',
             gap: 2,
-            minWidth: '300px',
           }}
         >
           <Typography variant="h4" sx={{ mb: 2 }}>
             Vault Roles
           </Typography>
-          <Box>
+          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
             <Typography variant="main14" sx={{ py: 2 }}>
               Owner
             </Typography>
@@ -109,8 +108,8 @@ export const VaultOverview: React.FC = () => {
               compactMode={downToMd ? CompactMode.SM : CompactMode.MD}
             />
           </Box>
-        </Box>
-      </Box>
+        </Grid>
+      </Grid>
 
       <Box sx={{ mb: 2 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>

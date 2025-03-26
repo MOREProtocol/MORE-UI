@@ -5,7 +5,14 @@ export const VaultTopDetails = () => {
   const { vault, isLoading } = useVaultInfo();
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'row', gap: 20, alignItems: 'center' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'row', 
+      columnGap: 20, 
+      rowGap: 5, 
+      alignItems: 'center', 
+      flexWrap: 'wrap' 
+    }}>
       <Box sx={{ display: 'flex', alignItems: 'end' }}>
         {
           <Box

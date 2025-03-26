@@ -2,7 +2,10 @@ import { availableTokensDropdownOptions, interestRateModeDropdownOptions } from 
 import { DisplayType, Facet, InputType } from './types';
 
 export const moreFacet: Facet = {
-  contractId: '0xacfD5254941bC07cF7a0F21279C54DA94B049aD4',
+  contractAddress: {
+    mainnet: '0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d',
+    testnet: '0x48Dad407aB7299E0175F39F4Cd12c524DB0AB002',
+  },
   name: 'MORE',
   icon: '/loveMore.svg',
   description: 'MORE is a decentralized exchange for trading cryptocurrencies.',
@@ -21,12 +24,16 @@ export const moreFacet: Facet = {
       ) external;`,
       inputs: [
         {
-          id: 'router',
-          name: 'Router',
-          description: 'The router address',
+          id: 'pool',
+          name: 'Pool',
+          description: 'The pool address',
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
+          defaultValue: {
+            testnet: '0x48Dad407aB7299E0175F39F4Cd12c524DB0AB002',
+            mainnet: '0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d',
+          },
         },
         {
           id: 'asset',
@@ -53,7 +60,6 @@ export const moreFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
-          defaultValue: '',
         },
         {
           id: 'referralCode',
@@ -83,6 +89,10 @@ export const moreFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
+          defaultValue: {
+            testnet: '0x48Dad407aB7299E0175F39F4Cd12c524DB0AB002',
+            mainnet: '0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d',
+          },
         },
         {
           id: 'asset',
@@ -133,6 +143,10 @@ export const moreFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
+          defaultValue: {
+            testnet: '0x48Dad407aB7299E0175F39F4Cd12c524DB0AB002',
+            mainnet: '0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d',
+          },
         },
         {
           id: 'asset',
@@ -202,6 +216,10 @@ export const moreFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
+          defaultValue: {
+            testnet: '0x48Dad407aB7299E0175F39F4Cd12c524DB0AB002',
+            mainnet: '0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d',
+          },
         },
         {
           id: 'asset',
@@ -262,6 +280,10 @@ export const moreFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
+          defaultValue: {
+            testnet: '0x48Dad407aB7299E0175F39F4Cd12c524DB0AB002',
+            mainnet: '0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d',
+          },
         },
         {
           id: 'receiverAddress',

@@ -1,5 +1,10 @@
+export type NetworkDependentString = {
+  mainnet?: string;
+  testnet?: string;
+};
+
 export type Facet = {
-  contractId: string;
+  contractAddress: NetworkDependentString;
   name: string;
   icon: string;
   description: string;
@@ -21,11 +26,10 @@ export type Input = {
   description?: string;
   type: InputType;
   isShown: boolean;
-  defaultValue?: string;
+  defaultValue?: string | NetworkDependentString;
 
   displayType?: DisplayType;
   dropdownOptions?: DropdownOption[];
-  currencyAmountInput?: CurrencyAmountInput;
   relatedInputId?: string;
 };
 
@@ -33,11 +37,7 @@ export type DropdownOption = {
   label: string;
   value: string;
   icon?: string;
-};
-
-export type CurrencyAmountInput = {
-  value: string;
-  currency: string;
+  decimals?: number;
 };
 
 export enum InputType {
