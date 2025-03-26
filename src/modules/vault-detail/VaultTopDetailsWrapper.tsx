@@ -67,7 +67,6 @@ export const VaultTopDetailsWrapper = () => {
           onChange={handleTabChange}
           aria-label="vault tabs"
           textColor="inherit"
-          indicatorColor="primary"
           sx={{
             '& .MuiTab-root': {
               minWidth: 'auto',
@@ -76,6 +75,9 @@ export const VaultTopDetailsWrapper = () => {
               fontWeight: 'medium',
               fontSize: '14px',
               textTransform: 'none',
+            },
+            '& .MuiTabs-indicator': {
+              background: theme.palette.gradients.newGradient,
             },
           }}
         >
