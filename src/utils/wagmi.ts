@@ -1,7 +1,14 @@
 import { Chain, getDefaultConfig } from '@rainbow-me/rainbowkit';
 // import { injected } from 'wagmi/connectors';
-import { http, /* createConfig */ } from 'wagmi';
+// import { http, createConfig } from 'wagmi';
 import { multicalls } from './const';
+import {
+  metaMaskWallet,
+  rabbyWallet,
+  coinbaseWallet,
+  walletConnectWallet,
+  rainbowWallet
+} from "@rainbow-me/rainbowkit/wallets";
 
 const flowMainnet = {
   id: 747,
@@ -73,10 +80,17 @@ export const config = getDefaultConfig({
   appName: 'MORE Markets',
   projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID,
   chains: [flowMainnet, flowTestnet],
-  transports: {
-    [flowMainnet.id]: http('https://mainnet.evm.nodes.onflow.org'),
-    [flowTestnet.id]: http('https://testnet.evm.nodes.onflow.org'),
-  },
-  ssr: true,
-  pollingInterval: 30_000
+  wallets: [
+    {
+      groupName: "Suggested",
+      wallets: [
+        metaMaskWallet,
+        rabbyWallet,
+        coinbaseWallet,
+        walletConnectWallet,
+        rainbowWallet
+      ],
+    },
+  ],
+  ssr: true
 });
