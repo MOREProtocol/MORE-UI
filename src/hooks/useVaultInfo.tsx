@@ -79,136 +79,6 @@ export interface VaultData {
   }[];
 }
 
-// Define a type for the raw API response
-export interface RawVaultApiResponse {
-  id?: string;
-  name?: string;
-  description?: string;
-  sharePrice?: string;
-  shareCurrency?: string;
-  curator?: string;
-  owner?: string;
-  manager?: string;
-  guardian?: string;
-  grossAssetValue?: {
-    formatted?: string;
-    currency?: string;
-  };
-  netAssetValue?: {
-    formatted?: string;
-    currency?: string;
-  };
-  shareSupply?: {
-    formatted?: string;
-    currency?: string;
-  };
-  fees?: {
-    performance?: {
-      formatted?: string;
-      recipient?: string;
-    };
-    management?: {
-      formatted?: string;
-      recipient?: string;
-    };
-    network?: {
-      formatted?: string;
-      recipient?: string;
-    };
-  };
-  returns?: {
-    mtd?: string;
-    qtd?: string;
-    ytd?: string;
-    itd?: string;
-    avgMonth?: string;
-    bestMonth?: string;
-    worstMonth?: string;
-    trackRecord?: string;
-  };
-  allocation?: {
-    assetName?: string;
-    assetSymbol?: string;
-    type?: string;
-    market?: string;
-    balance?: string;
-    price?: string;
-    priceChangeLast24Hours?: string;
-    value?: string;
-  }[];
-  activity?: {
-    timestamp: Date;
-    market: string;
-    assetSymbol: string;
-    assetName: string;
-    amount: string;
-    price: string;
-    type: string;
-    transactionHash: string;
-    user: string;
-  }[];
-}
-
-// Define a type for external API data structure
-export interface ExternalVaultApiData {
-  vault_id: string;
-  vault_name: string;
-  vault_symbol?: string;
-  description?: string;
-  price_per_share?: string;
-  curator_name?: string;
-  roles?: {
-    owner_address?: string;
-    manager_address?: string;
-    guardian_address?: string;
-  };
-  gav_formatted?: string;
-  gav_usd?: string;
-  gav_raw?: string;
-  nav_formatted?: string;
-  nav_usd?: string;
-  nav_raw?: string;
-  shares_formatted?: string;
-  shares_raw?: string;
-  base_currency?: string;
-  performance_fee?: number;
-  management_fee?: number;
-  network_fee?: number;
-  fee_recipient?: string;
-  network_fee_recipient?: string;
-  returns?: {
-    mtd?: number;
-    qtd?: number;
-    ytd?: number;
-    itd?: number;
-    avg_month?: number;
-    best_month?: number;
-    worst_month?: number;
-    track_record_months?: number;
-  };
-  assets?: {
-    name?: string;
-    symbol?: string;
-    type?: string;
-    market?: string;
-    balance?: number;
-    price?: number;
-    price_change_24h?: number;
-    value?: number;
-  }[];
-  activity?: {
-    timestamp: Date;
-    market: string;
-    assetSymbol: string;
-    assetName: string;
-    amount: string;
-    price: string;
-    type: string;
-    transactionHash: string;
-    user: string;
-  }[];
-}
-
 // Example vault data for development and testing
 export const fakeVaultData: VaultData = {
   overview: {
@@ -370,96 +240,6 @@ export interface VaultContextData {
   refreshVault: () => Promise<void>;
 }
 
-// ==================== UTILITY FUNCTIONS ====================
-
-/**
- * Transforms raw API response data into our standardized VaultData format
- * @param apiData Raw data from the API
- * @returns Standardized VaultData object
- */
-export function transformApiDataToVaultData(apiData: RawVaultApiResponse): VaultData {
-  return {
-    overview: {
-      id: apiData.id || '',
-      name: apiData.name || '',
-      description: apiData.description || '',
-      sharePrice: parseFloat(apiData.sharePrice || '0'),
-      shareCurrency: apiData.curator || 'USDC',
-      curator: apiData.curator || '',
-      roles: {
-        owner: apiData.owner || '',
-        manager: apiData.manager || '',
-        guardian: apiData.guardian || '',
-      },
-    },
-    financials: {
-      basics: {
-        grossAssetValue: {
-          value: parseFloat(apiData.grossAssetValue?.formatted || '0'),
-          currency: apiData.grossAssetValue?.currency || 'USDC',
-        },
-        netAssetValue: {
-          value: parseFloat(apiData.netAssetValue?.formatted || '0'),
-          currency: apiData.netAssetValue?.currency || 'USDC',
-        },
-        shareSupply: {
-          value: parseFloat(apiData.shareSupply?.formatted || '0'),
-          currency: apiData.shareSupply?.currency || 'USDC',
-        },
-      },
-      fees: {
-        performance: {
-          percentage: parseFloat(apiData.fees?.performance?.formatted || '0'),
-          recipient: apiData.fees?.performance?.recipient || '',
-        },
-        management: {
-          percentage: parseFloat(apiData.fees?.management?.formatted || '0'),
-          recipient: apiData.fees?.management?.recipient || '',
-        },
-        network: {
-          percentage: parseFloat(apiData.fees?.network?.formatted || '0'),
-          recipient: apiData.fees?.network?.recipient || '',
-        },
-      },
-      returnMetrics: {
-        monthToDate: parseFloat(apiData.returns?.mtd || '0'),
-        quarterToDate: parseFloat(apiData.returns?.qtd || '0'),
-        yearToDate: parseFloat(apiData.returns?.ytd || '0'),
-        inceptionToDate: parseFloat(apiData.returns?.itd || '0'),
-        averageMonth: parseFloat(apiData.returns?.avgMonth || '0'),
-        bestMonth: parseFloat(apiData.returns?.bestMonth || '0'),
-        worstMonth: parseFloat(apiData.returns?.worstMonth || '0'),
-        trackRecord: parseFloat(apiData.returns?.trackRecord || '0'),
-      },
-    },
-    allocation: apiData.allocation
-      ? apiData.allocation.map((asset) => ({
-          assetName: asset.assetName || '',
-          assetSymbol: asset.assetSymbol || '',
-          type: asset.type || '',
-          market: asset.market || '',
-          balance: parseFloat(asset.balance?.toString() || '0'),
-          price: parseFloat(asset.price?.toString() || '0'),
-          priceChangeLast24Hours: parseFloat(asset.priceChangeLast24Hours?.toString() || '0'),
-          value: parseFloat(asset.value?.toString() || '0'),
-        }))
-      : [],
-    activity: apiData.activity
-      ? apiData.activity.map((activity) => ({
-          timestamp: activity.timestamp,
-          market: activity.market,
-          assetSymbol: activity.assetSymbol,
-          assetName: activity.assetName,
-          amount: parseFloat(activity.amount?.toString() || '0'),
-          price: parseFloat(activity.price?.toString() || '0'),
-          type: activity.type,
-          transactionHash: activity.transactionHash,
-          user: activity.user,
-        }))
-      : [],
-  };
-}
-
 /**
  * Formats a numeric value as a string with commas
  * @param value Numeric value to format
@@ -496,120 +276,6 @@ export function formatMonetaryValue(value: MonetaryValue): string {
  */
 export function formatUSD(value: number): string {
   return `$${formatNumberWithCommas(value)}`;
-}
-
-// ==================== API FUNCTIONS ====================
-
-/**
- * Fetches vault data from the API
- * @param vaultId The ID of the vault to fetch
- * @returns Promise resolving to the standardized VaultData
- */
-export async function fetchVaultData(vaultId: string): Promise<VaultData> {
-  try {
-    // Make the API request
-    const response = await fetch(`/api/vaults/${vaultId}`);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch vault data: ${response.statusText}`);
-    }
-
-    // Parse the raw API response
-    const rawData: RawVaultApiResponse = await response.json();
-
-    // Transform the raw data to our standardized format
-    return transformApiDataToVaultData(rawData);
-  } catch (error) {
-    console.error('Error fetching vault data:', error);
-    throw error;
-  }
-}
-
-/**
- * Fetches all vaults from the API
- * @returns Promise resolving to an array of standardized VaultData
- */
-export async function fetchAllVaults(): Promise<VaultData[]> {
-  try {
-    // Make the API request
-    const response = await fetch('/api/vaults');
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch vaults: ${response.statusText}`);
-    }
-
-    // Parse the raw API response
-    const rawDataArray: RawVaultApiResponse[] = await response.json();
-
-    // Transform each item in the array to our standardized format
-    return rawDataArray.map(transformApiDataToVaultData);
-  } catch (error) {
-    console.error('Error fetching all vaults:', error);
-    throw error;
-  }
-}
-
-/**
- * Example of how to adapt a different API format to our standardized format
- * @param externalApiData Data from an external API with a different structure
- * @returns Standardized VaultData
- */
-export function adaptExternalApiData(externalApiData: ExternalVaultApiData): RawVaultApiResponse {
-  // This is just an example - adjust according to the actual external API structure
-  return {
-    id: externalApiData.vault_id,
-    name: externalApiData.vault_name,
-    description: externalApiData.description,
-    sharePrice: externalApiData.price_per_share,
-    shareCurrency: externalApiData.base_currency,
-    curator: externalApiData.curator_name,
-    owner: externalApiData.roles?.owner_address,
-    manager: externalApiData.roles?.manager_address,
-    guardian: externalApiData.roles?.guardian_address,
-    grossAssetValue: {
-      formatted: externalApiData.gav_formatted,
-      currency: externalApiData.base_currency,
-    },
-    netAssetValue: {
-      formatted: externalApiData.nav_formatted,
-      currency: externalApiData.base_currency,
-    },
-    shareSupply: {
-      formatted: externalApiData.shares_formatted,
-      currency: externalApiData.vault_symbol,
-    },
-    fees: {
-      performance: {
-        formatted: externalApiData.performance_fee?.toString(),
-        recipient: externalApiData.fee_recipient,
-      },
-      management: {
-        formatted: externalApiData.management_fee?.toString(),
-        recipient: externalApiData.fee_recipient,
-      },
-      network: {
-        formatted: externalApiData.network_fee?.toString(),
-        recipient: externalApiData.network_fee_recipient,
-      },
-    },
-    returns: {
-      mtd: externalApiData.returns?.mtd?.toString(),
-      qtd: externalApiData.returns?.qtd?.toString(),
-      ytd: externalApiData.returns?.ytd?.toString(),
-      itd: externalApiData.returns?.itd?.toString(),
-      avgMonth: externalApiData.returns?.avg_month?.toString(),
-      bestMonth: externalApiData.returns?.best_month?.toString(),
-      worstMonth: externalApiData.returns?.worst_month?.toString(),
-      trackRecord: externalApiData.returns?.track_record_months?.toString(),
-    },
-    allocation: externalApiData.assets?.map((asset) => ({
-      assetName: asset.name,
-      balance: asset.balance?.toString(),
-      price: asset.price?.toString(),
-      priceChangeLast24Hours: asset.price_change_24h?.toString(),
-      value: asset.value?.toString(),
-    })),
-  };
 }
 
 // ==================== CONTEXT AND PROVIDER ====================
@@ -656,25 +322,17 @@ export const VaultProvider = ({
 
   // Function to fetch vault data
   const fetchVaultDataAndUpdateState = async (vaultId: string) => {
-    setIsLoading(true);
+    console.log('fetchVaultDataAndUpdateState', vaultId);
     setError(null);
-
-    try {
-      // Use our API function to fetch and transform the data
-      const transformedData = await fetchVaultData(vaultId);
-      setVault(transformedData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      console.error('Error fetching vault data:', err);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   // Load initial data if ID is provided
   useEffect(() => {
     if (initialVaultId) {
+      setIsLoading(true);
       fetchVaultDataAndUpdateState(initialVaultId);
+      setVault(fakeVaultData);
+      setIsLoading(false);
     }
   }, [initialVaultId]);
 

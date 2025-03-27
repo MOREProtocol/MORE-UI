@@ -1,12 +1,35 @@
+import { TypographyProps } from '@mui/material';
+import React from 'react';
+
+import { FormattedNumber } from '../../../../components/primitives/FormattedNumber';
 import { availableTokensDropdownOptions, interestRateModeDropdownOptions } from './constants';
 import { DisplayType, Facet, InputType } from './types';
+
+const getCurrencySymbolsForBundleDisplayDefault = (inputs: Record<string, string>) => {
+  return [availableTokensDropdownOptions.find((token) => token.value === inputs['asset'])?.label];
+};
+
+const getAmountForBundleDisplayDefault = (
+  inputs: Record<string, string>,
+  props?: TypographyProps
+) => {
+  return (
+    <FormattedNumber
+      value={parseFloat(inputs['amount'])}
+      symbol={
+        availableTokensDropdownOptions.find((token) => token.value === inputs['asset'])?.label
+      }
+      {...props}
+    />
+  );
+};
 
 export const moreFacet: Facet = {
   contractAddress: {
     mainnet: '0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d',
     testnet: '0x48Dad407aB7299E0175F39F4Cd12c524DB0AB002',
   },
-  name: 'MORE',
+  name: 'MORE Markets',
   icon: '/loveMore.svg',
   description: 'MORE is a decentralized exchange for trading cryptocurrencies.',
   actions: [
@@ -22,6 +45,8 @@ export const moreFacet: Facet = {
         address onBehalfOf,
         uint16 referralCode
       ) external;`,
+      getAmountForBundleDisplay: getAmountForBundleDisplayDefault,
+      getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       inputs: [
         {
           id: 'pool',
@@ -81,6 +106,8 @@ export const moreFacet: Facet = {
         uint256 amount,
         address to
       ) external returns (uint256 withdrawnAmount);`,
+      getAmountForBundleDisplay: getAmountForBundleDisplayDefault,
+      getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       inputs: [
         {
           id: 'pool',
@@ -135,6 +162,8 @@ export const moreFacet: Facet = {
         uint16 referralCode,
         address onBehalfOf
       ) external;`,
+      getAmountForBundleDisplay: getAmountForBundleDisplayDefault,
+      getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       inputs: [
         {
           id: 'pool',
@@ -208,6 +237,8 @@ export const moreFacet: Facet = {
         uint256 interestRateMode,
         address onBehalfOf
       ) external returns (uint256 repaidAmount);`,
+      getAmountForBundleDisplay: getAmountForBundleDisplayDefault,
+      getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       inputs: [
         {
           id: 'pool',
@@ -272,6 +303,8 @@ export const moreFacet: Facet = {
         bytes calldata params,
         uint16 referralCode
       ) external;`,
+      getAmountForBundleDisplay: getAmountForBundleDisplayDefault,
+      getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       inputs: [
         {
           id: 'pool',

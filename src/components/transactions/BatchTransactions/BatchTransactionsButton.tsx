@@ -1,6 +1,6 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/solid';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import { Box, Button, SvgIcon } from '@mui/material';
+import { Badge, Box, Button, SvgIcon } from '@mui/material';
 import { ethers } from 'ethers';
 import { useEffect, useMemo } from 'react';
 import { useRootStore } from 'src/store/root';
@@ -49,20 +49,32 @@ export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps
 
   return (
     <>
-      <Box paddingX={2}>
+      <Box paddingRight={2}>
         <Button
           variant={open || batchTransactionGroups.length === 0 ? 'surface' : 'gradient'}
           onClick={handleToggle}
           sx={{
             ...(!hasBatchTransactions && { p: '7px 8px' }),
             minWidth: 'unset',
-            ml: 2,
           }}
           startIcon={
             hasBatchTransactions ? (
-              <SvgIcon sx={{ color: '#F1F1F3', ml: 1 }} fontSize="small">
-                <ShoppingCartIcon />
-              </SvgIcon>
+              <Badge 
+                badgeContent={batchTransactionGroups.length} 
+                color="primary"
+                sx={{
+                  '& .MuiBadge-badge': {
+                    minWidth: '16px',
+                    height: '16px',
+                    padding: '0 4px',
+                    fontSize: '10px'
+                  }
+                }}
+              >
+                <SvgIcon sx={{ color: '#F1F1F3', ml: 1 }} fontSize="small">
+                  <ShoppingCartIcon />
+                </SvgIcon>
+              </Badge>
             ) : (
               <></>
             )

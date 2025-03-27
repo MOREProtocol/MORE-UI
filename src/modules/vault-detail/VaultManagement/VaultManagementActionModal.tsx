@@ -3,13 +3,14 @@ import { Box, Button, MenuItem, Select, TextField, Typography } from '@mui/mater
 import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
+import { useVaultBundle } from 'src/hooks/useVaultBundle';
+import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
+import { ENABLE_TESTNET } from 'src/utils/marketsAndNetworksConfig';
 import { useAccount, useWalletClient } from 'wagmi';
 
 import { Action, DisplayType, Facet, Input } from './facets/types';
-import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
-import { ENABLE_TESTNET } from 'src/utils/marketsAndNetworksConfig';
 
-const NETWORK = ENABLE_TESTNET ? 'testnet' : 'mainnet'
+const NETWORK = ENABLE_TESTNET ? 'testnet' : 'mainnet';
 
 interface VaultManagementActionModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
   facet,
 }) => {
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
+  const { addTransaction } = useVaultBundle();
 
   // TODO: replace the code below by a nicer hook
   const { data: walletClient } = useWalletClient();
@@ -66,7 +68,10 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
     if (action) {
       const defaultValues = action.inputs.reduce((acc, input) => {
         if (input.defaultValue !== undefined) {
-          acc[input.id] = typeof input.defaultValue === 'string' ? input.defaultValue : input.defaultValue[NETWORK];
+          acc[input.id] =
+            typeof input.defaultValue === 'string'
+              ? input.defaultValue
+              : input.defaultValue[NETWORK];
         }
         if (input.id === 'onBehalfOf' && signerAddress) {
           acc[input.id] = signerAddress;
@@ -83,6 +88,11 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
       ...prev,
       [input.id]: value,
     }));
+  };
+
+  const handleAddToBundle = () => {
+    addTransaction({ action, facet, inputs: inputValues });
+    setIsOpen(false);
   };
 
   const getRelatedInputCurrencyData = (relatedInputId: string) => {
@@ -166,7 +176,6 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
                 disabled={!!input.relatedInputId && !relatedInputCurrencyData.currencyValue}
                 size="small"
                 InputProps={{
-                  disableUnderline: true,
                   endAdornment: relatedInputCurrencyData.currencyIcon ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <img
@@ -196,7 +205,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <TextField
                 fullWidth
-                placeholder='0x...'
+                placeholder="0x..."
                 value={inputValues[input.id] || ''}
                 onChange={(e) => handleInputChange(input, e.target.value)}
                 variant="outlined"
@@ -295,11 +304,11 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
 
       {/* Actions */}
       <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Button variant="contained" fullWidth onClick={handleSubmit}>
-          {action.name} only
+        <Button variant="contained" fullWidth disabled onClick={handleSubmit}>
+          {action.actionButtonText} only
         </Button>
-        <Button variant="contained" fullWidth disabled>
-          Add {action.name.toLowerCase()} transaction to batch
+        <Button variant="contained" fullWidth onClick={handleAddToBundle}>
+          Add {action.actionButtonText.toLowerCase()} transaction to bundle
         </Button>
       </Box>
     </BasicModal>

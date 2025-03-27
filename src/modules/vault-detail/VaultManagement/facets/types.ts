@@ -1,3 +1,6 @@
+import { TypographyProps } from '@mui/material';
+import { ReactNode } from 'react';
+
 export type NetworkDependentString = {
   mainnet?: string;
   testnet?: string;
@@ -18,6 +21,11 @@ export type Action = {
   description: string;
   abi: string;
   inputs: Input[];
+  getAmountForBundleDisplay?: (
+    inputs: Record<string, string>,
+    props?: TypographyProps
+  ) => ReactNode;
+  getCurrencySymbolsForBundleDisplay?: (inputs: Record<string, string>) => string[];
 };
 
 export type Input = {

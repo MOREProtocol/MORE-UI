@@ -17,7 +17,6 @@ import { useState } from 'react';
 import facets from './facets';
 import { Action, Facet } from './facets/types';
 import { VaultManagementActionModal } from './VaultManagementActionModal';
-import { ENABLE_TESTNET } from 'src/utils/marketsAndNetworksConfig';
 
 export const VaultManagement: React.FC = () => {
   const [isOpen, setIsOpen] = useState(true);
@@ -33,10 +32,7 @@ export const VaultManagement: React.FC = () => {
   return (
     <Box sx={{ width: '100%', padding: 7 }}>
       {facets.map((facet) => (
-        <Accordion 
-          key={facet.contractAddress[ENABLE_TESTNET ? 'testnet' : 'mainnet']} 
-          disabled={facet.actions.length < 1}
-        >
+        <Accordion key={facet.name} disabled={facet.actions.length < 1}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, px: 2 }}>
               <img src={facet.icon} alt={facet.name} style={{ width: 25, height: 25 }} />
@@ -49,7 +45,7 @@ export const VaultManagement: React.FC = () => {
                 <TableBody>
                   {facet.actions.map((action) => (
                     <TableRow
-                      key={action.name}
+                      key={action.id}
                       sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                     >
                       <TableCell component="th" scope="row">

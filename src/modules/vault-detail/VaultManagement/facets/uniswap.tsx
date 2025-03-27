@@ -1,5 +1,39 @@
+import { Box, Typography, TypographyProps } from '@mui/material';
+import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
+
 import { availableTokensDropdownOptions, deadlineDropdownOptions } from './constants';
 import { DisplayType, Facet, InputType } from './types';
+
+const getAmountForBundleDisplayDefault =
+  (assetAKey: string, assetBKey: string, assetAAmountKey: string, assetBAmountKey: string) =>
+  (inputs: Record<string, string>, props?: TypographyProps) => {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <FormattedNumber
+          value={parseFloat(inputs[assetAAmountKey])}
+          symbol={
+            availableTokensDropdownOptions.find((token) => token.value === inputs[assetAKey])?.label
+          }
+          {...props}
+        />
+        <Typography {...props}> / </Typography>
+        <FormattedNumber
+          value={parseFloat(inputs[assetBAmountKey])}
+          symbol={
+            availableTokensDropdownOptions.find((token) => token.value === inputs[assetBKey])?.label
+          }
+          {...props}
+        />
+      </Box>
+    );
+  };
+
+const getCurrencySymbolsForBundleDisplayDefault =
+  (assetAKey: string, assetBKey: string) => (inputs: Record<string, string>) => {
+    return availableTokensDropdownOptions
+      .filter((token) => [inputs[assetAKey], inputs[assetBKey]].includes(token.value))
+      ?.map((token) => token.label);
+  };
 
 export const uniswapFacet: Facet = {
   contractAddress: {
@@ -25,6 +59,16 @@ export const uniswapFacet: Facet = {
         address to,
         uint deadline
       ) external returns (uint amountA, uint amountB, uint liquidity);`,
+      getAmountForBundleDisplay: getAmountForBundleDisplayDefault(
+        'tokenA',
+        'tokenB',
+        'amountADesired',
+        'amountBDesired'
+      ),
+      getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault(
+        'tokenA',
+        'tokenB'
+      ),
       inputs: [
         {
           id: 'router',
@@ -111,6 +155,16 @@ export const uniswapFacet: Facet = {
         address to,
         uint deadline
       ) external returns (uint amountA, uint amountB);`,
+      getAmountForBundleDisplay: getAmountForBundleDisplayDefault(
+        'tokenA',
+        'tokenB',
+        'amountAMin',
+        'amountBMin'
+      ),
+      getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault(
+        'tokenA',
+        'tokenB'
+      ),
       inputs: [
         {
           id: 'router',
@@ -215,7 +269,8 @@ export const uniswapFacet: Facet = {
             // PunchSwapV2Router
             testnet: '0xeD53235cC3E9d2d464E9c408B95948836648870B',
             mainnet: '0xf45AFe28fd5519d5f8C1d4787a4D5f724C0eFa4d',
-          },        },
+          },
+        },
         {
           id: 'amountIn',
           name: 'Amount In',
