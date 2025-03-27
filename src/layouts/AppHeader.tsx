@@ -15,6 +15,7 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { ContentWithTooltip } from 'src/components/ContentWithTooltip';
 import { BatchTransactionsButton } from 'src/components/transactions/BatchTransactions/BatchTransactionsButton';
+import { VaultManagementBundleButton } from 'src/modules/vault-detail/VaultManagement/VaultManagementBundleButton';
 // import { useModalContext } from 'src/hooks/useModal';
 import { useRootStore } from 'src/store/root';
 import { ENABLE_TESTNET, FORK_ENABLED } from 'src/utils/marketsAndNetworksConfig';
@@ -283,6 +284,7 @@ export function AppHeader() {
           </StyledBadge>
         </NoSsr> */}
 
+        <VaultManagementBundleButton />
         <BatchTransactionsButton open={batchTransactionsOpen} setOpen={setBatchTransactionsOpen} />
 
         {!mobileMenuOpen && (

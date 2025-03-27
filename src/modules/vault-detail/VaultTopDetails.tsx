@@ -23,7 +23,7 @@ export const VaultTopDetails = () => {
               <Skeleton variant="circular" width={40} height={40} sx={{ background: '#383D51' }} />
             ) : (
               <img
-                src={`/icons/tokens/usdc.e.svg`}
+                src={`/MOREVault.svg`}
                 width="45px"
                 height="45px"
                 alt="token-svg"

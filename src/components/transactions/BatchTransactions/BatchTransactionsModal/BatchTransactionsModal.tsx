@@ -1,15 +1,6 @@
 import { USD_DECIMALS, valueToBigNumber } from '@aave/math-utils';
-import { ArrowRightIcon, XIcon } from '@heroicons/react/outline';
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Drawer,
-  IconButton,
-  SvgIcon,
-  Typography,
-} from '@mui/material';
-// import { ethers } from 'ethers';
+import { XIcon } from '@heroicons/react/outline';
+import { Box, Button, CircularProgress, IconButton, SvgIcon, Typography } from '@mui/material';
 import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
@@ -17,12 +8,13 @@ import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { UserAuthenticated } from 'src/components/UserAuthenticated';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
+import { TransactionsBundleFooter } from 'src/layouts/TransactionsBundle//TransactionsBundleFooter';
+import { TransactionsBundle } from 'src/layouts/TransactionsBundle/TransactionsBundle';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { BatchTransaction } from 'src/store/batchTransactionsSlice';
 import { useRootStore } from 'src/store/root';
 
 import { ModalEmpty } from './ModalEmpty';
-import { ModalFooter } from './ModalFooter';
 
 interface BatchTransactionsModalProps {
   open: boolean;
@@ -184,42 +176,15 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
   const totalGasCostUSD = Number(totalGasCost) * Number(nativeTokenPriceInUSD);
 
   return (
-    <Drawer
-      anchor="right"
-      open={open}
+    <TransactionsBundle
+      isOpen={open}
+      setIsOpen={setOpen}
+      title="Batched Transactions"
       onClose={handleClose}
-      PaperProps={{
-        sx: {
-          paddingX: 3,
-          paddingY: 2,
-          width: { xs: '100%', sm: 400 },
-          maxWidth: '100%',
-          bgcolor: 'background.paper',
-          overflow: 'auto',
-          borderTopRightRadius: 0,
-          borderBottomRightRadius: 0,
-          display: 'flex',
-          flexDirection: 'column',
-        },
-      }}
-      ModalProps={{
-        keepMounted: true,
-      }}
     >
       <UserAuthenticated>
         {(user) => (
           <>
-            <Box
-              sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-            >
-              <Typography variant="h2" component="div">
-                Batched Transactions
-              </Typography>
-              <IconButton onClick={handleClose} sx={{ p: 1 }}>
-                <SvgIcon>{txCallResult ? <XIcon /> : <ArrowRightIcon />}</SvgIcon>
-              </IconButton>
-            </Box>
-
             <Box sx={{ p: 2, flex: 1, overflow: 'auto' }}>
               {batchTransactionGroups
                 .flat()
@@ -366,7 +331,6 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                           <TokenIcon symbol={transaction.symbol} sx={{ fontSize: '32px', mr: 1 }} />
-                          {/* <Typography variant="h3">{transaction.symbol}</Typography> */}
                         </Box>
                       </Box>
                     </Box>
@@ -396,54 +360,27 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
               </Box>
             </Box>
 
-            <Box
-              sx={{
-                p: 2,
-                mt: 'auto',
-                borderTop: '1px solid',
-                borderColor: 'divider',
-                bgcolor: 'background.paper',
-              }}
-            >
-              <ModalFooter
-                transactionsWithUsdValues={transactionsWithUsdValues}
-                user={user}
-                totalGasCost={totalGasCost}
-                totalGasCostUSD={totalGasCostUSD.toString()}
-              />
-
-              {txCallResult?.isError && (
-                <Box sx={{ mt: 1, p: 2 }}>
-                  <Typography variant="h4" color="error" textAlign="center">
-                    Error executing batch transactions
-                  </Typography>
-                </Box>
-              )}
-
-              <Box>
-                <Button
-                  variant={
-                    batchTransactionGroups.length === 0 || (txCallResult && !txCallResult.isError)
-                      ? 'contained'
-                      : 'gradient'
-                  }
-                  fullWidth
-                  size="large"
-                  onClick={handleExecuteBatch}
-                  disabled={batchTransactionGroups.length === 0}
-                  sx={{ borderRadius: '6px', py: 2 }}
-                >
-                  {isBatchTransactionsLoading ? (
-                    <CircularProgress color="inherit" size="24px" sx={{ mr: 2 }} />
-                  ) : (
-                    getButtonText()
-                  )}
-                </Button>
-              </Box>
-            </Box>
+            <TransactionsBundleFooter
+              transactionsWithUsdValues={transactionsWithUsdValues}
+              user={user}
+              totalGasCost={totalGasCost}
+              totalGasCostUSD={totalGasCostUSD.toString()}
+              buttonText={getButtonText()}
+              onButtonClick={handleExecuteBatch}
+              isButtonLoading={isBatchTransactionsLoading}
+              isButtonDisabled={batchTransactionGroups.length === 0}
+              buttonVariant={
+                batchTransactionGroups.length === 0 || (txCallResult && !txCallResult.isError)
+                  ? 'contained'
+                  : 'gradient'
+              }
+              errorMessage={
+                txCallResult?.isError ? 'Error executing batch transactions' : undefined
+              }
+            />
           </>
         )}
       </UserAuthenticated>
-    </Drawer>
+    </TransactionsBundle>
   );
 };

@@ -26,6 +26,7 @@ import { WagmiProvider } from 'wagmi';
 
 import createEmotionCache from '../src/createEmotionCache';
 import { AppGlobalStyles } from '../src/layouts/AppGlobalStyles';
+import { VaultBundleProvider } from 'src/hooks/useVaultBundle';
 
 const WelcomeModal = dynamic(() =>
   import('src/components/transactions/Welcome/WelcomeModal').then((module) => module.WelcomeModal)
@@ -138,23 +139,25 @@ export default function MyApp(props: MyAppProps) {
                     <ModalContextProvider>
                       <SharedDependenciesProvider>
                         <AppDataProvider>
-                          <GasStationProvider>
-                            {getLayout(<Component {...pageProps} />)}
-                            <WelcomeModal />
-                            <SupplyModal />
-                            <WithdrawModal />
-                            <BorrowModal />
-                            <RepayModal />
-                            <CollateralChangeModal />
-                            <DebtSwitchModal />
-                            <RateSwitchModal />
-                            <ClaimRewardsModal />
-                            <EmodeModal />
-                            <SwapModal />
-                            <FaucetModal />
-                            <TransactionEventHandler />
-                            <SwitchModal />
-                          </GasStationProvider>
+                          <VaultBundleProvider>
+                            <GasStationProvider>
+                              {getLayout(<Component {...pageProps} />)}
+                              <WelcomeModal />
+                              <SupplyModal />
+                              <WithdrawModal />
+                              <BorrowModal />
+                              <RepayModal />
+                              <CollateralChangeModal />
+                              <DebtSwitchModal />
+                              <RateSwitchModal />
+                              <ClaimRewardsModal />
+                              <EmodeModal />
+                              <SwapModal />
+                              <FaucetModal />
+                              <TransactionEventHandler />
+                              <SwitchModal />
+                            </GasStationProvider>
+                          </VaultBundleProvider>
                         </AppDataProvider>
                       </SharedDependenciesProvider>
                     </ModalContextProvider>
