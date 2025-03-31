@@ -113,6 +113,53 @@ export const MarketSwitcher = () => {
     setCurrentMarket(e.target.value as unknown as CustomMarket);
   };
 
+  if (availableMarkets.length <= 2) { // hide degen market & switch options rn
+    const { market, network } = getMarketInfoById(CustomMarket.proto_flow_v3);
+    return <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <MarketLogo
+          size={upToLG ? 32 : 28}
+          logo={network.networkLogoPath}
+          testChainName={getMarketHelpData(market.marketTitle).testChainName}
+        />
+        <Box sx={{ mr: 1, display: 'inline-flex', alignItems: 'flex-start' }}>
+          <Typography
+            variant={upToLG ? 'display1' : 'h1'}
+            sx={{
+              fontSize: downToXSM ? '1.55rem' : undefined,
+              color: 'common.white',
+              mr: 1,
+            }}
+          >
+            {getMarketHelpData(market.marketTitle).name} {market.isFork ? 'Fork' : ''}
+            {upToLG && !market.marketTitle.includes('Market') && ' Market'}
+          </Typography>
+          {market.v3 ? (
+            <Box
+              sx={{
+                color: '#fff',
+                px: 2,
+                borderRadius: '12px',
+                background: (theme) => theme.palette.gradients.newGradient,
+              }}
+            >
+              <Typography variant="subheader2">V3</Typography>
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                color: '#A5A8B6',
+                px: 2,
+                borderRadius: '12px',
+                backgroundColor: '#383D51',
+              }}
+            >
+              <Typography variant="subheader2">V2</Typography>
+            </Box>
+          )}
+        </Box>
+      </Box>
+  }
+
   return (
     <TextField
       select
