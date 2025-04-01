@@ -58,7 +58,7 @@ export type MarketDataType = {
 export enum CustomMarket {
   proto_flow_v3 = 'proto_flow_v3',
   // v3 degen mainnet
-  proto_degen_v3 = 'proto_degen_v3',
+  // proto_degen_v3 = 'proto_degen_v3',
 }
 
 export const marketsData: {
@@ -94,7 +94,7 @@ export const marketsData: {
       marketName: 'MoreMarkets',
     },
   },
-  [CustomMarket.proto_degen_v3]: {
+  /* [CustomMarket.proto_degen_v3]: {
     marketTitle: 'Degen Market',
     market: CustomMarket.proto_degen_v3,
     chainId: ChainIds.flowEVMMainnet,
@@ -122,5 +122,5 @@ export const marketsData: {
       URL: 'https://app.hal.xyz/recipes/more-track-health-factor',
       marketName: 'MoreMarkets',
     },
-  },
+  }, */
 } as const;

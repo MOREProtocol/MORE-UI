@@ -113,7 +113,7 @@ export const MarketSwitcher = () => {
     setCurrentMarket(e.target.value as unknown as CustomMarket);
   };
 
-  if (availableMarkets.length <= 2) { // hide degen market & switch options rn
+  if (availableMarkets.length < 2) { // hide switch options rn
     const { market, network } = getMarketInfoById(CustomMarket.proto_flow_v3);
     return <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <MarketLogo
