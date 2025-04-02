@@ -92,7 +92,7 @@ export interface ModalContextType<T extends ModalArgsType> {
     funnel: string,
     usageAsCollateralEnabledOnUser: boolean
   ) => void;
-  openWelcome: () => void;
+  // openWelcome: () => void;
   openRateSwitch: (underlyingAsset: string, currentRateMode: InterestRate) => void;
   openStake: (stakeAssetName: Stake, icon: string) => void;
   openUnstake: (stakeAssetName: Stake, icon: string) => void;
@@ -233,10 +233,10 @@ export const ModalContextProvider: React.FC<IProps> = ({ children }) => {
             funnel,
           });
         },
-        openWelcome: () => {
+        /* openWelcome: () => {
           trackEvent(GENERAL.OPEN_MODAL, { modal: 'Welcome' });
           setType(ModalType.Welcome);
-        },
+        }, */
         openRateSwitch: (underlyingAsset, currentRateMode) => {
           trackEvent(GENERAL.OPEN_MODAL, { modal: 'Rate Switch' });
           setType(ModalType.RateSwitch);

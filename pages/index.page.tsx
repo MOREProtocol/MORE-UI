@@ -9,13 +9,13 @@ import { useRootStore } from 'src/store/root';
 import { ConnectWalletPaper } from '../src/components/ConnectWalletPaper';
 import { ContentContainer } from '../src/components/ContentContainer';
 import { MainLayout } from '../src/layouts/MainLayout';
-import { useModalContext } from '../src/hooks/useModal';
+// import { useModalContext } from '../src/hooks/useModal';
 import { useWeb3Context } from '../src/libs/hooks/useWeb3Context';
 import { DashboardContentWrapper } from '../src/modules/dashboard/DashboardContentWrapper';
 import { DashboardTopPanel } from '../src/modules/dashboard/DashboardTopPanel';
 
 export default function Home() {
-  const { openWelcome } = useModalContext();
+  // const { openWelcome } = useModalContext();
   const { currentMarket } = useProtocolDataContext();
   const { currentAccount, loading: web3Loading } = useWeb3Context();
   const trackEvent = useRootStore((store) => store.trackEvent);
@@ -28,11 +28,11 @@ export default function Home() {
     });
   }, [trackEvent, currentMarket]);
 
-  useEffect(() => {
+  /* useEffect(() => {
     if (localStorage.getItem('welcome-check') !== 'true') {
       openWelcome();
     }
-  }, [openWelcome]);
+  }, [openWelcome]); */
 
   return (
     <>
