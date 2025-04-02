@@ -1,7 +1,13 @@
-import { Chain } from '@rainbow-me/rainbowkit';
-import { injected } from 'wagmi/connectors';
+import { Chain, connectorsForWallets } from '@rainbow-me/rainbowkit';
+// import { injected } from 'wagmi/connectors';
 import { http, createConfig } from 'wagmi';
 import { multicalls } from './const';
+import {
+  metaMaskWallet,
+  injectedWallet,
+  coinbaseWallet,
+  walletConnectWallet
+} from "@rainbow-me/rainbowkit/wallets";
 
 const flowMainnet = {
   id: 747,
@@ -60,8 +66,24 @@ const flowTestnet = {
 
 // Create wagmiConfig
 export const config = createConfig({
+  connectors: connectorsForWallets(
+    [
+      {
+        groupName: 'Suggested',
+        wallets: [
+          metaMaskWallet,
+          injectedWallet,
+          coinbaseWallet,
+          walletConnectWallet
+        ],
+      },
+    ],
+    {
+      appName: 'MORE Markets',
+      projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID,
+    }
+  ),
   chains: [flowMainnet, flowTestnet],
-  connectors: [injected()],
   transports: {
     [flowMainnet.id]: http('https://mainnet.evm.nodes.onflow.org'),
     [flowTestnet.id]: http('https://testnet.evm.nodes.onflow.org'),
