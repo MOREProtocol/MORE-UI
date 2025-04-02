@@ -60,11 +60,11 @@ export enum CustomMarket {
   // v3 test networks, all v3.0.1
   proto_testnet_v3 = 'proto_testnet_v3',
   // v3 test networks, all v3.0.1
-  proto_testnet_degen = 'proto_testnet_degen',
+  // proto_testnet_degen = 'proto_testnet_degen',
   // v3 mainnets
   proto_flow_v3 = 'proto_flow_v3',
   // v3 degen mainnet
-  proto_degen_v3 = 'proto_degen_v3',
+  // proto_degen_v3 = 'proto_degen_v3',
 }
 
 export const marketsData: {
@@ -107,7 +107,7 @@ export const marketsData: {
       marketName: 'MoreMarkets',
     },
   },
-  [CustomMarket.proto_testnet_degen]: {
+  /* [CustomMarket.proto_testnet_degen]: {
     marketTitle: 'Degen on Flow Testnet',
     market: CustomMarket.proto_testnet_degen,
     chainId: ChainIds.flowEVMTestnet,
@@ -135,7 +135,7 @@ export const marketsData: {
       URL: 'https://app.hal.xyz/recipes/aave-v3-track-health-factor',
       marketName: 'MoreMarkets',
     },
-  },
+  }, */
   [CustomMarket.proto_flow_v3]: {
     marketTitle: 'EVM on Flow',
     market: CustomMarket.proto_flow_v3,
@@ -165,7 +165,7 @@ export const marketsData: {
       marketName: 'MoreMarkets',
     },
   },
-  [CustomMarket.proto_degen_v3]: {
+  /* [CustomMarket.proto_degen_v3]: {
     marketTitle: 'Degen on Mainnet',
     market: CustomMarket.proto_degen_v3,
     chainId: ChainIds.flowEVMMainnet,
@@ -193,5 +193,5 @@ export const marketsData: {
       URL: 'https://app.hal.xyz/recipes/more-track-health-factor',
       marketName: 'MoreMarkets',
     },
-  },
+  }, */
 } as const;
