@@ -1,5 +1,5 @@
-import { Chain, connectorsForWallets, /* getDefaultConfig */ } from '@rainbow-me/rainbowkit';
-import { http, createConfig } from 'wagmi';
+import { Chain, /* connectorsForWallets, */ getDefaultConfig } from '@rainbow-me/rainbowkit';
+// import { http, createConfig } from 'wagmi';
 import { multicalls } from './const';
 import {
   metaMaskWallet,
@@ -62,7 +62,7 @@ const flowTestnet = {
 } as const satisfies Chain;
 
 // Create wagmiConfig
-export const config = createConfig({
+/* export const config = createConfig({
   connectors: connectorsForWallets(
     [
       {
@@ -86,9 +86,9 @@ export const config = createConfig({
   },
   ssr: true,
   pollingInterval: 30_000,
-});
+}); */
 
-/* export const config = getDefaultConfig({
+export const config = getDefaultConfig({
   appName: 'MORE Markets',
   projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID,
   chains: [flowMainnet, flowTestnet],
@@ -97,12 +97,10 @@ export const config = createConfig({
       groupName: "Suggested",
       wallets: [
         metaMaskWallet,
-        rabbyWallet,
         coinbaseWallet,
-        walletConnectWallet,
-        rainbowWallet
+        walletConnectWallet
       ],
     },
   ],
   ssr: true
-}); */
+});
