@@ -1,18 +1,34 @@
 import { Box, Button, Skeleton, Typography } from '@mui/material';
-import { useVaultInfo } from 'src/hooks/useVaultInfo';
+import { useState } from 'react';
+import { TokenIcon } from 'src/components/primitives/TokenIcon';
+import { useVault } from 'src/hooks/vault/useVault';
+import { useUserVaultData, useVaultData } from 'src/hooks/vault/useVaultData';
+
+import { VaultDepositModal } from './VaultDepositModal';
+import { VaultWithdrawModal } from './VaultWithdrawModal';
 
 export const VaultTopDetails = () => {
-  const { vault, isLoading } = useVaultInfo();
+  const { selectedVaultId, accountAddress } = useVault();
+  const { data: userVaultData } = useUserVaultData(accountAddress, selectedVaultId);
+  const vaultData = useVaultData(selectedVaultId);
 
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+
+  const selectedVault = vaultData?.data;
+  const isLoading = vaultData?.isLoading;
+  const maxWithdraw = userVaultData?.maxWithdraw;
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: 'row', 
-      columnGap: 20, 
-      rowGap: 5, 
-      alignItems: 'center', 
-      flexWrap: 'wrap' 
-    }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'row',
+        columnGap: 20,
+        rowGap: 5,
+        alignItems: 'center',
+        flexWrap: 'wrap',
+      }}
+    >
       <Box sx={{ display: 'flex', alignItems: 'end' }}>
         {
           <Box
@@ -38,28 +54,26 @@ export const VaultTopDetails = () => {
               <Skeleton width={60} height={28} sx={{ background: '#383D51' }} />
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: 1 }}>
-                <Typography variant="main21">{vault?.overview.name}</Typography>
+                <Typography variant="main21">{selectedVault?.overview?.name}</Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <img
-                      src={`/icons/tokens/usdc.e.svg`}
-                      width="15px"
-                      height="15px"
-                      alt="token-svg"
-                      style={{ borderRadius: '50%' }}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <TokenIcon
+                      symbol={selectedVault?.overview?.shareCurrency || ''}
+                      sx={{ fontSize: '16px' }}
                     />
-                    <Typography variant="secondary12">{vault?.overview.shareCurrency}</Typography>
+                    <Typography variant="secondary12">
+                      {selectedVault?.overview?.shareCurrency}
+                    </Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <img
-                      src={`/icons/tokens/default.svg`}
-                      width="15px"
-                      height="15px"
-                      alt="token-svg"
-                      style={{ borderRadius: '50%' }}
+                  {/* <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <TokenIcon
+                      symbol={selectedVault?.overview?.shareCurrency || ''}
+                      sx={{ fontSize: '16px' }}
                     />
-                    <Typography variant="secondary12">{vault?.overview.curator}</Typography>
-                  </Box>
+                    <Typography variant="secondary12">
+                      {selectedVault?.overview?.roles?.curator}
+                    </Typography>
+                  </Box> */}
                 </Box>
               </Box>
             )}
@@ -71,23 +85,25 @@ export const VaultTopDetails = () => {
           variant="gradient"
           fullWidth
           size="medium"
-          onClick={() => console.log('deposit')}
+          onClick={() => setIsDepositModalOpen(true)}
           disabled={isLoading}
           sx={{ borderRadius: '6px', py: 2 }}
         >
           Deposit
         </Button>
-        {/* <Button
+        <Button
           variant="contained"
           fullWidth
           size="medium"
-          onClick={() => setSelectedTab('manage')}
-          disabled={isLoading}
+          onClick={() => setIsWithdrawModalOpen(true)}
+          disabled={isLoading || (maxWithdraw && !maxWithdraw.gt(0))}
           sx={{ borderRadius: '6px', py: 2 }}
         >
-          Manage
-        </Button> */}
+          Withdraw
+        </Button>
       </Box>
+      <VaultDepositModal isOpen={isDepositModalOpen} setIsOpen={setIsDepositModalOpen} />
+      <VaultWithdrawModal isOpen={isWithdrawModalOpen} setIsOpen={setIsWithdrawModalOpen} />
     </Box>
   );
 };

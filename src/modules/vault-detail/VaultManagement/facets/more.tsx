@@ -1,5 +1,8 @@
-import { TypographyProps } from '@mui/material';
+import { Box, TypographyProps } from '@mui/material';
+import BigNumber from 'bignumber.js';
+import { formatUnits } from 'ethers/lib/utils';
 import React from 'react';
+import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
 
 import { FormattedNumber } from '../../../../components/primitives/FormattedNumber';
 import { availableTokensDropdownOptions, interestRateModeDropdownOptions } from './constants';
@@ -9,26 +12,58 @@ const getCurrencySymbolsForBundleDisplayDefault = (inputs: Record<string, string
   return [availableTokensDropdownOptions.find((token) => token.value === inputs['asset'])?.label];
 };
 
+const defaultContractAddress = {
+  mainnet: '0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d',
+  testnet: '0x48Dad407aB7299E0175F39F4Cd12c524DB0AB002',
+};
+
 const getAmountForBundleDisplayDefault = (
   inputs: Record<string, string>,
-  props?: TypographyProps
+  props?: TypographyProps,
+  reserves?: ComputedReserveDataWithMarket[]
 ) => {
+  const reserveData =
+    reserves && reserves.length > 0
+      ? reserves?.find((reserve) => reserve.underlyingAsset === inputs['asset'].toLowerCase())
+      : null;
+
+  // inputs['amount'] is already in Wei (base units) string format
+  const amountInWei = new BigNumber(inputs['amount'] || '0');
+  const decimals = reserveData?.decimals || 18;
+
+  // Price is assumed to be in USD per standard unit, scaled by 8 decimals
+  const priceInUsd = new BigNumber(reserveData?.formattedPriceInMarketReferenceCurrency || '0');
+
+  // Calculate USD value: (amountInWei * priceInUsd) / 10^decimals
+  // The result will be scaled by 8 decimals
+  const amountInUsd = amountInWei.times(priceInUsd).dividedBy(new BigNumber(10).pow(decimals));
+
+  // Format the Wei amount into standard units for display
+  const formattedAmount = formatUnits(inputs['amount'] || '0', decimals);
+
   return (
-    <FormattedNumber
-      value={parseFloat(inputs['amount'])}
-      symbol={
-        availableTokensDropdownOptions.find((token) => token.value === inputs['asset'])?.label
-      }
-      {...props}
-    />
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
+      <FormattedNumber
+        value={formattedAmount} // Display formatted standard unit amount
+        symbol={
+          availableTokensDropdownOptions.find((token) => token.value === inputs['asset'])?.label
+        }
+        {...props}
+      />
+      {amountInUsd.gt(0) && (
+        <FormattedNumber
+          value={amountInUsd.toString()} // Display calculated USD value (scaled by 8)
+          symbol="USD"
+          {...props}
+          variant="secondary12"
+        />
+      )}
+    </Box>
   );
 };
 
 export const moreFacet: Facet = {
-  contractAddress: {
-    mainnet: '0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d',
-    testnet: '0x48Dad407aB7299E0175F39F4Cd12c524DB0AB002',
-  },
+  contractAddress: defaultContractAddress,
   name: 'MORE Markets',
   icon: '/loveMore.svg',
   description: 'MORE is a decentralized exchange for trading cryptocurrencies.',
@@ -55,10 +90,7 @@ export const moreFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
-          defaultValue: {
-            testnet: '0x48Dad407aB7299E0175F39F4Cd12c524DB0AB002',
-            mainnet: '0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d',
-          },
+          defaultValue: defaultContractAddress,
         },
         {
           id: 'asset',
@@ -105,7 +137,7 @@ export const moreFacet: Facet = {
         address asset,
         uint256 amount,
         address to
-      ) external returns (uint256 withdrawnAmount);`,
+      ) external;`,
       getAmountForBundleDisplay: getAmountForBundleDisplayDefault,
       getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       inputs: [
@@ -116,10 +148,7 @@ export const moreFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
-          defaultValue: {
-            testnet: '0x48Dad407aB7299E0175F39F4Cd12c524DB0AB002',
-            mainnet: '0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d',
-          },
+          defaultValue: defaultContractAddress,
         },
         {
           id: 'asset',
@@ -172,10 +201,7 @@ export const moreFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
-          defaultValue: {
-            testnet: '0x48Dad407aB7299E0175F39F4Cd12c524DB0AB002',
-            mainnet: '0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d',
-          },
+          defaultValue: defaultContractAddress,
         },
         {
           id: 'asset',
@@ -236,7 +262,7 @@ export const moreFacet: Facet = {
         uint256 amount,
         uint256 interestRateMode,
         address onBehalfOf
-      ) external returns (uint256 repaidAmount);`,
+      ) external;`,
       getAmountForBundleDisplay: getAmountForBundleDisplayDefault,
       getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       inputs: [
@@ -247,10 +273,7 @@ export const moreFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
-          defaultValue: {
-            testnet: '0x48Dad407aB7299E0175F39F4Cd12c524DB0AB002',
-            mainnet: '0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d',
-          },
+          defaultValue: defaultContractAddress,
         },
         {
           id: 'asset',
@@ -313,10 +336,7 @@ export const moreFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
-          defaultValue: {
-            testnet: '0x48Dad407aB7299E0175F39F4Cd12c524DB0AB002',
-            mainnet: '0xbC92aaC2DBBF42215248B5688eB3D3d2b32F2c8d',
-          },
+          defaultValue: defaultContractAddress,
         },
         {
           id: 'receiverAddress',

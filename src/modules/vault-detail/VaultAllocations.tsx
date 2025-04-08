@@ -1,5 +1,6 @@
 import {
   Box,
+  CircularProgress,
   Paper,
   Table,
   TableBody,
@@ -13,28 +14,31 @@ import {
 import React from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
-import { useVaultInfo } from 'src/hooks/useVaultInfo';
+import { useVault } from 'src/hooks/vault/useVault';
+import { useVaultData } from 'src/hooks/vault/useVaultData';
 
 // Define the column headers
 const listHeaders = [
   { title: 'Asset', key: 'assetName' },
-  { title: 'Type', key: 'type' },
   { title: 'Market', key: 'market' },
   { title: 'Balance', key: 'balance' },
   { title: 'Price', key: 'price' },
-  { title: 'Change 24h', key: 'priceChangeLast24Hours' },
+  // { title: 'Change 24h', key: 'priceChangeLast24Hours' },
   { title: 'Value', key: 'value' },
   { title: 'Allocation', key: 'allocation' },
 ];
 
 export const VaultAllocations: React.FC = () => {
-  const { vault } = useVaultInfo();
   const theme = useTheme();
-
-  // TODO: Nice error handling
+  const { selectedVaultId } = useVault();
+  const vaultData = useVaultData(selectedVaultId);
+  const vault = vaultData?.data;
+  const allocation = vault?.allocation;
+  const isLoading = vaultData?.isLoading;
+  const error = vaultData?.error;
 
   // Calculate total value for allocation percentages
-  const totalValue = vault.allocation.reduce((sum, asset) => sum + asset.value, 0);
+  const totalValue = allocation ? allocation.reduce((sum, asset) => sum + asset.value, 0) : 0;
 
   return (
     <Box sx={{ width: '100%', pt: 5 }}>
@@ -59,131 +63,155 @@ export const VaultAllocations: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {vault.allocation.map((asset, index) => {
-              // Calculate allocation percentage
-              const allocationPercentage = asset.value / totalValue;
-
-              return (
-                <TableRow
-                  key={`${asset.assetName}-${index}`}
-                  sx={{
-                    '&:hover': {
-                      backgroundColor: theme.palette.action.hover,
-                    },
-                    cursor: 'pointer',
-                    borderBottom: `1px solid ${theme.palette.divider}`,
-                  }}
+            {isLoading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={listHeaders.length}
+                  align="center"
+                  sx={{ border: 'none', py: 8 }}
                 >
-                  <TableCell
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <CircularProgress size={24} />
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow>
+                <TableCell
+                  colSpan={listHeaders.length}
+                  align="center"
+                  sx={{ border: 'none', py: 8 }}
+                >
+                  <Typography variant="main14" color="error">
+                    Error loading allocations: {error.message}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : !allocation || allocation.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={listHeaders.length}
+                  align="center"
+                  sx={{ border: 'none', py: 8 }}
+                >
+                  <Typography variant="main14">No allocations found</Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              allocation.map((asset, index) => {
+                // Calculate allocation percentage
+                const allocationPercentage = asset.value / totalValue;
+
+                return (
+                  <TableRow
+                    key={`${asset.assetName}-${index}`}
                     sx={{
-                      padding: '16px',
-                      borderBottom: 'none',
+                      '&:hover': {
+                        backgroundColor: theme.palette.action.hover,
+                      },
+                      cursor: 'pointer',
+                      borderBottom: `1px solid ${theme.palette.divider}`,
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <TokenIcon symbol={asset.assetName} fontSize="large" />
-                      <Box sx={{ ml: 2 }}>
-                        <Typography variant="main14" color="text">
-                          {asset.assetSymbol}
-                        </Typography>
-                        <Typography variant="secondary12" color="text.muted">
-                          {asset.assetName}
-                        </Typography>
+                    <TableCell
+                      sx={{
+                        padding: '16px',
+                        borderBottom: 'none',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <TokenIcon symbol={asset.assetSymbol} fontSize="large" />
+                        <Box sx={{ ml: 2 }}>
+                          <Typography variant="main14" color="text">
+                            {asset.assetSymbol}
+                          </Typography>
+                          <Typography variant="secondary12" color="text.muted">
+                            {asset.assetName}
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Box>
-                  </TableCell>
+                    </TableCell>
 
-                  <TableCell
-                    align="center"
-                    sx={{
-                      padding: '16px',
-                      borderBottom: 'none',
-                    }}
-                  >
-                    <Typography variant="main14" color="text">
-                      {asset.market}
-                    </Typography>
-                  </TableCell>
+                    <TableCell
+                      align="center"
+                      sx={{
+                        padding: '16px',
+                        borderBottom: 'none',
+                      }}
+                    >
+                      <Typography variant="main14" color="text">
+                        {asset.market}
+                      </Typography>
+                    </TableCell>
 
-                  <TableCell
-                    align="center"
-                    sx={{
-                      padding: '16px',
-                      borderBottom: 'none',
-                    }}
-                  >
-                    <Typography variant="main14" color="text">
-                      {asset.type}
-                    </Typography>
-                  </TableCell>
+                    <TableCell
+                      align="center"
+                      sx={{
+                        padding: '16px',
+                        borderBottom: 'none',
+                      }}
+                    >
+                      <FormattedNumber
+                        compact
+                        value={asset.balance}
+                        symbol={asset.assetSymbol}
+                        variant="main14"
+                      />
+                    </TableCell>
 
-                  <TableCell
-                    align="center"
-                    sx={{
-                      padding: '16px',
-                      borderBottom: 'none',
-                    }}
-                  >
-                    <FormattedNumber
-                      compact
-                      value={asset.balance}
-                      symbol={asset.assetSymbol}
-                      variant="main14"
-                    />
-                  </TableCell>
+                    <TableCell
+                      align="center"
+                      sx={{
+                        padding: '16px',
+                        borderBottom: 'none',
+                      }}
+                    >
+                      <FormattedNumber compact value={asset.price} symbol="USD" variant="main14" />
+                    </TableCell>
 
-                  <TableCell
-                    align="center"
-                    sx={{
-                      padding: '16px',
-                      borderBottom: 'none',
-                    }}
-                  >
-                    <FormattedNumber compact value={asset.price} symbol="USD" variant="main14" />
-                  </TableCell>
+                    {/* <TableCell
+                      align="center"
+                      sx={{
+                        padding: '16px',
+                        borderBottom: 'none',
+                      }}
+                    >
+                      <FormattedNumber
+                        compact
+                        value={asset.priceChangeLast24Hours}
+                        coloredPercent
+                        variant="main14"
+                      />
+                    </TableCell> */}
 
-                  <TableCell
-                    align="center"
-                    sx={{
-                      padding: '16px',
-                      borderBottom: 'none',
-                    }}
-                  >
-                    <FormattedNumber
-                      compact
-                      value={asset.priceChangeLast24Hours}
-                      coloredPercent
-                      variant="main14"
-                    />
-                  </TableCell>
+                    <TableCell
+                      align="center"
+                      sx={{
+                        padding: '16px',
+                        borderBottom: 'none',
+                      }}
+                    >
+                      <FormattedNumber compact value={asset.value} symbol="USD" variant="main14" />
+                    </TableCell>
 
-                  <TableCell
-                    align="center"
-                    sx={{
-                      padding: '16px',
-                      borderBottom: 'none',
-                    }}
-                  >
-                    <FormattedNumber compact value={asset.value} symbol="USD" variant="main14" />
-                  </TableCell>
-
-                  <TableCell
-                    align="center"
-                    sx={{
-                      padding: '16px',
-                      borderBottom: 'none',
-                    }}
-                  >
-                    <FormattedNumber
-                      compact
-                      value={allocationPercentage}
-                      percent
-                      variant="main14"
-                    />
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+                    <TableCell
+                      align="center"
+                      sx={{
+                        padding: '16px',
+                        borderBottom: 'none',
+                      }}
+                    >
+                      <FormattedNumber
+                        compact
+                        value={allocationPercentage}
+                        percent
+                        variant="main14"
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </TableContainer>

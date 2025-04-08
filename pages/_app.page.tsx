@@ -18,6 +18,7 @@ import { TransactionEventHandler } from 'src/components/TransactionEventHandler'
 import { GasStationProvider } from 'src/components/transactions/GasStation/GasStationProvider';
 import { AppDataProvider } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { ModalContextProvider } from 'src/hooks/useModal';
+import { VaultProvider } from 'src/hooks/vault/useVault';
 import { Web3ContextProvider } from 'src/libs/web3-data-provider/Web3Provider';
 import { useRootStore } from 'src/store/root';
 import { SharedDependenciesProvider } from 'src/ui-config/SharedDependenciesProvider';
@@ -26,7 +27,6 @@ import { WagmiProvider } from 'wagmi';
 
 import createEmotionCache from '../src/createEmotionCache';
 import { AppGlobalStyles } from '../src/layouts/AppGlobalStyles';
-import { VaultBundleProvider } from 'src/hooks/useVaultBundle';
 
 const WelcomeModal = dynamic(() =>
   import('src/components/transactions/Welcome/WelcomeModal').then((module) => module.WelcomeModal)
@@ -139,7 +139,7 @@ export default function MyApp(props: MyAppProps) {
                     <ModalContextProvider>
                       <SharedDependenciesProvider>
                         <AppDataProvider>
-                          <VaultBundleProvider>
+                          <VaultProvider>
                             <GasStationProvider>
                               {getLayout(<Component {...pageProps} />)}
                               <WelcomeModal />
@@ -157,7 +157,7 @@ export default function MyApp(props: MyAppProps) {
                               <TransactionEventHandler />
                               <SwitchModal />
                             </GasStationProvider>
-                          </VaultBundleProvider>
+                          </VaultProvider>
                         </AppDataProvider>
                       </SharedDependenciesProvider>
                     </ModalContextProvider>

@@ -52,9 +52,7 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
     return batchTransactionGroups
       .map((group, index) => {
         return group
-          .filter((transaction) =>
-            ['supply', 'borrow', 'repay', 'withdraw'].includes(transaction.action)
-          )
+          .filter((transaction) => !transaction.isHidden)
           .map((transaction) => {
             // Find the reserve that matches this transaction's asset
             const matchingReserve = reserves.find(

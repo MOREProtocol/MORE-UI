@@ -1,6 +1,6 @@
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import React from 'react';
-import { useVaultInfo } from 'src/hooks/useVaultInfo';
+import { useVault } from 'src/hooks/vault/useVault';
 
 import { VaultActivity } from './VaultActivity';
 import { VaultAllocations } from './VaultAllocations';
@@ -9,7 +9,11 @@ import { VaultManagement } from './VaultManagement/VaultManagement';
 import { VaultOverview } from './VaultOverview';
 
 export const VaultTabContent: React.FC = () => {
-  const { selectedTab } = useVaultInfo();
+  const { selectedTab, selectedVaultId } = useVault();
+
+  if (!selectedVaultId) {
+    return <Typography>No vault selected</Typography>;
+  }
 
   return (
     <Box sx={{ height: '100%' }}>

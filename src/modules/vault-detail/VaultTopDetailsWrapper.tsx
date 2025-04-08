@@ -1,14 +1,14 @@
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import { Box, Button, SvgIcon, Tab, Tabs, useMediaQuery, useTheme } from '@mui/material';
 import { useRouter } from 'next/router';
-import { useVaultInfo, VaultTab } from 'src/hooks/useVaultInfo';
+import { useVault, VaultTab } from 'src/hooks/vault/useVault';
 
 import { NewTopInfoPanel } from './NewTopInfoPanel';
 import { VaultTopDetails } from './VaultTopDetails';
 
 export const VaultTopDetailsWrapper = () => {
   const router = useRouter();
-  const { selectedTab, setSelectedTab } = useVaultInfo();
+  const { selectedTab, setSelectedTab } = useVault();
 
   const theme = useTheme();
   const downToSM = useMediaQuery(theme.breakpoints.down('sm'));

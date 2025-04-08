@@ -1,6 +1,5 @@
 import { Box, Container, useTheme } from '@mui/material';
 import { ReactNode } from 'react';
-import { VaultProvider } from 'src/hooks/useVaultInfo';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { VaultTabContent } from 'src/modules/vault-detail/VaultTabContent';
 import { VaultTopDetailsWrapper } from 'src/modules/vault-detail/VaultTopDetailsWrapper';
@@ -28,12 +27,12 @@ const ContentContainer = ({ children }: ContentContainerProps) => {
 
 export default function VaultDetail() {
   return (
-    <VaultProvider>
+    <>
       <VaultTopDetailsWrapper />
       <ContentContainer>
         <VaultTabContent />
       </ContentContainer>
-    </VaultProvider>
+    </>
   );
 }
 

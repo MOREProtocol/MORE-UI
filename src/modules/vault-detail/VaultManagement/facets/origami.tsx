@@ -4,8 +4,9 @@ export const origamiFacet: Facet = {
   contractAddress: {
     testnet: '0x72eBEC124864D69a33638c5BA478bd9968798709',
   },
-  icon: '/icons/protocols/origami.svg',
-  name: 'Origami',
+  icon: '/icons/protocols/morigami.svg',
+  // TODO: rename, shouldn't be ORIGAMI shown
+  name: 'MORigami',
   description: 'Origami is a decentralized exchange for trading cryptocurrencies.',
   actions: [
     {
@@ -19,7 +20,7 @@ export const origamiFacet: Facet = {
         address fromToken,
         uint256 maxSlippageBps,
         uint256 deadline
-      ) external returns (uint256 investmentAmount);`,
+      ) external;`,
       inputs: [],
     },
     {
@@ -33,7 +34,7 @@ export const origamiFacet: Facet = {
         address toToken,
         uint256 maxSlippageBps,
         uint256 deadline
-      ) external returns (uint256 toTokenAmount);`,
+      ) external;`,
       inputs: [],
     },
   ],

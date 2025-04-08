@@ -250,7 +250,7 @@ export const RepayActions = ({
       {...props}
       handleAction={action}
       handleApproval={approval}
-      handleAddToBatch={handleAddToBatch}
+      handleAddToBatch={amountToRepay !== '-1' ? handleAddToBatch : undefined}
       actionText={`Repay ${symbol}`}
       actionInProgressText={`Repaying ${symbol}`}
       tryPermit={permitAvailable}

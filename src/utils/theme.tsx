@@ -462,6 +462,10 @@ export function getThemedComponents(theme: Theme) {
                 background: theme.palette.gradients.newGradient,
                 opacity: '0.9',
               },
+              '&:disabled': {
+                background: theme.palette.background.surface,
+                color: theme.palette.text.disabled,
+              },
             },
           },
           {
