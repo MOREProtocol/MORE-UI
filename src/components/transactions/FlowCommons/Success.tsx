@@ -37,7 +37,7 @@ export const TxSuccessView = ({
   const theme = useTheme();
 
   return (
-    (<BaseSuccessView txHash={txHash}>
+    <BaseSuccessView txHash={txHash}>
       <Box
         sx={{
           mt: 2,
@@ -49,12 +49,11 @@ export const TxSuccessView = ({
         }}
       >
         {action && amount && symbol && (
-          <Typography>
-            
-              You {action} <FormattedNumber value={Number(amount)} compact variant="secondary14" />{' '}
-              {symbol}
-            
-          </Typography>
+          <Box sx={{ display: 'flex', direction: 'row', alignItems: 'center', gap: '4px' }}>
+            <Typography>You {action}</Typography>
+            <FormattedNumber value={Number(amount)} compact variant="secondary14" />
+            <Typography> {symbol}</Typography>
+          </Box>
         )}
 
         {customAction && (
@@ -72,9 +71,7 @@ export const TxSuccessView = ({
 
         {rate && (
           <Typography>
-            
-              You switched to {rate === InterestRate.Variable ? 'variable' : 'stable'} rate
-            
+            You switched to {rate === InterestRate.Variable ? 'variable' : 'stable'} rate
           </Typography>
         )}
 
@@ -97,10 +94,8 @@ export const TxSuccessView = ({
               sx={{ fontSize: '32px', mt: '12px', mb: '8px' }}
             />
             <Typography variant="description" color="text.primary" sx={{ mx: '24px' }}>
-              
-                Add {addToken && addToken.aToken ? 'aToken ' : 'token '} to wallet to track your
-                balance.
-              
+              Add {addToken && addToken.aToken ? 'aToken ' : 'token '} to wallet to track your
+              balance.
             </Typography>
             <Button
               onClick={() => {
@@ -130,6 +125,6 @@ export const TxSuccessView = ({
           </Box>
         )}
       </Box>
-    </BaseSuccessView>)
+    </BaseSuccessView>
   );
 };

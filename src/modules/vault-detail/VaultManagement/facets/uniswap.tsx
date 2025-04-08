@@ -1,35 +1,121 @@
 import { Box, Typography, TypographyProps } from '@mui/material';
+import { BigNumber } from 'bignumber.js';
+import { formatUnits } from 'ethers/lib/utils';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
+import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
 
 import { availableTokensDropdownOptions, deadlineDropdownOptions } from './constants';
-import { DisplayType, Facet, InputType } from './types';
+import { DisplayType, Facet, InputType, TransactionInput } from './types';
+import { addressToProtocolMap } from './vaultsConfig';
 
 const getAmountForBundleDisplayDefault =
-  (assetAKey: string, assetBKey: string, assetAAmountKey: string, assetBAmountKey: string) =>
-  (inputs: Record<string, string>, props?: TypographyProps) => {
+  <T extends TransactionInput>(
+    getAssetA: (inputs: T) => string,
+    getAssetB: (inputs: T) => string,
+    getAmountA: (inputs: T) => string,
+    getAmountB: (inputs: T) => string,
+    getRouterAddress: (inputs: T) => string
+  ) =>
+  (inputs: T, props?: TypographyProps, reserves?: ComputedReserveDataWithMarket[]) => {
+    const routerAddress = String(getRouterAddress(inputs));
+    const assetA = getAssetA(inputs);
+    const assetB = getAssetB(inputs);
+    const reserveAData =
+      reserves && reserves.length > 0
+        ? reserves?.find((reserve) => reserve.underlyingAsset === getAssetA(inputs).toLowerCase())
+        : null;
+    const reserveBData =
+      reserves && reserves.length > 0
+        ? reserves?.find((reserve) => reserve.underlyingAsset === getAssetB(inputs).toLowerCase())
+        : null;
+
+    // Assume getAmountA/B return amount in Wei string format
+    const amountAInWei = new BigNumber(getAmountA(inputs) || '0');
+    const amountBInWei = new BigNumber(getAmountB(inputs) || '0');
+    const decimalsA = reserveAData?.decimals || 18;
+    const decimalsB = reserveBData?.decimals || 18;
+
+    // Price is assumed to be in USD per standard unit
+    const priceAInUsd = new BigNumber(reserveAData?.formattedPriceInMarketReferenceCurrency || '0');
+    const priceBInUsd = new BigNumber(reserveBData?.formattedPriceInMarketReferenceCurrency || '0');
+
+    // Calculate USD value: (amountInWei * price) / 10^decimals
+    const amountAInUsd = amountAInWei
+      .times(priceAInUsd)
+      .dividedBy(new BigNumber(10).pow(decimalsA));
+    const amountBInUsd = amountBInWei
+      .times(priceBInUsd)
+      .dividedBy(new BigNumber(10).pow(decimalsB));
+
+    // Format Wei amounts into standard units for display
+    const formattedAmountA = formatUnits(getAmountA(inputs) || '0', decimalsA);
+    const formattedAmountB = formatUnits(getAmountB(inputs) || '0', decimalsB);
+
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <FormattedNumber
-          value={parseFloat(inputs[assetAAmountKey])}
-          symbol={
-            availableTokensDropdownOptions.find((token) => token.value === inputs[assetAKey])?.label
-          }
-          {...props}
-        />
-        <Typography {...props}> / </Typography>
-        <FormattedNumber
-          value={parseFloat(inputs[assetBAmountKey])}
-          symbol={
-            availableTokensDropdownOptions.find((token) => token.value === inputs[assetBKey])?.label
-          }
-          {...props}
-        />
+      <Box
+        sx={{
+          display: 'flex',
+          width: '100%',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1,
+        }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
+          <FormattedNumber
+            value={formattedAmountA}
+            symbol={availableTokensDropdownOptions.find((token) => token.value === assetA)?.label}
+            {...props}
+          />
+          {amountAInUsd.gt(0) && (
+            <FormattedNumber
+              value={amountAInUsd.toString()}
+              symbol="USD"
+              {...props}
+              variant="secondary12"
+            />
+          )}
+        </Box>
+        {addressToProtocolMap[routerAddress] ? (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            <img
+              src={addressToProtocolMap[routerAddress].icon}
+              alt={addressToProtocolMap[routerAddress].name}
+              style={{ width: 20, height: 20, borderRadius: '50%' }}
+            />
+            <Typography variant="helperText">{addressToProtocolMap[routerAddress].name}</Typography>
+          </Box>
+        ) : (
+          <Typography variant="helperText">Custom router</Typography>
+        )}
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'end' }}>
+          <FormattedNumber
+            value={formattedAmountB}
+            symbol={availableTokensDropdownOptions.find((token) => token.value === assetB)?.label}
+            {...props}
+          />
+          {amountBInUsd.gt(0) && (
+            <FormattedNumber
+              value={amountBInUsd.toString()}
+              symbol="USD"
+              {...props}
+              variant="secondary12"
+            />
+          )}
+        </Box>
       </Box>
     );
   };
 
 const getCurrencySymbolsForBundleDisplayDefault =
-  (assetAKey: string, assetBKey: string) => (inputs: Record<string, string>) => {
+  (assetAKey: string, assetBKey: string) => (inputs: TransactionInput) => {
     return availableTokensDropdownOptions
       .filter((token) => [inputs[assetAKey], inputs[assetBKey]].includes(token.value))
       ?.map((token) => token.label);
@@ -58,12 +144,13 @@ export const uniswapFacet: Facet = {
         uint amountBMin,
         address to,
         uint deadline
-      ) external returns (uint amountA, uint amountB, uint liquidity);`,
+      ) external;`,
       getAmountForBundleDisplay: getAmountForBundleDisplayDefault(
-        'tokenA',
-        'tokenB',
-        'amountADesired',
-        'amountBDesired'
+        (inputs) => inputs.tokenA as string,
+        (inputs) => inputs.tokenB as string,
+        (inputs) => inputs.amountADesired as string,
+        (inputs) => inputs.amountBDesired as string,
+        (inputs) => inputs.router as string
       ),
       getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault(
         'tokenA',
@@ -154,12 +241,13 @@ export const uniswapFacet: Facet = {
         uint amountBMin,
         address to,
         uint deadline
-      ) external returns (uint amountA, uint amountB);`,
+      ) external;`,
       getAmountForBundleDisplay: getAmountForBundleDisplayDefault(
-        'tokenA',
-        'tokenB',
-        'amountAMin',
-        'amountBMin'
+        (inputs) => inputs.tokenA as string,
+        (inputs) => inputs.tokenB as string,
+        (inputs) => inputs.amountAMin as string,
+        (inputs) => inputs.amountBMin as string,
+        (inputs) => inputs.router as string
       ),
       getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault(
         'tokenA',
@@ -256,7 +344,27 @@ export const uniswapFacet: Facet = {
         address[] calldata path,
         address to,
         uint deadline
-      ) external returns (uint[] memory amounts);`,
+      ) external;`,
+      prepareInputs: (inputs: TransactionInput): TransactionInput => {
+        const { tokenIn, tokenOut, ...restInputs } = inputs;
+        const result: TransactionInput = {
+          ...restInputs,
+          path: [tokenIn as string, tokenOut as string],
+        };
+        return result;
+      },
+      getAmountForBundleDisplay: getAmountForBundleDisplayDefault(
+        (inputs) => inputs.path[0],
+        (inputs) => inputs.path[1],
+        (inputs) => inputs.amountIn as string,
+        (inputs) => inputs.amountOutMin as string,
+        (inputs) => inputs.router as string
+      ),
+      getCurrencySymbolsForBundleDisplay: (inputs: TransactionInput) => {
+        return availableTokensDropdownOptions
+          .filter((token) => [inputs.path[0], inputs.path[1]].includes(token.value))
+          ?.map((token) => token.label);
+      },
       inputs: [
         {
           id: 'router',
@@ -270,6 +378,24 @@ export const uniswapFacet: Facet = {
             testnet: '0xeD53235cC3E9d2d464E9c408B95948836648870B',
             mainnet: '0xf45AFe28fd5519d5f8C1d4787a4D5f724C0eFa4d',
           },
+        },
+        {
+          id: 'tokenIn',
+          name: 'Token In',
+          description: 'The token to swap',
+          type: InputType.ADDRESS,
+          isShown: true,
+          displayType: DisplayType.DROPDOWN,
+          dropdownOptions: availableTokensDropdownOptions,
+        },
+        {
+          id: 'tokenOut',
+          name: 'Token Out',
+          description: 'The token to receive',
+          type: InputType.ADDRESS,
+          isShown: true,
+          displayType: DisplayType.DROPDOWN,
+          dropdownOptions: availableTokensDropdownOptions,
         },
         {
           id: 'amountIn',
@@ -288,19 +414,11 @@ export const uniswapFacet: Facet = {
           displayType: DisplayType.CURRENCY_AMOUNT_INPUT,
         },
         {
-          id: 'path',
-          name: 'Path',
-          description: 'The path of the tokens to swap',
-          type: InputType.ADDRESS,
-          isShown: true,
-          displayType: DisplayType.ADDRESS_INPUT, // TODO: change to array?
-        },
-        {
           id: 'to',
           name: 'To',
           description: 'The address to send the tokens to',
           type: InputType.ADDRESS,
-          isShown: true,
+          isShown: false,
           displayType: DisplayType.ADDRESS_INPUT,
           defaultValue: '',
         },

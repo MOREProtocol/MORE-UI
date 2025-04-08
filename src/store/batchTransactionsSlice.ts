@@ -11,7 +11,15 @@ import { RootStore } from './root';
 const MULTICALL_ADDRESS = '0xF7d11c74B5706155d7C6DBe931d590611a371a8a';
 
 export interface BatchTransaction {
-  action: 'supply' | 'borrow' | 'repay' | 'withdraw' | 'transfer' | 'approve' | 'delegate';
+  action:
+    | 'supply'
+    | 'borrow'
+    | 'repay'
+    | 'withdraw'
+    | 'transfer'
+    | 'approve'
+    | 'delegate'
+    | 'embedded_approve';
   market: CustomMarket;
   poolAddress: string;
   amount: string;
@@ -259,14 +267,7 @@ export const createBatchTransactionsSlice: StateCreator<
     // Check if native token
     const isNativeToken =
       underlyingAsset.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'.toLowerCase();
-
-    // Determine amount in wei
-    let amountInWei;
-    if (amount.toUpperCase() === 'MAX') {
-      amountInWei = ethers.constants.MaxUint256;
-    } else {
-      amountInWei = ethers.utils.parseUnits(amount, tokenInfo.decimals);
-    }
+    const amountInWei = ethers.utils.parseUnits(amount, tokenInfo.decimals);
 
     return {
       assetAddress,
@@ -530,7 +531,7 @@ export const createBatchTransactionsSlice: StateCreator<
   addRepayAction: async (transaction: BatchTransaction) => {
     const repayTransactions: BatchTransaction[] = [];
 
-    const { assetAddress, isNativeToken, amountInWei } = get().getTokenInfoAndAmount(
+    const { assetAddress, isNativeToken, amountInWei, poolAddress } = get().getTokenInfoAndAmount(
       transaction.market,
       transaction.poolAddress,
       transaction.amount
@@ -541,13 +542,27 @@ export const createBatchTransactionsSlice: StateCreator<
       const transferActionTx = await get().getTransferFromSignerToMulticall(
         assetAddress,
         transaction.symbol,
-        amountInWei
+        transaction.amount === '-1' ? ethers.constants.MaxUint256 : amountInWei
       );
       repayTransactions.push({
         ...transaction,
         isHidden: true,
         action: 'transfer',
         tx: transferActionTx,
+      });
+
+      // Embedded approval
+      const delegation = get().generateApproval({
+        spender: poolAddress,
+        token: transaction.poolAddress,
+        amount: parseUnits(transaction.amount, transaction.decimals).toString(),
+        user: get().account,
+      });
+      repayTransactions.push({
+        ...transaction,
+        isHidden: true,
+        action: 'embedded_approve',
+        tx: delegation,
       });
 
       const approvalTransaction = await get().checkAndGetTokenApproval(
@@ -561,7 +576,6 @@ export const createBatchTransactionsSlice: StateCreator<
       approvalTransaction && repayTransactions.push(approvalTransaction);
     }
 
-    // TODO: repay with aTokens ??
     const repayTx = get().repay({
       amountToRepay: parseUnits(transaction.amount, transaction.decimals).toString(),
       poolAddress: assetAddress,

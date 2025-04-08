@@ -1,5 +1,6 @@
 import { TypographyProps } from '@mui/material';
 import { ReactNode } from 'react';
+import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
 
 export type NetworkDependentString = {
   mainnet?: string;
@@ -14,6 +15,8 @@ export type Facet = {
   actions: Action[];
 };
 
+export type TransactionInput = Record<string, string | string[]>;
+
 export type Action = {
   id: string;
   name: string;
@@ -22,10 +25,12 @@ export type Action = {
   abi: string;
   inputs: Input[];
   getAmountForBundleDisplay?: (
-    inputs: Record<string, string>,
-    props?: TypographyProps
+    inputs: TransactionInput,
+    props?: TypographyProps,
+    reserve?: ComputedReserveDataWithMarket[]
   ) => ReactNode;
-  getCurrencySymbolsForBundleDisplay?: (inputs: Record<string, string>) => string[];
+  getCurrencySymbolsForBundleDisplay?: (inputs: TransactionInput) => string[];
+  prepareInputs?: (inputs: TransactionInput) => TransactionInput;
 };
 
 export type Input = {

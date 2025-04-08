@@ -1,5 +1,6 @@
 import {
   Box,
+  CircularProgress,
   Paper,
   Table,
   TableBody,
@@ -11,10 +12,12 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Address } from 'src/components/Address';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
-import { useVaultInfo } from 'src/hooks/useVaultInfo';
+import { useVault } from 'src/hooks/vault/useVault';
+import { useVaultData } from 'src/hooks/vault/useVaultData';
+import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
 
 // Define the column headers
 const listHeaders = [
@@ -29,13 +32,22 @@ const listHeaders = [
 
 export const VaultActivity: React.FC = () => {
   const theme = useTheme();
-  const { vault } = useVaultInfo();
+  const { selectedVaultId, chainId } = useVault();
+  const vaultData = useVaultData(selectedVaultId);
 
-  // TODO: Nice error handling
+  const vault = vaultData?.data;
+  const activity = vault?.activity;
+  const isLoading = vaultData?.isLoading;
+  const error = vaultData?.error;
+
+  const baseUrl = useMemo(() => chainId && networkConfigs[chainId].explorerLink, [chainId]);
 
   return (
     <Box sx={{ width: '100%', pt: 5 }}>
-      <TableContainer component={Paper} sx={{ boxShadow: 'none', backgroundColor: 'transparent' }}>
+      <TableContainer
+        component={Paper}
+        sx={{ boxShadow: 'none', backgroundColor: 'transparent', cursor: 'default' }}
+      >
         <Table aria-label="vault activity table">
           <TableHead>
             <TableRow>
@@ -56,8 +68,42 @@ export const VaultActivity: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {vault.activity &&
-              vault.activity.map((activity, index) => {
+            {isLoading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={listHeaders.length}
+                  align="center"
+                  sx={{ border: 'none', py: 8 }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <CircularProgress size={24} />
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow>
+                <TableCell
+                  colSpan={listHeaders.length}
+                  align="center"
+                  sx={{ border: 'none', py: 8 }}
+                >
+                  <Typography variant="main14" color="error">
+                    Error loading activities: {error.message}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : !activity || activity.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={listHeaders.length}
+                  align="center"
+                  sx={{ border: 'none', py: 8 }}
+                >
+                  <Typography variant="main14">No activities found</Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              activity.map((activity, index) => {
                 return (
                   <TableRow
                     key={`${activity.assetName}-${index}`}
@@ -65,8 +111,8 @@ export const VaultActivity: React.FC = () => {
                       '&:hover': {
                         backgroundColor: theme.palette.action.hover,
                       },
-                      cursor: 'pointer',
                       borderBottom: `1px solid ${theme.palette.divider}`,
+                      cursor: 'default',
                     }}
                   >
                     <TableCell align="center">
@@ -101,21 +147,32 @@ export const VaultActivity: React.FC = () => {
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
+                        border: 'none',
                       }}
                     >
-                      <FormattedNumber
-                        compact
-                        value={activity.amount}
-                        symbol={activity.assetSymbol}
-                        variant="main14"
-                      />
-                      <FormattedNumber
-                        compact
-                        value={activity.price * activity.amount}
-                        symbol="USD"
-                        variant="secondary12"
-                        color="text.muted"
-                      />
+                      {activity.amount ? (
+                        <FormattedNumber
+                          compact
+                          value={activity.amount}
+                          symbol={activity.assetSymbol}
+                          variant="main14"
+                        />
+                      ) : (
+                        <Typography variant="main14" color="text.muted">
+                          —
+                        </Typography>
+                      )}
+                      {!activity.price || !activity.amount ? (
+                        <></>
+                      ) : (
+                        <FormattedNumber
+                          compact
+                          value={Number(activity.price) * Number(activity.amount)}
+                          symbol="USD"
+                          variant="secondary12"
+                          color="text.muted"
+                        />
+                      )}
                     </TableCell>
 
                     <TableCell align="center">
@@ -129,7 +186,7 @@ export const VaultActivity: React.FC = () => {
                         <Address
                           variant="secondary14"
                           address={activity.transactionHash}
-                          link={`https://etherscan.io/address`}
+                          link={`${baseUrl}/tx`}
                         />
                       </Box>
                     </TableCell>
@@ -139,14 +196,15 @@ export const VaultActivity: React.FC = () => {
                         <Address
                           variant="secondary14"
                           address={activity.user}
-                          link={`https://etherscan.io/address`}
+                          link={`${baseUrl}/address`}
                           isUser
                         />
                       </Box>
                     </TableCell>
                   </TableRow>
                 );
-              })}
+              })
+            )}
           </TableBody>
         </Table>
       </TableContainer>

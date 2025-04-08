@@ -67,7 +67,7 @@ export interface Asset {
 
 export interface AssetInputProps<T extends Asset = Asset> {
   value: string;
-  usdValue: string;
+  usdValue?: string;
   symbol: string;
   onChange?: (value: string) => void;
   disabled?: boolean;
@@ -283,7 +283,7 @@ export const AssetInput = <T extends Asset = Asset>({
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', height: '16px', px: 3, py: 2, mb: 1 }}>
-          {loading ? (
+          {loading || !usdValue ? (
             <Box sx={{ flex: 1 }} />
           ) : (
             <FormattedNumber

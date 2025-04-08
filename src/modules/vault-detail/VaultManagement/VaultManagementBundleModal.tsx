@@ -1,8 +1,17 @@
 import { XIcon } from '@heroicons/react/outline';
-import { Box, IconButton, SvgIcon, Typography, useTheme } from '@mui/material';
+import {
+  Box,
+  Button,
+  CircularProgress,
+  IconButton,
+  SvgIcon,
+  Typography,
+  useTheme,
+} from '@mui/material';
 import React from 'react';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
-import { useVaultBundle } from 'src/hooks/useVaultBundle';
+import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { useVault } from 'src/hooks/vault/useVault';
 import { TransactionsBundle } from 'src/layouts/TransactionsBundle/TransactionsBundle';
 
 interface VaultManagementBundleModalProps {
@@ -11,17 +20,19 @@ interface VaultManagementBundleModalProps {
 }
 
 export const VaultManagementBundleModal = ({ open, setOpen }: VaultManagementBundleModalProps) => {
-  const { transactions, removeTransaction } = useVaultBundle();
+  const {
+    transactions,
+    removeTransaction,
+    submitAndExecuteActions,
+    operationsLoading,
+    operationsError,
+  } = useVault();
+  const { reserves } = useAppDataContext();
   const theme = useTheme();
 
   const handleClose = () => {
     setOpen(false);
   };
-
-  console.log(
-    'transaction',
-    transactions.map((tx) => tx.action.getAmountForBundleDisplay?.(tx.inputs))
-  );
 
   return (
     <TransactionsBundle
@@ -77,22 +88,32 @@ export const VaultManagementBundleModal = ({ open, setOpen }: VaultManagementBun
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 {transaction.action?.getCurrencySymbolsForBundleDisplay ? (
-                  transaction.action
-                    .getCurrencySymbolsForBundleDisplay?.(transaction.inputs)
-                    .map((symbol, index, arr) => (
-                      <React.Fragment key={index}>
-                        <TokenIcon symbol={symbol} sx={{ ml: 1, width: 15, height: 15 }} />
-                        <Typography variant="secondary12">
-                          {symbol}
-                          {index < arr.length - 1 ? ' / ' : ''}
-                        </Typography>
-                      </React.Fragment>
-                    ))
-                ) : (
-                  <Typography variant="secondary12" fontStyle="italic">
-                    No currency symbols to display
-                  </Typography>
-                )}
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', mr: 1 }}>
+                      {transaction.action
+                        .getCurrencySymbolsForBundleDisplay?.(transaction.inputs)
+                        .map((symbol, index) => (
+                          <TokenIcon
+                            key={index}
+                            symbol={symbol}
+                            sx={{
+                              width: 20,
+                              height: 20,
+                              ml: index > 0 ? -1 : 0,
+                              border: '1px solid',
+                              borderColor: 'background.paper',
+                              borderRadius: '50%',
+                            }}
+                          />
+                        ))}
+                    </Box>
+                    <Typography variant="secondary12">
+                      {transaction.action
+                        .getCurrencySymbolsForBundleDisplay?.(transaction.inputs)
+                        .join(' / ')}
+                    </Typography>
+                  </Box>
+                ) : null}
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <img
@@ -114,9 +135,13 @@ export const VaultManagementBundleModal = ({ open, setOpen }: VaultManagementBun
               }}
             >
               {transaction.action?.getAmountForBundleDisplay ? (
-                transaction.action.getAmountForBundleDisplay?.(transaction.inputs, {
-                  variant: 'h4',
-                })
+                transaction.action.getAmountForBundleDisplay?.(
+                  transaction.inputs,
+                  {
+                    variant: 'main14',
+                  },
+                  reserves
+                )
               ) : (
                 <Typography variant="secondary12" fontStyle="italic">
                   No amount to display
@@ -125,6 +150,33 @@ export const VaultManagementBundleModal = ({ open, setOpen }: VaultManagementBun
             </Box>
           </Box>
         ))}
+
+        {operationsError && (
+          <Box
+            sx={{
+              mb: 2,
+              p: 2,
+              bgcolor: 'error.light',
+              color: 'error.main',
+              borderRadius: '4px',
+              fontSize: '14px',
+              overflow: 'scroll',
+            }}
+          >
+            <Typography variant="secondary12" color="white">
+              {operationsError.message || operationsError.toString()}
+            </Typography>
+          </Box>
+        )}
+
+        <Button
+          variant="contained"
+          fullWidth
+          onClick={submitAndExecuteActions}
+          disabled={operationsLoading}
+        >
+          {operationsLoading ? <CircularProgress size={20} /> : 'Submit and Execute'}
+        </Button>
       </Box>
     </TransactionsBundle>
   );

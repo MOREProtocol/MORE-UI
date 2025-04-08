@@ -13,6 +13,8 @@ import {
   Typography,
 } from '@mui/material';
 import { useState } from 'react';
+import { useVault } from 'src/hooks/vault/useVault';
+import { useVaultData } from 'src/hooks/vault/useVaultData';
 
 import facets from './facets';
 import { Action, Facet } from './facets/types';
@@ -22,12 +24,23 @@ export const VaultManagement: React.FC = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [action, setAction] = useState<Action | null>(null);
   const [facet, setFacet] = useState<Facet | null>(null);
+  const { selectedVaultId } = useVault();
+  const vaultData = useVaultData(selectedVaultId);
+  const vault = vaultData?.data;
 
   const handleOpenModal = (action: Action, facet: Facet) => {
     setAction(action);
     setFacet(facet);
     setIsOpen(true);
   };
+
+  if (!selectedVaultId) {
+    return (
+      <Box sx={{ width: '100%', padding: 7, alignItems: 'center' }}>
+        <Typography variant="main16">Vault not found</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ width: '100%', padding: 7 }}>
@@ -72,6 +85,7 @@ export const VaultManagement: React.FC = () => {
         setIsOpen={setIsOpen}
         action={action}
         facet={facet}
+        vault={vault}
       />
     </Box>
   );

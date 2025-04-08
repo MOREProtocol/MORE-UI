@@ -1,166 +1,194 @@
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
-import { Box, Paper, styled, Typography } from '@mui/material';
+import { Box, Paper, Typography } from '@mui/material';
+import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
+import { VaultData } from 'src/hooks/vault/useVault';
 
-import { LineChart } from './LineChart';
-import { VaultAssetData } from './mockData';
+import { PreviewLineChart } from './LineChart';
 
 interface VaultAssetsListItemProps {
-  data: VaultAssetData;
+  data: VaultData;
   onClick?: () => void;
 }
 
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  display: 'flex',
-  flexDirection: 'column',
-  height: '100%',
-  cursor: 'pointer',
-  borderRadius: theme.spacing(2),
-  border: `0.5px solid ${theme.palette.divider}`,
-  overflow: 'hidden',
-}));
-
-const Header = styled(Box)({
-  display: 'flex',
-  alignItems: 'center',
-  marginBottom: 16,
-  padding: '16px 16px 0 16px',
-});
-
-const Logo = styled(Box)(({ theme }) => ({
-  width: 40,
-  height: 40,
-  borderRadius: '50%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginRight: theme.spacing(1.5),
-}));
-
-const ContentContainer = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  paddingLeft: theme.spacing(5),
-  paddingRight: theme.spacing(5),
-  gap: theme.spacing(5),
-  flexGrow: 1,
-}));
-
-const InfoSection = styled(Box)({
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'space-between',
-  flexBasis: '50%',
-});
-
-const InfoRow = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  justifyContent: 'space-between',
-  marginBottom: theme.spacing(0.8),
-}));
-
-const InfoLabel = styled(Typography)(({ theme }) => ({
-  color: theme.palette.text.secondary,
-  fontSize: '0.875rem',
-}));
-
-const InfoValue = styled(Typography)({
-  fontWeight: 500,
-  textAlign: 'right',
-});
-
-const ChartContainer = styled(Box)({
-  flexBasis: '50%',
-  minHeight: 100,
-});
-
-const PriceRow = styled(Box)({
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  backgroundColor: '#000',
-  color: 'white',
-  padding: '6px 20px',
-});
-
-const SharePrice = styled(Typography)({
-  fontWeight: 600,
-  fontSize: '1.25rem',
-  color: 'white',
-});
-
-const PriceLabel = styled(Typography)({
-  fontSize: '0.75rem',
-  color: 'rgba(255, 255, 255, 0.7)',
-});
-
-const TimeLabel = styled(Typography)({
-  fontSize: '0.75rem',
-  color: 'rgba(255, 255, 255, 0.7)',
-});
-
-const PositiveChange = styled(Typography)({
-  fontWeight: 500,
-  color: '#4CAF50',
-});
-
-const ArrowIcon = styled(ArrowForwardIosIcon)({
-  fontSize: 16,
-  color: 'white',
-});
-
 export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps) => {
   return (
-    <StyledPaper onClick={onClick}>
-      <Header>
-        <Logo>
-          <img src={'/icons/tokens/flow.svg'} alt="Flow Logo" style={{ width: 35, height: 35 }} />
-        </Logo>
-        <Typography fontWeight={700}>{data.name}</Typography>
-      </Header>
-      <ContentContainer>
-        <InfoSection>
-          <Box>
-            <InfoRow>
-              <InfoLabel>AUM</InfoLabel>
-              <InfoValue>
-                {data.aum} FLOW (${data.flowValue})
-              </InfoValue>
-            </InfoRow>
+    <Paper
+      onClick={onClick}
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        cursor: 'pointer',
+        borderRadius: (theme) => theme.spacing(2),
+        border: (theme) => `0.5px solid ${theme.palette.divider}`,
+        overflow: 'hidden',
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '16px 16px 16px 16px',
+        }}
+      >
+        <Box
+          sx={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: (theme) => theme.spacing(1.5),
+          }}
+        >
+          <img src={'/MOREVault.svg'} alt="Flow Logo" style={{ width: 35, height: 35 }} />
+        </Box>
+        <Typography fontWeight={700}>{data.overview.name}</Typography>
+      </Box>
 
-            <InfoRow>
-              <InfoLabel>Curator</InfoLabel>
-              <InfoValue>{data.curator}</InfoValue>
-            </InfoRow>
+      <Box
+        sx={{
+          display: 'flex',
+          paddingLeft: (theme) => theme.spacing(5),
+          paddingRight: (theme) => theme.spacing(5),
+          gap: (theme) => theme.spacing(5),
+          flexGrow: 1,
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 2,
+            width: '100%',
+            alignItems: 'center',
+          }}
+        >
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: (theme) => theme.spacing(0.8),
+              }}
+            >
+              <Typography
+                sx={{
+                  color: (theme) => theme.palette.text.secondary,
+                  fontSize: '0.875rem',
+                }}
+              >
+                AUM
+              </Typography>
+              <FormattedNumber
+                value={data.financials?.basics?.grossAssetValue.value}
+                symbol={data.financials?.basics?.grossAssetValue.currency}
+                variant="main14"
+                compact
+              />
+              {/* TODO: Add in $ */}
+            </Box>
 
-            <InfoRow>
-              <InfoLabel>Net APY</InfoLabel>
-              <InfoValue>{data.netApy}%</InfoValue>
-            </InfoRow>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: (theme) => theme.spacing(0.8),
+              }}
+            >
+              <Typography
+                sx={{
+                  color: (theme) => theme.palette.text.secondary,
+                  fontSize: '0.875rem',
+                }}
+              >
+                Net APY
+              </Typography>
+              <Typography sx={{ fontWeight: 500, textAlign: 'right' }}>
+                {data.financials?.returnMetrics?.averageMonth}%
+              </Typography>
+            </Box>
 
-            <InfoRow>
-              <InfoLabel>Deposit denomination</InfoLabel>
-              <InfoValue>{data.depositDenomination}</InfoValue>
-            </InfoRow>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: (theme) => theme.spacing(0.8),
+              }}
+            >
+              <Typography
+                sx={{
+                  color: (theme) => theme.palette.text.secondary,
+                  fontSize: '0.875rem',
+                }}
+              >
+                Deposit denomination
+              </Typography>
+              <Typography sx={{ fontWeight: 500, textAlign: 'right' }}>
+                {data.financials?.basics?.grossAssetValue?.currency}
+              </Typography>
+            </Box>
           </Box>
-        </InfoSection>
 
-        <ChartContainer>
-          <LineChart data={data.priceHistory} height={100} />
-        </ChartContainer>
-      </ContentContainer>
+          <Box sx={{ width: '50%', minWidth: '40%', minHeight: 100 }}>
+            <PreviewLineChart height={100} />
+          </Box>
+        </Box>
+      </Box>
 
-      <PriceRow>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: '#000',
+          color: 'white',
+          padding: '6px 20px',
+        }}
+      >
         <Box>
-          <PriceLabel>Share price</PriceLabel>
-          <SharePrice>${data.sharePrice}</SharePrice>
+          {/* <Typography
+            sx={{
+              fontSize: '0.75rem',
+              color: 'rgba(255, 255, 255, 0.7)',
+            }}
+          >
+            Share price
+          </Typography>
+          <Typography
+            sx={{
+              fontWeight: 600,
+              fontSize: '1.25rem',
+              color: 'white',
+            }}
+          >
+            ${data.financials?.basics?.shareSupply.value}
+          </Typography> */}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'end', flexDirection: 'column' }}>
-            <PositiveChange>+{data.priceChange}%</PositiveChange>
-            <TimeLabel sx={{ mx: 1 }}>24h</TimeLabel>
+            <Typography
+              sx={{
+                fontWeight: 500,
+                color: '#4CAF50',
+              }}
+            >
+              +{data.financials?.returnMetrics?.averageMonth}%
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: '0.75rem',
+                color: 'rgba(255, 255, 255, 0.7)',
+                mx: 1,
+              }}
+            >
+              24h
+            </Typography>
           </Box>
-          <ArrowIcon />
+          <ArrowForwardIosIcon sx={{ fontSize: 16, color: 'white' }} />
         </Box>
-      </PriceRow>
-    </StyledPaper>
+      </Box>
+    </Paper>
   );
 };
