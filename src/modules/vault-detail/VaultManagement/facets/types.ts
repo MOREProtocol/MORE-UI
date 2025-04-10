@@ -1,4 +1,5 @@
 import { TypographyProps } from '@mui/material';
+import { ethers } from 'ethers';
 import { ReactNode } from 'react';
 import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
 
@@ -26,10 +27,13 @@ export type Action = {
   inputs: Input[];
   getAmountForBundleDisplay?: (
     inputs: TransactionInput,
-    props?: TypographyProps,
-    reserve?: ComputedReserveDataWithMarket[]
+    reserves: ComputedReserveDataWithMarket[],
+    props?: TypographyProps
   ) => ReactNode;
-  getCurrencySymbolsForBundleDisplay?: (inputs: TransactionInput) => string[];
+  getCurrencySymbolsForBundleDisplay?: (
+    inputs: TransactionInput,
+    reserves: ComputedReserveDataWithMarket[]
+  ) => string[];
   prepareInputs?: (inputs: TransactionInput) => TransactionInput;
 };
 
@@ -42,8 +46,13 @@ export type Input = {
   defaultValue?: string | NetworkDependentString;
 
   displayType?: DisplayType;
-  dropdownOptions?: DropdownOption[];
+  options?: DropdownOption[];
+  getOptions?: (
+    inputs: TransactionInput,
+    provider: ethers.providers.Provider
+  ) => Promise<DropdownOption[]>;
   relatedInputId?: string;
+  dependsOnInputs?: string[];
 };
 
 export type DropdownOption = {
@@ -64,8 +73,11 @@ export enum InputType {
 
 export enum DisplayType {
   DROPDOWN,
+  TOKEN_DROPDOWN,
   SWITCH,
   ADDRESS_INPUT,
   CURRENCY_AMOUNT_INPUT,
+  CURRENCY_AMOUNT,
   BYTES_INPUT,
+  DEADLINE_INPUT,
 }

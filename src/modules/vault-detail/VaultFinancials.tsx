@@ -1,6 +1,10 @@
-import { Avatar, Box, Grid, Skeleton, Stack, styled, Typography } from '@mui/material';
-import React from 'react';
+import { Box, Grid, Skeleton, Stack, styled, Typography } from '@mui/material';
+import BigNumber from 'bignumber.js';
+import { formatUnits } from 'ethers/lib/utils';
+import React, { useMemo } from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
+import { TokenIcon } from 'src/components/primitives/TokenIcon';
+import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useVault } from 'src/hooks/vault/useVault';
 import { useVaultData } from 'src/hooks/vault/useVaultData';
 
@@ -17,14 +21,31 @@ const MetricCard = styled(Box)(() => ({
 const SectionTitle = styled(Typography)(() => ({
   fontWeight: 700,
   marginBottom: 6,
-  fontSize: '1.5rem',
+  fontSize: '1.3rem',
 }));
 
 export const VaultFinancials: React.FC = () => {
   const { selectedVaultId } = useVault();
   const vaultData = useVaultData(selectedVaultId);
+  const { reserves } = useAppDataContext();
   const selectedVault = vaultData?.data;
   const isLoading = vaultData?.isLoading;
+
+  const reserve = useMemo(() => {
+    return reserves.find(
+      (reserve) => reserve.symbol === selectedVault?.overview?.shareCurrencySymbol
+    );
+  }, [reserves, selectedVault]);
+
+  const aum = selectedVault
+    ? formatUnits(
+        selectedVault?.financials?.liquidity?.totalAssets,
+        selectedVault?.overview?.assetDecimals
+      )
+    : '0';
+  const aumInUsd = new BigNumber(aum).multipliedBy(
+    reserve?.formattedPriceInMarketReferenceCurrency
+  );
 
   const renderMetricCardContent = (title: string, content: React.ReactElement) => (
     <MetricCard>
@@ -57,9 +78,12 @@ export const VaultFinancials: React.FC = () => {
         <Grid container spacing={3}>
           <Grid item xs={12} md={4}>
             {renderMetricCardContent(
-              'Gross Asset Value (GAV)',
+              'Asset Under Management',
               <Stack direction="row" spacing={2} alignItems="center">
-                <Avatar sx={{ bgcolor: 'primary.main' }}>$</Avatar>
+                <TokenIcon
+                  symbol={selectedVault?.overview?.shareCurrencySymbol || ''}
+                  sx={{ fontSize: '40px' }}
+                />
                 <Box
                   sx={{
                     display: 'flex',
@@ -68,42 +92,13 @@ export const VaultFinancials: React.FC = () => {
                   }}
                 >
                   <FormattedNumber
-                    value={selectedVault?.financials?.basics?.grossAssetValue?.value}
-                    symbol={selectedVault?.financials?.basics?.grossAssetValue?.currency}
-                    variant="main21"
+                    value={aum}
+                    symbol={selectedVault?.overview?.shareCurrencySymbol}
+                    variant="main16"
                     compact
                   />
                   <FormattedNumber
-                    value={selectedVault?.financials?.basics?.grossAssetValue?.value}
-                    symbol={'USD'}
-                    variant="secondary14"
-                    compact
-                  />
-                </Box>
-              </Stack>
-            )}
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            {renderMetricCardContent(
-              'Net Asset Value (NAV)',
-              <Stack direction="row" spacing={2} alignItems="center">
-                <Avatar sx={{ bgcolor: 'primary.main' }}>$</Avatar>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                  }}
-                >
-                  <FormattedNumber
-                    value={selectedVault?.financials?.basics?.netAssetValue?.value}
-                    symbol={selectedVault?.financials?.basics?.netAssetValue?.currency}
-                    variant="main21"
-                    compact
-                  />
-                  <FormattedNumber
-                    value={selectedVault?.financials?.basics?.netAssetValue?.value}
+                    value={aumInUsd.toString()}
                     symbol={'USD'}
                     variant="secondary14"
                     compact
@@ -184,23 +179,39 @@ export const VaultFinancials: React.FC = () => {
       </Box>
 
       <Box sx={{ mb: 4 }}>
-        <SectionTitle>Return metrics</SectionTitle>
-        {/* <Grid container spacing={3}>
+        <SectionTitle>Liquidity</SectionTitle>
+        <Grid container spacing={3}>
           <Grid item xs={12} sm={6} md={3}>
             <MetricCard>
               <Typography variant="main16" color="text.secondary" marginBottom={3}>
-                Return Month-to-Date
+                Deposit Capacity
               </Typography>
               <FormattedNumber
-                value={selectedVault?.financials?.returnMetrics.monthToDate}
-                coloredPercent
-                variant="main21"
+                value={
+                  Number(selectedVault?.financials?.liquidity?.totalAssets) /
+                  Number(selectedVault?.financials?.liquidity?.maxDeposit)
+                }
+                percent
+                variant="main16"
                 compact
               />
+              {/* <FormattedNumber
+                value={
+                  selectedVault
+                    ? formatUnits(
+                        selectedVault?.financials?.liquidity?.maxDeposit,
+                        selectedVault?.overview?.assetDecimals
+                      )
+                    : '0'
+                }
+                symbol={selectedVault?.overview?.shareCurrencySymbol}
+                variant="secondary14"
+                compact
+              /> */}
             </MetricCard>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          {/* <Grid item xs={12} sm={6} md={3}>
             <MetricCard>
               <Typography variant="main16" color="text.secondary" marginBottom={3}>
                 Return Quarter-to-Date
@@ -297,8 +308,8 @@ export const VaultFinancials: React.FC = () => {
                 compact
               />
             </MetricCard>
-          </Grid>
-        </Grid> */}
+          </Grid> */}
+        </Grid>
       </Box>
 
       <Box sx={{ mb: 4 }}>

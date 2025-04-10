@@ -18,16 +18,15 @@ type TypePermitParams = {
   isWrappedBaseAsset: boolean;
 };
 
+export type ExtendedMarket = keyof typeof CustomMarket | 'all_markets';
+
 export interface ProtocolDataSlice {
-  currentMarket: CustomMarket | 'all_markets';
+  currentMarket: ExtendedMarket;
   currentMarketData: MarketDataType;
   currentChainId: number;
   currentNetworkConfig: NetworkConfig;
   jsonRpcProvider: (chainId?: number) => providers.Provider;
-  setCurrentMarket: (
-    market: CustomMarket | 'all_markets',
-    omitQueryParameterUpdate?: boolean
-  ) => void;
+  setCurrentMarket: (market: ExtendedMarket, omitQueryParameterUpdate?: boolean) => void;
   tryPermit: ({ reserveAddress, isWrappedBaseAsset }: TypePermitParams) => boolean;
 }
 

@@ -5,11 +5,14 @@ import React from 'react';
 import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
 
 import { FormattedNumber } from '../../../../components/primitives/FormattedNumber';
-import { availableTokensDropdownOptions, interestRateModeDropdownOptions } from './constants';
+import { interestRateModeDropdownOptions } from './constants';
 import { DisplayType, Facet, InputType } from './types';
 
-const getCurrencySymbolsForBundleDisplayDefault = (inputs: Record<string, string>) => {
-  return [availableTokensDropdownOptions.find((token) => token.value === inputs['asset'])?.label];
+const getCurrencySymbolsForBundleDisplayDefault = (
+  inputs: Record<string, string>,
+  reserves: ComputedReserveDataWithMarket[]
+) => {
+  return [reserves?.find((token) => token.underlyingAsset === inputs['asset'])?.iconSymbol];
 };
 
 const defaultContractAddress = {
@@ -19,8 +22,8 @@ const defaultContractAddress = {
 
 const getAmountForBundleDisplayDefault = (
   inputs: Record<string, string>,
-  props?: TypographyProps,
-  reserves?: ComputedReserveDataWithMarket[]
+  reserves: ComputedReserveDataWithMarket[],
+  props?: TypographyProps
 ) => {
   const reserveData =
     reserves && reserves.length > 0
@@ -45,9 +48,7 @@ const getAmountForBundleDisplayDefault = (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
       <FormattedNumber
         value={formattedAmount} // Display formatted standard unit amount
-        symbol={
-          availableTokensDropdownOptions.find((token) => token.value === inputs['asset'])?.label
-        }
+        symbol={reserves?.find((token) => token.underlyingAsset === inputs['asset'])?.iconSymbol}
         {...props}
       />
       {amountInUsd.gt(0) && (
@@ -98,8 +99,7 @@ export const moreFacet: Facet = {
           description: 'The asset to supply',
           type: InputType.ADDRESS,
           isShown: true,
-          displayType: DisplayType.DROPDOWN,
-          dropdownOptions: availableTokensDropdownOptions,
+          displayType: DisplayType.TOKEN_DROPDOWN,
         },
         {
           id: 'amount',
@@ -156,8 +156,7 @@ export const moreFacet: Facet = {
           description: 'The asset to withdraw',
           type: InputType.ADDRESS,
           isShown: true,
-          displayType: DisplayType.DROPDOWN,
-          dropdownOptions: availableTokensDropdownOptions,
+          displayType: DisplayType.TOKEN_DROPDOWN,
         },
         {
           id: 'amount',
@@ -209,8 +208,7 @@ export const moreFacet: Facet = {
           description: 'The asset to borrow',
           type: InputType.ADDRESS,
           isShown: true,
-          displayType: DisplayType.DROPDOWN,
-          dropdownOptions: availableTokensDropdownOptions,
+          displayType: DisplayType.TOKEN_DROPDOWN,
         },
         {
           id: 'amount',
@@ -229,7 +227,7 @@ export const moreFacet: Facet = {
           isShown: true,
           displayType: DisplayType.DROPDOWN,
           defaultValue: '2',
-          dropdownOptions: interestRateModeDropdownOptions,
+          options: interestRateModeDropdownOptions,
         },
         {
           id: 'referralCode',
@@ -239,7 +237,7 @@ export const moreFacet: Facet = {
           isShown: true,
           displayType: DisplayType.DROPDOWN,
           defaultValue: '0',
-          dropdownOptions: [{ label: '0', value: '0' }],
+          options: [{ label: '0', value: '0' }],
         },
         {
           id: 'onBehalfOf',
@@ -281,8 +279,7 @@ export const moreFacet: Facet = {
           description: 'The asset to repay',
           type: InputType.ADDRESS,
           isShown: true,
-          displayType: DisplayType.DROPDOWN,
-          dropdownOptions: availableTokensDropdownOptions,
+          displayType: DisplayType.TOKEN_DROPDOWN,
         },
         {
           id: 'amount',
@@ -301,7 +298,7 @@ export const moreFacet: Facet = {
           isShown: true,
           displayType: DisplayType.DROPDOWN,
           defaultValue: '2',
-          dropdownOptions: interestRateModeDropdownOptions,
+          options: interestRateModeDropdownOptions,
         },
         {
           id: 'onBehalfOf',
@@ -352,8 +349,7 @@ export const moreFacet: Facet = {
           description: 'The asset to flash loan',
           type: InputType.ADDRESS,
           isShown: true,
-          displayType: DisplayType.DROPDOWN,
-          dropdownOptions: availableTokensDropdownOptions,
+          displayType: DisplayType.TOKEN_DROPDOWN,
         },
         {
           id: 'amount',
@@ -380,7 +376,7 @@ export const moreFacet: Facet = {
           isShown: true,
           displayType: DisplayType.DROPDOWN,
           defaultValue: '0',
-          dropdownOptions: [{ label: '0', value: '0' }],
+          options: [{ label: '0', value: '0' }],
         },
       ],
     },

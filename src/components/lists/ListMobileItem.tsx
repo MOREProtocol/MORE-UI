@@ -2,7 +2,7 @@ import { Box, Divider, Skeleton, Typography } from '@mui/material';
 import { ReactNode } from 'react';
 import { IsolatedEnabledBadge } from 'src/components/isolationMode/IsolatedBadge';
 import { useAssetCaps } from 'src/hooks/useAssetCaps';
-import { CustomMarket } from 'src/ui-config/marketsConfig';
+import { ExtendedMarket } from 'src/store/protocolDataSlice';
 
 import { Link, ROUTES } from '../primitives/Link';
 import { TokenIcon } from '../primitives/TokenIcon';
@@ -15,7 +15,7 @@ interface ListMobileItemProps {
   name?: string;
   underlyingAsset?: string;
   loading?: boolean;
-  currentMarket?: CustomMarket | 'all_markets';
+  currentMarket?: ExtendedMarket;
   showSupplyCapTooltips?: boolean;
   showBorrowCapTooltips?: boolean;
   showDebtCeilingTooltips?: boolean;

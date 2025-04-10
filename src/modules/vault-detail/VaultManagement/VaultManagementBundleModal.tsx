@@ -8,9 +8,10 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import React from 'react';
+import React, { useState } from 'react';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
 import { useVault } from 'src/hooks/vault/useVault';
 import { TransactionsBundle } from 'src/layouts/TransactionsBundle/TransactionsBundle';
 
@@ -29,9 +30,30 @@ export const VaultManagementBundleModal = ({ open, setOpen }: VaultManagementBun
   } = useVault();
   const { reserves } = useAppDataContext();
   const theme = useTheme();
+  const { currentNetworkConfig } = useProtocolDataContext();
+  const [txHash, setTxHash] = useState<string | null>(null);
 
   const handleClose = () => {
     setOpen(false);
+    setTxHash(null);
+  };
+
+  const handleSubmitAndExecuteActions = async () => {
+    try {
+      const result = await submitAndExecuteActions();
+      setTxHash(result.transactionHash);
+    } catch (error) {
+      console.error('Error submitting and executing actions:', error);
+    }
+  };
+
+  const handleViewOnFlowscan = () => {
+    if (txHash) {
+      const explorerLink = currentNetworkConfig.explorerLinkBuilder({
+        tx: txHash,
+      });
+      window.open(explorerLink, '_blank');
+    }
   };
 
   return (
@@ -91,7 +113,7 @@ export const VaultManagementBundleModal = ({ open, setOpen }: VaultManagementBun
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Box sx={{ display: 'flex', mr: 1 }}>
                       {transaction.action
-                        .getCurrencySymbolsForBundleDisplay?.(transaction.inputs)
+                        .getCurrencySymbolsForBundleDisplay?.(transaction.inputs, reserves)
                         .map((symbol, index) => (
                           <TokenIcon
                             key={index}
@@ -109,7 +131,7 @@ export const VaultManagementBundleModal = ({ open, setOpen }: VaultManagementBun
                     </Box>
                     <Typography variant="secondary12">
                       {transaction.action
-                        .getCurrencySymbolsForBundleDisplay?.(transaction.inputs)
+                        .getCurrencySymbolsForBundleDisplay?.(transaction.inputs, reserves)
                         .join(' / ')}
                     </Typography>
                   </Box>
@@ -132,16 +154,13 @@ export const VaultManagementBundleModal = ({ open, setOpen }: VaultManagementBun
                 p: 3,
                 borderRadius: '4px',
                 border: `1px solid ${theme.palette.divider}`,
+                overflow: 'scroll',
               }}
             >
               {transaction.action?.getAmountForBundleDisplay ? (
-                transaction.action.getAmountForBundleDisplay?.(
-                  transaction.inputs,
-                  {
-                    variant: 'main14',
-                  },
-                  reserves
-                )
+                transaction.action.getAmountForBundleDisplay?.(transaction.inputs, reserves, {
+                  variant: 'main14',
+                })
               ) : (
                 <Typography variant="secondary12" fontStyle="italic">
                   No amount to display
@@ -170,12 +189,18 @@ export const VaultManagementBundleModal = ({ open, setOpen }: VaultManagementBun
         )}
 
         <Button
-          variant="contained"
+          variant={txHash ? 'contained' : 'gradient'}
           fullWidth
-          onClick={submitAndExecuteActions}
+          onClick={txHash ? handleViewOnFlowscan : handleSubmitAndExecuteActions}
           disabled={operationsLoading}
         >
-          {operationsLoading ? <CircularProgress size={20} /> : 'Submit and Execute'}
+          {operationsLoading ? (
+            <CircularProgress size={20} />
+          ) : txHash ? (
+            'See transaction on Flowscan'
+          ) : (
+            'Submit and Execute'
+          )}
         </Button>
       </Box>
     </TransactionsBundle>

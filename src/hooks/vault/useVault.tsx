@@ -56,19 +56,21 @@ export interface VaultData {
   overview: {
     name?: string;
     description?: string;
+    assetAddress?: string;
+    assetDecimals?: number;
     sharePrice?: number;
-    shareCurrency?: string;
+    shareCurrencySymbol?: string;
     roles?: VaultRoles;
   };
   financials?: {
-    basics?: {
-      grossAssetValue?: MonetaryValue;
-      netAssetValue?: MonetaryValue;
-    };
     fees?: {
       performance: Fee;
       management: Fee;
       network: Fee;
+    };
+    liquidity?: {
+      maxDeposit?: string;
+      totalAssets?: string;
     };
     returnMetrics?: ReturnMetrics;
   };
@@ -117,8 +119,6 @@ export interface VaultContextData {
   setSelectedVaultId: (vaultId: string) => void;
   selectedTab: VaultTab;
   setSelectedTab: (tab: VaultTab) => void;
-  isLoading: boolean;
-  error: string | null;
   getVaultAssetBalance: (assetAddress: string) => Promise<string>;
 
   // Operations
@@ -137,7 +137,7 @@ export interface VaultContextData {
     vault,
   }: Omit<VaultBatchTransaction, 'id'> & { vault: VaultData }) => void;
   removeTransaction: (id: string) => void;
-  submitAndExecuteActions: () => void;
+  submitAndExecuteActions: () => Promise<ethers.providers.TransactionReceipt>;
   operationsLoading: boolean;
   operationsError: Error | null;
 }
@@ -153,8 +153,6 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   // Info reading state
   const [selectedVaultId, setSelectedVaultId] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState<VaultTab>((tabFromUrl as VaultTab) || 'overview');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Operations state
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
@@ -408,7 +406,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     [transactions]
   );
 
-  const submitActions = useCallback(async () => {
+  const submitActions = useCallback(async (): Promise<ethers.providers.TransactionReceipt> => {
     if (!selectedVaultId) {
       throw new Error('No vault selected');
     }
@@ -418,7 +416,31 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
         [transaction.action.abi],
         signer
       );
-      const txArgs = transaction.action.inputs.map((input) => transaction.inputs[input.id] || '0');
+
+      // Parse the ABI to get the function signature and input types
+      const iface = new ethers.utils.Interface([transaction.action.abi]);
+      const functionFragment = iface.getFunction(transaction.action.id);
+
+      // Get the input names from the ABI
+      const inputNames = functionFragment.inputs.map((input) => input.name);
+
+      // Map the transaction inputs to the correct order based on the ABI
+      const txArgs = inputNames.map((inputName) => {
+        // Handle special cases for array inputs (like path in Uniswap)
+        if (Array.isArray(transaction.inputs[inputName])) {
+          return transaction.inputs[inputName];
+        }
+
+        // Handle deadline parameter by adding current timestamp
+        if (inputName === 'deadline') {
+          const deadlineSeconds = parseInt((transaction.inputs[inputName] as string) || '0');
+          const currentTimestamp = Math.floor(Date.now() / 1000);
+          return (currentTimestamp + deadlineSeconds).toString();
+        }
+
+        return transaction.inputs[inputName] || '0';
+      });
+
       return contract.interface.encodeFunctionData(transaction.action.id, txArgs);
     });
 
@@ -427,8 +449,9 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
       [`function submitActions(bytes[] calldata actionsData) external returns (uint256 nonce)`],
       signer
     );
-    const nonce = await multicallContract.submitActions(encodedActions);
-    return nonce;
+    const tx = await multicallContract.submitActions(encodedActions);
+    const result = await tx.wait();
+    return result;
   }, [network, signer, transactions, selectedVaultId]);
 
   const executeActions = useCallback(
@@ -449,8 +472,10 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   const submitAndExecuteActions = useCallback(async () => {
     setOperationsLoading(true);
     try {
-      const nonce = await submitActions();
-      console.log('nonce', nonce);
+      const result = await submitActions();
+      return result;
+
+      // TODO: uncomment this when we execution sequence needed after submit
       // await executeActions(nonce);
     } catch (error) {
       setOperationsError(error as Error);
@@ -468,8 +493,6 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     setSelectedVaultId,
     selectedTab,
     setSelectedTab: handleTabChange,
-    isLoading,
-    error,
     getVaultAssetBalance,
 
     // Operations

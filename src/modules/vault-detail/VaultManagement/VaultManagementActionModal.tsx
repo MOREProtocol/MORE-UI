@@ -15,8 +15,12 @@ import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
 import { Address } from 'src/components/Address';
 import { BasicModal } from 'src/components/primitives/BasicModal';
+import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
+import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { AssetInput } from 'src/components/transactions/AssetInput';
+import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useVault, VaultData } from 'src/hooks/vault/useVault';
+import { useVaultProvider } from 'src/hooks/vault/useVaultData';
 import { ENABLE_TESTNET, networkConfigs } from 'src/utils/marketsAndNetworksConfig';
 
 import { Action, DisplayType, Facet, Input } from './facets/types';
@@ -40,11 +44,23 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
   vault,
 }) => {
   const theme = useTheme();
+  const { addTransaction, chainId, getVaultAssetBalance } = useVault();
+  const { reserves } = useAppDataContext();
+  const availableTokensDropdownOptions = reserves.map((reserve) => ({
+    label: reserve.iconSymbol,
+    value: reserve.underlyingAsset,
+    icon: reserve.iconSymbol,
+    decimals: reserve.decimals,
+  }));
+
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [expandedInputs, setExpandedInputs] = useState<Record<string, boolean>>({});
   const [vaultBalances, setVaultBalances] = useState<Record<string, string>>({});
-  const { addTransaction, chainId, getVaultAssetBalance } = useVault();
+  const provider = useVaultProvider(chainId);
   const baseUrl = useMemo(() => chainId && networkConfigs[chainId].explorerLink, [chainId]);
+  const [dynamicOptions, setDynamicOptions] = useState<
+    Record<string, Array<{ label: string; value: string; icon?: string; decimals?: number }>>
+  >({});
 
   // Initialize input values with default values when action changes
   useEffect(() => {
@@ -67,24 +83,70 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
     }
   }, [action, vault?.id]);
 
+  // Load dynamic options for inputs with getOptions
+  useEffect(() => {
+    if (!action || !provider || !isOpen) return;
+
+    const loadDynamicOptions = async () => {
+      const newDynamicOptions: Record<
+        string,
+        Array<{ label: string; value: string; icon?: string; decimals?: number }>
+      > = {};
+
+      for (const input of action.inputs) {
+        if (input.getOptions && inputValues) {
+          try {
+            // Check if this input depends on other inputs that have changed
+            const dependsOnInputs = input.dependsOnInputs || [];
+            const hasDependentInputsChanged = dependsOnInputs.some(
+              (depInputId) => inputValues[depInputId] !== undefined
+            );
+
+            if (hasDependentInputsChanged || !dynamicOptions[input.id]) {
+              const options = await input.getOptions(inputValues, provider);
+              newDynamicOptions[input.id] = options;
+            }
+          } catch (error) {
+            console.error(`Failed to load options for ${input.id}:`, error);
+            newDynamicOptions[input.id] = [];
+          }
+        }
+      }
+
+      setDynamicOptions((prev) => ({
+        ...prev,
+        ...newDynamicOptions,
+      }));
+    };
+
+    loadDynamicOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [action, provider, isOpen, inputValues]);
+
   // Define getRelatedInputCurrencyData before useEffect that uses it
   // Use useMemo to stabilize the function reference based on its dependencies
   const getRelatedInputCurrencyData = useMemo(
     () => (relatedInputId: string) => {
       const inputValue = inputValues[relatedInputId];
       if (!inputValue || inputValue === '') return null;
-      const dropdownOption = action?.inputs
-        .find((input) => input.id === relatedInputId)
-        ?.dropdownOptions?.find((option) => option.value === inputValue);
+
+      // First check dynamic options, then fall back to static options
+      const relatedInput = action?.inputs.find((input) => input.id === relatedInputId);
+      const options =
+        relatedInput?.displayType === DisplayType.TOKEN_DROPDOWN
+          ? availableTokensDropdownOptions
+          : dynamicOptions[relatedInputId] || relatedInput?.options || [];
+      const dropdownOption = options.find((option) => option.value === inputValue);
+
       return {
         currencyValue: dropdownOption?.value,
         currencyName: dropdownOption?.label,
         currencyIcon: dropdownOption?.icon,
-        currencyDecimals: dropdownOption?.decimals,
+        currencyDecimals: dropdownOption?.decimals?.toString() || '18',
       };
-      // Dependency on action?.inputs and inputValues
     },
-    [action?.inputs, inputValues]
+    // Include dynamicOptions in the dependency array
+    [action?.inputs, inputValues, dynamicOptions]
   );
 
   // Effect to fetch vault balances for currency inputs
@@ -143,10 +205,20 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
           processedValue = '0'; // Handle invalid input, maybe set to '0' or keep previous value?
         }
       }
-      return {
+
+      const newValues = {
         ...prev,
         [input.id]: processedValue,
       };
+
+      // If this input is a dependency for other inputs, clear their values
+      action?.inputs.forEach((otherInput) => {
+        if (otherInput.dependsOnInputs?.includes(input.id)) {
+          newValues[otherInput.id] = '';
+        }
+      });
+
+      return newValues;
     });
   };
 
@@ -158,14 +230,36 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
   };
 
   const handleAddToBundle = () => {
-    const inputs = action?.prepareInputs ? action.prepareInputs(inputValues) : inputValues;
-    addTransaction({ action, facet, inputs, vault });
+    // First, prepare the inputs with any dynamic values
+    const preparedInputs = { ...inputValues };
+
+    // For each input that has getOptions, get its current value from dynamicOptions
+    action?.inputs.forEach((input) => {
+      if (input.getOptions && dynamicOptions[input.id]?.length > 0) {
+        // Use the first option's value as the current value
+        preparedInputs[input.id] = dynamicOptions[input.id][0].value;
+      }
+    });
+
+    // Then apply any additional preparation from the action
+    const finalInputs = action?.prepareInputs
+      ? action.prepareInputs(preparedInputs)
+      : preparedInputs;
+
+    addTransaction({ action, facet, inputs: finalInputs, vault });
     setIsOpen(false);
   };
 
   const renderInput = (input: Input) => {
     switch (input.displayType) {
       case DisplayType.DROPDOWN:
+      case DisplayType.TOKEN_DROPDOWN:
+        // Use dynamic options if available, otherwise fall back to static options
+        const options =
+          input.displayType === DisplayType.TOKEN_DROPDOWN
+            ? availableTokensDropdownOptions
+            : dynamicOptions[input.id] || input.options || [];
+
         return (
           <Box key={input.id} sx={{ mb: 3 }}>
             <Typography variant="description" color="text.secondary" sx={{ mb: 1 }}>
@@ -189,7 +283,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
                 },
               }}
             >
-              {input.dropdownOptions?.map((option) => (
+              {options.map((option) => (
                 <MenuItem
                   key={option.value}
                   value={option.value}
@@ -200,7 +294,17 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
                   }}
                 >
                   {option.icon && (
-                    <img src={option.icon} alt={option.label} style={{ width: 24, height: 24 }} />
+                    <TokenIcon
+                      key={option.label}
+                      symbol={option.label}
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        border: '1px solid',
+                        borderColor: 'background.paper',
+                        borderRadius: '50%',
+                      }}
+                    />
                   )}
                   <Typography variant="main16">{option.label}</Typography>
                 </MenuItem>
@@ -253,6 +357,50 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
               maxValue={vaultBalance}
               balanceText={'Vault balance'}
             />
+          </Box>
+        );
+      }
+
+      case DisplayType.CURRENCY_AMOUNT: {
+        const relatedInputCurrencyData = getRelatedInputCurrencyData(input.relatedInputId);
+        const dynamicOption = dynamicOptions[input.id]?.[0];
+        const value = dynamicOption?.label || '0';
+
+        return (
+          <Box key={input.id} sx={{ mb: 3 }}>
+            <Typography variant="description" color="text.secondary" sx={{ mb: 1 }}>
+              {input.name}
+            </Typography>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                p: 2,
+                borderRadius: 1,
+                border: `1px solid ${theme.palette.divider}`,
+                bgcolor: 'background.default',
+              }}
+            >
+              {relatedInputCurrencyData?.currencyIcon && (
+                <TokenIcon
+                  key={relatedInputCurrencyData.currencyName}
+                  symbol={relatedInputCurrencyData.currencyIcon}
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    border: '1px solid',
+                    borderColor: 'background.paper',
+                    borderRadius: '50%',
+                  }}
+                />
+              )}
+              <FormattedNumber
+                value={value}
+                symbol={relatedInputCurrencyData?.currencyName || ''}
+                variant="main16"
+              />
+            </Box>
           </Box>
         );
       }
@@ -422,6 +570,108 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
                   },
                 }}
               />
+            </Box>
+          </Box>
+        );
+
+      case DisplayType.DEADLINE_INPUT:
+        const presetDeadlines = [
+          { value: 15 * 60, label: '15 minutes' },
+          { value: 60 * 60, label: '1 hour' },
+          { value: 24 * 60 * 60, label: '24 hours' },
+        ];
+
+        // Extract the deadline duration in seconds (not the absolute timestamp)
+        const getDeadlineDuration = (valueStr: string): number => {
+          if (!valueStr) return 0;
+          const value = Number(valueStr);
+          return value;
+        };
+
+        const deadlineDuration = getDeadlineDuration(inputValues[input.id]);
+        const isCustom =
+          inputValues[input.id] &&
+          !presetDeadlines.some((option) => option.value === deadlineDuration);
+
+        // Calculate relative time display for UI
+        const formatDeadlineForDisplay = (seconds: number): string => {
+          if (seconds < 60) return `${seconds} seconds`;
+          if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes`;
+          if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours`;
+          return `${Math.floor(seconds / 86400)} days`;
+        };
+
+        return (
+          <Box key={input.id} sx={{ mb: 3 }}>
+            <Typography variant="description" color="text.secondary" sx={{ mb: 1 }}>
+              {input.name}
+            </Typography>
+            <Box>
+              <Box sx={{ display: 'flex', gap: 2, mb: 1 }}>
+                {presetDeadlines.map((option) => (
+                  <Button
+                    key={option.value}
+                    variant={deadlineDuration === option.value ? 'contained' : 'outlined'}
+                    size="small"
+                    onClick={() => handleInputChange(input, option.value.toString())}
+                    sx={{
+                      minWidth: 'auto',
+                      borderColor: theme.palette.divider,
+                      color: deadlineDuration === option.value ? 'white' : 'text.primary',
+                    }}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+                <Button
+                  variant={isCustom && deadlineDuration > 0 ? 'contained' : 'outlined'}
+                  size="small"
+                  onClick={() => {
+                    // If not already custom, set a default custom value (30 minutes)
+                    if (!isCustom || deadlineDuration === 0) {
+                      handleInputChange(input, (30 * 60).toString());
+                    }
+                    toggleInputExpansion(input.id);
+                  }}
+                  sx={{
+                    minWidth: 'auto',
+                    borderColor: theme.palette.divider,
+                    color: isCustom && deadlineDuration > 0 ? 'white' : 'text.primary',
+                  }}
+                >
+                  Custom
+                </Button>
+              </Box>
+
+              {(isCustom || expandedInputs[input.id]) && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <TextField
+                    value={deadlineDuration ? Math.floor(deadlineDuration / 60) : ''}
+                    onChange={(e) => {
+                      const minutes = e.target.value ? parseInt(e.target.value, 10) : 0;
+                      // Convert minutes to seconds
+                      const seconds = minutes * 60;
+                      handleInputChange(input, seconds.toString());
+                    }}
+                    variant="outlined"
+                    type="number"
+                    size="small"
+                    sx={{
+                      width: '120px',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        border: `1px solid ${theme.palette.divider}`,
+                      },
+                    }}
+                  />
+                  <Typography variant="main14">minutes</Typography>
+                </Box>
+              )}
+
+              <Typography variant="secondary12" color="text.secondary" sx={{ mt: 1 }}>
+                Transaction will expire{' '}
+                {deadlineDuration > 0 ? formatDeadlineForDisplay(deadlineDuration) : '0 seconds'}{' '}
+                after submission
+              </Typography>
             </Box>
           </Box>
         );

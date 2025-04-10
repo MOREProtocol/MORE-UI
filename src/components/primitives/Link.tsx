@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import NextLink, { LinkProps as NextLinkProps } from 'next/link';
 import { useRouter } from 'next/router';
 import * as React from 'react';
-import { CustomMarket } from 'src/ui-config/marketsConfig';
+import { ExtendedMarket } from 'src/store/protocolDataSlice';
 
 interface NextLinkComposedProps
   extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>,
@@ -118,11 +118,10 @@ export const ROUTES = {
   governance: '/governance',
   faucet: '/faucet',
   migrationTool: '/v3-migration',
-  marketMigrationTool: (marketName: CustomMarket | 'all_markets') =>
-    `/v3-migration/?market=${marketName}`,
+  marketMigrationTool: (marketName: ExtendedMarket) => `/v3-migration/?market=${marketName}`,
   dynamicRenderedProposal: (proposalId: number) =>
     `/governance/v3/proposal?proposalId=${proposalId}`,
-  reserveOverview: (underlyingAsset: string, marketName: CustomMarket | 'all_markets') =>
+  reserveOverview: (underlyingAsset: string, marketName: ExtendedMarket) =>
     `/reserve-overview/?underlyingAsset=${underlyingAsset}&marketName=${marketName}`,
   vaultDetail: (vaultId: string, selectedTab?: string) =>
     selectedTab

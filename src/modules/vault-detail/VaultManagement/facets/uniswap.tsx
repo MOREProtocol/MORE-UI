@@ -1,12 +1,18 @@
 import { Box, Typography, TypographyProps } from '@mui/material';
 import { BigNumber } from 'bignumber.js';
+import { Contract, ethers } from 'ethers';
 import { formatUnits } from 'ethers/lib/utils';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
 
-import { availableTokensDropdownOptions, deadlineDropdownOptions } from './constants';
 import { DisplayType, Facet, InputType, TransactionInput } from './types';
 import { addressToProtocolMap } from './vaultsConfig';
+
+const defaultRouter = {
+  // PunchSwapV2Router
+  testnet: '0xeD53235cC3E9d2d464E9c408B95948836648870B',
+  mainnet: '0xf45AFe28fd5519d5f8C1d4787a4D5f724C0eFa4d',
+};
 
 const getAmountForBundleDisplayDefault =
   <T extends TransactionInput>(
@@ -16,7 +22,7 @@ const getAmountForBundleDisplayDefault =
     getAmountB: (inputs: T) => string,
     getRouterAddress: (inputs: T) => string
   ) =>
-  (inputs: T, props?: TypographyProps, reserves?: ComputedReserveDataWithMarket[]) => {
+  (inputs: T, reserves: ComputedReserveDataWithMarket[], props?: TypographyProps) => {
     const routerAddress = String(getRouterAddress(inputs));
     const assetA = getAssetA(inputs);
     const assetB = getAssetB(inputs);
@@ -64,7 +70,7 @@ const getAmountForBundleDisplayDefault =
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
           <FormattedNumber
             value={formattedAmountA}
-            symbol={availableTokensDropdownOptions.find((token) => token.value === assetA)?.label}
+            symbol={reserves?.find((token) => token.underlyingAsset === assetA)?.iconSymbol}
             {...props}
           />
           {amountAInUsd.gt(0) && (
@@ -98,7 +104,7 @@ const getAmountForBundleDisplayDefault =
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'end' }}>
           <FormattedNumber
             value={formattedAmountB}
-            symbol={availableTokensDropdownOptions.find((token) => token.value === assetB)?.label}
+            symbol={reserves?.find((token) => token.underlyingAsset === assetB)?.iconSymbol}
             {...props}
           />
           {amountBInUsd.gt(0) && (
@@ -115,10 +121,14 @@ const getAmountForBundleDisplayDefault =
   };
 
 const getCurrencySymbolsForBundleDisplayDefault =
-  (assetAKey: string, assetBKey: string) => (inputs: TransactionInput) => {
-    return availableTokensDropdownOptions
-      .filter((token) => [inputs[assetAKey], inputs[assetBKey]].includes(token.value))
-      ?.map((token) => token.label);
+  (assetAKey: string, assetBKey: string) =>
+  (inputs: TransactionInput, reserves: ComputedReserveDataWithMarket[]) => {
+    return (
+      reserves &&
+      reserves
+        .filter((token) => [inputs[assetAKey], inputs[assetBKey]].includes(token.underlyingAsset))
+        ?.map((token) => token.iconSymbol)
+    );
   };
 
 export const uniswapFacet: Facet = {
@@ -164,11 +174,7 @@ export const uniswapFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
-          defaultValue: {
-            // PunchSwapV2Router
-            testnet: '0xeD53235cC3E9d2d464E9c408B95948836648870B',
-            mainnet: '0xf45AFe28fd5519d5f8C1d4787a4D5f724C0eFa4d',
-          },
+          defaultValue: defaultRouter,
         },
         {
           id: 'tokenA',
@@ -176,8 +182,7 @@ export const uniswapFacet: Facet = {
           description: 'The token A address',
           type: InputType.ADDRESS,
           isShown: true,
-          displayType: DisplayType.DROPDOWN,
-          dropdownOptions: availableTokensDropdownOptions,
+          displayType: DisplayType.TOKEN_DROPDOWN,
         },
         {
           id: 'tokenB',
@@ -185,8 +190,7 @@ export const uniswapFacet: Facet = {
           description: 'The token B address',
           type: InputType.ADDRESS,
           isShown: true,
-          displayType: DisplayType.DROPDOWN,
-          dropdownOptions: availableTokensDropdownOptions,
+          displayType: DisplayType.TOKEN_DROPDOWN,
         },
         {
           id: 'amountADesired',
@@ -221,9 +225,8 @@ export const uniswapFacet: Facet = {
           description: 'The deadline of the transaction',
           type: InputType.UINT,
           isShown: true,
-          displayType: DisplayType.DROPDOWN,
-          dropdownOptions: deadlineDropdownOptions,
-          defaultValue: deadlineDropdownOptions[2].value,
+          displayType: DisplayType.DEADLINE_INPUT,
+          defaultValue: '900',
         },
       ],
     },
@@ -261,11 +264,7 @@ export const uniswapFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
-          defaultValue: {
-            // PunchSwapV2Router
-            testnet: '0xeD53235cC3E9d2d464E9c408B95948836648870B',
-            mainnet: '0xf45AFe28fd5519d5f8C1d4787a4D5f724C0eFa4d',
-          },
+          defaultValue: defaultRouter,
         },
         {
           id: 'tokenA',
@@ -273,8 +272,7 @@ export const uniswapFacet: Facet = {
           description: 'The token A address',
           type: InputType.ADDRESS,
           isShown: true,
-          displayType: DisplayType.DROPDOWN,
-          dropdownOptions: availableTokensDropdownOptions,
+          displayType: DisplayType.TOKEN_DROPDOWN,
         },
         {
           id: 'tokenB',
@@ -282,8 +280,7 @@ export const uniswapFacet: Facet = {
           description: 'The token B address',
           type: InputType.ADDRESS,
           isShown: true,
-          displayType: DisplayType.DROPDOWN,
-          dropdownOptions: availableTokensDropdownOptions,
+          displayType: DisplayType.TOKEN_DROPDOWN,
         },
         {
           id: 'liquidity',
@@ -326,9 +323,8 @@ export const uniswapFacet: Facet = {
           description: 'The deadline of the transaction',
           type: InputType.UINT,
           isShown: true,
-          displayType: DisplayType.DROPDOWN,
-          dropdownOptions: deadlineDropdownOptions,
-          defaultValue: deadlineDropdownOptions[2].value,
+          displayType: DisplayType.DEADLINE_INPUT,
+          defaultValue: '900',
         },
       ],
     },
@@ -360,10 +356,16 @@ export const uniswapFacet: Facet = {
         (inputs) => inputs.amountOutMin as string,
         (inputs) => inputs.router as string
       ),
-      getCurrencySymbolsForBundleDisplay: (inputs: TransactionInput) => {
-        return availableTokensDropdownOptions
-          .filter((token) => [inputs.path[0], inputs.path[1]].includes(token.value))
-          ?.map((token) => token.label);
+      getCurrencySymbolsForBundleDisplay: (
+        inputs: TransactionInput,
+        reserves: ComputedReserveDataWithMarket[]
+      ) => {
+        return (
+          reserves &&
+          reserves
+            .filter((token) => [inputs.path[0], inputs.path[1]].includes(token.underlyingAsset))
+            ?.map((token) => token.iconSymbol)
+        );
       },
       inputs: [
         {
@@ -373,11 +375,7 @@ export const uniswapFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
-          defaultValue: {
-            // PunchSwapV2Router
-            testnet: '0xeD53235cC3E9d2d464E9c408B95948836648870B',
-            mainnet: '0xf45AFe28fd5519d5f8C1d4787a4D5f724C0eFa4d',
-          },
+          defaultValue: defaultRouter,
         },
         {
           id: 'tokenIn',
@@ -385,8 +383,7 @@ export const uniswapFacet: Facet = {
           description: 'The token to swap',
           type: InputType.ADDRESS,
           isShown: true,
-          displayType: DisplayType.DROPDOWN,
-          dropdownOptions: availableTokensDropdownOptions,
+          displayType: DisplayType.TOKEN_DROPDOWN,
         },
         {
           id: 'tokenOut',
@@ -394,8 +391,7 @@ export const uniswapFacet: Facet = {
           description: 'The token to receive',
           type: InputType.ADDRESS,
           isShown: true,
-          displayType: DisplayType.DROPDOWN,
-          dropdownOptions: availableTokensDropdownOptions,
+          displayType: DisplayType.TOKEN_DROPDOWN,
         },
         {
           id: 'amountIn',
@@ -404,6 +400,7 @@ export const uniswapFacet: Facet = {
           type: InputType.UINT,
           isShown: true,
           displayType: DisplayType.CURRENCY_AMOUNT_INPUT,
+          relatedInputId: 'tokenIn',
         },
         {
           id: 'amountOutMin',
@@ -411,7 +408,35 @@ export const uniswapFacet: Facet = {
           description: 'The minimum amount of tokens to receive',
           type: InputType.UINT,
           isShown: true,
-          displayType: DisplayType.CURRENCY_AMOUNT_INPUT,
+          displayType: DisplayType.CURRENCY_AMOUNT,
+          relatedInputId: 'tokenOut',
+          dependsOnInputs: ['router', 'tokenIn', 'tokenOut', 'amountIn'],
+          getOptions: async (inputs: TransactionInput, provider: ethers.providers.Provider) => {
+            if (
+              !provider ||
+              !inputs.router ||
+              !inputs.tokenIn ||
+              !inputs.tokenOut ||
+              !inputs.amountIn
+            ) {
+              return [];
+            }
+            const routerAddress = String(inputs.router);
+            const tokenIn = String(inputs.tokenIn);
+            const tokenOut = String(inputs.tokenOut);
+            const amountIn = String(inputs.amountIn);
+            const path = [tokenIn, tokenOut];
+            const uniswapV2RouterAbi = `function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts)`;
+            const routerContract = new Contract(routerAddress, [uniswapV2RouterAbi], provider);
+            const amountsOut = await routerContract.getAmountsOut(amountIn, path);
+            console.log('amountsOut', formatUnits(amountsOut[1], 18).toString());
+            return [
+              {
+                label: formatUnits(amountsOut[1], 18).toString(),
+                value: amountsOut[1].toString(),
+              },
+            ];
+          },
         },
         {
           id: 'to',
@@ -428,9 +453,8 @@ export const uniswapFacet: Facet = {
           description: 'The deadline of the transaction',
           type: InputType.UINT,
           isShown: true,
-          displayType: DisplayType.DROPDOWN,
-          dropdownOptions: deadlineDropdownOptions,
-          defaultValue: deadlineDropdownOptions[2].value,
+          displayType: DisplayType.DEADLINE_INPUT,
+          defaultValue: '900',
         },
       ],
     },

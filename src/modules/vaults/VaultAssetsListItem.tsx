@@ -1,6 +1,10 @@
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import { Box, Paper, Typography } from '@mui/material';
+import { BigNumber } from 'bignumber.js';
+import { formatUnits } from 'ethers/lib/utils';
+import { useMemo } from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
+import { TokenIcon } from 'src/components/primitives/TokenIcon';
+import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { VaultData } from 'src/hooks/vault/useVault';
 
 import { PreviewLineChart } from './LineChart';
@@ -11,6 +15,22 @@ interface VaultAssetsListItemProps {
 }
 
 export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps) => {
+  const { reserves } = useAppDataContext();
+  const reserve = useMemo(() => {
+    return reserves.find((reserve) => reserve.symbol === data?.overview?.shareCurrencySymbol);
+  }, [reserves, data]);
+
+  const aum = data
+    ? formatUnits(data?.financials?.liquidity?.totalAssets, data?.overview?.assetDecimals)
+    : '0';
+  const aumInUsd = new BigNumber(aum).multipliedBy(
+    reserve?.formattedPriceInMarketReferenceCurrency
+  );
+  const sharePrice = data?.overview?.sharePrice;
+  const sharePriceInUsd = new BigNumber(sharePrice).multipliedBy(
+    reserve?.formattedPriceInMarketReferenceCurrency
+  );
+
   return (
     <Paper
       onClick={onClick}
@@ -81,13 +101,28 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
               >
                 AUM
               </Typography>
-              <FormattedNumber
-                value={data.financials?.basics?.grossAssetValue.value}
-                symbol={data.financials?.basics?.grossAssetValue.currency}
-                variant="main14"
-                compact
-              />
-              {/* TODO: Add in $ */}
+              <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
+                <FormattedNumber
+                  value={aum}
+                  symbol={data.overview?.shareCurrencySymbol}
+                  variant="main14"
+                  compact
+                />
+                <Box sx={{ display: 'flex', flexDirection: 'row' }}>
+                  <Typography variant="secondary14" color="text.secondary">
+                    {'('}
+                  </Typography>
+                  <FormattedNumber
+                    value={aumInUsd.toString()}
+                    symbol={'USD'}
+                    variant="secondary14"
+                    compact
+                  />
+                  <Typography variant="secondary14" color="text.secondary">
+                    {')'}
+                  </Typography>
+                </Box>
+              </Box>
             </Box>
 
             <Box
@@ -103,11 +138,30 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
                   fontSize: '0.875rem',
                 }}
               >
-                Net APY
+                Share Price
               </Typography>
-              <Typography sx={{ fontWeight: 500, textAlign: 'right' }}>
-                {data.financials?.returnMetrics?.averageMonth}%
-              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
+                <FormattedNumber
+                  value={sharePrice}
+                  symbol={data?.overview?.shareCurrencySymbol}
+                  variant="main14"
+                  compact
+                />
+                <Box sx={{ display: 'flex', flexDirection: 'row' }}>
+                  <Typography variant="secondary14" color="text.secondary">
+                    {'('}
+                  </Typography>
+                  <FormattedNumber
+                    value={sharePriceInUsd.toString()}
+                    symbol={'USD'}
+                    variant="secondary14"
+                    compact
+                  />
+                  <Typography variant="secondary14" color="text.secondary">
+                    {')'}
+                  </Typography>
+                </Box>
+              </Box>
             </Box>
 
             <Box
@@ -125,68 +179,21 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
               >
                 Deposit denomination
               </Typography>
-              <Typography sx={{ fontWeight: 500, textAlign: 'right' }}>
-                {data.financials?.basics?.grossAssetValue?.currency}
-              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1 }}>
+                <TokenIcon
+                  symbol={data?.overview?.shareCurrencySymbol || ''}
+                  sx={{ fontSize: '16px' }}
+                />
+                <Typography sx={{ fontWeight: 500, textAlign: 'right' }}>
+                  {data?.overview?.shareCurrencySymbol}
+                </Typography>
+              </Box>
             </Box>
           </Box>
 
           <Box sx={{ width: '50%', minWidth: '40%', minHeight: 100 }}>
             <PreviewLineChart height={100} />
           </Box>
-        </Box>
-      </Box>
-
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          backgroundColor: '#000',
-          color: 'white',
-          padding: '6px 20px',
-        }}
-      >
-        <Box>
-          {/* <Typography
-            sx={{
-              fontSize: '0.75rem',
-              color: 'rgba(255, 255, 255, 0.7)',
-            }}
-          >
-            Share price
-          </Typography>
-          <Typography
-            sx={{
-              fontWeight: 600,
-              fontSize: '1.25rem',
-              color: 'white',
-            }}
-          >
-            ${data.financials?.basics?.shareSupply.value}
-          </Typography> */}
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'end', flexDirection: 'column' }}>
-            <Typography
-              sx={{
-                fontWeight: 500,
-                color: '#4CAF50',
-              }}
-            >
-              +{data.financials?.returnMetrics?.averageMonth}%
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: '0.75rem',
-                color: 'rgba(255, 255, 255, 0.7)',
-                mx: 1,
-              }}
-            >
-              24h
-            </Typography>
-          </Box>
-          <ArrowForwardIosIcon sx={{ fontSize: 16, color: 'white' }} />
         </Box>
       </Box>
     </Paper>

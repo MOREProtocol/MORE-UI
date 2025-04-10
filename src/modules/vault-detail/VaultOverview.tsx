@@ -1,19 +1,32 @@
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { Box, Grid, Typography, useMediaQuery, useTheme } from '@mui/material';
+import BigNumber from 'bignumber.js';
 import React, { useMemo } from 'react';
 import { Address } from 'src/components/Address';
 import { CompactMode } from 'src/components/CompactableTypography';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
+import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useVault } from 'src/hooks/vault/useVault';
 import { useVaultData } from 'src/hooks/vault/useVaultData';
 import { PreviewLineChart } from 'src/modules/vaults/LineChart';
 import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
 
 export const VaultOverview: React.FC = () => {
-  const { selectedVaultId, isLoading, chainId } = useVault();
+  const { selectedVaultId, chainId } = useVault();
+  const { reserves } = useAppDataContext();
   const vaultData = useVaultData(selectedVaultId);
+
   const selectedVault = vaultData?.data;
+  const isLoading = vaultData?.isLoading;
   const baseUrl = useMemo(() => chainId && networkConfigs[chainId].explorerLink, [chainId]);
+  const reserve = useMemo(() => {
+    return reserves.find(
+      (reserve) => reserve.symbol === selectedVault?.overview?.shareCurrencySymbol
+    );
+  }, [reserves, selectedVault]);
+  const sharePriceInUsd = new BigNumber(selectedVault?.overview?.sharePrice).multipliedBy(
+    reserve?.formattedPriceInMarketReferenceCurrency
+  );
 
   const theme = useTheme();
   const downToMd = useMediaQuery(theme.breakpoints.down('md'));
@@ -101,12 +114,18 @@ export const VaultOverview: React.FC = () => {
             Share price
           </Typography>
         </Box>
-        <FormattedNumber
-          value={selectedVault?.overview?.sharePrice || ''}
-          symbol="USD"
-          compact
-          variant="main40"
-        />
+        <Box sx={{ display: 'flex', alignItems: 'start', flexDirection: 'column' }}>
+          <FormattedNumber
+            value={selectedVault?.overview?.sharePrice || ''}
+            symbol={selectedVault?.overview?.shareCurrencySymbol || ''}
+            variant="main40"
+          />
+          <FormattedNumber
+            value={sharePriceInUsd.toString() || ''}
+            symbol={'USD'}
+            variant="secondary21"
+          />
+        </Box>
 
         {/* Price Chart */}
         <Box sx={{ height: 300, mb: 4 }}>
