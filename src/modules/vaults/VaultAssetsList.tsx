@@ -24,7 +24,7 @@ const LoadingSkeleton = () => (
 
 export const VaultAssetsList = () => {
   const router = useRouter();
-  const { isLoading: vaultContextLoading, setSelectedVaultId } = useVault();
+  const { setSelectedVaultId } = useVault();
 
   const deployedVaultsQuery = useDeployedVaults();
   const vaultIds = deployedVaultsQuery?.data || [];
@@ -36,7 +36,7 @@ export const VaultAssetsList = () => {
   const isLoadingVaults = vaultsQuery?.some((vault) => vault.isLoading);
 
   // Combined loading state
-  const isLoading = vaultContextLoading || isLoadingVaultIds || isLoadingVaults;
+  const isLoading = isLoadingVaultIds || isLoadingVaults;
 
   const handleClick = (vault: VaultData) => {
     setSelectedVaultId(vault.id);

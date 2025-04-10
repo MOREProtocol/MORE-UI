@@ -6,8 +6,8 @@ import { PausedTooltip } from 'src/components/infoTooltips/PausedTooltip';
 import { StETHCollateralToolTip } from 'src/components/infoTooltips/StETHCollateralToolTip';
 import { AssetsBeingOffboarded } from 'src/components/Warnings/OffboardingWarning';
 import { useAssetCaps } from 'src/hooks/useAssetCaps';
+import { ExtendedMarket } from 'src/store/protocolDataSlice';
 import { useRootStore } from 'src/store/root';
-import { CustomMarket } from 'src/ui-config/marketsConfig';
 import { DASHBOARD_LIST_COLUMN_WIDTHS } from 'src/utils/dashboardSortUtils';
 import { DASHBOARD } from 'src/utils/mixPanelEvents';
 
@@ -25,7 +25,7 @@ interface ListItemWrapperProps {
   name: string;
   detailsAddress: string;
   children: ReactNode;
-  currentMarket: CustomMarket | 'all_markets';
+  currentMarket: ExtendedMarket;
   frozen?: boolean;
   paused?: boolean;
   borrowEnabled?: boolean;

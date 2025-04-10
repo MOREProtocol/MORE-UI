@@ -1,6 +1,6 @@
 import { useQueries, useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { ethers } from 'ethers';
-import { formatUnits } from 'ethers/lib/utils';
+import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import { useMemo } from 'react';
 import {
   ComputedReserveDataWithMarket,
@@ -403,31 +403,35 @@ export const useVaultsListData = <TResult = VaultData>(
           [
             `function totalAssets() external view override returns (uint256)`,
             `function asset() external view override returns (address)`,
+            `function decimals() external view returns (uint8)`,
             `function name() external view override returns (string)`,
+            `function convertToAssets(uint256 shares) external view returns (uint256 assets)`,
           ],
           provider
         );
-        const [totalAssets, assetAddress, name] = await Promise.all([
+        const [totalAssets, assetAddress, decimals, name] = await Promise.all([
           vaultDiamondContract.totalAssets().catch(() => 0),
           vaultDiamondContract.asset().catch(() => undefined),
+          vaultDiamondContract.decimals().catch(() => 18),
           vaultDiamondContract.name().catch(() => 'Unnamed Vault'),
         ]);
+        const sharePriceInAsset = await vaultDiamondContract.convertToAssets(
+          parseUnits('1', decimals)
+        );
 
         const assetData = TOKEN_LIST.tokens.find((token) => token.address === assetAddress);
         const assetSymbol = assetData?.symbol;
-
         return {
           id: vaultId,
           overview: {
             name,
-            shareCurrency: assetSymbol,
+            shareCurrencySymbol: assetSymbol,
+            assetDecimals: decimals,
+            sharePrice: Number(formatUnits(sharePriceInAsset, decimals)),
           },
           financials: {
-            basics: {
-              grossAssetValue: {
-                value: formatUnits(totalAssets, assetData?.decimals),
-                currency: assetSymbol,
-              },
+            liquidity: {
+              totalAssets,
             },
           },
         };
@@ -439,42 +443,44 @@ export const useVaultsListData = <TResult = VaultData>(
   });
 };
 
-export const useUserVaultData = <TResult = { maxWithdraw: ethers.BigNumber; decimals: number }>(
+export const useUserVaultsData = <TResult = { maxWithdraw: ethers.BigNumber; decimals: number }>(
   userAddress: string,
-  vaultId: string,
+  vaultIds: string[],
   opts?: VaultDataHookOpts<{ maxWithdraw: ethers.BigNumber; decimals: number }, TResult>
 ) => {
   const { chainId } = useVault();
   const provider = useVaultProvider(chainId);
 
-  return useVaultQuery(
-    vaultQueryKeys.userVaultData(vaultId, userAddress, chainId),
-    async () => {
-      if (!provider || !vaultId) {
-        throw new Error('Missing required parameters');
-      }
+  return useQueries({
+    queries: vaultIds.map((vaultId) => ({
+      queryKey: vaultQueryKeys.userVaultData(vaultId, userAddress, chainId),
+      queryFn: async () => {
+        if (!provider || !vaultId) {
+          throw new Error('Missing required parameters');
+        }
 
-      const vaultDiamondContract = new ethers.Contract(
-        vaultId,
-        [
-          `function maxWithdraw(address user) external view override returns (uint256)`,
-          `function decimals() external view returns (uint8)`,
-        ],
-        provider
-      );
-      const [maxWithdraw, decimals] = await Promise.all([
-        vaultDiamondContract.maxWithdraw(userAddress).catch(() => 0),
-        vaultDiamondContract.decimals().catch(() => 18),
-      ]);
+        const vaultDiamondContract = new ethers.Contract(
+          vaultId,
+          [
+            `function maxWithdraw(address user) external view override returns (uint256)`,
+            `function decimals() external view returns (uint8)`,
+          ],
+          provider
+        );
+        const [maxWithdraw, decimals] = await Promise.all([
+          vaultDiamondContract.maxWithdraw(userAddress).catch(() => 0),
+          vaultDiamondContract.decimals().catch(() => 18),
+        ]);
 
-      return {
-        maxWithdraw,
-        decimals,
-      };
-    },
-    !!provider && !!vaultId && !!userAddress,
-    opts
-  );
+        return {
+          maxWithdraw,
+          decimals,
+        };
+      },
+      enabled: !!provider && !!vaultId && !!userAddress,
+      ...opts,
+    })),
+  });
 };
 
 export const useVaultData = <TResult = VaultData>(
@@ -498,21 +504,41 @@ export const useVaultData = <TResult = VaultData>(
           `function totalAssets() external view override returns (uint256)`,
           `function asset() external view override returns (address)`,
           `function name() external view override returns (string)`,
+          `function decimals() external view returns (uint8)`,
           `function guardian() external view returns (address)`,
           `function curator() external view returns (address)`,
+          `function maxDeposit(address receiver) external view returns (uint256 maxAssets)`,
+          `function convertToAssets(uint256 shares) external view returns (uint256 assets)`,
         ],
         provider
       );
-      const [totalAssets, assetAddress, name, guardian, curator, allocation, activity] =
-        await Promise.all([
-          vaultDiamondContract.totalAssets().catch(() => 0),
-          vaultDiamondContract.asset().catch(() => undefined),
-          vaultDiamondContract.name().catch(() => 'Unnamed Vault'),
-          vaultDiamondContract.guardian().catch(() => undefined),
-          vaultDiamondContract.curator().catch(() => undefined),
-          fetchAllocation(vaultId, chainId, reserves),
-          fetchActivity(vaultId, chainId, reserves),
-        ]);
+      const [
+        totalAssets,
+        assetAddress,
+        name,
+        decimals,
+        guardian,
+        curator,
+        maxDeposit,
+        allocation,
+        activity,
+      ] = await Promise.all([
+        vaultDiamondContract.totalAssets().catch(() => 0),
+        vaultDiamondContract.asset().catch(() => undefined),
+        vaultDiamondContract.name().catch(() => 'Unnamed Vault'),
+        vaultDiamondContract.decimals().catch(() => 18),
+        vaultDiamondContract.guardian().catch(() => undefined),
+        vaultDiamondContract.curator().catch(() => undefined),
+        vaultDiamondContract
+          .maxDeposit('0x0000000000000000000000000000000000000000')
+          .catch(() => 0),
+        fetchAllocation(vaultId, chainId, reserves),
+        fetchActivity(vaultId, chainId, reserves),
+      ]);
+
+      const sharePriceInAsset = await vaultDiamondContract.convertToAssets(
+        parseUnits('1', decimals)
+      );
 
       const assetData = TOKEN_LIST.tokens.find((token) => token.address === assetAddress);
       const assetSymbol = assetData?.symbol;
@@ -521,18 +547,18 @@ export const useVaultData = <TResult = VaultData>(
         id: vaultId,
         overview: {
           name,
-          shareCurrency: assetSymbol,
+          shareCurrencySymbol: assetSymbol,
+          assetDecimals: assetData?.decimals,
+          sharePrice: Number(formatUnits(sharePriceInAsset, decimals)),
           roles: {
             guardian,
             curator,
           },
         },
         financials: {
-          basics: {
-            grossAssetValue: {
-              value: formatUnits(totalAssets, assetData?.decimals),
-              currency: assetSymbol,
-            },
+          liquidity: {
+            totalAssets,
+            maxDeposit,
           },
         },
         allocation,

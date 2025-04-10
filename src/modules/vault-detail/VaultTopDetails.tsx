@@ -2,14 +2,14 @@ import { Box, Button, Skeleton, Typography } from '@mui/material';
 import { useState } from 'react';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { useVault } from 'src/hooks/vault/useVault';
-import { useUserVaultData, useVaultData } from 'src/hooks/vault/useVaultData';
+import { useUserVaultsData, useVaultData } from 'src/hooks/vault/useVaultData';
 
 import { VaultDepositModal } from './VaultDepositModal';
 import { VaultWithdrawModal } from './VaultWithdrawModal';
 
 export const VaultTopDetails = () => {
   const { selectedVaultId, accountAddress } = useVault();
-  const { data: userVaultData } = useUserVaultData(accountAddress, selectedVaultId);
+  const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
   const vaultData = useVaultData(selectedVaultId);
 
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
@@ -17,7 +17,7 @@ export const VaultTopDetails = () => {
 
   const selectedVault = vaultData?.data;
   const isLoading = vaultData?.isLoading;
-  const maxWithdraw = userVaultData?.maxWithdraw;
+  const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
   return (
     <Box
       sx={{
@@ -58,16 +58,16 @@ export const VaultTopDetails = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <TokenIcon
-                      symbol={selectedVault?.overview?.shareCurrency || ''}
+                      symbol={selectedVault?.overview?.shareCurrencySymbol || ''}
                       sx={{ fontSize: '16px' }}
                     />
                     <Typography variant="secondary12">
-                      {selectedVault?.overview?.shareCurrency}
+                      {selectedVault?.overview?.shareCurrencySymbol}
                     </Typography>
                   </Box>
                   {/* <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <TokenIcon
-                      symbol={selectedVault?.overview?.shareCurrency || ''}
+                      symbol={selectedVault?.overview?.shareCurrencySymbol || ''}
                       sx={{ fontSize: '16px' }}
                     />
                     <Typography variant="secondary12">

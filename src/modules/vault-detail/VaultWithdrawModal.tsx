@@ -7,7 +7,7 @@ import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { AssetInput } from 'src/components/transactions/AssetInput';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useVault } from 'src/hooks/vault/useVault';
-import { useUserVaultData, useVaultData } from 'src/hooks/vault/useVaultData';
+import { useUserVaultsData, useVaultData } from 'src/hooks/vault/useVaultData';
 import { networkConfigs } from 'src/ui-config/networksConfig';
 import { roundToTokenDecimals } from 'src/utils/utils';
 
@@ -19,10 +19,13 @@ interface VaultWithdrawModalProps {
 export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, setIsOpen }) => {
   const { selectedVaultId, withdrawFromVault, checkApprovalNeeded, accountAddress, chainId } =
     useVault();
-  const { data: userVaultData } = useUserVaultData(accountAddress, selectedVaultId);
+  const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
   const currentNetwork = networkConfigs[chainId];
-  const maxAmountToWithdraw = userVaultData
-    ? formatUnits(userVaultData?.maxWithdraw?.toString(), userVaultData?.decimals)
+  const maxAmountToWithdraw = userVaultData?.[0]?.data?.maxWithdraw
+    ? formatUnits(
+        userVaultData?.[0]?.data?.maxWithdraw?.toString(),
+        userVaultData?.[0]?.data?.decimals
+      )
     : new BigNumber(0);
 
   const vaultData = useVaultData(selectedVaultId);
@@ -32,7 +35,10 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const vaultShareCurrency = useMemo(() => selectedVault?.overview?.shareCurrency, [selectedVault]);
+  const vaultShareCurrency = useMemo(
+    () => selectedVault?.overview?.shareCurrencySymbol,
+    [selectedVault]
+  );
   const reserve = useMemo(() => {
     return reserves.find((reserve) => reserve.symbol === vaultShareCurrency);
   }, [reserves, vaultShareCurrency]);

@@ -12,6 +12,7 @@ import {
   useTheme,
 } from '@mui/material';
 import React from 'react';
+import { ExtendedMarket } from 'src/store/protocolDataSlice';
 import { useRootStore } from 'src/store/root';
 import { BaseNetworkConfig } from 'src/ui-config/networksConfig';
 import { DASHBOARD } from 'src/utils/mixPanelEvents';
@@ -26,7 +27,7 @@ import {
   STAGING_ENV,
 } from '../utils/marketsAndNetworksConfig';
 
-export const getMarketInfoById = (marketId: CustomMarket | 'all_markets') => {
+export const getMarketInfoById = (marketId: ExtendedMarket) => {
   if (marketId === 'all_markets') {
     return {
       market: {
@@ -38,7 +39,7 @@ export const getMarketInfoById = (marketId: CustomMarket | 'all_markets') => {
       network: networkConfigs[Object.values(marketsData)[0].chainId],
     };
   }
-  const market: MarketDataType = marketsData[marketId as CustomMarket];
+  const market: MarketDataType = marketsData[marketId];
   const network: BaseNetworkConfig = networkConfigs[market.chainId];
 
   return { market, network };
@@ -110,20 +111,20 @@ export const MarketLogo = ({ size, logo, testChainName, sx }: MarketLogoProps) =
   );
 };
 
-export const MarketSwitcher = ( {showAllMarkets = true}: {showAllMarkets?: boolean} ) => {
+export const MarketSwitcher = ({ showAllMarkets = true }: { showAllMarkets?: boolean }) => {
   const { currentMarket, setCurrentMarket } = useRootStore();
   const theme = useTheme();
   const upToLG = useMediaQuery(theme.breakpoints.up('lg'));
   const downToXSM = useMediaQuery(theme.breakpoints.down('xsm'));
   const trackEvent = useRootStore((store) => store.trackEvent);
 
-  const handleMarketChange = (marketId: CustomMarket | 'all_markets') => {
+  const handleMarketChange = (marketId: ExtendedMarket) => {
     trackEvent(DASHBOARD.CHANGE_MARKET, { market: marketId });
-    setCurrentMarket(marketId as unknown as CustomMarket);
+    setCurrentMarket(marketId);
   };
 
   const handleMarketSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleMarketChange(e.target.value as CustomMarket | 'all_markets');
+    handleMarketChange(e.target.value as ExtendedMarket);
   };
 
   return (
@@ -148,7 +149,7 @@ export const MarketSwitcher = ( {showAllMarkets = true}: {showAllMarkets?: boole
           </SvgIcon>
         ),
         renderValue: (marketId) => {
-          const { market, network } = getMarketInfoById(marketId as CustomMarket | 'all_markets');
+          const { market, network } = getMarketInfoById(marketId as ExtendedMarket);
           return (
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {marketId !== 'all_markets' ? (
@@ -158,11 +159,7 @@ export const MarketSwitcher = ( {showAllMarkets = true}: {showAllMarkets?: boole
                   testChainName={getMarketHelpData(market.marketTitle).testChainName}
                 />
               ) : (
-                <MarketLogo
-                  size={upToLG ? 32 : 28}
-                  logo='/loveMore.svg'
-                  testChainName=''
-                />
+                <MarketLogo size={upToLG ? 32 : 28} logo="/loveMore.svg" testChainName="" />
               )}
               <Box sx={{ mr: 1, display: 'inline-flex', alignItems: 'flex-start' }}>
                 <Typography
@@ -235,22 +232,18 @@ export const MarketSwitcher = ( {showAllMarkets = true}: {showAllMarkets?: boole
           data-cy={`marketSelector_all_markets`}
           value="all_markets"
           onClick={() => handleMarketChange('all_markets')}
-        sx={{
-          '.MuiListItemIcon-root': { minWidth: 'unset' },
-        }}
-      >
-        <MarketLogo
-          size={32}
-          logo="/loveMore.svg"
-          testChainName=""
-        />
+          sx={{
+            '.MuiListItemIcon-root': { minWidth: 'unset' },
+          }}
+        >
+          <MarketLogo size={32} logo="/loveMore.svg" testChainName="" />
           <ListItemText sx={{ mr: 0 }}>All markets</ListItemText>
         </MenuItem>
       )}
 
       <Box>
         <Typography variant="subheader2" color="text.secondary" sx={{ px: 4, pt: 2 }}>
-            {ENABLE_TESTNET || STAGING_ENV ? 'Select More Testnet Market' : 'Select More Market'}
+          {ENABLE_TESTNET || STAGING_ENV ? 'Select More Testnet Market' : 'Select More Market'}
         </Typography>
       </Box>
 

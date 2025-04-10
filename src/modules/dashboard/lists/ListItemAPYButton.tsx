@@ -19,7 +19,7 @@ import {
 import * as React from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { Link, ROUTES } from 'src/components/primitives/Link';
-import { CustomMarket } from 'src/ui-config/marketsConfig';
+import { ExtendedMarket } from 'src/store/protocolDataSlice';
 
 interface ListItemAPYButtonProps {
   stableBorrowRateEnabled: boolean;
@@ -29,7 +29,7 @@ interface ListItemAPYButtonProps {
   stableBorrowAPY: string;
   variableBorrowAPY: string;
   underlyingAsset: string;
-  currentMarket: CustomMarket | 'all_markets';
+  currentMarket: ExtendedMarket;
 }
 
 export const ListItemAPYButton = ({

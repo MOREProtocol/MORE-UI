@@ -30,7 +30,10 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const vaultShareCurrency = useMemo(() => selectedVault?.overview?.shareCurrency, [selectedVault]);
+  const vaultShareCurrency = useMemo(
+    () => selectedVault?.overview?.shareCurrencySymbol,
+    [selectedVault]
+  );
   const reserve = useMemo(() => {
     return reserves.find((reserve) => reserve.symbol === vaultShareCurrency);
   }, [reserves, vaultShareCurrency]);

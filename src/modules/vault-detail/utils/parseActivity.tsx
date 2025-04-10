@@ -1,5 +1,5 @@
 import { formatUnits } from 'ethers/lib/utils';
-import { APIActivity, VaultData } from 'src/hooks/vault/useVault';
+import { VaultData } from 'src/hooks/vault/useVault';
 
 import { moreFacet } from '../VaultManagement/facets/more';
 import { uniswapFacet } from '../VaultManagement/facets/uniswap';
@@ -18,7 +18,8 @@ interface ParsedActivity extends Activity {
   };
 }
 
-export function parseActivity(activity: APIActivity['items'][0]): ParsedActivity {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function parseActivity(activity: any): ParsedActivity {
   const parsedActivity: ParsedActivity = {
     timestamp: new Date(activity.timestamp),
     market: 'Flow', // Default market since we're on Flow network

@@ -1,8 +1,10 @@
 import { Box, Container, useTheme } from '@mui/material';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { VaultTabContent } from 'src/modules/vault-detail/VaultTabContent';
 import { VaultTopDetailsWrapper } from 'src/modules/vault-detail/VaultTopDetailsWrapper';
+import { useRootStore } from 'src/store/root';
+import { ENABLE_TESTNET } from 'src/utils/marketsAndNetworksConfig';
 
 interface ContentContainerProps {
   children: ReactNode;
@@ -10,6 +12,16 @@ interface ContentContainerProps {
 
 const ContentContainer = ({ children }: ContentContainerProps) => {
   const theme = useTheme();
+  const { currentMarket, setCurrentMarket } = useRootStore();
+
+  useEffect(() => {
+    if (ENABLE_TESTNET && currentMarket !== 'proto_testnet_v3') {
+      setCurrentMarket('proto_testnet_v3');
+    } else if (!ENABLE_TESTNET && currentMarket !== 'proto_flow_v3') {
+      setCurrentMarket('proto_flow_v3');
+    }
+  }, [setCurrentMarket, currentMarket]);
+
   return (
     <Box
       sx={{
