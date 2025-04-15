@@ -7,9 +7,9 @@ export const origamiFacet: Facet = {
   contractAddress: {
     testnet: '0x72eBEC124864D69a33638c5BA478bd9968798709',
   },
-  icon: '/icons/protocols/morigami.svg',
-  name: 'MORigami',
-  description: 'Origami is a decentralized exchange for trading cryptocurrencies.',
+  icon: '/loveMore.svg',
+  name: 'MORE Leverage',
+  description: 'MORE Leverage is a decentralized exchange for trading cryptocurrencies.',
   actions: [
     {
       id: 'investWithToken',

@@ -1,5 +1,5 @@
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import { Box, Grid, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Grid, Skeleton, Typography, useMediaQuery, useTheme } from '@mui/material';
 import BigNumber from 'bignumber.js';
 import React, { useMemo } from 'react';
 import { Address } from 'src/components/Address';
@@ -40,11 +40,15 @@ export const VaultOverview: React.FC = () => {
           <Typography variant="h4" sx={{ mb: 2, pb: 4 }}>
             Vault Info
           </Typography>
-          {selectedVault?.overview?.description && (
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-              <InfoOutlinedIcon sx={{ mr: 2, color: 'text.secondary' }} />
-              <Typography variant="description">{selectedVault?.overview?.description}</Typography>
-            </Box>
+          {isLoading ? (
+            <Skeleton width={200} height={28} sx={{ mb: 2 }} />
+          ) : (
+            selectedVault?.overview?.description && (
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                <InfoOutlinedIcon sx={{ mr: 2, color: 'text.secondary' }} />
+                <Typography variant="description">{selectedVault?.overview?.description}</Typography>
+              </Box>
+            )
           )}
 
           {/* <Box sx={{ mb: 4, display: 'flex', alignItems: 'center' }}>
@@ -60,25 +64,27 @@ export const VaultOverview: React.FC = () => {
           </Box> */}
         </Grid>
 
-        {selectedVault?.overview?.roles && (
-          <Grid
-            item
-            xs={12}
-            md={4}
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 2,
-            }}
-          >
-            <Typography variant="h4" sx={{ mb: 2 }}>
-              Vault Roles
+        <Grid
+          item
+          xs={12}
+          md={4}
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+          }}
+        >
+          <Typography variant="h4" sx={{ mb: 2 }}>
+            Vault Roles
+          </Typography>
+          <Box>
+            <Typography variant="main14" sx={{ py: 2 }}>
+              Curator
             </Typography>
-            {selectedVault?.overview?.roles?.curator && (
-              <Box>
-                <Typography variant="main14" sx={{ py: 2 }}>
-                  Curator
-                </Typography>
+            {isLoading ? (
+              <Skeleton width={100} height={20} />
+            ) : (
+              selectedVault?.overview?.roles?.curator ? (
                 <Address
                   address={selectedVault?.overview?.roles.curator}
                   link={`${baseUrl}/address/${selectedVault?.overview?.roles.curator}`}
@@ -87,13 +93,21 @@ export const VaultOverview: React.FC = () => {
                   variant="secondary14"
                   compactMode={downToMd ? CompactMode.SM : CompactMode.MD}
                 />
-              </Box>
-            )}
-            {selectedVault?.overview?.roles?.guardian && (
-              <Box>
-                <Typography variant="main14" sx={{ py: 2 }}>
-                  Guardian
+              ) : (
+                <Typography variant="secondary14">
+                  None
                 </Typography>
+              )
+            )}
+          </Box>
+          <Box>
+            <Typography variant="main14" sx={{ py: 2 }}>
+              Guardian
+            </Typography>
+            {isLoading ? (
+              <Skeleton width={100} height={20} />
+            ) : (
+              selectedVault?.overview?.roles?.guardian ? (
                 <Address
                   address={selectedVault?.overview?.roles.guardian}
                   link={`${baseUrl}/address/${selectedVault?.overview?.roles.guardian}`}
@@ -102,10 +116,14 @@ export const VaultOverview: React.FC = () => {
                   variant="secondary14"
                   compactMode={downToMd ? CompactMode.SM : CompactMode.MD}
                 />
-              </Box>
+              ) : (
+                <Typography variant="secondary14">
+                  None
+                </Typography>
+              )
             )}
-          </Grid>
-        )}
+          </Box>
+        </Grid>
       </Grid>
 
       <Box sx={{ mb: 2 }}>
@@ -115,16 +133,25 @@ export const VaultOverview: React.FC = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'start', flexDirection: 'column' }}>
-          <FormattedNumber
-            value={selectedVault?.overview?.sharePrice || ''}
-            symbol={selectedVault?.overview?.shareCurrencySymbol || ''}
-            variant="main40"
-          />
-          <FormattedNumber
-            value={sharePriceInUsd.toString() || ''}
-            symbol={'USD'}
-            variant="secondary21"
-          />
+          {isLoading ? (
+            <>
+              <Skeleton width={200} height={53} sx={{ mb: 1 }} />
+              <Skeleton width={100} height={28} />
+            </>
+          ) : (
+            <>
+              <FormattedNumber
+                value={selectedVault?.overview?.sharePrice || ''}
+                symbol={selectedVault?.overview?.shareCurrencySymbol || ''}
+                variant="main40"
+              />
+              <FormattedNumber
+                value={sharePriceInUsd.toString() || ''}
+                symbol={'USD'}
+                variant="secondary21"
+              />
+            </>
+          )}
         </Box>
 
         {/* Price Chart */}

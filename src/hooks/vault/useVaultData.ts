@@ -388,7 +388,7 @@ export const useVaultsListData = <TResult = VaultData>(
   opts?: VaultDataHookOpts<VaultData, TResult>
 ) => {
   const { chainId } = useVault();
-  const provider = useVaultProvider();
+  const provider = useVaultProvider(chainId);
 
   return useQueries({
     queries: vaultIds.map((vaultId) => ({

@@ -65,28 +65,19 @@ export const VaultTopDetails = () => {
                       {selectedVault?.overview?.shareCurrencySymbol}
                     </Typography>
                   </Box>
-                  {/* <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <TokenIcon
-                      symbol={selectedVault?.overview?.shareCurrencySymbol || ''}
-                      sx={{ fontSize: '16px' }}
-                    />
-                    <Typography variant="secondary12">
-                      {selectedVault?.overview?.roles?.curator}
-                    </Typography>
-                  </Box> */}
                 </Box>
               </Box>
             )}
           </Box>
         </Box>
       </Box>
-      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2 }}>
-        <Button
-          variant="gradient"
+        <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2 }}>
+          <Button
+            variant="gradient"
           fullWidth
           size="medium"
           onClick={() => setIsDepositModalOpen(true)}
-          disabled={isLoading}
+          disabled={isLoading || !accountAddress}
           sx={{ borderRadius: '6px', py: 2 }}
         >
           Deposit
@@ -96,12 +87,12 @@ export const VaultTopDetails = () => {
           fullWidth
           size="medium"
           onClick={() => setIsWithdrawModalOpen(true)}
-          disabled={isLoading || (maxWithdraw && !maxWithdraw.gt(0))}
+          disabled={isLoading || (maxWithdraw && !maxWithdraw.gt(0)) || !accountAddress}
           sx={{ borderRadius: '6px', py: 2 }}
         >
           Withdraw
         </Button>
-      </Box>
+        </Box>
       <VaultDepositModal isOpen={isDepositModalOpen} setIsOpen={setIsDepositModalOpen} />
       <VaultWithdrawModal isOpen={isWithdrawModalOpen} setIsOpen={setIsWithdrawModalOpen} />
     </Box>
