@@ -192,6 +192,7 @@ export const BorrowedPositionsList = () => {
                 }
               />
               <ListTopInfoItem
+
                 title={'LTV'}
                 value={ltv || 0}
                 percent
