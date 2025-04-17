@@ -1,5 +1,4 @@
-import { Chain, /* connectorsForWallets, */ getDefaultConfig } from '@rainbow-me/rainbowkit';
-// import { http, createConfig } from 'wagmi';
+import { Chain, getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { multicalls } from './const';
 import {
   metaMaskWallet,

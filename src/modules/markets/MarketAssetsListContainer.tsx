@@ -4,18 +4,15 @@ import { Box, Switch, Typography, useMediaQuery, useTheme } from '@mui/material'
 import { useState } from 'react';
 import { ListWrapper } from 'src/components/lists/ListWrapper';
 import { NoSearchResults } from 'src/components/NoSearchResults';
-// import { Link } from 'src/components/primitives/Link';
 import { Warning } from 'src/components/primitives/Warning';
 import { TitleWithSearchBar } from 'src/components/TitleWithSearchBar';
 import { MarketWarning } from 'src/components/transactions/Warnings/MarketWarning';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
 import MarketAssetsList from 'src/modules/markets/MarketAssetsList';
-// import { useRootStore } from 'src/store/root';
 import { fetchIconSymbolAndName } from 'src/ui-config/reservePatches';
 import { getGhoReserve, GHO_SUPPORTED_MARKETS, GHO_SYMBOL } from 'src/utils/ghoUtilities';
 
-// import { GENERAL } from '../../utils/mixPanelEvents';
 
 export const MarketAssetsListContainer = () => {
   const { reserves, loading } = useAppDataContext();
@@ -23,7 +20,6 @@ export const MarketAssetsListContainer = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { breakpoints } = useTheme();
   const sm = useMediaQuery(breakpoints.down('sm'));
-  // const trackEvent = useRootStore((store) => store.trackEvent);
 
   const ghoReserve = getGhoReserve(reserves);
   const filteredData = reserves
@@ -46,9 +42,9 @@ export const MarketAssetsListContainer = () => {
       ...reserve,
       ...(reserve.isWrappedBaseAsset
         ? fetchIconSymbolAndName({
-            symbol: currentNetworkConfig.baseAssetSymbol,
-            underlyingAsset: API_ETH_MOCK_ADDRESS.toLowerCase(),
-          })
+          symbol: currentNetworkConfig.baseAssetSymbol,
+          underlyingAsset: API_ETH_MOCK_ADDRESS.toLowerCase(),
+        })
         : {}),
     }));
   const marketFrozen = !reserves.some((reserve) => !reserve.isFrozen);
@@ -118,22 +114,6 @@ export const MarketAssetsListContainer = () => {
           {showFrozenMarketsToggle && (
             <Warning severity="info">
               <Trans>
-                {/* These assets are temporarily frozen or paused by MORE Markets community decisions,
-                meaning that further supply / borrow, or rate swap of these assets are unavailable.
-                Withdrawals and debt repayments are allowed. Follow the{' '}
-                <Link
-                  onClick={() => {
-                    trackEvent(GENERAL.EXTERNAL_LINK, {
-                      link: 'Frozen Market Markets Page',
-                      frozenMarket: currentNetworkConfig.name,
-                    });
-                  }}
-                  href="https://governance.more.markets"
-                  underline="always"
-                >
-                  More governance forum
-                </Link>{' '}
-                for further updates. */}
                 These assets are temporarily frozen or paused by MORE Markets community decisions,
                 meaning that further supply / borrow, or rate swap of these assets are unavailable.
                 Withdrawals and debt repayments are allowed.

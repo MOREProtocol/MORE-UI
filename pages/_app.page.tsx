@@ -15,7 +15,7 @@ import { AppProps } from 'next/app';
 import dynamic from 'next/dynamic';
 import { ReactNode, useEffect, useState } from 'react';
 import { AddressBlocked } from 'src/components/AddressBlocked';
-import { SanctionRegion} from "src/components/SanctionRegion";
+import { SanctionRegion } from "src/components/SanctionRegion";
 import { Meta } from 'src/components/Meta';
 import { TransactionEventHandler } from 'src/components/TransactionEventHandler';
 import { GasStationProvider } from 'src/components/transactions/GasStation/GasStationProvider';
@@ -29,10 +29,6 @@ import { config as wagmiConfig } from 'src/utils/wagmi';
 import createEmotionCache from '../src/createEmotionCache';
 import { AppGlobalStyles } from '../src/layouts/AppGlobalStyles';
 import { LanguageProvider } from '../src/libs/LanguageProvider';
-
-/* const WelcomeModal = dynamic(() =>
-  import('src/components/transactions/Welcome/WelcomeModal').then((module) => module.WelcomeModal)
-); */
 
 const SwitchModal = dynamic(() =>
   import('src/components/transactions/Switch/SwitchModal').then((module) => module.SwitchModal)
@@ -138,7 +134,6 @@ export default function MyApp(props: MyAppProps) {
                             <AppDataProvider>
                               <GasStationProvider>
                                 {getLayout(<Component {...pageProps} />)}
-                                {/* <WelcomeModal /> */}
                                 <SupplyModal />
                                 <WithdrawModal />
                                 <BorrowModal />
