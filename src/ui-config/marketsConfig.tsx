@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+
 import { ChainIds } from '../utils/const';
 
 // Enable for premissioned market
@@ -56,6 +57,11 @@ export type MarketDataType = {
   };
 };
 export enum CustomMarket {
+  // v3 test networks, all v3.0.1
+  proto_testnet_v3 = 'proto_testnet_v3',
+  // v3 test networks, all v3.0.1
+  // proto_testnet_degen = 'proto_testnet_degen',
+  // v3 mainnets
   proto_flow_v3 = 'proto_flow_v3',
   proto_testnet_v3 = 'proto_testnet_v3',
   // v3 degen mainnet
@@ -65,6 +71,35 @@ export enum CustomMarket {
 export const marketsData: {
   [key in keyof typeof CustomMarket]: MarketDataType;
 } = {
+  /* [CustomMarket.proto_testnet_degen]: {
+    marketTitle: 'Degen on Flow Testnet',
+    market: CustomMarket.proto_testnet_degen,
+    chainId: ChainIds.flowEVMTestnet,
+    v3: true,
+    enabledFeatures: {
+      governance: false,
+      staking: false,
+      liquiditySwap: false,
+      collateralRepay: false,
+      incentives: false,
+      withdrawAndSwitch: false,
+      debtSwitch: false,
+      switch: false,
+    },
+    permitDisabled: true,
+    subgraphUrl: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3',
+    addresses: {
+      LENDING_POOL_ADDRESS_PROVIDER: '0xb13C2f25639EaC3917aBB4BA6385429999C649A4',
+      LENDING_POOL: '0x6d6996453dfbd656BB91699185Fc5534d3D31aC0',
+      WETH_GATEWAY: '0x49fe43bF9Beed4e424fAF2De35cD2BC75B0690e0',
+      WALLET_BALANCE_PROVIDER: '0x45b29e8Ac5c407dE894B2F8b9679D75865c913BC',
+      UI_POOL_DATA_PROVIDER: '0x504F9be69B51e14ad0B8622eB9BCA9C94FCd5718',
+    },
+    halIntegration: {
+      URL: 'https://app.hal.xyz/recipes/aave-v3-track-health-factor',
+      marketName: 'MoreMarkets',
+    },
+  }, */
   [CustomMarket.proto_flow_v3]: {
     marketTitle: 'EVM on Flow',
     market: CustomMarket.proto_flow_v3,
