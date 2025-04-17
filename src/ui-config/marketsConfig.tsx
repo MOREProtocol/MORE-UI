@@ -57,13 +57,11 @@ export type MarketDataType = {
   };
 };
 export enum CustomMarket {
-  // v3 test networks, all v3.0.1
-  proto_testnet_v3 = 'proto_testnet_v3',
-  // v3 test networks, all v3.0.1
-  // proto_testnet_degen = 'proto_testnet_degen',
   // v3 mainnets
   proto_flow_v3 = 'proto_flow_v3',
   proto_testnet_v3 = 'proto_testnet_v3',
+  // v3 test networks, all v3.0.1
+  // proto_testnet_degen = 'proto_testnet_degen',
   // v3 degen mainnet
   // proto_degen_v3 = 'proto_degen_v3',
 }
