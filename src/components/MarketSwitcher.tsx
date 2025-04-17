@@ -113,52 +113,11 @@ export const MarketSwitcher = () => {
     setCurrentMarket(e.target.value as unknown as CustomMarket);
   };
 
-  if (availableMarkets.length < 2) { // hide switch options rn
-    const { market, network } = getMarketInfoById(CustomMarket.proto_flow_v3);
-    return <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <MarketLogo
-          size={upToLG ? 32 : 28}
-          logo={network.networkLogoPath}
-          testChainName={getMarketHelpData(market.marketTitle).testChainName}
-        />
-        <Box sx={{ mr: 1, display: 'inline-flex', alignItems: 'flex-start' }}>
-          <Typography
-            variant={upToLG ? 'display1' : 'h1'}
-            sx={{
-              fontSize: downToXSM ? '1.55rem' : undefined,
-              color: 'common.white',
-              mr: 1,
-            }}
-          >
-            {getMarketHelpData(market.marketTitle).name} {market.isFork ? 'Fork' : ''}
-            {upToLG && !market.marketTitle.includes('Market') && ' Market'}
-          </Typography>
-          {market.v3 ? (
-            <Box
-              sx={{
-                color: '#fff',
-                px: 2,
-                borderRadius: '12px',
-                background: (theme) => theme.palette.gradients.newGradient,
-              }}
-            >
-              <Typography variant="subheader2">V3</Typography>
-            </Box>
-          ) : (
-            <Box
-              sx={{
-                color: '#A5A8B6',
-                px: 2,
-                borderRadius: '12px',
-                backgroundColor: '#383D51',
-              }}
-            >
-              <Typography variant="subheader2">V2</Typography>
-            </Box>
-          )}
-        </Box>
-      </Box>
-  }
+  const filteredAvailableMarkets = availableMarkets.filter((marketId) => {
+    const { network } = getMarketInfoById(marketId);
+    // Show all if ENABLE_TESTNET is true, otherwise only show mainnet
+    return ENABLE_TESTNET || (network && !network.isTestnet);
+  })
 
   return (
     <TextField
@@ -176,7 +135,7 @@ export const MarketSwitcher = () => {
       SelectProps={{
         native: false,
         className: 'MarketSwitcher__select',
-        IconComponent: (props) => (
+        IconComponent: filteredAvailableMarkets.length < 2 ? null : (props) => (
           <SvgIcon fontSize="medium" {...props}>
             <ChevronDownIcon />
           </SvgIcon>
@@ -260,34 +219,35 @@ export const MarketSwitcher = () => {
         </Typography>
       </Box>
 
-      {availableMarkets.map((marketId: CustomMarket) => {
-        const { market, network } = getMarketInfoById(marketId);
-        const marketNaming = getMarketHelpData(market.marketTitle);
-        return (
-          <MenuItem
-            key={marketId}
-            data-cy={`marketSelector_${marketId}`}
-            value={marketId}
-            sx={{
-              '.MuiListItemIcon-root': { minWidth: 'unset' },
-            }}
-          >
-            <MarketLogo
-              size={32}
-              logo={network.networkLogoPath}
-              testChainName={marketNaming.testChainName}
-            />
-            <ListItemText sx={{ mr: 0 }}>
-              {marketNaming.name} {market.isFork ? 'Fork' : ''}
-            </ListItemText>
-            <ListItemText sx={{ textAlign: 'right' }}>
-              <Typography color="text.muted" variant="description">
-                {marketNaming.testChainName}
-              </Typography>
-            </ListItemText>
-          </MenuItem>
-        );
-      })}
+      {filteredAvailableMarkets
+        .map((marketId: CustomMarket) => {
+          const { market, network } = getMarketInfoById(marketId);
+          const marketNaming = getMarketHelpData(market.marketTitle);
+          return (
+            <MenuItem
+              key={marketId}
+              data-cy={`marketSelector_${marketId}`}
+              value={marketId}
+              sx={{
+                '.MuiListItemIcon-root': { minWidth: 'unset' },
+              }}
+            >
+              <MarketLogo
+                size={32}
+                logo={network.networkLogoPath}
+                testChainName={marketNaming.testChainName}
+              />
+              <ListItemText sx={{ mr: 0 }}>
+                {marketNaming.name} {market.isFork ? 'Fork' : ''}
+              </ListItemText>
+              <ListItemText sx={{ textAlign: 'right' }}>
+                <Typography color="text.muted" variant="description">
+                  {marketNaming.testChainName}
+                </Typography>
+              </ListItemText>
+            </MenuItem>
+          );
+        })}
     </TextField>
   );
 };
