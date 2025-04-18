@@ -37,10 +37,6 @@ msgstr "Borrow cap"
 msgid "Supplied asset amount"
 msgstr "Supplied asset amount"
 
-#: src/modules/reserve-overview/ReserveEModePanel.tsx
-msgid "E-Mode increases your LTV for a selected category of assets, meaning that when E-mode is enabled, you will have higher borrowing power over assets of the same E-mode category which are defined by MoreMarkets Governance. You can enter E-Mode from your <0>Dashboard</0>. To learn more about E-Mode and applied restrictions in <1>FAQ</1> or <2>MoreMarkets Technical Paper</2>."
-msgstr "E-Mode increases your LTV for a selected category of assets, meaning that when E-mode is enabled, you will have higher borrowing power over assets of the same E-mode category which are defined by MoreMarkets Governance. You can enter E-Mode from your <0>Dashboard</0>. To learn more about E-Mode and applied restrictions in <1>FAQ</1> or <2>MoreMarkets Technical Paper</2>."
-
 #. placeholder {0}: selectedEmode && getEmodeMessage(selectedEmode.label)
 #: src/components/transactions/Emode/EmodeModalContent.tsx
 msgid "To enable E-mode for the {0} category, all borrow positions outside of this category must be closed."
@@ -111,6 +107,10 @@ msgstr "Transaction history"
 #: src/components/transactions/TxActionsWrapper.tsx
 msgid "Approving {symbol}..."
 msgstr "Approving {symbol}..."
+
+#: src/components/SanctionRegion.tsx
+msgid "If you believe this is a mistake or have any questions, please contact our support team at: <0/>"
+msgstr "If you believe this is a mistake or have any questions, please contact our support team at: <0/>"
 
 #: src/modules/reserve-overview/ReserveActions.tsx
 msgid "Please connect a wallet to view your personal information here."
@@ -403,6 +403,10 @@ msgstr " please check that the amount you want to supply is not currently being 
 msgid "Your {name} wallet is empty. Purchase or transfer assets."
 msgstr "Your {name} wallet is empty. Purchase or transfer assets."
 
+#: src/components/SanctionRegion.tsx
+msgid "We are sorry, but our services are not available in your region at this time."
+msgstr "We are sorry, but our services are not available in your region at this time."
+
 #: pages/404.page.tsx
 msgid "Page not found"
 msgstr "Page not found"
@@ -679,10 +683,6 @@ msgstr "Migrate to v3"
 msgid "Current v2 balance"
 msgstr "Current v2 balance"
 
-#: src/modules/dashboard/lists/BorrowedPositionsList/BorrowedPositionsList.tsx
-msgid "Borrow power used"
-msgstr "Borrow power used"
-
 #: src/ui-config/errorMapping.tsx
 msgid "Operation not supported"
 msgstr "Operation not supported"
@@ -785,6 +785,10 @@ msgstr "Since this is a test network, you can get any of the assets if you have 
 #: src/components/transactions/CollateralChange/CollateralChangeModalContent.tsx
 msgid "You can not use this currency as collateral"
 msgstr "You can not use this currency as collateral"
+
+#: src/components/SanctionRegion.tsx
+msgid "Access Restricted"
+msgstr "Access Restricted"
 
 #: src/components/transactions/ClaimRewards/RewardsSelect.tsx
 msgid "Reward(s) to claim"
@@ -1462,10 +1466,6 @@ msgstr "Isolated assets have limited borrowing power and other assets cannot be 
 msgid "Your {networkName} wallet is empty. Get free test assets at "
 msgstr "Your {networkName} wallet is empty. Get free test assets at "
 
-#: src/modules/markets/MarketAssetsListContainer.tsx
-msgid "These assets are temporarily frozen or paused by MoreMarkets community decisions, meaning that further supply / borrow, or rate swap of these assets are unavailable. Withdrawals and debt repayments are allowed. Follow the <0>More governance forum</0> for further updates."
-msgstr "These assets are temporarily frozen or paused by MoreMarkets community decisions, meaning that further supply / borrow, or rate swap of these assets are unavailable. Withdrawals and debt repayments are allowed. Follow the <0>More governance forum</0> for further updates."
-
 #: src/ui-config/errorMapping.tsx
 msgid "The requested amount is greater than the max loan size in stable rate mode"
 msgstr "The requested amount is greater than the max loan size in stable rate mode"
@@ -1719,10 +1719,6 @@ msgstr "Net APY"
 #: src/components/transactions/ClaimRewards/ClaimRewardsModalContent.tsx
 msgid "Claimed"
 msgstr "Claimed"
-
-#: src/components/infoTooltips/BorrowPowerTooltip.tsx
-msgid "The % of your total borrowing power used. This is based on the amount of your collateral supplied and the total amount that you can borrow."
-msgstr "The % of your total borrowing power used. This is based on the amount of your collateral supplied and the total amount that you can borrow."
 
 #: src/components/transactions/AssetInput.tsx
 #: src/components/transactions/Faucet/FaucetModalContent.tsx
@@ -2283,6 +2279,10 @@ msgstr "Maximum amount available to borrow is limited because protocol borrow ca
 msgid "Insufficient collateral to cover new borrow position. Wallet must have borrowing power remaining to perform debt switch."
 msgstr "Insufficient collateral to cover new borrow position. Wallet must have borrowing power remaining to perform debt switch."
 
+#: src/modules/reserve-overview/ReserveEModePanel.tsx
+msgid "E-Mode increases your LTV for a selected category of assets, meaning that when E-mode is enabled, you will have higher borrowing power over assets of the same E-mode category which are defined by MORE Markets Governance. You can enter E-Mode from your <0>Dashboard</0>. To learn more about E-Mode and applied restrictions in <1>FAQ</1> or <2>MORE Markets Technical Paper</2>."
+msgstr "E-Mode increases your LTV for a selected category of assets, meaning that when E-mode is enabled, you will have higher borrowing power over assets of the same E-mode category which are defined by MORE Markets Governance. You can enter E-Mode from your <0>Dashboard</0>. To learn more about E-Mode and applied restrictions in <1>FAQ</1> or <2>MORE Markets Technical Paper</2>."
+
 #: src/components/lists/ListWrapper.tsx
 msgid "Hide"
 msgstr "Hide"
@@ -2357,6 +2357,10 @@ msgstr "Your {networkName} wallet is empty. Get free test {0} at"
 msgid "Repay with"
 msgstr "Repay with"
 
+#: src/modules/markets/MarketAssetsListContainer.tsx
+msgid "These assets are temporarily frozen or paused by MORE Markets community decisions, meaning that further supply / borrow, or rate swap of these assets are unavailable. Withdrawals and debt repayments are allowed."
+msgstr "These assets are temporarily frozen or paused by MORE Markets community decisions, meaning that further supply / borrow, or rate swap of these assets are unavailable. Withdrawals and debt repayments are allowed."
+
 #. placeholder {0}: currentMarketData.marketTitle
 #. placeholder {0}: currentNetworkConfig.name
 #: src/modules/faucet/FaucetTopPanel.tsx
@@ -2382,6 +2386,10 @@ msgstr "Collateral usage is limited because of isolation mode."
 #: src/components/infoTooltips/MigrationDisabledTooltip.tsx
 msgid "Flashloan is disabled for this asset, hence this position cannot be migrated."
 msgstr "Flashloan is disabled for this asset, hence this position cannot be migrated."
+
+#: src/components/SanctionRegion.tsx
+msgid "Thank you for your understanding."
+msgstr "Thank you for your understanding."
 
 #: src/components/transactions/CollateralChange/CollateralChangeActions.tsx
 msgid "Enable {symbol} as collateral"

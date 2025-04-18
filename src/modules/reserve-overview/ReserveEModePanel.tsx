@@ -88,7 +88,7 @@ export const ReserveEModePanel: React.FC<ReserverEModePanelProps> = ({ reserve }
           <Trans>
             E-Mode increases your LTV for a selected category of assets, meaning that when E-mode is
             enabled, you will have higher borrowing power over assets of the same E-mode category
-            which are defined by MoreMarkets Governance. You can enter E-Mode from your{' '}
+            which are defined by MORE Markets Governance. You can enter E-Mode from your{' '}
             <Link
               href={ROUTES.dashboard}
               sx={{ textDecoration: 'underline' }}
@@ -122,7 +122,7 @@ export const ReserveEModePanel: React.FC<ReserverEModePanelProps> = ({ reserve }
                 trackEvent(GENERAL.EXTERNAL_LINK, { Link: 'V3 Tech Paper' });
               }}
             >
-              MoreMarkets Technical Paper
+              MORE Markets Technical Paper
             </Link>
             .
           </Trans>
