@@ -1,13 +1,15 @@
-import { Trans } from "@lingui/react/macro";
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button, Link, Typography } from '@mui/material';
 import { useRouter } from 'next/router';
+import { useMemo } from 'react';
 import { OffboardingTooltip } from 'src/components/infoTooltips/OffboardingToolTip';
 import { RenFILToolTip } from 'src/components/infoTooltips/RenFILToolTip';
 import { IsolatedEnabledBadge } from 'src/components/isolationMode/IsolatedBadge';
 import { NoData } from 'src/components/primitives/NoData';
 import { ReserveSubheader } from 'src/components/ReserveSubheader';
 import { AssetsBeingOffboarded } from 'src/components/Warnings/OffboardingWarning';
-import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
+import { WalletBalancesMap } from 'src/hooks/app-data-provider/useWalletBalances';
+import { useModalContext } from 'src/hooks/useModal';
+import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
 import { MARKETS } from 'src/utils/mixPanelEvents';
 
@@ -16,14 +18,38 @@ import { AMPLToolTip } from '../../components/infoTooltips/AMPLToolTip';
 import { ListColumn } from '../../components/lists/ListColumn';
 import { ListItem } from '../../components/lists/ListItem';
 import { FormattedNumber } from '../../components/primitives/FormattedNumber';
-import { Link, ROUTES } from '../../components/primitives/Link';
+import { ROUTES } from '../../components/primitives/Link';
 import { TokenIcon } from '../../components/primitives/TokenIcon';
-import { ComputedReserveData } from '../../hooks/app-data-provider/useAppDataProvider';
+import { ComputedReserveDataWithMarket, useAppDataContext } from '../../hooks/app-data-provider/useAppDataProvider';
+import { InterestRate } from '@aave/contract-helpers';
 
-export const MarketAssetsListItem = ({ ...reserve }: ComputedReserveData) => {
+export const MarketAssetsListItem = ({
+  reserve,
+  walletBalances,
+}: {
+  reserve: ComputedReserveDataWithMarket;
+  walletBalances: WalletBalancesMap;
+}) => {
   const router = useRouter();
-  const { currentMarket } = useProtocolDataContext();
+  const { currentMarket, setCurrentMarket } = useRootStore();
+  const { openSupply, openBorrow, openWithdraw, openRepay } = useModalContext();
   const trackEvent = useRootStore((store) => store.trackEvent);
+  const { currentAccount } = useWeb3Context();
+  const { user } = useAppDataContext();
+  const lastColumnSize = useMemo(() => (!!currentAccount ? 320 : 95), [currentAccount]);
+
+  const hasSupply = useMemo(() => user?.userReservesData.some((userReserve) => userReserve.reserve.underlyingAsset === reserve.underlyingAsset && userReserve.underlyingBalance !== '0'), [user, reserve]);
+  const hasBorrow = useMemo(() => user?.userReservesData.some((userReserve) => userReserve.reserve.underlyingAsset === reserve.underlyingAsset && userReserve.variableBorrows !== '0'), [user, reserve]);
+
+  // Does not seem to work
+  const disableSupply =
+    !currentAccount || !reserve.isActive || Number(walletBalances[reserve.underlyingAsset]) <= 0;
+  const disableBorrow =
+    !currentAccount ||
+    !reserve.isActive ||
+    !reserve.borrowingEnabled ||
+    reserve.isFrozen ||
+    reserve.isPaused;
 
   const offboardingDiscussion = AssetsBeingOffboarded[currentMarket]?.[reserve.symbol];
 
@@ -38,14 +64,19 @@ export const MarketAssetsListItem = ({ ...reserve }: ComputedReserveData) => {
           asset: reserve.underlyingAsset,
           market: currentMarket,
         });
-        router.push(ROUTES.reserveOverview(reserve.underlyingAsset, currentMarket));
+        setCurrentMarket(reserve.market.market);
+        router.push(ROUTES.reserveOverview(reserve.underlyingAsset, reserve.market.market));
       }}
       sx={{ cursor: 'pointer' }}
       button
       data-cy={`marketListItemListItem_${reserve.symbol.toUpperCase()}`}
     >
       <ListColumn isRow maxWidth={280}>
-        <TokenIcon symbol={reserve.iconSymbol} fontSize="large" />
+        <TokenIcon
+          symbol={reserve.iconSymbol}
+          market={currentMarket === 'all_markets' && reserve.market}
+          fontSize="large"
+        />
         <Box sx={{ pl: 3.5, overflow: 'hidden' }}>
           <Typography variant="h4" noWrap>
             {reserve.name}
@@ -123,22 +154,94 @@ export const MarketAssetsListItem = ({ ...reserve }: ComputedReserveData) => {
         )}
       </ListColumn> */}
 
-      <ListColumn minWidth={95} maxWidth={95} align="right">
-        <Button
-          variant="outlined"
-          component={Link}
-          href={ROUTES.reserveOverview(reserve.underlyingAsset, currentMarket)}
-          onClick={() =>
-            trackEvent(MARKETS.DETAILS_NAVIGATION, {
-              type: 'Button',
-              assetName: reserve.name,
-              asset: reserve.underlyingAsset,
-              market: currentMarket,
-            })
-          }
-        >
-          <Trans>Details</Trans>
-        </Button>
+      <ListColumn minWidth={lastColumnSize} maxWidth={lastColumnSize} align="right">
+        {currentAccount && currentMarket !== 'all_markets' ? (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              disabled={disableSupply}
+              variant="contained"
+              onClick={(event) => {
+                event.stopPropagation();
+                openSupply(
+                  reserve.underlyingAsset,
+                  reserve.market.market,
+                  reserve.name,
+                  'market-list'
+                );
+              }}
+            >
+              Supply
+            </Button>
+            {hasSupply &&
+              <Button
+                disabled={disableSupply}
+                variant="outlined"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openWithdraw(
+                    reserve.underlyingAsset,
+                    reserve.market.market,
+                    reserve.name,
+                    'market-list'
+                  );
+                }}
+              >
+                Withdraw
+              </Button>
+            }
+            <Button
+              disabled={disableBorrow}
+              variant="contained"
+              onClick={(event) => {
+                event.stopPropagation();
+                openBorrow(
+                  reserve.underlyingAsset,
+                  reserve.market.market,
+                  reserve.name,
+                  'market-list'
+                );
+              }}
+            >
+              Borrow
+            </Button>
+            {hasBorrow &&
+              <Button
+                disabled={disableBorrow}
+                variant="outlined"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openRepay(
+                    reserve.underlyingAsset,
+                    InterestRate.Variable,
+                    reserve.isFrozen,
+                    reserve.market.market,
+                    reserve.name,
+                    'market-list'
+                  );
+                }}
+              >
+                Repay
+              </Button>
+            }
+          </Box>
+        ) : (
+          <Button
+            variant="outlined"
+            component={Link}
+            href={ROUTES.reserveOverview(reserve.underlyingAsset, reserve.market.market)}
+            onClick={() => {
+              trackEvent(MARKETS.DETAILS_NAVIGATION, {
+                type: 'Button',
+                assetName: reserve.name,
+                asset: reserve.underlyingAsset,
+                market: currentMarket,
+              });
+              setCurrentMarket(reserve.market.market);
+            }}
+          >
+            Details
+          </Button>
+        )}
       </ListColumn>
     </ListItem>
   );

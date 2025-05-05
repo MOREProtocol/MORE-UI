@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { InterestRate } from '@aave/contract-helpers';
 import {
   CheckIcon,
@@ -20,7 +19,7 @@ import {
 import * as React from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { Link, ROUTES } from 'src/components/primitives/Link';
-import { CustomMarket } from 'src/ui-config/marketsConfig';
+import { ExtendedMarket } from 'src/store/protocolDataSlice';
 
 interface ListItemAPYButtonProps {
   stableBorrowRateEnabled: boolean;
@@ -30,7 +29,7 @@ interface ListItemAPYButtonProps {
   stableBorrowAPY: string;
   variableBorrowAPY: string;
   underlyingAsset: string;
-  currentMarket: CustomMarket;
+  currentMarket: ExtendedMarket;
 }
 
 export const ListItemAPYButton = ({
@@ -82,7 +81,7 @@ export const ListItemAPYButton = ({
         data-cy={`apyMenu_${borrowRateMode}`}
       >
         <Typography variant="subheader2" sx={{ px: 4, py: 3 }}>
-          <Trans>Select APY type to switch</Trans>
+          Select APY type to switch
         </Typography>
 
         <MenuItem
@@ -99,7 +98,7 @@ export const ListItemAPYButton = ({
             <SvgIcon>{borrowRateMode === InterestRate.Variable && <CheckIcon />}</SvgIcon>
           </ListItemIcon>
           <ListItemText primaryTypographyProps={{ variant: 'description' }}>
-            <Trans>APY, variable</Trans>
+            APY, variable
           </ListItemText>
           <FormattedNumber value={Number(variableBorrowAPY)} percent variant="description" />
         </MenuItem>
@@ -118,7 +117,7 @@ export const ListItemAPYButton = ({
             <SvgIcon>{borrowRateMode === InterestRate.Stable && <CheckIcon />}</SvgIcon>
           </ListItemIcon>
           <ListItemText primaryTypographyProps={{ variant: 'description' }}>
-            <Trans>APY, stable</Trans>
+            APY, stable
           </ListItemText>
           <FormattedNumber value={Number(stableBorrowAPY)} percent variant="description" />
         </MenuItem>
@@ -138,7 +137,7 @@ export const ListItemAPYButton = ({
               </SvgIcon>
             }
           >
-            <Trans>SEE CHARTS</Trans>
+            SEE CHARTS
           </Button>
         </Box>
       </Menu>

@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { ChainId } from '@aave/contract-helpers';
 import { normalize, UserIncentiveData } from '@aave/math-utils';
 import { Box, Typography } from '@mui/material';
@@ -126,7 +125,7 @@ export const ClaimRewardsModalContent = ({ user, reserves }: ClaimRewardsModalCo
   const handleBlocked = () => {
     switch (blockingError) {
       case ErrorType.NOT_ENOUGH_BALANCE:
-        return <Trans>Your reward balance is 0</Trans>;
+        return 'Your reward balance is 0';
       default:
         return null;
     }
@@ -143,7 +142,7 @@ export const ClaimRewardsModalContent = ({ user, reserves }: ClaimRewardsModalCo
     return <TxErrorView txError={txError} />;
   }
   if (claimRewardsTxState.success)
-    return <TxSuccessView action={<Trans>Claimed</Trans>} amount={selectedReward?.balanceUsd} />;
+    return <TxSuccessView action={'Claimed'} amount={selectedReward?.balanceUsd} />;
 
   return (
     <>
@@ -171,7 +170,7 @@ export const ClaimRewardsModalContent = ({ user, reserves }: ClaimRewardsModalCo
           {selectedRewardSymbol === 'all' && (
             <>
               <Row
-                caption={<Trans>Balance</Trans>}
+                caption={'Balance'}
                 captionVariant="description"
                 align="flex-start"
                 mb={selectedReward.symbol !== 'all' ? 0 : 4}
@@ -205,7 +204,7 @@ export const ClaimRewardsModalContent = ({ user, reserves }: ClaimRewardsModalCo
                   ))}
                 </Box>
               </Row>
-              <DetailsNumberLine description={<Trans>Total worth</Trans>} value={claimableUsd} />
+              <DetailsNumberLine description={'Total worth'} value={claimableUsd} />
             </>
           )}
           {selectedRewardSymbol !== 'all' && (
@@ -213,7 +212,7 @@ export const ClaimRewardsModalContent = ({ user, reserves }: ClaimRewardsModalCo
               symbol={<TokenIcon symbol={selectedReward.symbol} />}
               futureValue={selectedReward.balance}
               futureValueUSD={selectedReward.balanceUsd}
-              description={<Trans>{selectedReward.symbol} Balance</Trans>}
+              description={`${selectedReward.symbol} Balance`}
             />
           )}
         </TxModalDetails>

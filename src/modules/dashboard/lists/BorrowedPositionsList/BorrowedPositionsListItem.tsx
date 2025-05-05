@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { InterestRate } from '@aave/contract-helpers';
 import { ReserveIncentiveResponse } from '@aave/math-utils/dist/esm/formatters/incentive/calculate-reserve-incentives';
 import { Box, Button, useMediaQuery, useTheme } from '@mui/material';
@@ -7,7 +6,7 @@ import { APYTypeTooltip } from 'src/components/infoTooltips/APYTypeTooltip';
 import { Row } from 'src/components/primitives/Row';
 import { useAssetCaps } from 'src/hooks/useAssetCaps';
 import { useModalContext } from 'src/hooks/useModal';
-import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
+import { useRootStore } from 'src/store/root';
 import { DashboardReserve } from 'src/utils/dashboardSortUtils';
 import { isFeatureEnabled } from 'src/utils/marketsAndNetworksConfig';
 
@@ -22,7 +21,10 @@ import { ListValueRow } from '../ListValueRow';
 
 export const BorrowedPositionsListItem = ({ item }: { item: DashboardReserve }) => {
   const { borrowCap } = useAssetCaps();
-  const { currentMarket, currentMarketData } = useProtocolDataContext();
+  const { currentMarket, currentMarketData } = useRootStore((store) => ({
+    currentMarket: store.currentMarket,
+    currentMarketData: store.currentMarketData,
+  }));
   const theme = useTheme();
   const downToXSM = useMediaQuery(theme.breakpoints.down('xsm'));
   const { openBorrow, openRepay, openRateSwitch, openDebtSwitch } = useModalContext();
@@ -118,7 +120,9 @@ const BorrowedPositionsListItemDesktop = ({
   onOpenRepay,
   onOpenRateSwitch,
 }: BorrowedPositionsListItemProps) => {
-  const { currentMarket } = useProtocolDataContext();
+  const { currentMarket } = useRootStore((store) => ({
+    currentMarket: store.currentMarket,
+  }));
 
   const { isActive, isFrozen, isPaused, stableBorrowRateEnabled, name } = reserve;
 
@@ -160,15 +164,15 @@ const BorrowedPositionsListItemDesktop = ({
             onClick={onDetbSwitchClick}
             data-cy={`swapButton`}
           >
-            <Trans>Switch</Trans>
+            Switch
           </Button>
         ) : (
           <Button disabled={disableBorrow} variant="contained" onClick={onOpenBorrow}>
-            <Trans>Borrow</Trans>
+            Borrow
           </Button>
         )}
         <Button disabled={disableRepay} variant="outlined" onClick={onOpenRepay}>
-          <Trans>Repay</Trans>
+          Repay
         </Button>
       </ListButtonsColumn>
     </ListItemWrapper>
@@ -191,7 +195,9 @@ const BorrowedPositionsListItemMobile = ({
   onOpenRepay,
   onOpenRateSwitch,
 }: BorrowedPositionsListItemProps) => {
-  const { currentMarket } = useProtocolDataContext();
+  const { currentMarket } = useRootStore((store) => ({
+    currentMarket: store.currentMarket,
+  }));
 
   const {
     symbol,
@@ -218,13 +224,13 @@ const BorrowedPositionsListItemMobile = ({
       showBorrowCapTooltips
     >
       <ListValueRow
-        title={<Trans>Debt</Trans>}
+        title="Debt"
         value={totalBorrows}
         subValue={totalBorrowsUSD}
         disabled={Number(totalBorrows) === 0}
       />
 
-      <Row caption={<Trans>APY</Trans>} align="flex-start" captionVariant="description" mb={2}>
+      <Row caption="APY" align="flex-start" captionVariant="description" mb={2}>
         <IncentivesCard
           value={borrowAPY}
           incentives={incentives}
@@ -234,9 +240,7 @@ const BorrowedPositionsListItemMobile = ({
       </Row>
 
       <Row
-        caption={
-          <APYTypeTooltip text={<Trans>APY type</Trans>} key="APY type" variant="description" />
-        }
+        caption={<APYTypeTooltip text="APY type" key="APY type" variant="description" />}
         captionVariant="description"
         mb={2}
       >
@@ -261,11 +265,11 @@ const BorrowedPositionsListItemMobile = ({
             onClick={onDetbSwitchClick}
             data-cy={`swapButton`}
           >
-            <Trans>Switch</Trans>
+            Switch
           </Button>
         ) : (
           <Button disabled={disableBorrow} variant="contained" onClick={onOpenBorrow} fullWidth>
-            <Trans>Borrow</Trans>
+            Borrow
           </Button>
         )}
         <Button
@@ -275,7 +279,7 @@ const BorrowedPositionsListItemMobile = ({
           sx={{ ml: 1.5 }}
           fullWidth
         >
-          <Trans>Repay</Trans>
+          Repay
         </Button>
       </Box>
     </ListMobileItemWrapper>

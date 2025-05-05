@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { InformationCircleIcon } from '@heroicons/react/outline';
 import { Box, Link, SvgIcon, Typography, TypographyProps, useTheme } from '@mui/material';
 import { ReactNode } from 'react';
@@ -47,10 +46,11 @@ export const IsolatedEnabledBadge = ({
       tooltipContent={
         <IsolationModeTooltipTemplate
           content={
-            <Trans>
-              Isolated assets have limited borrowing power and other assets cannot be used as
-              collateral.
-            </Trans>
+            <>
+              {
+                'Isolated assets have limited borrowing power and other assets cannot be used as collateral.'
+              }
+            </>
           }
         />
       }
@@ -64,7 +64,7 @@ export const IsolatedEnabledBadge = ({
           color={theme.palette.warning.main}
           {...typographyProps}
         >
-          <Trans>Isolated</Trans>
+          Isolated
         </Typography>
         <InfoIcon color={theme.palette.warning.main} />
       </Box>
@@ -78,17 +78,18 @@ export const IsolatedDisabledBadge = () => {
       tooltipContent={
         <IsolationModeTooltipTemplate
           content={
-            <Trans>
-              Asset can be only used as collateral in isolation mode with limited borrowing power.
-              To enter isolation mode, disable all other collateral.
-            </Trans>
+            <>
+              {
+                'Asset can be only used as collateral in isolation mode with limited borrowing power. To enter isolation mode, disable all other collateral.'
+              }
+            </>
           }
         />
       }
     >
       <Box sx={contentSx}>
         <Typography variant="description" color="error.main">
-          <Trans>Unavailable</Trans>
+          Unavailable
         </Typography>
         <InfoIcon />
       </Box>
@@ -101,13 +102,13 @@ export const UnavailableDueToIsolationBadge = () => {
     <ContentWithTooltip
       tooltipContent={
         <IsolationModeTooltipTemplate
-          content={<Trans>Collateral usage is limited because of isolation mode.</Trans>}
+          content={'Collateral usage is limited because of isolation mode.'}
         />
       }
     >
       <Box sx={contentSx}>
         <Typography variant="description" color="error.main">
-          <Trans>Unavailable</Trans>
+          Unavailable
         </Typography>
         <InfoIcon />
       </Box>
@@ -120,15 +121,10 @@ const IsolationModeTooltipTemplate = ({ content }: { content: ReactNode }) => {
     <Box>
       <Box sx={{ mb: 4 }}>{content}</Box>
       <Typography variant="subheader2" color="text.secondary">
-        <Trans>
-          Learn more in our{' '}
-          <Link
-            href="https://docs.more.markets/faq/more-markets-features#isolation-mode"
-            fontWeight={500}
-          >
-            FAQ guide
-          </Link>
-        </Trans>
+        Learn more in our{' '}
+        <Link href="https://docs.aave.com/faq/aave-v3-features#isolation-mode" fontWeight={500}>
+          FAQ guide
+        </Link>
       </Typography>
     </Box>
   );

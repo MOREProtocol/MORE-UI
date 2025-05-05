@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { CogIcon, LightningBoltIcon } from '@heroicons/react/solid';
 import { Box, Button, SvgIcon, Typography } from '@mui/material';
 import Menu from '@mui/material/Menu';
@@ -40,9 +39,7 @@ export const DashboardEModeButton = ({ userEmodeCategoryId }: DashboardEModeButt
 
   const isEModeDisabled = userEmodeCategoryId === 0;
 
-  const EModeLabelMessage = () => (
-    <Trans>{getEmodeMessage(_eModes[userEmodeCategoryId].label)}</Trans>
-  );
+  const EModeLabelMessage = () => <>{getEmodeMessage(_eModes[userEmodeCategoryId].label)}</>;
 
   const eModes = Object.keys(_eModes).length;
 
@@ -54,7 +51,7 @@ export const DashboardEModeButton = ({ userEmodeCategoryId }: DashboardEModeButt
       }}
     >
       <Typography mr={1} variant="description" color="text.secondary">
-        <Trans>E-Mode</Trans>
+        E-Mode
       </Typography>
 
       <Button
@@ -137,13 +134,13 @@ export const DashboardEModeButton = ({ userEmodeCategoryId }: DashboardEModeButt
       >
         <Box sx={{ px: 4, pt: 2, pb: 3 }}>
           <Typography variant="subheader1" mb={isEModeDisabled ? 1 : 3}>
-            <Trans>Efficiency mode (E-Mode)</Trans>
+            Efficiency mode (E-Mode)
           </Typography>
 
           {!isEModeDisabled && (
             <Box>
               <Typography mb={1} variant="caption" color="text.secondary">
-                <Trans>Asset category</Trans>
+                Asset category
               </Typography>
 
               <Box
@@ -184,7 +181,7 @@ export const DashboardEModeButton = ({ userEmodeCategoryId }: DashboardEModeButt
                       }}
                     />
                     <Typography variant="subheader2" color="success.main">
-                      <Trans>Enabled</Trans>
+                      Enabled
                     </Typography>
                   </Box>
                 </Row>
@@ -193,17 +190,15 @@ export const DashboardEModeButton = ({ userEmodeCategoryId }: DashboardEModeButt
           )}
 
           <Typography variant="caption" color="text.secondary" mb={4}>
-            <Trans>
-              E-Mode increases your LTV for a selected category of assets up to 97%.{' '}
-              <Link
-                href="https://docs.more.markets/faq/more-markets-features#high-efficiency-mode-e-mode"
-                sx={{ textDecoration: 'underline' }}
-                variant="caption"
-                color="text.secondary"
-              >
-                Learn more
-              </Link>
-            </Trans>
+            E-Mode increases your LTV for a selected category of assets up to 97%.{' '}
+            <Link
+              href="https://docs.more.markets/faq/more-markets-features#high-efficiency-mode-e-mode"
+              sx={{ textDecoration: 'underline' }}
+              variant="caption"
+              color="text.secondary"
+            >
+              Learn more
+            </Link>
           </Typography>
 
           {isEModeDisabled ? (
@@ -221,7 +216,7 @@ export const DashboardEModeButton = ({ userEmodeCategoryId }: DashboardEModeButt
               }}
               data-cy={'emode-enable'}
             >
-              <Trans>Enable E-Mode</Trans>
+              Enable E-Mode
             </Button>
           ) : (
             <>
@@ -241,7 +236,7 @@ export const DashboardEModeButton = ({ userEmodeCategoryId }: DashboardEModeButt
                   }}
                   data-cy={'emode-switch'}
                 >
-                  <Trans>Switch E-Mode category</Trans>
+                  Switch E-Mode category
                 </Button>
               )}
               <Button
@@ -258,7 +253,7 @@ export const DashboardEModeButton = ({ userEmodeCategoryId }: DashboardEModeButt
                 }}
                 data-cy={'emode-disable'}
               >
-                <Trans>Disable E-Mode</Trans>
+                Disable E-Mode
               </Button>
             </>
           )}

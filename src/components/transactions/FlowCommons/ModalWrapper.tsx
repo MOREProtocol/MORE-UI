@@ -1,7 +1,7 @@
 import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
 import React from 'react';
 import {
-  ComputedReserveData,
+  ComputedReserveDataWithMarket,
   ComputedUserReserveData,
   useAppDataContext,
 } from 'src/hooks/app-data-provider/useAppDataProvider';
@@ -20,7 +20,7 @@ import { TxErrorView } from './Error';
 
 export interface ModalWrapperProps {
   underlyingAsset: string;
-  poolReserve: ComputedReserveData;
+  poolReserve: ComputedReserveDataWithMarket;
   userReserve: ComputedUserReserveData;
   symbol: string;
   tokenBalance: string;
@@ -63,7 +63,7 @@ export const ModalWrapper: React.FC<{
     if (underlyingAsset.toLowerCase() === API_ETH_MOCK_ADDRESS.toLowerCase())
       return reserve.isWrappedBaseAsset;
     return underlyingAsset === reserve.underlyingAsset;
-  }) as ComputedReserveData;
+  });
 
   const userReserve = user?.userReservesData.find((userReserve) => {
     if (underlyingAsset.toLowerCase() === API_ETH_MOCK_ADDRESS.toLowerCase())
@@ -97,7 +97,7 @@ export const ModalWrapper: React.FC<{
         isWrongNetwork,
         nativeBalance: walletBalances[API_ETH_MOCK_ADDRESS.toLowerCase()]?.amount || '0',
         tokenBalance: walletBalances[poolReserve.underlyingAsset.toLowerCase()]?.amount || '0',
-        poolReserve,
+        poolReserve: poolReserve,
         symbol,
         underlyingAsset,
         userReserve,

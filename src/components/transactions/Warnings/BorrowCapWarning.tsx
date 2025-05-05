@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { AlertProps } from '@mui/material';
 import { AssetCapData } from 'src/hooks/useAssetCaps';
 
@@ -17,20 +16,16 @@ export const BorrowCapWarning = ({ borrowCap, icon = true, ...rest }: BorrowCapW
   const severity = 'warning';
 
   const renderText = () => {
-    return borrowCap.isMaxed ? (
-      <Trans>Protocol borrow cap is at 100% for this asset. Further borrowing unavailable.</Trans>
-    ) : (
-      <Trans>
-        Maximum amount available to borrow is limited because protocol borrow cap is nearly reached.
-      </Trans>
-    );
+    return borrowCap.isMaxed
+      ? 'Protocol borrow cap is at 100% for this asset. Further borrowing unavailable.'
+      : 'Maximum amount available to borrow is limited because protocol borrow cap is nearly reached.';
   };
 
   return (
     <Warning severity={severity} icon={icon} {...rest}>
       {renderText()}{' '}
       <Link href="https://docs.more.markets/developers/whats-new/supply-borrow-caps" underline="always">
-        <Trans>Learn more</Trans>
+        Learn more
       </Link>
     </Warning>
   );

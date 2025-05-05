@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { DuplicateIcon, XIcon } from '@heroicons/react/outline';
 import { Box, Button, Link, SvgIcon, Typography } from '@mui/material';
 import { useModalContext } from 'src/hooks/useModal';
@@ -36,15 +35,13 @@ export const TxErrorView = ({ txError }: { txError: TxErrorType }) => {
         </Box>
 
         <Typography sx={{ mt: 2 }} variant="h2">
-          <Trans>Transaction failed</Trans>
+          Transaction failed
         </Typography>
 
         <Typography>
-          <Trans>
-            You can report incident to our{' '}
-            <Link href="https://discord.com/invite/VzGm75kN">Discord</Link> or
-            <Link href="https://github.com/MoreLabsXYZ/MORE-UI">Github</Link>.
-          </Trans>
+          You can report incident to our <Link href="https://discord.com/invite/aave">Discord</Link>{' '}
+          or
+          <Link href="https://github.com/aave/interface">Github</Link>.
         </Typography>
 
         <Button
@@ -53,8 +50,7 @@ export const TxErrorView = ({ txError }: { txError: TxErrorType }) => {
           size="small"
           sx={{ mt: 6 }}
         >
-          <Trans>Copy error text</Trans>
-
+          Copy error text
           <SvgIcon sx={{ ml: 0.5, fontSize: '12px' }}>
             <DuplicateIcon />
           </SvgIcon>
@@ -62,7 +58,7 @@ export const TxErrorView = ({ txError }: { txError: TxErrorType }) => {
       </Box>
       <Box sx={{ display: 'flex', flexDirection: 'column', mt: 12 }}>
         <Button onClick={close} variant="contained" size="large" sx={{ minHeight: '44px' }}>
-          <Trans>Close</Trans>
+          Close
         </Button>
       </Box>
     </>

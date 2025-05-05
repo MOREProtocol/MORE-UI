@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ExternalLinkIcon } from '@heroicons/react/outline';
 import { CheckIcon } from '@heroicons/react/solid';
 import { Box, Button, Link, SvgIcon, Typography } from '@mui/material';
@@ -51,7 +50,7 @@ export const BaseSuccessView = ({ txHash, children, hideTx }: BaseSuccessTxViewP
         </Box>
 
         <Typography sx={{ mt: 4 }} variant="h2">
-          <Trans>All done!</Trans>
+          All done!
         </Typography>
 
         {children}
@@ -75,7 +74,7 @@ export const BaseSuccessView = ({ txHash, children, hideTx }: BaseSuccessTxViewP
             target="_blank"
             rel="noreferrer noopener"
           >
-            <Trans>Review tx details</Trans>
+            Review tx details
             <ExtLinkIcon />
           </Link>
           <Button
@@ -85,7 +84,7 @@ export const BaseSuccessView = ({ txHash, children, hideTx }: BaseSuccessTxViewP
             sx={{ minHeight: '44px' }}
             data-cy="closeButton"
           >
-            <Trans>Ok, Close</Trans>
+            Ok, Close
           </Button>
         </Box>
       )}

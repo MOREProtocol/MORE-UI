@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { valueToBigNumber } from '@aave/math-utils';
 import { Button, Link, Popper, Stack, styled, SvgIcon, Tooltip, Typography } from '@mui/material';
 import BigNumber from 'bignumber.js';
@@ -69,7 +68,7 @@ export default function HALLink({ healthFactor, marketName, integrationURL }: Pr
       title={
         <Stack sx={{ py: 4, px: 6 }} spacing={1}>
           <Typography variant="tooltip" color="text.secondary" fontWeight={500}>
-            <Trans>Setup notifications about your Health Factor using the Hal app.</Trans>
+            Setup notifications about your Health Factor using the Hal app.
           </Typography>
         </Stack>
       }
@@ -102,7 +101,7 @@ export default function HALLink({ healthFactor, marketName, integrationURL }: Pr
         <SvgIcon sx={{ opacity: 0, ...SvgIconStyle }} className="HALTooltip__hoverIcon">
           <HalHover />
         </SvgIcon>
-        <Trans>Notify</Trans>
+        Notify
       </Button>
     </Tooltip>
   );

@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { ReactNode } from 'react';
 import { ListColumn } from 'src/components/lists/ListColumn';
@@ -14,17 +13,17 @@ import { MigrationMobileList } from './MigrationMobileList';
 import { MigrationSelectionBox } from './MigrationSelectionBox';
 
 const supplyListHeaders = [
-  { title: <Trans>APY change</Trans> },
-  { title: <Trans>Collateral change</Trans> },
-  { title: <Trans>Max LTV</Trans> },
-  { title: <Trans>Current v2 balance</Trans> },
+  { title: 'APY change' },
+  { title: 'Collateral change' },
+  { title: 'Max LTV' },
+  { title: 'Current v2 balance' },
 ];
 
 const borrowListHeaders = [
-  { title: <Trans>APY change</Trans> },
-  { title: <Trans>APY type change</Trans> },
-  { title: <Trans>Liquidation Threshold</Trans> },
-  { title: <Trans>Current v2 balance</Trans> },
+  { title: 'APY change' },
+  { title: 'APY type change' },
+  { title: 'Liquidation Threshold' },
+  { title: 'Current v2 balance' },
 ];
 
 interface MigrationListProps {
@@ -93,12 +92,10 @@ export const MigrationList = ({
               <Box sx={{ pt: '16px' }}>
                 <Warning severity="warning" icon={false} sx={{ mb: 0 }}>
                   <Typography variant="caption" color={theme.palette.warning[100]}>
-                    <Trans>
-                      Some migrated assets will not be used as collateral due to enabled isolation
-                      mode in {marketName} V3 Market. Visit{' '}
-                      <Link href={marketLink}>{marketName} V3 Dashboard</Link> to manage isolation
-                      mode.
-                    </Trans>
+                    Some migrated assets will not be used as collateral due to enabled isolation
+                    mode in {marketName} V3 Market. Visit{' '}
+                    <Link href={marketLink}>{marketName} V3 Dashboard</Link> to manage isolation
+                    mode.
                   </Typography>
                 </Warning>
               </Box>
@@ -118,9 +115,7 @@ export const MigrationList = ({
             </ListColumn>
 
             <ListColumn isRow maxWidth={250} minWidth={170}>
-              <ListHeaderTitle>
-                <Trans>Assets</Trans>
-              </ListHeaderTitle>
+              <ListHeaderTitle>Assets</ListHeaderTitle>
             </ListColumn>
 
             {withCollateral &&

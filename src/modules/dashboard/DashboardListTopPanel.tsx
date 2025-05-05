@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, Checkbox, FormControlLabel } from '@mui/material';
 import { FaucetButton } from 'src/components/FaucetButton';
 import { useRootStore } from 'src/store/root';
@@ -43,7 +42,7 @@ export const DashboardListTopPanel = ({
 
           toggleLocalStorageClick(value, onClick, localStorageName);
         }}
-        label={<Trans>Show assets with 0 balance</Trans>}
+        label={'Show assets with 0 balance'}
       />
 
       {(STAGING_ENV || ENABLE_TESTNET) && <FaucetButton />}

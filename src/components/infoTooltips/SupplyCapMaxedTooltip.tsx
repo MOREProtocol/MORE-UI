@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ExclamationIcon } from '@heroicons/react/outline';
 import { Box } from '@mui/material';
 import { AssetCapData } from 'src/hooks/useAssetCaps';
@@ -17,12 +16,12 @@ export const SupplyCapMaxedTooltip = ({ supplyCap, ...rest }: SupplyCapMaxedTool
     <Box sx={{ ml: 2 }}>
       <TextWithTooltip {...rest} icon={<ExclamationIcon />} iconColor="warning.main" iconSize={18}>
         <>
-          <Trans>Protocol supply cap at 100% for this asset. Further supply unavailable.</Trans>{' '}
+          Protocol supply cap at 100% for this asset. Further supply unavailable.{' '}
           <Link
             href="https://docs.more.markets/developers/whats-new/supply-borrow-caps"
             underline="always"
           >
-            <Trans>Learn more</Trans>
+            Learn more
           </Link>
         </>
       </TextWithTooltip>

@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
 import { USD_DECIMALS, valueToBigNumber } from '@aave/math-utils';
 import { Skeleton, Stack, Typography } from '@mui/material';
@@ -203,7 +202,7 @@ export const SupplyModalContent = React.memo(
     if (supplyTxState.success)
       return (
         <TxSuccessView
-          action={<Trans>Supplied</Trans>}
+          action={'Supplied'}
           amount={amount}
           symbol={supplyUnWrapped ? currentNetworkConfig.baseAssetSymbol : poolReserve.symbol}
           addToken={addTokenProps}
@@ -243,7 +242,7 @@ export const SupplyModalContent = React.memo(
           isMaxSelected={isMaxSelected}
           disabled={supplyTxState.loading}
           maxValue={maxAmountToSupply}
-          balanceText={<Trans>Wallet balance</Trans>}
+          balanceText={'Wallet balance'}
           event={{
             eventName: GENERAL.MAX_INPUT_SELECTION,
             eventParams: {
@@ -254,7 +253,7 @@ export const SupplyModalContent = React.memo(
         />
 
         <TxModalDetails gasLimit={gasLimit} skipLoad={true} disabled={Number(amount) === 0}>
-          <DetailsNumberLine description={<Trans>Supply APY</Trans>} value={supplyApy} percent />
+          <DetailsNumberLine description={'Supply APY'} value={supplyApy} percent />
           <DetailsIncentivesLine
             incentives={poolReserve.aIncentivesData}
             symbol={poolReserve.symbol}
@@ -394,13 +393,13 @@ export const SupplyWrappedTokenModalContent = ({
   if (supplyTxState.success) {
     const successModalAmount = supplyingWrappedToken
       ? BigNumber(amount)
-          .dividedBy(exchangeRate || '1')
-          .toString()
+        .dividedBy(exchangeRate || '1')
+        .toString()
       : amount;
 
     return (
       <TxSuccessView
-        action={<Trans>Supplied</Trans>}
+        action={'Supplied'}
         amount={successModalAmount}
         symbol={poolReserve.symbol}
         addToken={addTokenProps}
@@ -423,7 +422,7 @@ export const SupplyWrappedTokenModalContent = ({
         capType={CapType.supplyCap}
         isMaxSelected={isMaxSelected}
         disabled={supplyTxState.loading}
-        balanceText={<Trans>Wallet balance</Trans>}
+        balanceText={'Wallet balance'}
         event={{
           eventName: GENERAL.MAX_INPUT_SELECTION,
           eventParams: {
@@ -445,11 +444,7 @@ export const SupplyWrappedTokenModalContent = ({
       />
 
       <TxModalDetails gasLimit={gasLimit} skipLoad={true} disabled={Number(amount) === 0}>
-        <DetailsNumberLine
-          description={<Trans>Supply APY</Trans>}
-          value={poolReserve.supplyAPY}
-          percent
-        />
+        <DetailsNumberLine description={'Supply APY'} value={poolReserve.supplyAPY} percent />
         <DetailsIncentivesLine
           incentives={poolReserve.aIncentivesData}
           symbol={poolReserve.symbol}

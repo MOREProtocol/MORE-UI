@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, FormControlLabel, ListItem, ListItemText, MenuItem, Switch } from '@mui/material';
 import React, { useState } from 'react';
 import { useRootStore } from 'src/store/root';
@@ -33,7 +32,7 @@ export const TestNetModeSwitcher = ({ component = ListItem }: TestNetModeSwitche
       }}
     >
       <ListItemText>
-        <Trans>Testnet mode</Trans>
+        Testnet mode
       </ListItemText>
       <FormControlLabel
         sx={{ mr: 0 }}

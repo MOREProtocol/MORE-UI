@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import {
   API_ETH_MOCK_ADDRESS,
   ApproveDelegationType,
@@ -49,6 +48,7 @@ export const BorrowActions = React.memo(
       generateApproveDelegation,
       estimateGasLimit,
       addTransaction,
+      addBorrowAction,
     ] = useRootStore((state) => [
       state.borrow,
       state.getCreditDelegationApprovedAmount,
@@ -56,6 +56,7 @@ export const BorrowActions = React.memo(
       state.generateApproveDelegation,
       state.estimateGasLimit,
       state.addTransaction,
+      state.addBorrowAction,
     ]);
     const {
       approvalTxState,
@@ -206,6 +207,22 @@ export const BorrowActions = React.memo(
       setGasLimit(borrowGasLimit.toString());
     }, [requiresApproval, approvalTxState, setGasLimit]);
 
+    const handleAddToBatch = async () => {
+      await addBorrowAction({
+        action: 'borrow',
+        market: currentMarketData.market,
+        poolAddress: poolAddress,
+        amount: amountToBorrow,
+        decimals: poolReserve.decimals,
+        debtTokenAddress:
+          interestRateMode === InterestRate.Variable
+            ? poolReserve.variableDebtTokenAddress
+            : poolReserve.stableDebtTokenAddress,
+        symbol,
+        debtType: interestRateMode,
+      });
+    };
+
     return (
       <TxActionsWrapper
         blocked={blocked}
@@ -215,8 +232,9 @@ export const BorrowActions = React.memo(
         amount={amountToBorrow}
         isWrongNetwork={isWrongNetwork}
         handleAction={action}
-        actionText={<Trans>Borrow {symbol}</Trans>}
-        actionInProgressText={<Trans>Borrowing {symbol}</Trans>}
+        handleAddToBatch={handleAddToBatch}
+        actionText={`Borrow ${symbol}`}
+        actionInProgressText={`Borrowing ${symbol}`}
         handleApproval={() => approval()}
         requiresApproval={requiresApproval}
         preparingTransactions={loadingTxns}

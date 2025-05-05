@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { API_ETH_MOCK_ADDRESS, InterestRate } from '@aave/contract-helpers';
 import { USD_DECIMALS, valueToBigNumber } from '@aave/math-utils';
 import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
@@ -38,7 +37,7 @@ import { BorrowAssetsListMobileItem } from './BorrowAssetsListMobileItem';
 
 const head = [
   {
-    title: <Trans>Asset</Trans>,
+    title: 'Asset',
     sortKey: 'symbol',
   },
   {
@@ -49,7 +48,7 @@ const head = [
           eventParams: { tooltip: 'Available to borrow' },
         }}
         capType={CapType.borrowCap}
-        text={<Trans>Available</Trans>}
+        text={'Available'}
         key="availableBorrows"
         variant="subheader2"
       />
@@ -64,7 +63,7 @@ const head = [
           eventName: GENERAL.TOOL_TIP,
           eventParams: { tooltip: 'Variable Borrow APY' },
         }}
-        text={<Trans>APY, variable</Trans>}
+        text={'APY, variable'}
         key="variableBorrowAPY"
         variant="subheader2"
       />
@@ -78,7 +77,7 @@ const head = [
   //         eventName: GENERAL.TOOL_TIP,
   //         eventParams: { tooltip: 'Stable Borrow APY' },
   //       }}
-  //       text={<Trans>APY, stable</Trans>}
+  //       text={APY, stable}
   //       key="stableBorrowAPY"
   //       variant="subheader2"
   //     />
@@ -124,9 +123,9 @@ export const BorrowAssetsList = () => {
         iconSymbol: reserve.iconSymbol,
         ...(reserve.isWrappedBaseAsset
           ? fetchIconSymbolAndName({
-              symbol: baseAssetSymbol,
-              underlyingAsset: API_ETH_MOCK_ADDRESS.toLowerCase(),
-            })
+            symbol: baseAssetSymbol,
+            underlyingAsset: API_ETH_MOCK_ADDRESS.toLowerCase(),
+          })
           : {}),
       };
     });
@@ -137,19 +136,19 @@ export const BorrowAssetsList = () => {
   const collateralUsagePercent = maxBorrowAmount.eq(0)
     ? '0'
     : valueToBigNumber(user?.totalBorrowsMarketReferenceCurrency || '0')
-        .div(maxBorrowAmount)
-        .toFixed();
+      .div(maxBorrowAmount)
+      .toFixed();
 
   const borrowReserves =
     user?.totalCollateralMarketReferenceCurrency === '0' || +collateralUsagePercent >= 0.98
       ? tokensToBorrow
       : tokensToBorrow.filter(({ availableBorrowsInUSD, totalLiquidityUSD, symbol }) => {
-          if (displayGho({ symbol, currentMarket })) {
-            return true;
-          }
+        if (displayGho({ symbol, currentMarket })) {
+          return true;
+        }
 
-          return availableBorrowsInUSD !== '0.00' && totalLiquidityUSD !== '0';
-        });
+        return availableBorrowsInUSD !== '0.00' && totalLiquidityUSD !== '0';
+      });
 
   const { value: ghoReserve, filtered: filteredReserves } = findAndFilterGhoReserve(borrowReserves);
   const sortedReserves = handleSortDashboardReserves(
@@ -188,18 +187,14 @@ export const BorrowAssetsList = () => {
 
   if (loading)
     return (
-      <ListLoader
-        title={<Trans>Assets to borrow</Trans>}
-        head={head.map((col) => col.title)}
-        withTopMargin
-      />
+      <ListLoader title={'Assets to borrow'} head={head.map((col) => col.title)} withTopMargin />
     );
 
   return (
     <ListWrapper
       titleComponent={
         <Typography component="div" variant="h3" sx={{ mr: 4 }}>
-          <Trans>Assets to borrow</Trans>
+          Assets to borrow
         </Typography>
       }
       localStorageName="borrowAssetsDashboardTableCollapse"
@@ -210,10 +205,8 @@ export const BorrowAssetsList = () => {
           <Box sx={{ px: 6, mb: 4 }}>
             {user?.healthFactor !== '-1' && Number(user?.healthFactor) <= 1.1 && (
               <Warning severity="error">
-                <Trans>
-                  Be careful - You are very close to liquidation. Consider depositing more
-                  collateral or paying down some of your borrowed positions
-                </Trans>
+                Be careful - You are very close to liquidation. Consider depositing more collateral
+                or paying down some of your borrowed positions
               </Warning>
             )}
 
@@ -221,7 +214,7 @@ export const BorrowAssetsList = () => {
               <>
                 {user?.isInIsolationMode && (
                   <Warning severity="warning">
-                    <Trans>Borrowing power and assets are limited due to Isolation mode. </Trans>
+                    Borrowing power and assets are limited due to Isolation mode.
                     <Link href="https://docs.more.markets/faq/" target="_blank" rel="noopener">
                       Learn More
                     </Link>
@@ -229,15 +222,13 @@ export const BorrowAssetsList = () => {
                 )}
                 {user?.isInEmode && (
                   <Warning severity="warning">
-                    <Trans>
-                      In E-Mode some assets are not borrowable. Exit E-Mode to get access to all
-                      assets
-                    </Trans>
+                    In E-Mode some assets are not borrowable. Exit E-Mode to get access to all
+                    assets
                   </Warning>
                 )}
                 {user?.totalCollateralMarketReferenceCurrency === '0' && (
                   <Warning severity="info">
-                    <Trans>To borrow you need to supply any asset to be used as collateral.</Trans>
+                    To borrow you need to supply any asset to be used as collateral.
                   </Warning>
                 )}
               </>

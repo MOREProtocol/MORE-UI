@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { CircularProgress, Paper, PaperProps, Typography } from '@mui/material';
 import { ReactNode } from 'react';
 
@@ -38,13 +37,15 @@ export const ConnectWalletPaper = ({
         ) : (
           <>
             <Typography variant="h2" sx={{ mb: 2 }}>
-              <Trans>Please, connect your wallet</Trans>
+              Please, connect your wallet
             </Typography>
             <Typography sx={{ mb: 6 }} color="text.secondary">
               {description || (
-                <Trans>
-                  Please connect your wallet to see your supplies, borrowings, and open positions.
-                </Trans>
+                <>
+                  {
+                    'Please connect your wallet to see your supplies, borrowings, and open positions.'
+                  }
+                </>
               )}
             </Typography>
             <ConnectWalletButton />

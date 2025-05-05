@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ChainId } from '@aave/contract-helpers';
 import { Theme } from '@mui/material';
 import { SxProps } from '@mui/system';
@@ -23,8 +22,8 @@ export function WalletEmptyInfo({ bridge, name, chainId, icon, sx }: WalletEmpty
   return (
     <Warning severity="info" icon={icon} sx={sx}>
       {bridge ? (
-        <Trans>
-          Your {name} wallet is empty. Purchase or transfer assets or use{' '}
+        <>
+          {`Your ${name} wallet is empty. Purchase or transfer assets or use `}
           {
             <Link
               onClick={() => {
@@ -35,10 +34,10 @@ export function WalletEmptyInfo({ bridge, name, chainId, icon, sx }: WalletEmpty
               {bridge.name}
             </Link>
           }{' '}
-          to transfer your {network} assets.
-        </Trans>
+          {`to transfer your ${network} assets.`}
+        </>
       ) : (
-        <Trans>Your {name} wallet is empty. Purchase or transfer assets.</Trans>
+        <>{`Your ${name} wallet is empty. Purchase or transfer assets.`}</>
       )}
     </Warning>
   );

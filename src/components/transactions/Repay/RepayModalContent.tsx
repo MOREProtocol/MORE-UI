@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import {
   API_ETH_MOCK_ADDRESS,
   InterestRate,
@@ -115,7 +114,7 @@ export const RepayModalContent = ({
         tokenToRepayWith.address === API_ETH_MOCK_ADDRESS.toLowerCase() ||
         (synthetixProxyByChainId[currentChainId] &&
           synthetixProxyByChainId[currentChainId].toLowerCase() ===
-            reserve.underlyingAsset.toLowerCase())
+          reserve.underlyingAsset.toLowerCase())
       ) {
         // for native token and synthetix (only mainnet) we can't send -1 as
         // contract does not accept max unit256
@@ -227,7 +226,7 @@ export const RepayModalContent = ({
   if (repayTxState.success)
     return (
       <TxSuccessView
-        action={<Trans>repaid</Trans>}
+        action={'repaid'}
         amount={amountRef.current}
         symbol={repayWithMTokens ? poolReserve.symbol : tokenToRepayWith.symbol}
       />
@@ -244,22 +243,20 @@ export const RepayModalContent = ({
         onSelect={setTokenToRepayWith}
         isMaxSelected={isMaxSelected}
         maxValue={maxAmountToRepay.toString(10)}
-        balanceText={<Trans>Wallet balance</Trans>}
+        balanceText={'Wallet balance'}
       />
 
       {maxRepayWithDustRemaining && (
         <Typography color="warning.main" variant="helperText">
-          <Trans>
-            You don’t have enough funds in your wallet to repay the full amount. If you proceed to
-            repay with your current amount of funds, you will still have a small borrowing position
-            in your dashboard.
-          </Trans>
+          You don’t have enough funds in your wallet to repay the full amount. If you proceed to
+          repay with your current amount of funds, you will still have a small borrowing position in
+          your dashboard.
         </Typography>
       )}
 
       <TxModalDetails gasLimit={gasLimit}>
         <DetailsNumberLineWithSub
-          description={<Trans>Remaining debt</Trans>}
+          description={'Remaining debt'}
           futureValue={amountAfterRepay}
           futureValueUSD={amountAfterRepayInUsd.toString(10)}
           value={debt}

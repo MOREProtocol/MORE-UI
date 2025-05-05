@@ -2,7 +2,6 @@ import { isAddress } from '@ethersproject/address';
 import { formatUnits } from '@ethersproject/units';
 import { ExclamationIcon } from '@heroicons/react/outline';
 import { XCircleIcon } from '@heroicons/react/solid';
-import { Trans } from '@lingui/react/macro';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import {
@@ -362,9 +361,9 @@ export const SwitchAssetInput = ({
                 color="text.primary"
                 sx={{ width: 'auto', textAlign: 'center', m: 4 }}
               >
-                <Trans>
+                
                   No results found. You can import a custom token with a contract address
-                </Trans>
+                
               </Typography>
             )}
           </Box>
@@ -389,7 +388,7 @@ export const SwitchAssetInput = ({
         {selectedAsset.balance && onChange && (
           <>
             <Typography component="div" variant="secondary12" color="text.secondary">
-              <Trans>Balance</Trans>
+              Balance
               <FormattedNumber
                 value={selectedAsset.balance}
                 compact
@@ -408,7 +407,7 @@ export const SwitchAssetInput = ({
                 }}
                 disabled={disabled || isMaxSelected}
               >
-                <Trans>Max</Trans>
+                Max
               </Button>
             )}
           </>

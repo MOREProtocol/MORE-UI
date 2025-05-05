@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { gasLimitRecommendations, ProtocolAction } from '@aave/contract-helpers';
 import { BoxProps } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
@@ -46,6 +45,7 @@ export const SupplyActions = React.memo(
       walletApprovalMethodPreference,
       estimateGasLimit,
       addTransaction,
+      addSupplyAction,
       currentMarketData,
     ] = useRootStore((state) => [
       state.tryPermit,
@@ -54,6 +54,7 @@ export const SupplyActions = React.memo(
       state.walletApprovalMethodPreference,
       state.estimateGasLimit,
       state.addTransaction,
+      state.addSupplyAction,
       state.currentMarketData,
     ]);
     const {
@@ -186,6 +187,17 @@ export const SupplyActions = React.memo(
       }
     };
 
+    const handleAddToBatch = async () => {
+      await addSupplyAction({
+        action: 'supply',
+        market: currentMarketData.market,
+        poolAddress: poolAddress,
+        amount: amountToSupply,
+        decimals: decimals,
+        symbol,
+      });
+    };
+
     return (
       <TxActionsWrapper
         blocked={blocked}
@@ -196,10 +208,11 @@ export const SupplyActions = React.memo(
         amount={amountToSupply}
         symbol={symbol}
         preparingTransactions={loadingTxns || !approvedAmount}
-        actionText={<Trans>Supply {symbol}</Trans>}
-        actionInProgressText={<Trans>Supplying {symbol}</Trans>}
+        actionText={`Supply ${symbol}`}
+        actionInProgressText={`Supplying ${symbol}`}
         handleApproval={approval}
         handleAction={action}
+        handleAddToBatch={handleAddToBatch}
         requiresApproval={requiresApproval}
         tryPermit={permitAvailable}
         sx={sx}

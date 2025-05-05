@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import {
   Box,
   FormControlLabel,
@@ -33,7 +32,7 @@ export const DarkModeSwitcher = ({ component = ListItem }: DarkModeSwitcherProps
       }}
     >
       <ListItemText>
-        <Trans>Dark mode</Trans>
+        Dark mode
       </ListItemText>
       <FormControlLabel
         sx={{ mr: 0 }}

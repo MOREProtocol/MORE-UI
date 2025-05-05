@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { InformationCircleIcon } from '@heroicons/react/outline';
 import {
   // Badge,
@@ -15,6 +14,8 @@ import Box from '@mui/material/Box';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { ContentWithTooltip } from 'src/components/ContentWithTooltip';
+import { BatchTransactionsButton } from 'src/components/transactions/BatchTransactions/BatchTransactionsButton';
+import { VaultManagementBundleButton } from 'src/modules/vault-detail/VaultManagement/VaultManagementBundleButton';
 // import { useModalContext } from 'src/hooks/useModal';
 import { useRootStore } from 'src/store/root';
 import { ENABLE_TESTNET, FORK_ENABLED } from 'src/utils/marketsAndNetworksConfig';
@@ -27,6 +28,7 @@ import { MobileMenu } from './MobileMenu';
 import { SettingsMenu } from './SettingsMenu';
 import WalletWidget from './WalletWidget';
 
+export const HEADER_HEIGHT = 48;
 interface Props {
   children: React.ReactElement;
 }
@@ -98,7 +100,7 @@ export function AppHeader() {
   const { currentMarketData } = useProtocolDataContext();
   const [walletWidgetOpen, setWalletWidgetOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+  const [batchTransactionsOpen, setBatchTransactionsOpen] = useState(false);
   useEffect(() => {
     if (mobileDrawerOpen && !md) {
       setMobileDrawerOpen(false);
@@ -108,8 +110,6 @@ export function AppHeader() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [md]);
-
-  const headerHeight = 48;
 
   const toggleWalletWigit = (state: boolean) => {
     if (md) setMobileDrawerOpen(state);
@@ -145,11 +145,9 @@ export function AppHeader() {
 
   const testnetTooltip = (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: 1 }}>
-      <Typography variant="subheader1">
-        <Trans>Testnet mode is ON</Trans>
-      </Typography>
+      <Typography variant="subheader1">Testnet mode is ON</Typography>
       <Typography variant="description">
-        <Trans>The app is running in testnet mode. Learn how it works in</Trans>{' '}
+        The app is running in testnet mode. Learn how it works in{' '}
         <Link
           href="https://docs.more.markets/faq/testing-more"
           style={{ fontSize: '14px', fontWeight: 400, textDecoration: 'underline' }}
@@ -158,21 +156,17 @@ export function AppHeader() {
         </Link>
       </Typography>
       <Button variant="outlined" sx={{ mt: '12px' }} onClick={disableTestnet}>
-        <Trans>Disable testnet</Trans>
+        Disable testnet
       </Button>
     </Box>
   );
 
   const forkTooltip = (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: 1 }}>
-      <Typography variant="subheader1">
-        <Trans>Fork mode is ON</Trans>
-      </Typography>
-      <Typography variant="description">
-        <Trans>The app is running in fork mode.</Trans>
-      </Typography>
+      <Typography variant="subheader1">Fork mode is ON</Typography>
+      <Typography variant="description">The app is running in fork mode.</Typography>
       <Button variant="outlined" sx={{ mt: '12px' }} onClick={disableFork}>
-        <Trans>Disable fork</Trans>
+        Disable fork
       </Button>
     </Box>
   );
@@ -184,7 +178,7 @@ export function AppHeader() {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         sx={(theme) => ({
-          height: headerHeight,
+          height: HEADER_HEIGHT,
           position: 'sticky',
           top: 0,
           transition: theme.transitions.create('top'),
@@ -212,7 +206,11 @@ export function AppHeader() {
           }}
           onClick={() => setMobileMenuOpen(false)}
         >
-          <img src={uiConfig.appLogo} alt="MORE" width={150} height={30} />
+          {md ? (
+            <img src={uiConfig.appLogoMobile} alt="MORE" width={30} height={30} />
+          ) : (
+            <img src={uiConfig.appLogo} alt="MORE" width={130} height={30} />
+          )}
         </Box>
         <Box sx={{ mr: sm ? 1 : 3 }}>
           {ENABLE_TESTNET && (
@@ -286,11 +284,14 @@ export function AppHeader() {
           </StyledBadge>
         </NoSsr> */}
 
+        <VaultManagementBundleButton />
+        <BatchTransactionsButton open={batchTransactionsOpen} setOpen={setBatchTransactionsOpen} />
+
         {!mobileMenuOpen && (
           <WalletWidget
             open={walletWidgetOpen}
             setOpen={toggleWalletWigit}
-            headerHeight={headerHeight}
+            headerHeight={HEADER_HEIGHT}
           />
         )}
 
@@ -303,7 +304,7 @@ export function AppHeader() {
             <MobileMenu
               open={mobileMenuOpen}
               setOpen={toggleMobileMenu}
-              headerHeight={headerHeight}
+              headerHeight={HEADER_HEIGHT}
             />
           </Box>
         )}

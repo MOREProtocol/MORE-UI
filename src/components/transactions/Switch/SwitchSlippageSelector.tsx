@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { CogIcon } from '@heroicons/react/solid';
 import {
   Box,
@@ -35,7 +34,7 @@ export const SwitchSlippageSelector = ({ slippage, setSlippage }: SwitchSlippage
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
       <Typography variant="caption" color="text.secondary">
-        <Trans>Slippage</Trans>
+        Slippage
         <Menu
           anchorOrigin={{
             vertical: 'bottom',
@@ -55,7 +54,7 @@ export const SwitchSlippageSelector = ({ slippage, setSlippage }: SwitchSlippage
           onClose={handleClose}
         >
           <Typography variant="subheader2" mb={5}>
-            <Trans>Max slippage</Trans>
+            Max slippage
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <ToggleButtonGroup

@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { valueToBigNumber } from '@aave/math-utils';
 import { Box, Typography } from '@mui/material';
 import { BigNumber } from 'bignumber.js';
@@ -61,24 +60,22 @@ export const BorrowInfo = ({
               value={borrowCap.percentUsed}
               tooltipContent={
                 <>
-                  <Trans>
-                    Maximum amount available to borrow is{' '}
-                    <FormattedNumber value={maxAvailableToBorrow} variant="secondary12" />{' '}
-                    {reserve.symbol} (
-                    <FormattedNumber
-                      value={maxAvailableToBorrowUSD}
-                      variant="secondary12"
-                      symbol="USD"
-                    />
-                    ).
-                  </Trans>
+                  Maximum amount available to borrow is{' '}
+                  <FormattedNumber value={maxAvailableToBorrow} variant="secondary12" />{' '}
+                  {reserve.symbol} (
+                  <FormattedNumber
+                    value={maxAvailableToBorrowUSD}
+                    variant="secondary12"
+                    symbol="USD"
+                  />
+                  ).
                 </>
               }
             />
             <PanelItem
               title={
                 <Box display="flex" alignItems="center">
-                  <Trans>Total borrowed</Trans>
+                  Total borrowed
                   <TextWithTooltip
                     event={{
                       eventName: GENERAL.TOOL_TIP,
@@ -90,15 +87,13 @@ export const BorrowInfo = ({
                     }}
                   >
                     <>
-                      <Trans>
-                        Borrowing of this asset is limited to a certain amount to minimize liquidity
-                        pool insolvency.
-                      </Trans>{' '}
+                      Borrowing of this asset is limited to a certain amount to minimize liquidity
+                      pool insolvency.{' '}
                       <Link
                         href="https://docs.more.markets/developers/whats-new/supply-borrow-caps"
                         underline="always"
                       >
-                        <Trans>Learn more</Trans>
+                        Learn more
                       </Link>
                     </>
                   </TextWithTooltip>
@@ -113,7 +108,7 @@ export const BorrowInfo = ({
                   variant="secondary16"
                   sx={{ display: 'inline-block', mx: 1 }}
                 >
-                  <Trans>of</Trans>
+                  of
                 </Typography>
                 <FormattedNumber value={reserve.borrowCap} variant="main16" />
               </Box>
@@ -125,7 +120,7 @@ export const BorrowInfo = ({
                   variant="secondary16"
                   sx={{ display: 'inline-block', mx: 1 }}
                 >
-                  <Trans>of</Trans>
+                  of
                 </Typography>
                 <ReserveSubheader value={reserve.borrowCapUSD} />
               </Box>
@@ -136,7 +131,7 @@ export const BorrowInfo = ({
           <PanelItem
             title={
               <Box display="flex" alignItems="center">
-                <Trans>Total borrowed</Trans>
+                Total borrowed
               </Box>
             }
           >
@@ -155,7 +150,7 @@ export const BorrowInfo = ({
                   assetName: reserve.name,
                 },
               }}
-              text={<Trans>APY, variable</Trans>}
+              text={'APY, variable'}
               key="APY_res_variable_type"
               variant="description"
             />
@@ -169,7 +164,7 @@ export const BorrowInfo = ({
           />
         </PanelItem>
         {reserve.borrowCapUSD && reserve.borrowCapUSD !== '0' && (
-          <PanelItem title={<Trans>Borrow cap</Trans>}>
+          <PanelItem title={'Borrow cap'}>
             <FormattedNumber value={reserve.borrowCap} variant="main16" />
             <ReserveSubheader value={reserve.borrowCapUSD} />
           </PanelItem>
@@ -187,7 +182,7 @@ export const BorrowInfo = ({
         paddingTop={'42px'}
       >
         <Typography variant="subheader1" color="text.main">
-          <Trans>Collector Info</Trans>
+          Collector Info
         </Typography>
       </Box>
       {currentMarketData.addresses.COLLECTOR && (

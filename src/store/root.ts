@@ -1,9 +1,10 @@
 import { enableMapSet } from 'immer';
 import { CustomMarket } from 'src/ui-config/marketsConfig';
-import { createWithEqualityFn } from 'zustand/traditional';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
+import { createWithEqualityFn } from 'zustand/traditional';
 
 import { AnalyticsSlice, createAnalyticsSlice } from './analyticsSlice';
+import { BatchTransactionsSlice, createBatchTransactionsSlice } from './batchTransactionsSlice';
 import { createLayoutSlice, LayoutSlice } from './layoutSlice';
 import { createPoolSlice, PoolSlice } from './poolSlice';
 import { createProtocolDataSlice, ProtocolDataSlice } from './protocolDataSlice';
@@ -22,6 +23,7 @@ export type RootStore = ProtocolDataSlice &
   WalletDomainsSlice &
   AnalyticsSlice &
   TransactionsSlice &
+  BatchTransactionsSlice &
   LayoutSlice;
 
 export const useRootStore = createWithEqualityFn<RootStore>()(
@@ -35,6 +37,7 @@ export const useRootStore = createWithEqualityFn<RootStore>()(
         ...createWalletDomainsSlice(...args),
         ...createAnalyticsSlice(...args),
         ...createTransactionsSlice(...args),
+        ...createBatchTransactionsSlice(...args),
         ...createLayoutSlice(...args),
       };
     })

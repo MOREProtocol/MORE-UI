@@ -4,13 +4,12 @@ import { OffboardingTooltip } from 'src/components/infoTooltips/OffboardingToolT
 import { PausedTooltip } from 'src/components/infoTooltips/PausedTooltip';
 import { StETHCollateralToolTip } from 'src/components/infoTooltips/StETHCollateralToolTip';
 import { AssetsBeingOffboarded } from 'src/components/Warnings/OffboardingWarning';
-import { CustomMarket } from 'src/ui-config/marketsConfig';
+import { ExtendedMarket } from 'src/store/protocolDataSlice';
 
 import { AMPLToolTip } from '../../../components/infoTooltips/AMPLToolTip';
 import { FrozenTooltip } from '../../../components/infoTooltips/FrozenTooltip';
 import { RenFILToolTip } from '../../../components/infoTooltips/RenFILToolTip';
 import { ListMobileItem } from '../../../components/lists/ListMobileItem';
-
 // These are all optional due to MobileListItemLoader
 interface ListMobileItemWrapperProps {
   symbol?: string;
@@ -19,7 +18,7 @@ interface ListMobileItemWrapperProps {
   underlyingAsset?: string;
   children: ReactNode;
   loading?: boolean;
-  currentMarket?: CustomMarket;
+  currentMarket?: ExtendedMarket;
   frozen?: boolean;
   paused?: boolean;
   borrowEnabled?: boolean;

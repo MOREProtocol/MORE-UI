@@ -1,12 +1,10 @@
-"use client";
+'use client';
 
 import '/public/fonts/inter/inter.css';
 import '/src/styles/variables.css';
 import '@rainbow-me/rainbowkit/styles.css';
 
 import { CacheProvider, EmotionCache } from '@emotion/react';
-import { WagmiProvider } from 'wagmi';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Web3ReactProvider } from '@web3-react/core';
 import { providers } from 'ethers';
@@ -21,14 +19,15 @@ import { TransactionEventHandler } from 'src/components/TransactionEventHandler'
 import { GasStationProvider } from 'src/components/transactions/GasStation/GasStationProvider';
 import { AppDataProvider } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { ModalContextProvider } from 'src/hooks/useModal';
+import { VaultProvider } from 'src/hooks/vault/useVault';
 import { Web3ContextProvider } from 'src/libs/web3-data-provider/Web3Provider';
 import { useRootStore } from 'src/store/root';
 import { SharedDependenciesProvider } from 'src/ui-config/SharedDependenciesProvider';
 import { config as wagmiConfig } from 'src/utils/wagmi';
+import { WagmiProvider } from 'wagmi';
 
 import createEmotionCache from '../src/createEmotionCache';
 import { AppGlobalStyles } from '../src/layouts/AppGlobalStyles';
-import { LanguageProvider } from '../src/libs/LanguageProvider';
 
 const SwitchModal = dynamic(() =>
   import('src/components/transactions/Switch/SwitchModal').then((module) => module.SwitchModal)
@@ -77,6 +76,14 @@ const WithdrawModal = dynamic(() =>
   )
 );
 
+// Preventing SSR issues with RainbowKitProvider
+const RainbowKitProvider = dynamic(
+  () => import('@rainbow-me/rainbowkit').then((module) => module.RainbowKitProvider),
+  {
+    ssr: false,
+  }
+);
+
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();
 
@@ -120,18 +127,18 @@ export default function MyApp(props: MyAppProps) {
   return (
     <CacheProvider value={emotionCache}>
       <Meta />
-      <LanguageProvider>
-        <WagmiProvider config={wagmiConfig}>
-          <QueryClientProvider client={queryClient}>
-            <RainbowKitProvider>
-              <Web3ReactProvider getLibrary={getWeb3Library}>
-                <Web3ContextProvider>
-                  <AppGlobalStyles>
-                    <SanctionRegion>
-                      <AddressBlocked>
-                        <ModalContextProvider>
-                          <SharedDependenciesProvider>
-                            <AppDataProvider>
+      <WagmiProvider config={wagmiConfig}>
+        <QueryClientProvider client={queryClient}>
+          <RainbowKitProvider>
+            <Web3ReactProvider getLibrary={getWeb3Library}>
+              <Web3ContextProvider>
+                <AppGlobalStyles>
+                  <SanctionRegion>
+                    <AddressBlocked>
+                      <ModalContextProvider>
+                        <SharedDependenciesProvider>
+                          <AppDataProvider>
+                            <VaultProvider>
                               <GasStationProvider>
                                 {getLayout(<Component {...pageProps} />)}
                                 <SupplyModal />
@@ -148,18 +155,18 @@ export default function MyApp(props: MyAppProps) {
                                 <TransactionEventHandler />
                                 <SwitchModal />
                               </GasStationProvider>
-                            </AppDataProvider>
-                          </SharedDependenciesProvider>
-                        </ModalContextProvider>
-                      </AddressBlocked>
-                    </SanctionRegion>
-                  </AppGlobalStyles>
-                </Web3ContextProvider>
-              </Web3ReactProvider>
-            </RainbowKitProvider>
-          </QueryClientProvider>
-        </WagmiProvider>
-      </LanguageProvider>
+                            </VaultProvider>
+                          </AppDataProvider>
+                        </SharedDependenciesProvider>
+                      </ModalContextProvider>
+                    </AddressBlocked>
+                  </SanctionRegion>
+                </AppGlobalStyles>
+              </Web3ContextProvider>
+            </Web3ReactProvider>
+          </RainbowKitProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
     </CacheProvider>
   );
 }

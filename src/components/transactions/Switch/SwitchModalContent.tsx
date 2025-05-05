@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { normalize, normalizeBN } from '@aave/math-utils';
 import { SwitchVerticalIcon } from '@heroicons/react/outline';
 import { Box, CircularProgress, IconButton, SvgIcon, Typography } from '@mui/material';
@@ -250,7 +249,7 @@ export const SwitchModalContent = ({
           {sellRates && user && (
             <TxModalDetails gasLimit={gasLimit} chainId={selectedChainId}>
               <Row
-                caption={<Trans>{`Minimum ${selectedOutputToken.symbol} received`}</Trans>}
+                caption={`Minimum ${selectedOutputToken.symbol} received`}
                 captionVariant="caption"
               >
                 <FormattedNumber
@@ -263,11 +262,7 @@ export const SwitchModalContent = ({
                   }
                 />
               </Row>
-              <Row
-                sx={{ mt: 1 }}
-                caption={<Trans>Minimum USD value received</Trans>}
-                captionVariant="caption"
-              >
+              <Row sx={{ mt: 1 }} caption={'Minimum USD value received'} captionVariant="caption">
                 <FormattedNumber
                   symbol="usd"
                   symbolsVariant="caption"
@@ -313,7 +308,7 @@ export const SwitchModalContent = ({
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', mt: 4, alignItems: 'center' }}>
               <Typography sx={{ mb: 6, textAlign: 'center' }} color="text.secondary">
-                <Trans>Please connect your wallet to be able to switch your tokens.</Trans>
+                Please connect your wallet to be able to switch your tokens.
               </Typography>
               <ConnectWalletButton />
             </Box>

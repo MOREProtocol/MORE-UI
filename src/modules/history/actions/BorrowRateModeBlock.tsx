@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Typography } from '@mui/material';
 import { formatUnits } from 'ethers/lib/utils';
 import React from 'react';
@@ -16,13 +15,13 @@ export const BorrowRateModeBlock = ({
     return (
       <>
         <Typography variant="description" color="text.primary" pr={0.5}>
-          <Trans>Variable</Trans>
+          Variable
         </Typography>
         <Typography variant="secondary14" color="text.primary" pr={0.5}>
           {Number(formatUnits(swapBorrowRateTx.variableBorrowRate, 25)).toFixed(2)}%
         </Typography>
         <Typography variant="description" color="text.primary">
-          <Trans>APY</Trans>
+          APY
         </Typography>
       </>
     );
@@ -30,13 +29,13 @@ export const BorrowRateModeBlock = ({
     return (
       <>
         <Typography variant="description" color="text.primary" pr={0.5}>
-          <Trans>Stable</Trans>
+          Stable
         </Typography>
         <Typography variant="secondary14" color="text.primary" pr={0.5}>
           {Number(formatUnits(swapBorrowRateTx.stableBorrowRate, 25)).toFixed(2)}%
         </Typography>
         <Typography variant="description" color="text.primary">
-          <Trans>APY</Trans>
+          APY
         </Typography>
       </>
     );

@@ -224,3 +224,5 @@ export const marketsData: {
     },
   }, */
 } as const;
+
+export const allMarketsData = [marketsData.proto_flow_v3];

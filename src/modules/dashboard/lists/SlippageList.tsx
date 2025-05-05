@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/outline';
 import {
   Box,
@@ -53,7 +52,7 @@ export const ListSlippageButton = ({
             headerContent={slippageTooltipHeader}
             text={
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Trans>
+                
                   <Typography color="text.secondary" variant="description">
                     Slippage tolerance{' '}
                   </Typography>
@@ -63,7 +62,7 @@ export const ListSlippageButton = ({
                   <SvgIcon sx={{ fontSize: '14px !important', mr: '4px' }}>
                     {open ? <ChevronUpIcon /> : <ChevronDownIcon />}
                   </SvgIcon>
-                </Trans>
+                
               </Box>
             }
             variant="secondary14"
@@ -85,7 +84,7 @@ export const ListSlippageButton = ({
       >
         <Box sx={{ px: '16px', py: '12px' }}>
           <Typography variant="secondary12" color="text.secondary">
-            <Trans>Select slippage tolerance</Trans>
+            Select slippage tolerance
           </Typography>
         </Box>
 
@@ -120,7 +119,7 @@ export const ListSlippageButton = ({
             color="text.secondary"
             sx={{ display: 'flex', alignItems: 'center' }}
           >
-            <Trans>Powered by</Trans>
+            Powered by
             <SvgIcon
               sx={{
                 fontSize: '20px',

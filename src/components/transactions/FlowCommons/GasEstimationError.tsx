@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Button, Typography } from '@mui/material';
 import { Warning } from 'src/components/primitives/Warning';
 import { TxErrorType } from 'src/ui-config/errorMapping';
@@ -15,21 +14,19 @@ export const GasEstimationError = ({ txError }: { txError: TxErrorType }) => {
               variant="text"
               onClick={() => navigator.clipboard.writeText(txError.rawError.message.toString())}
             >
-              <Typography variant="description">
-                <Trans>copy the error</Trans>
-              </Typography>
+              <Typography variant="description">copy the error</Typography>
             </Button>
           </>
         ) : (
-          <Trans>
-            There was some error. Please try changing the parameters or{' '}
+          <>
+            {'There was some error. Please try changing the parameters or '}
             <Button
               sx={{ verticalAlign: 'top' }}
               onClick={() => navigator.clipboard.writeText(txError.rawError.message.toString())}
             >
               <Typography variant="description">copy the error</Typography>
             </Button>
-          </Trans>
+          </>
         )}
       </Typography>
     </Warning>

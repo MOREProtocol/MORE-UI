@@ -1,6 +1,8 @@
-import { Badge, Box, Icon, IconProps } from '@mui/material';
+import { Badge, Box, Icon, IconProps, Tooltip } from '@mui/material';
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import LazyLoad from 'react-lazy-load';
+import { MarketDataType } from 'src/ui-config/marketsConfig';
+import { networkConfigs } from 'src/ui-config/networksConfig';
 
 interface MTokenIconProps {
   symbol?: string;
@@ -138,6 +140,7 @@ MTokenIcon.displayName = 'MTokenIcon';
 
 interface TokenIconProps extends IconProps {
   symbol: string;
+  market?: MarketDataType;
   mToken?: boolean;
 }
 
@@ -147,19 +150,18 @@ interface TokenIconProps extends IconProps {
  * @param param0
  * @returns
  */
-function SingleTokenIcon({ symbol, mToken, ...rest }: TokenIconProps) {
+function SingleTokenIcon({ symbol, mToken, market, ...rest }: TokenIconProps) {
   const [tokenSymbol, setTokenSymbol] = useState(symbol.toLowerCase());
 
   useEffect(() => {
     setTokenSymbol(symbol.toLowerCase());
   }, [symbol]);
 
-  return (
+  const tokenIcon = (
     <Icon {...rest} sx={{ display: 'flex', position: 'relative', borderRadius: '50%', ...rest.sx }}>
       {mToken ? (
         <MTokenIcon symbol={tokenSymbol} />
       ) : (
-        // eslint-disable-next-line
         <img
           src={`/icons/tokens/${tokenSymbol}.svg`}
           onError={() => setTokenSymbol('default')}
@@ -170,6 +172,29 @@ function SingleTokenIcon({ symbol, mToken, ...rest }: TokenIconProps) {
       )}
     </Icon>
   );
+
+  if (market) {
+    return (
+      <Badge
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        badgeContent={
+          <Tooltip title={market.marketTitle || ''}>
+            <img
+              src={networkConfigs[market.chainId].networkLogoPath}
+              width="16"
+              height="16"
+              alt={`${market.chainId} network`}
+              style={{ border: '1px solid #fff', borderRadius: '50%' }}
+            />
+          </Tooltip>
+        }
+      >
+        {tokenIcon}
+      </Badge>
+    );
+  }
+
+  return tokenIcon;
 }
 
 /**

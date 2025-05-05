@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { InterestRate } from '@aave/contract-helpers';
 import { valueToBigNumber } from '@aave/math-utils';
 import { MaxUint256 } from '@ethersproject/constants';
@@ -169,10 +168,10 @@ export const DebtSwitchModalContent = ({
     switch (blockingError) {
       case ErrorType.INSUFFICIENT_LIQUIDITY:
         return (
-          <Trans>
+          <>
             There is not enough liquidity for the target asset to perform the switch. Try lowering
             the amount.
-          </Trans>
+          </>
         );
       default:
         return null;
@@ -191,7 +190,7 @@ export const DebtSwitchModalContent = ({
         customAction={
           <Stack gap={3}>
             <Typography variant="description" color="text.primary">
-              <Trans>You&apos;ve successfully switched borrow position.</Trans>
+              You&apos;ve successfully switched borrow position.
             </Typography>
             <Stack direction="row" alignItems="center" justifyContent="center" gap={1}>
               <TokenIcon symbol={poolReserve.iconSymbol} sx={{ mx: 1 }} />
@@ -229,12 +228,8 @@ export const DebtSwitchModalContent = ({
           },
         ]}
         maxValue={maxAmountToSwitch}
-        inputTitle={<Trans>Borrowed asset amount</Trans>}
-        balanceText={
-          <React.Fragment>
-            <Trans>Borrow balance</Trans>
-          </React.Fragment>
-        }
+        inputTitle={'Borrowed asset amount'}
+        balanceText={<React.Fragment>Borrow balance</React.Fragment>}
         isMaxSelected={isMaxSelected}
       />
       <Box sx={{ padding: '18px', pt: '14px', display: 'flex', justifyContent: 'space-between' }}>
@@ -255,8 +250,8 @@ export const DebtSwitchModalContent = ({
         usdValue={targetReserveAmountUSD.toString()}
         symbol={targetReserve.symbol}
         assets={switchTargets}
-        inputTitle={<Trans>Switch to</Trans>}
-        balanceText={<Trans>Supply balance</Trans>}
+        inputTitle={'Switch to'}
+        balanceText={'Supply balance'}
         disableInput
         loading={loadingSkeleton}
         selectOptionHeader={<SelectOptionListHeader />}
@@ -284,7 +279,7 @@ export const DebtSwitchModalContent = ({
             }}
             slippageTooltipHeader={
               <Stack direction="row" gap={2} alignItems="center" justifyContent="space-between">
-                <Trans>Maximum amount received</Trans>
+                Maximum amount received
                 <Stack alignItems="end">
                   <Stack direction="row">
                     <TokenIcon
@@ -326,10 +321,10 @@ export const DebtSwitchModalContent = ({
       {insufficientCollateral && (
         <Warning severity="error" sx={{ mt: 4 }}>
           <Typography variant="caption">
-            <Trans>
+            <>
               Insufficient collateral to cover new borrow position. Wallet must have borrowing power
               remaining to perform debt switch.
-            </Trans>
+            </>
           </Typography>
         </Warning>
       )}
@@ -355,12 +350,8 @@ const SelectOptionListHeader = () => {
   return (
     <ListSubheader sx={(theme) => ({ borderBottom: `1px solid ${theme.palette.divider}`, mt: -1 })}>
       <Stack direction="row" sx={{ py: 4 }} gap={14}>
-        <Typography variant="subheader2">
-          <Trans>Select an asset</Trans>
-        </Typography>
-        <Typography variant="subheader2">
-          <Trans>Borrow APY</Trans>
-        </Typography>
+        <Typography variant="subheader2">Select an asset</Typography>
+        <Typography variant="subheader2">Borrow APY</Typography>
       </Stack>
     </ListSubheader>
   );
@@ -383,7 +374,7 @@ const SwitchTargetSelectOption = ({ asset }: { asset: SwitchTargetAsset }) => {
           color="text.secondary"
         />
         <Typography variant="helperText" color="text.secondary">
-          <Trans>Variable rate</Trans>
+          Variable rate
         </Typography>
       </Box>
     </>

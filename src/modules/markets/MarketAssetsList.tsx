@@ -1,38 +1,40 @@
-import { Trans } from "@lingui/react/macro";
 import { useMediaQuery } from '@mui/material';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { VariableAPYTooltip } from 'src/components/infoTooltips/VariableAPYTooltip';
 import { ListColumn } from 'src/components/lists/ListColumn';
 import { ListHeaderTitle } from 'src/components/lists/ListHeaderTitle';
 import { ListHeaderWrapper } from 'src/components/lists/ListHeaderWrapper';
-import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { WalletBalancesMap } from 'src/hooks/app-data-provider/useWalletBalances';
+import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 
 import { MarketAssetsListItem } from './MarketAssetsListItem';
 import { MarketAssetsListItemLoader } from './MarketAssetsListItemLoader';
 import { MarketAssetsListMobileItem } from './MarketAssetsListMobileItem';
 import { MarketAssetsListMobileItemLoader } from './MarketAssetsListMobileItemLoader';
+import { useRootStore } from 'src/store/root';
 
 const listHeaders = [
   {
-    title: <Trans>Asset</Trans>,
+    title: 'Asset',
     sortKey: 'symbol',
   },
   {
-    title: <Trans>Total supplied</Trans>,
+    title: 'Total supplied',
     sortKey: 'totalLiquidityUSD',
   },
   {
-    title: <Trans>Supply APY</Trans>,
+    title: 'Supply APY',
     sortKey: 'supplyAPY',
   },
   {
-    title: <Trans>Total borrowed</Trans>,
+    title: 'Total borrowed',
     sortKey: 'totalDebtUSD',
   },
   {
     title: (
       <VariableAPYTooltip
-        text={<Trans>Borrow APY, variable</Trans>}
+        text={'Borrow APY, variable'}
         key="APY_list_variable_type"
         variant="subheader2"
       />
@@ -42,7 +44,7 @@ const listHeaders = [
   // {
   //   title: (
   //     <StableAPYTooltip
-  //       text={<Trans>Borrow APY, stable</Trans>}
+  //       text={Borrow APY, stable}
   //       key="APY_list_stable_type"
   //       variant="subheader2"
   //     />
@@ -52,11 +54,19 @@ const listHeaders = [
 ];
 
 type MarketAssetsListProps = {
-  reserves: ComputedReserveData[];
+  reserves: ComputedReserveDataWithMarket[];
   loading: boolean;
+  walletBalances: WalletBalancesMap;
 };
 
-export default function MarketAssetsList({ reserves, loading }: MarketAssetsListProps) {
+export default function MarketAssetsList({
+  reserves,
+  loading,
+  walletBalances,
+}: MarketAssetsListProps) {
+  const { currentAccount } = useWeb3Context();
+  const { currentMarket } = useRootStore()
+  const lastColumnSize = useMemo(() => (!!currentAccount && currentMarket !== 'all_markets' ? 320 : 95), [currentAccount, currentMarket]);
   const isTableChangedToCards = useMediaQuery('(max-width:1125px)');
   const [sortName, setSortName] = useState('');
   const [sortDesc, setSortDesc] = useState(false);
@@ -121,7 +131,8 @@ export default function MarketAssetsList({ reserves, loading }: MarketAssetsList
               </ListHeaderTitle>
             </ListColumn>
           ))}
-          <ListColumn maxWidth={95} minWidth={95} />
+          {/* Width for buttons */}
+            <ListColumn maxWidth={lastColumnSize} minWidth={lastColumnSize} />
         </ListHeaderWrapper>
       )}
 
@@ -129,7 +140,11 @@ export default function MarketAssetsList({ reserves, loading }: MarketAssetsList
         isTableChangedToCards ? (
           <MarketAssetsListMobileItem {...reserve} key={reserve.id} />
         ) : (
-          <MarketAssetsListItem {...reserve} key={reserve.id} />
+          <MarketAssetsListItem
+            reserve={reserve}
+            key={reserve.id}
+            walletBalances={walletBalances}
+          />
         )
       )}
     </>

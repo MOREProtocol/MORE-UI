@@ -65,6 +65,7 @@ export type FormattedNumberProps = TypographyProps<ElementType, { component?: El
   visibleDecimals?: number;
   compact?: boolean;
   percent?: boolean;
+  coloredPercent?: boolean;
   symbolsColor?: string;
   symbolsVariant?: OverridableStringUnion<Variant | 'inherit', TypographyPropsVariantOverrides>;
   roundDown?: boolean;
@@ -77,19 +78,20 @@ export function FormattedNumber({
   visibleDecimals,
   compact,
   percent,
+  coloredPercent,
   symbolsVariant,
   symbolsColor,
   roundDown,
   compactThreshold,
   ...rest
 }: FormattedNumberProps) {
-  const number = percent ? Number(value) * 100 : Number(value);
+  const number = percent || coloredPercent ? Number(value) * 100 : Number(value);
 
   let decimals: number = visibleDecimals ?? 0;
   if (number === 0) {
     decimals = 0;
   } else if (visibleDecimals === undefined) {
-    if (number > 1 || percent || symbol === 'USD') {
+    if (number >= 1 || percent || coloredPercent || symbol === 'USD') {
       decimals = 2;
     } else {
       decimals = 7;
@@ -100,6 +102,7 @@ export function FormattedNumber({
   const isSmallerThanMin = number !== 0 && Math.abs(number) < Math.abs(minValue);
   let formattedNumber = isSmallerThanMin ? minValue : number;
   const forceCompact = compact !== false && (compact || number > 99_999);
+  const percentColor = coloredPercent ? (number > 0 ? '#10b981' : '#ef4444') : undefined;
 
   // rounding occurs inside of CompactNumber as the prefix, not base number is rounded
   if (roundDown && !forceCompact) {
@@ -114,10 +117,16 @@ export function FormattedNumber({
         flexDirection: 'row',
         alignItems: 'center',
         position: 'relative',
+        ...(percentColor && { color: percentColor }),
         ...rest.sx,
       }}
       noWrap
     >
+      {coloredPercent && (
+        <Typography component="span" sx={{ mr: 0.5 }} variant={symbolsVariant || rest.variant}>
+          {Number(value) > 0 ? '+' : ''}
+        </Typography>
+      )}
       {isSmallerThanMin && (
         <Typography
           component="span"
@@ -128,7 +137,7 @@ export function FormattedNumber({
           {'<'}
         </Typography>
       )}
-      {symbol?.toLowerCase() === 'usd' && !percent && (
+      {symbol?.toLowerCase() === 'usd' && (!percent || !coloredPercent) && (
         <Typography
           component="span"
           sx={{ mr: 0.5 }}
@@ -153,12 +162,12 @@ export function FormattedNumber({
         />
       )}
 
-      {percent && (
+      {(percent || coloredPercent) && (
         <Typography
           component="span"
           sx={{ ml: 0.5 }}
           variant={symbolsVariant || rest.variant}
-          color={symbolsColor || 'text.secondary'}
+          color={symbolsColor || percentColor || 'text.secondary'}
         >
           %
         </Typography>

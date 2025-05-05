@@ -1,9 +1,9 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, Button, Divider } from '@mui/material';
 import { VariableAPYTooltip } from 'src/components/infoTooltips/VariableAPYTooltip';
 import { NoData } from 'src/components/primitives/NoData';
 import { ReserveSubheader } from 'src/components/ReserveSubheader';
-import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
+import { useModalContext } from 'src/hooks/useModal';
+import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
 import { MARKETS } from 'src/utils/mixPanelEvents';
 
@@ -11,12 +11,21 @@ import { IncentivesCard } from '../../components/incentives/IncentivesCard';
 import { FormattedNumber } from '../../components/primitives/FormattedNumber';
 import { Link, ROUTES } from '../../components/primitives/Link';
 import { Row } from '../../components/primitives/Row';
-import { ComputedReserveData } from '../../hooks/app-data-provider/useAppDataProvider';
+import { ComputedReserveDataWithMarket } from '../../hooks/app-data-provider/useAppDataProvider';
 import { ListMobileItemWrapper } from '../dashboard/lists/ListMobileItemWrapper';
 
-export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) => {
-  const { currentMarket } = useProtocolDataContext();
+export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveDataWithMarket) => {
   const trackEvent = useRootStore((store) => store.trackEvent);
+  const { currentMarket, setCurrentMarket } = useRootStore();
+  const { openSupply, openBorrow } = useModalContext();
+  const { currentAccount } = useWeb3Context();
+  const disableSupply = !currentAccount || !reserve.isActive;
+  const disableBorrow =
+    !currentAccount ||
+    !reserve.isActive ||
+    !reserve.borrowingEnabled ||
+    reserve.isFrozen ||
+    reserve.isPaused;
 
   return (
     <ListMobileItemWrapper
@@ -24,10 +33,10 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) 
       iconSymbol={reserve.iconSymbol}
       name={reserve.name}
       underlyingAsset={reserve.underlyingAsset}
-      currentMarket={currentMarket}
+      currentMarket={reserve.market.market}
       isIsolated={reserve.isIsolated}
     >
-      <Row caption={<Trans>Total supplied</Trans>} captionVariant="description" mb={3}>
+      <Row caption={'Total supplied'} captionVariant="description" mb={3}>
         <Box
           sx={{
             display: 'flex',
@@ -41,12 +50,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) 
           <ReserveSubheader value={reserve.totalLiquidityUSD} rightAlign={true} />
         </Box>
       </Row>
-      <Row
-        caption={<Trans>Supply APY</Trans>}
-        captionVariant="description"
-        mb={3}
-        align="flex-start"
-      >
+      <Row caption={'Supply APY'} captionVariant="description" mb={3} align="flex-start">
         <IncentivesCard
           align="flex-end"
           value={reserve.supplyAPY}
@@ -58,7 +62,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) 
 
       <Divider sx={{ mb: 3 }} />
 
-      <Row caption={<Trans>Total borrowed</Trans>} captionVariant="description" mb={3}>
+      <Row caption={'Total borrowed'} captionVariant="description" mb={3}>
         <Box
           sx={{
             display: 'flex',
@@ -81,7 +85,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) 
       <Row
         caption={
           <VariableAPYTooltip
-            text={<Trans>Borrow APY, variable</Trans>}
+            text={'Borrow APY, variable'}
             key="APY_list_mob_variable_type"
             variant="description"
           />
@@ -106,7 +110,7 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) 
       {/* <Row
         caption={
           <StableAPYTooltip
-            text={<Trans>Borrow APY, stable</Trans>}
+            text={Borrow APY, stable}
             key="APY_list_mob_stable_type"
             variant="description"
           />
@@ -129,22 +133,50 @@ export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveData) 
         </Box>
       </Row> */}
 
-      <Button
-        variant="outlined"
-        component={Link}
-        href={ROUTES.reserveOverview(reserve.underlyingAsset, currentMarket)}
-        fullWidth
-        onClick={() => {
-          trackEvent(MARKETS.DETAILS_NAVIGATION, {
-            type: 'button',
-            asset: reserve.underlyingAsset,
-            market: currentMarket,
-            assetName: reserve.name,
-          });
-        }}
-      >
-        <Trans>View details</Trans>
-      </Button>
+      {currentAccount ? (
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            disabled={disableSupply}
+            variant="contained"
+            fullWidth
+            onClick={(event) => {
+              event.stopPropagation();
+              openSupply(reserve.underlyingAsset, reserve.market.market, reserve.name, 'dashboard');
+            }}
+          >
+            Supply
+          </Button>
+          <Button
+            disabled={disableBorrow}
+            variant="contained"
+            fullWidth
+            onClick={(event) => {
+              event.stopPropagation();
+              openBorrow(reserve.underlyingAsset, reserve.market.market, reserve.name, 'dashboard');
+            }}
+          >
+            Borrow
+          </Button>
+        </Box>
+      ) : (
+        <Button
+          variant="outlined"
+          component={Link}
+          href={ROUTES.reserveOverview(reserve.underlyingAsset, reserve.market.market)}
+          fullWidth
+          onClick={() => {
+            trackEvent(MARKETS.DETAILS_NAVIGATION, {
+              type: 'button',
+              asset: reserve.underlyingAsset,
+              market: currentMarket,
+              assetName: reserve.name,
+            });
+            setCurrentMarket(reserve.market.market);
+          }}
+        >
+          View details
+        </Button>
+      )}
     </ListMobileItemWrapper>
   );
 };

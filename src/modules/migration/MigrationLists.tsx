@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Paper, Typography } from '@mui/material';
 import { ReactNode } from 'react';
 import {
@@ -78,7 +77,7 @@ export const MigrationLists = ({
         onSelectAllClick={onSelectAllSupplies}
         allSelected={activeSupplyUnselected.length === 0}
         isAvailable={isSupplyPositionsAvailable}
-        titleComponent={<Trans>Supplied assets</Trans>}
+        titleComponent={'Supplied assets'}
         emodeCategoryId={emodeCategoryId}
         withCollateral
         disabled={allSuppliesDisabled}
@@ -95,7 +94,7 @@ export const MigrationLists = ({
         isAvailable={isBorrowPositionsAvailable}
         withBorrow
         disabled={allBorrowsDisabled}
-        titleComponent={<Trans>Borrowed assets</Trans>}
+        titleComponent={'Borrowed assets'}
         numSelected={activeBorrowSelections.length || 0}
         numAvailable={borrowReserves.length || 0}
       >

@@ -1,6 +1,4 @@
 import { DotsHorizontalIcon } from '@heroicons/react/solid';
-import { useLingui } from '@lingui/react';
-import { Trans } from '@lingui/react/macro';
 import { Button, ListItemIcon, ListItemText, SvgIcon } from '@mui/material';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -13,7 +11,6 @@ import { Link } from '../components/primitives/Link';
 import { moreNavigation } from '../ui-config/menu-items';
 
 export function MoreMenu() {
-  const { i18n } = useLingui();
   const { currentAccount: walletAddress } = useWeb3Context();
   const trackEvent = useRootStore((store) => store.trackEvent);
 
@@ -49,7 +46,7 @@ export function MoreMenu() {
           },
         }}
       >
-        <Trans>More</Trans>
+        More
         <SvgIcon color="inherit" sx={{ ml: 1 }}>
           <DotsHorizontalIcon />
         </SvgIcon>
@@ -75,7 +72,7 @@ export function MoreMenu() {
             <ListItemIcon>
               <SvgIcon sx={{ fontSize: '20px' }}>{item.icon}</SvgIcon>
             </ListItemIcon>
-            <ListItemText>{i18n._(item.title)}</ListItemText>
+            <ListItemText>{item.title}</ListItemText>
           </MenuItem>
         ))}
       </Menu>

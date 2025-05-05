@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { gasLimitRecommendations, ProtocolAction } from '@aave/contract-helpers';
 import { SignatureLike } from '@ethersproject/bytes';
 import { BoxProps } from '@mui/material';
@@ -188,8 +187,8 @@ export const SupplyWrappedTokenActions = ({
       amount={amountToSupply}
       symbol={symbol}
       preparingTransactions={loadingTxns || isFetching}
-      actionText={<Trans>Supply {symbol}</Trans>}
-      actionInProgressText={<Trans>Supplying {symbol}</Trans>}
+      actionText={`Supply ${symbol}`}
+      actionInProgressText={`Supplying ${symbol}`}
       handleApproval={() => approvalAction()}
       handleAction={action}
       requiresApproval={requiresApproval}

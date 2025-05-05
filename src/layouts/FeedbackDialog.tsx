@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { XIcon } from '@heroicons/react/outline';
 import { Box, Button, CircularProgress, SvgIcon, TextField, Typography } from '@mui/material';
 import { FormEvent, useEffect, useState } from 'react';
@@ -73,7 +72,7 @@ export const FeedbackModal = () => {
         ) : success ? (
           <BaseSuccessView hideTx={true}>
             <Box display="flex" justifyContent={'center'} mt={3}>
-              <Trans>Thank you for submitting feedback!</Trans>
+              Thank you for submitting feedback!
             </Box>
           </BaseSuccessView>
         ) : error ? (
@@ -105,16 +104,16 @@ export const FeedbackModal = () => {
               </Box>
 
               <Typography variant="subheader1" sx={{ mt: 2 }}>
-                <Trans>
+                
                   Submission did not work, please try again later or contact wecare@avara.xyz
-                </Trans>
+                
               </Typography>
             </Box>
           </div>
         ) : (
           <Box width={'100%'}>
             <Typography variant="h3" display="flex" justifyContent="flex-start">
-              <Trans>Feedback </Trans>
+              Feedback 
             </Typography>
 
             <Typography
@@ -122,10 +121,10 @@ export const FeedbackModal = () => {
               color="text.secondary"
               sx={{ textAlign: 'center', mb: 2, mt: 4 }}
             >
-              <Trans>
+              
                 Let us know how we can make the app better for you. For user support related
                 inquiries please reach out on
-              </Trans>{' '}
+              {' '}
               <Link
                 target="_blank"
                 variant="subheader1"
@@ -141,7 +140,7 @@ export const FeedbackModal = () => {
               <form style={{ width: '100%' }} onSubmit={handleFeedbackSubmit}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   <Typography color="text.secondary">
-                    <Trans>Email</Trans>
+                    Email
                   </Typography>
                 </Box>
 
@@ -154,7 +153,7 @@ export const FeedbackModal = () => {
                 />
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   <Typography color="text.secondary">
-                    <Trans>Feedback</Trans>
+                    Feedback
                   </Typography>
                 </Box>
                 <TextField
@@ -176,7 +175,7 @@ export const FeedbackModal = () => {
                 />
                 <Box display="flex" flexDirection={'row-reverse'} mt={3}>
                   <Button disabled={!value} variant="contained" type="submit">
-                    <Trans>Send Feedback</Trans>
+                    Send Feedback
                   </Button>
                 </Box>
               </form>

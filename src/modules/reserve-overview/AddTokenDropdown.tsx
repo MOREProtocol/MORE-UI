@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { Box, Menu, MenuItem, Typography } from '@mui/material';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
@@ -111,7 +110,7 @@ export const AddTokenDropdown = ({
             <WalletIcon sx={{ width: '14px', height: '14px', '&:hover': { stroke: '#F1F1F3' } }} />
           </Box>
         </CircleIcon>
-      </Box>
+      </Box >
       <Menu
         anchorEl={anchorEl}
         open={open}
@@ -124,7 +123,7 @@ export const AddTokenDropdown = ({
       >
         <Box sx={{ px: 4, pt: 3, pb: 2 }}>
           <Typography variant="secondary12" color="text.secondary">
-            <Trans>Underlying token</Trans>
+            Underlying token
           </Typography>
         </Box>
 
@@ -163,7 +162,7 @@ export const AddTokenDropdown = ({
           <Box>
             <Box sx={{ px: 4, pt: 3, pb: 2 }}>
               <Typography variant="secondary12" color="text.secondary">
-                <Trans>More mToken</Trans>
+                More mToken
               </Typography>
             </Box>
             <MenuItem

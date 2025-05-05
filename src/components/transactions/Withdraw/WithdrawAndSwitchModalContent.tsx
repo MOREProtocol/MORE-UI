@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { valueToBigNumber } from '@aave/math-utils';
 import { ArrowDownIcon } from '@heroicons/react/solid';
 import { Box, Checkbox, Stack, SvgIcon, Typography } from '@mui/material';
@@ -198,7 +197,7 @@ export const WithdrawAndSwitchModalContent = ({
   return (
     <>
       <AssetInput
-        inputTitle={<Trans>Withdraw</Trans>}
+        inputTitle={'Withdraw'}
         value={withdrawAmount}
         onChange={handleChange}
         symbol={symbol}
@@ -215,13 +214,7 @@ export const WithdrawAndSwitchModalContent = ({
         isMaxSelected={isMaxSelected}
         disabled={withdrawTxState.loading}
         maxValue={maxAmountToWithdraw.toString(10)}
-        balanceText={
-          unborrowedLiquidity.lt(underlyingBalance) ? (
-            <Trans>Available</Trans>
-          ) : (
-            <Trans>Supply balance</Trans>
-          )
-        }
+        balanceText={unborrowedLiquidity.lt(underlyingBalance) ? 'Available' : 'Supply balance'}
       />
 
       <Box sx={{ padding: '18px', pt: '14px', display: 'flex', justifyContent: 'space-between' }}>
@@ -242,8 +235,8 @@ export const WithdrawAndSwitchModalContent = ({
         usdValue={outputUSD}
         symbol={targetReserve.symbol}
         assets={swapTargets}
-        inputTitle={<Trans>Receive (est.)</Trans>}
-        balanceText={<Trans>Supply balance</Trans>}
+        inputTitle={'Receive (est.)'}
+        balanceText={'Supply balance'}
         disableInput
         loading={loadingSkeleton}
       />
@@ -269,7 +262,7 @@ export const WithdrawAndSwitchModalContent = ({
               setSlippage={setMaxSlippage}
               slippageTooltipHeader={
                 <Stack direction="row" gap={2} alignItems="center" justifyContent="space-between">
-                  <Trans>Minimum amount received</Trans>
+                  Minimum amount received
                   <Stack alignItems="end">
                     <Stack direction="row">
                       <TokenIcon
@@ -286,7 +279,7 @@ export const WithdrawAndSwitchModalContent = ({
         }
       >
         <DetailsNumberLine
-          description={<Trans>Remaining supply</Trans>}
+          description={'Remaining supply'}
           value={underlyingBalance.minus(withdrawAmount || '0').toString(10)}
           symbol={
             poolReserve.isWrappedBaseAsset
@@ -306,10 +299,7 @@ export const WithdrawAndSwitchModalContent = ({
       {displayRiskCheckbox && (
         <>
           <Warning severity="error" sx={{ my: 6 }}>
-            <Trans>
-              Withdrawing this amount will reduce your health factor and increase risk of
-              liquidation.
-            </Trans>
+            Withdrawing this amount will reduce your health factor and increase risk of liquidation.
           </Warning>
           <Box
             sx={{
@@ -333,9 +323,7 @@ export const WithdrawAndSwitchModalContent = ({
               size="small"
               data-cy={`risk-checkbox`}
             />
-            <Typography variant="description">
-              <Trans>I acknowledge the risks involved.</Trans>
-            </Typography>
+            <Typography variant="description">I acknowledge the risks involved.</Typography>
           </Box>
         </>
       )}

@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ERC20Service, gasLimitRecommendations, ProtocolAction } from '@aave/contract-helpers';
 import { SignatureLike } from '@ethersproject/bytes';
 import { BoxProps } from '@mui/material';
@@ -257,13 +256,13 @@ export const WithdrawAndSwitchActions = ({
       amount={amountToSwap}
       handleApproval={() => approval()}
       requiresApproval={requiresApproval}
-      actionText={<Trans>Withdraw and Switch</Trans>}
-      actionInProgressText={<Trans>Withdrawing and Switching</Trans>}
+      actionText={'Withdraw and Switch'}
+      actionInProgressText={'Withdrawing and Switching'}
       sx={sx}
       errorParams={{
         loading: false,
         disabled: blocked || !approvalTxState?.success,
-        content: <Trans>Withdraw and Switch</Trans>,
+        content: 'Withdraw and Switch',
         handleClick: action,
       }}
       fetchingData={loading}

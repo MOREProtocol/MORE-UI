@@ -1,6 +1,3 @@
-import { MessageDescriptor } from '@lingui/core';
-import { msg } from '@lingui/core/macro';
-import { useLingui } from '@lingui/react';
 import { Button, List, ListItem, Typography, useMediaQuery, useTheme } from '@mui/material';
 import * as React from 'react';
 import { useRootStore } from 'src/store/root';
@@ -19,32 +16,38 @@ interface NavItemsProps {
 interface Navigation {
   link: string;
   title: string;
-  visibleTitle: MessageDescriptor;
+  visibleTitle: string;
   isVisible?: (data: MarketDataType) => boolean | undefined;
   dataCy?: string;
 }
 
 export const NavItems = ({ setOpen }: NavItemsProps) => {
-  const { i18n } = useLingui();
   const { currentMarketData } = useProtocolDataContext();
 
   const navigation: Navigation[] = [
     {
       link: ROUTES.dashboard,
       title: 'Dashboard',
-      visibleTitle: msg`Dashboard`,
+      visibleTitle: 'Dashboard',
       dataCy: 'menuDashboard',
     },
     {
       link: ROUTES.markets,
       title: 'Markets',
-      visibleTitle: msg`Markets`,
+      visibleTitle: 'Markets',
       dataCy: 'menuMarkets',
+    },
+    {
+      link: ROUTES.vaults,
+      title: 'Vaults',
+      visibleTitle: 'Vaults',
+      dataCy: 'menuVaults',
+      isVisible: () => ENABLE_TESTNET,
     },
     {
       link: ROUTES.staking,
       title: 'Stake',
-      visibleTitle: msg`Stake`,
+      visibleTitle: 'Stake',
       dataCy: 'menuStake',
       isVisible: () =>
         process.env.NEXT_PUBLIC_ENABLE_STAKING === 'true' &&
@@ -54,7 +57,7 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
     {
       link: ROUTES.governance,
       title: 'Governance',
-      visibleTitle: msg`Governance`,
+      visibleTitle: 'Governance',
       dataCy: 'menuGovernance',
       isVisible: () =>
         process.env.NEXT_PUBLIC_ENABLE_GOVERNANCE === 'true' &&
@@ -64,7 +67,7 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
     {
       link: ROUTES.faucet,
       title: 'Faucet',
-      visibleTitle: msg`Faucet`,
+      visibleTitle: 'Faucet',
       isVisible: () => process.env.NEXT_PUBLIC_ENV === 'staging' || ENABLE_TESTNET,
     },
   ];
@@ -110,7 +113,7 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
                 sx={{ width: '100%', p: 4 }}
                 onClick={() => handleClick(item.title, true)}
               >
-                {i18n._(item.visibleTitle)}
+                {item.visibleTitle}
               </Typography>
             ) : (
               <Button
@@ -139,7 +142,7 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
                   },
                 })}
               >
-                {i18n._(item.visibleTitle)}
+                {item.visibleTitle}
               </Button>
             )}
           </ListItem>

@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import {
   API_ETH_MOCK_ADDRESS,
   gasLimitRecommendations,
@@ -123,13 +122,13 @@ export const CollateralRepayActions = ({
           underlyingAsset: fromAssetData.aTokenAddress,
         })
       }
-      actionText={<Trans>Repay {symbol}</Trans>}
-      actionInProgressText={<Trans>Repaying {symbol}</Trans>}
+      actionText={`Repay ${symbol}`}
+      actionInProgressText={`Repaying ${symbol}`}
       fetchingData={loading}
       errorParams={{
         loading: false,
         disabled: blocked,
-        content: <Trans>Repay {symbol}</Trans>,
+        content: `Repay ${symbol}`,
         handleClick: action,
       }}
       tryPermit

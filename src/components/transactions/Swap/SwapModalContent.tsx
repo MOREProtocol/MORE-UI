@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { SwitchVerticalIcon } from '@heroicons/react/outline';
 import { Box, Stack, SvgIcon, Typography } from '@mui/material';
 import BigNumber from 'bignumber.js';
@@ -142,21 +141,21 @@ export const SwapModalContent = ({
   const BlockingError: React.FC = () => {
     switch (blockingError) {
       case ErrorType.SUPPLY_CAP_REACHED:
-        return <Trans>Supply cap on target reserve reached. Try lowering the amount.</Trans>;
+        return 'Supply cap on target reserve reached. Try lowering the amount.';
       case ErrorType.ZERO_LTV_WITHDRAW_BLOCKED:
         return (
-          <Trans>
+          <>
             Assets with zero LTV ({assetsBlockingWithdraw}) must be withdrawn or disabled as
             collateral to perform this action
-          </Trans>
+          </>
         );
       case ErrorType.FLASH_LOAN_NOT_AVAILABLE:
         return (
-          <Trans>
+          <>
             Due to health factor impact, a flashloan is required to perform this transaction, but
             More Governance has disabled flashloan availability for this asset. Try lowering the
             amount or supplying additional collateral.
-          </Trans>
+          </>
         );
       default:
         return null;
@@ -165,11 +164,7 @@ export const SwapModalContent = ({
 
   if (supplyTxState.success)
     return (
-      <TxSuccessView
-        action={<Trans>Switched</Trans>}
-        amount={amountRef.current}
-        symbol={poolReserve.symbol}
-      />
+      <TxSuccessView action={'Switched'} amount={amountRef.current} symbol={poolReserve.symbol} />
     );
 
   // hf is only relevant when there are borrows
@@ -254,8 +249,8 @@ export const SwapModalContent = ({
           },
         ]}
         maxValue={maxAmountToSwap}
-        inputTitle={<Trans>Supplied asset amount</Trans>}
-        balanceText={<Trans>Supply balance</Trans>}
+        inputTitle={'Supplied asset amount'}
+        balanceText={'Supply balance'}
         isMaxSelected={isMaxSelected}
       />
       <Box sx={{ padding: '18px', pt: '14px', display: 'flex', justifyContent: 'space-between' }}>
@@ -275,8 +270,8 @@ export const SwapModalContent = ({
         usdValue={outputAmountUSD}
         symbol={targetReserve.symbol}
         assets={swapTargets}
-        inputTitle={<Trans>Switch to</Trans>}
-        balanceText={<Trans>Supply balance</Trans>}
+        inputTitle={'Switch to'}
+        balanceText={'Supply balance'}
         disableInput
         loading={loadingSkeleton}
       />
@@ -305,7 +300,7 @@ export const SwapModalContent = ({
             setSlippage={setMaxSlippage}
             slippageTooltipHeader={
               <Stack direction="row" gap={2} alignItems="center" justifyContent="space-between">
-                <Trans>Minimum amount received</Trans>
+                Minimum amount received
                 <Stack alignItems="end">
                   <Stack direction="row">
                     <TokenIcon

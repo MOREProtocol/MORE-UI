@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { CheckIcon } from '@heroicons/react/outline';
 import { CogIcon } from '@heroicons/react/solid';
 import {
@@ -39,7 +38,7 @@ export const ApprovalMethodToggleButton = ({
         data-cy={`approveButtonChange`}
       >
         <Typography variant="subheader2" color="info.main">
-          <Trans>{currentMethod}</Trans>
+          {currentMethod}
         </Typography>
         <SvgIcon sx={{ fontSize: 16, ml: 1, color: 'info.main' }}>
           <CogIcon />
@@ -68,7 +67,7 @@ export const ApprovalMethodToggleButton = ({
           }}
         >
           <ListItemText primaryTypographyProps={{ variant: 'subheader1' }}>
-            <Trans>{ApprovalMethod.PERMIT}</Trans>
+            {ApprovalMethod.PERMIT}
           </ListItemText>
           <ListItemIcon>
             <SvgIcon>{currentMethod === ApprovalMethod.PERMIT && <CheckIcon />}</SvgIcon>
@@ -87,7 +86,7 @@ export const ApprovalMethodToggleButton = ({
           }}
         >
           <ListItemText primaryTypographyProps={{ variant: 'subheader1' }}>
-            <Trans>{ApprovalMethod.APPROVE}</Trans>
+            {ApprovalMethod.APPROVE}
           </ListItemText>
           <ListItemIcon>
             <SvgIcon>{currentMethod === ApprovalMethod.APPROVE && <CheckIcon />}</SvgIcon>

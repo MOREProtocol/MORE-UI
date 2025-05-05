@@ -1,7 +1,6 @@
-import { Trans } from "@lingui/react/macro";
 import { CheckIcon } from '@heroicons/react/solid';
 import { Box, BoxProps, Button, CircularProgress, SvgIcon, Typography } from '@mui/material';
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { TxStateType, useModalContext } from 'src/hooks/useModal';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { TrackEventProps } from 'src/store/analyticsSlice';
@@ -17,6 +16,7 @@ interface TxActionsWrapperProps extends BoxProps {
   approvalTxState?: TxStateType;
   handleApproval?: () => Promise<void>;
   handleAction: () => Promise<void>;
+  handleAddToBatch?: () => Promise<void>;
   isWrongNetwork: boolean;
   mainTxState: TxStateType;
   preparingTransactions: boolean;
@@ -42,6 +42,7 @@ export const TxActionsWrapper = ({
   approvalTxState,
   handleApproval,
   handleAction,
+  handleAddToBatch,
   isWrongNetwork,
   mainTxState,
   preparingTransactions,
@@ -56,7 +57,7 @@ export const TxActionsWrapper = ({
   event,
   ...rest
 }: TxActionsWrapperProps) => {
-  const { txError } = useModalContext();
+  const { txError, close } = useModalContext();
   const { readOnlyModeAddress } = useWeb3Context();
   const hasApprovalError =
     requiresApproval && txError?.txAction === TxAction.APPROVAL && txError?.actionBlocked;
@@ -72,12 +73,12 @@ export const TxActionsWrapper = ({
       if (errorParams) return errorParams;
       return { loading: false, disabled: true, content: actionText };
     }
-    if (isWrongNetwork) return { disabled: true, content: <Trans>Wrong Network</Trans> };
-    if (fetchingData) return { disabled: true, content: <Trans>Fetching data...</Trans> };
-    if (isAmountMissing) return { disabled: true, content: <Trans>Enter an amount</Trans> };
+    if (isWrongNetwork) return { disabled: true, content: 'Wrong Network' };
+    if (fetchingData) return { disabled: true, content: 'Fetching data...' };
+    if (isAmountMissing) return { disabled: true, content: 'Enter an amount' };
     if (preparingTransactions) return { disabled: true, loading: true };
     // if (hasApprovalError && handleRetry)
-    //   return { content: <Trans>Retry with approval</Trans>, handleClick: handleRetry };
+    //   return { content: Retry with approval, handleClick: handleRetry };
     if (mainTxState?.loading)
       return { loading: true, disabled: true, content: actionInProgressText };
     if (requiresApproval && !approvalTxState?.success)
@@ -95,13 +96,13 @@ export const TxActionsWrapper = ({
     )
       return null;
     if (approvalTxState?.loading)
-      return { loading: true, disabled: true, content: <Trans>Approving {symbol}...</Trans> };
+      return { loading: true, disabled: true, content: `Approving ${symbol}...` };
     if (approvalTxState?.success)
       return {
         disabled: true,
         content: (
           <>
-            <Trans>Approve Confirmed</Trans>
+            Approve Confirmed
             <SvgIcon sx={{ fontSize: 20, ml: 2 }}>
               <CheckIcon />
             </SvgIcon>
@@ -116,12 +117,20 @@ export const TxActionsWrapper = ({
           iconSize={20}
           iconMargin={2}
           color="white"
-          text={<Trans>Approve {symbol} to continue</Trans>}
+          text={`Approve ${symbol} to continue`}
         />
       ),
       handleClick: handleApproval,
     };
   }
+
+  const [isBatchLoading, setIsBatchLoading] = useState(false);
+  const handleAddToBatchClick = async () => {
+    setIsBatchLoading(true);
+    await handleAddToBatch();
+    setIsBatchLoading(false);
+    close();
+  };
 
   const { content, disabled, loading, handleClick } = getMainParams();
   const approvalParams = getApprovalParams();
@@ -149,20 +158,38 @@ export const TxActionsWrapper = ({
         </Button>
       )}
 
-      <Button
-        variant="contained"
-        disabled={disabled || blocked || readOnlyModeAddress !== undefined}
-        onClick={handleClick}
-        size="large"
-        sx={{ minHeight: '44px', ...(approvalParams ? { mt: 2 } : {}) }}
-        data-cy="actionButton"
-      >
-        {loading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
-        {content}
-      </Button>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Button
+          variant="contained"
+          disabled={disabled || blocked || readOnlyModeAddress !== undefined}
+          onClick={handleClick}
+          size="large"
+          sx={{ minHeight: '44px', ...(approvalParams ? { mt: 2 } : {}) }}
+          data-cy="actionButton"
+        >
+          {loading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
+          {content}
+        </Button>
+        <Button
+          variant="contained"
+          disabled={
+            blocked || readOnlyModeAddress !== undefined || !handleAddToBatch || isAmountMissing
+          }
+          onClick={handleAddToBatchClick}
+          size="large"
+          sx={{ minHeight: '44px', ...(approvalParams ? { mt: 2 } : {}) }}
+          data-cy="batchButton"
+        >
+          {isBatchLoading ? (
+            <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />
+          ) : (
+            'Add to batch'
+          )}
+        </Button>
+      </Box>
       {readOnlyModeAddress && (
         <Typography variant="helperText" color="warning.main" sx={{ textAlign: 'center', mt: 2 }}>
-          <Trans>Read-only mode. Connect to a wallet to perform transactions.</Trans>
+          Read-only mode. Connect to a wallet to perform transactions.
         </Typography>
       )}
     </Box>

@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import React from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
 import { UserAuthenticated } from 'src/components/UserAuthenticated';
@@ -13,7 +12,7 @@ export const SwapModal = () => {
   }>;
   return (
     <BasicModal open={type === ModalType.Swap} setOpen={close}>
-      <ModalWrapper title={<Trans>Switch</Trans>} underlyingAsset={args.underlyingAsset}>
+      <ModalWrapper title={<>{'Switch'}</>} underlyingAsset={args.underlyingAsset}>
         {(params) => (
           <UserAuthenticated>
             {(user) => <SwapModalContent {...params} user={user} />}

@@ -1,4 +1,3 @@
-import { Trans } from '@lingui/react/macro';
 import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
 import { USD_DECIMALS, valueToBigNumber } from '@aave/math-utils';
 import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
@@ -33,11 +32,11 @@ import { SupplyAssetsListItem } from './SupplyAssetsListItem';
 import { WalletEmptyInfo } from './WalletEmptyInfo';
 
 const head = [
-  { title: <Trans key="assets">Assets</Trans>, sortKey: 'symbol' },
-  { title: <Trans key="Wallet balance">Wallet balance</Trans>, sortKey: 'walletBalance' },
-  { title: <Trans key="APY">APY</Trans>, sortKey: 'supplyAPY' },
+  { title: 'Assets', sortKey: 'symbol' },
+  { title: 'Wallet balance', sortKey: 'walletBalance' },
+  { title: 'APY', sortKey: 'supplyAPY' },
   {
-    title: <Trans key="Can be collateral">Can be collateral</Trans>,
+    title: 'Can be collateral',
     sortKey: 'usageAsCollateralEnabledOnUser',
   },
 ];
@@ -97,10 +96,10 @@ export const SupplyAssetsList = () => {
 
       const usageAsCollateralEnabledOnUser = !user?.isInIsolationMode
         ? reserve.reserveLiquidationThreshold !== '0' &&
-          (!isIsolated || (isIsolated && !hasDifferentCollateral))
+        (!isIsolated || (isIsolated && !hasDifferentCollateral))
         : !isIsolated
-        ? false
-        : !hasDifferentCollateral;
+          ? false
+          : !hasDifferentCollateral;
 
       if (reserve.isWrappedBaseAsset) {
         let baseAvailableToDeposit = valueToBigNumber(
@@ -189,8 +188,8 @@ export const SupplyAssetsList = () => {
   const supplyReserves: unknown = isShowZeroAssets
     ? sortedSupplyReserves
     : filteredSupplyReserves.length >= 1
-    ? filteredSupplyReserves
-    : sortedSupplyReserves;
+      ? filteredSupplyReserves
+      : sortedSupplyReserves;
 
   // Transform to the DashboardReserve schema so the sort utils can work with it
   const preSortedReserves = supplyReserves as DashboardReserve[];
@@ -230,11 +229,7 @@ export const SupplyAssetsList = () => {
 
   if (loadingReserves || loading)
     return (
-      <ListLoader
-        head={head.map((col) => col.title)}
-        title={<Trans>Assets to supply</Trans>}
-        withTopMargin
-      />
+      <ListLoader head={head.map((col) => col.title)} title={'Assets to supply'} withTopMargin />
     );
 
   const supplyDisabled = !tokensToSupply.length;
@@ -243,7 +238,7 @@ export const SupplyAssetsList = () => {
     <ListWrapper
       titleComponent={
         <Typography component="div" variant="h3" sx={{ mr: 4 }}>
-          <Trans>Assets to supply</Trans>
+          Assets to supply
         </Typography>
       }
       localStorageName="supplyAssetsDashboardTableCollapse"
@@ -254,20 +249,18 @@ export const SupplyAssetsList = () => {
           <Box sx={{ px: 6 }}>
             {user?.isInIsolationMode ? (
               <Warning severity="warning">
-                <Trans>
-                  Collateral usage is limited because of isolation mode.{' '}
-                  <Link href="https://docs.more.markets/faq/" target="_blank" rel="noopener">
-                    Learn More
-                  </Link>
-                </Trans>
+                Collateral usage is limited because of isolation mode.{' '}
+                <Link href="https://docs.aave.com/faq/" target="_blank" rel="noopener">
+                  Learn More
+                </Link>
               </Warning>
             ) : (
               filteredSupplyReserves.length === 0 &&
               (isTestnet ? (
                 <Warning severity="info">
-                  <Trans>Your {networkName} wallet is empty. Get free test assets at </Trans>{' '}
+                  Your {networkName} wallet is empty. Get free test assets at{' '}
                   <Link href={ROUTES.faucet} style={{ fontWeight: 400 }}>
-                    <Trans>{networkName} Faucet</Trans>
+                    {networkName} Faucet
                   </Link>
                 </Warning>
               ) : (

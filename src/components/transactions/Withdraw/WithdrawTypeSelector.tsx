@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { Box, Typography } from '@mui/material';
 import { StyledTxModalToggleButton } from 'src/components/StyledToggleButton';
 import { StyledTxModalToggleGroup } from 'src/components/StyledToggleButtonGroup';
@@ -37,7 +36,7 @@ export function WithdrawTypeSelector({
           }
         >
           <Typography variant="buttonM">
-            <Trans>Withdraw</Trans>
+            Withdraw
           </Typography>
         </StyledTxModalToggleButton>
 
@@ -49,7 +48,7 @@ export function WithdrawTypeSelector({
           }
         >
           <Typography variant="buttonM">
-            <Trans>Withdraw & Switch</Trans>
+            Withdraw & Switch
           </Typography>
         </StyledTxModalToggleButton>
       </StyledTxModalToggleGroup>

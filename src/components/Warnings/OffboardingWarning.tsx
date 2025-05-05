@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { CustomMarket } from 'src/ui-config/marketsConfig';
 
 import { Link } from '../primitives/Link';
@@ -9,11 +8,11 @@ export const AssetsBeingOffboarded: { [market: string]: { [symbol: string]: stri
 
 export const OffboardingWarning = ({ discussionLink }: { discussionLink: string }) => {
   return (
-    <Trans>
-      This asset is planned to be offboarded due to an More Protocol Governance decision.{' '}
+    <>
+      {'This asset is planned to be offboarded due to an Aave Protocol Governance decision. '}
       <Link href={discussionLink} sx={{ textDecoration: 'underline' }}>
-        <Trans>More details</Trans>
+        More details
       </Link>
-    </Trans>
+    </>
   );
 };

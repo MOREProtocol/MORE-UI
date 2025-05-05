@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ExclamationIcon } from '@heroicons/react/outline';
 import { Typography } from '@mui/material';
 import { ReactNode } from 'react';
@@ -22,52 +21,43 @@ export const MigrationDisabledTooltip = ({
 }: MigrationDisabledTooltipProps) => {
   const warningText: Record<MigrationDisabled, ReactNode> = {
     [MigrationDisabled.EModeBorrowDisabled]: (
-      <Trans>
-        Asset cannot be migrated to {marketName} V3 Market due to E-mode restrictions. You can
-        disable or manage E-mode categories in your{' '}
+      <>
+        {`Asset cannot be migrated to ${marketName} V3 Market due to E-mode restrictions. You can disable or manage E-mode categories in your `}
         <Link href={dashboardLink || ''} target="_blank" underline="always">
           V3 Dashboard
         </Link>
-      </Trans>
+      </>
     ),
     [MigrationDisabled.AssetNotFlashloanable]: (
-      <Trans>Flashloan is disabled for this asset, hence this position cannot be migrated.</Trans>
+      <>{'Flashloan is disabled for this asset, hence this position cannot be migrated.'}</>
     ),
     [MigrationDisabled.InsufficientLiquidity]: (
-      <Trans>
-        Asset cannot be migrated due to insufficient liquidity or borrow cap limitation in{' '}
-        {marketName} v3 market.
-      </Trans>
+      <>
+        {`Asset cannot be migrated due to insufficient liquidity or borrow cap limitation in ${marketName} v3 market.`}
+      </>
     ),
     [MigrationDisabled.NotEnoughtSupplies]: (
-      <Trans>
-        Asset cannot be migrated due to supply cap restriction in {marketName} v3 market.
-      </Trans>
+      <>{`Asset cannot be migrated due to supply cap restriction in ${marketName} v3 market.`}</>
     ),
     [MigrationDisabled.ReserveFrozen]: (
-      <Trans>
-        Asset is frozen in {marketName} v3 market, hence this position cannot be migrated.
-      </Trans>
+      <>{`Asset is frozen in ${marketName} v3 market, hence this position cannot be migrated.`}</>
     ),
     [MigrationDisabled.IsolationModeBorrowDisabled]: isolatedV3 ? (
-      <Trans>
-        Asset cannot be migrated because you have isolated collateral in {marketName} v3 Market
-        which limits borrowable assets. You can manage your collateral in{' '}
+      <>
+        {`Asset cannot be migrated because you have isolated collateral in ${marketName} v3 Market which limits borrowable assets. You can manage your collateral in `}
         <Link href={dashboardLink || ''} target="_blank" underline="always">
           {marketName} V3 Dashboard
         </Link>{' '}
-      </Trans>
+      </>
     ) : (
-      <Trans>
-        Asset cannot be migrated to {marketName} v3 Market since collateral asset will enable
-        isolation mode.
-      </Trans>
+      <>
+        {`Asset cannot be migrated to ${marketName} v3 Market since collateral asset will enable isolation mode.`}
+      </>
     ),
     [MigrationDisabled.V3AssetMissing]: (
-      <Trans>
-        Underlying asset does not exist in {marketName} v3 Market, hence this position cannot be
-        migrated.
-      </Trans>
+      <>
+        {`Underlying asset does not exist in ${marketName} v3 Market, hence this position cannot be migrated.`}
+      </>
     ),
   };
 

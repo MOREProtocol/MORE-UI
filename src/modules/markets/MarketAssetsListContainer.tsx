@@ -1,25 +1,77 @@
-import { Trans } from '@lingui/react/macro';
 import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
-import { Box, Switch, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { useState } from 'react';
+import { Box, Collapse, Switch, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { useEffect, useMemo, useState } from 'react';
 import { ListWrapper } from 'src/components/lists/ListWrapper';
 import { NoSearchResults } from 'src/components/NoSearchResults';
 import { Warning } from 'src/components/primitives/Warning';
 import { TitleWithSearchBar } from 'src/components/TitleWithSearchBar';
 import { MarketWarning } from 'src/components/transactions/Warnings/MarketWarning';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
-import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
+import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
 import MarketAssetsList from 'src/modules/markets/MarketAssetsList';
 import { fetchIconSymbolAndName } from 'src/ui-config/reservePatches';
 import { getGhoReserve, GHO_SUPPORTED_MARKETS, GHO_SYMBOL } from 'src/utils/ghoUtilities';
-
+import { useRootStore } from 'src/store/root';
+import {
+  applyFilters,
+  calculateFilterOptions,
+  DEFAULT_FILTERS,
+  FilterComponent,
+  FilterState,
+} from './MarketAssetsListFilters';
 
 export const MarketAssetsListContainer = () => {
   const { reserves, loading } = useAppDataContext();
-  const { currentMarket, currentMarketData, currentNetworkConfig } = useProtocolDataContext();
+  const { currentMarket, currentMarketData, currentNetworkConfig } = useRootStore();
+  const { walletBalances } = useWalletBalances(currentMarketData);
   const [searchTerm, setSearchTerm] = useState('');
   const { breakpoints } = useTheme();
   const sm = useMediaQuery(breakpoints.down('sm'));
+  const [showFilter, setShowFilter] = useState(false);
+
+  // Calculate initial ranges from reserves
+  const initialFilterOptions = useMemo(() => calculateFilterOptions(reserves), [reserves]);
+
+  // Initialize filters with calculated ranges
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  useEffect(() => {
+    if (!loading && initialFilterOptions) {
+      setFilters({
+        ...DEFAULT_FILTERS,
+        totalSupplied: {
+          ...DEFAULT_FILTERS.totalSupplied,
+          max: initialFilterOptions.totalSupplied.max,
+        },
+        utilizationRate: {
+          ...DEFAULT_FILTERS.utilizationRate,
+          max: initialFilterOptions.utilizationRate.max,
+        },
+        maxLtv: {
+          ...DEFAULT_FILTERS.maxLtv,
+          max: initialFilterOptions.maxLtv.max,
+        },
+        apy: {
+          ...DEFAULT_FILTERS.apy,
+          max: initialFilterOptions.apy.max,
+        },
+        loanToken: {
+          ...DEFAULT_FILTERS.loanToken,
+          options: initialFilterOptions.loanTokens.options,
+        },
+        collateralToken: {
+          ...DEFAULT_FILTERS.collateralToken,
+          options: initialFilterOptions.collateralTokens.options,
+        },
+      });
+    }
+  }, [initialFilterOptions, loading]);
+
+  const handleFiltersChange = (newFilters: Partial<FilterState>) => {
+    setFilters((prevFilters) => ({
+      ...prevFilters,
+      ...newFilters,
+    }));
+  };
 
   const ghoReserve = getGhoReserve(reserves);
   const filteredData = reserves
@@ -37,6 +89,7 @@ export const MarketAssetsListContainer = () => {
         res.underlyingAsset.toLowerCase().includes(term)
       );
     })
+    .filter((res) => applyFilters([res], filters).length > 0)
     // Transform the object for list to consume it
     .map((reserve) => ({
       ...reserve,
@@ -81,13 +134,16 @@ export const MarketAssetsListContainer = () => {
       titleComponent={
         <TitleWithSearchBar
           onSearchTermChange={setSearchTerm}
-          title={
-            <>
-              {currentMarketData.marketTitle} <Trans>assets</Trans>
-            </>
-          }
+          onShowFilterChange={setShowFilter}
+          showFilter={showFilter}
+          title={<>{currentMarketData.marketTitle} assets</>}
           searchPlaceholder={sm ? 'Search asset' : 'Search asset name, symbol, or address'}
         />
+      }
+      filterComponent={
+        <Collapse in={showFilter}>
+          <FilterComponent filters={filters} onFiltersChange={handleFiltersChange} />
+        </Collapse>
       }
     >
       {showFrozenMarketWarning && (
@@ -97,14 +153,17 @@ export const MarketAssetsListContainer = () => {
       )}
 
       {/* Unfrozen assets list */}
-      <MarketAssetsList reserves={unfrozenReserves} loading={loading} />
+      <MarketAssetsList
+        reserves={unfrozenReserves}
+        loading={loading}
+        walletBalances={walletBalances}
+      />
 
       {/* Frozen or paused assets list */}
       {frozenOrPausedReserves.length > 0 && (
         <Box sx={{ mt: 10, px: { xs: 4, xsm: 6 } }}>
           <Typography variant="h4" mb={4}>
-            <Trans>Show Frozen or paused assets</Trans>
-
+            Show Frozen or paused assets
             <Switch
               checked={showFrozenMarketsToggle}
               onChange={handleChange}
@@ -113,17 +172,19 @@ export const MarketAssetsListContainer = () => {
           </Typography>
           {showFrozenMarketsToggle && (
             <Warning severity="info">
-              <Trans>
-                These assets are temporarily frozen or paused by MORE Markets community decisions,
-                meaning that further supply / borrow, or rate swap of these assets are unavailable.
-                Withdrawals and debt repayments are allowed.
-              </Trans>
+              These assets are temporarily frozen or paused by Aave community decisions, meaning
+              that further supply / borrow, or rate swap of these assets are unavailable.
+              Withdrawals and debt repayments are allowed.
             </Warning>
           )}
         </Box>
       )}
       {showFrozenMarketsToggle && (
-        <MarketAssetsList reserves={frozenOrPausedReserves} loading={loading} />
+        <MarketAssetsList
+          reserves={frozenOrPausedReserves}
+          loading={loading}
+          walletBalances={walletBalances}
+        />
       )}
 
       {/* Show no search results message if nothing hits in either list */}
@@ -131,10 +192,10 @@ export const MarketAssetsListContainer = () => {
         <NoSearchResults
           searchTerm={searchTerm}
           subtitle={
-            <Trans>
+            <>
               We couldn&apos;t find any assets related to your search. Try again with a different
-              asset name, symbol, or address.
-            </Trans>
+              asset name, symbol, search parameter, or address.
+            </>
           }
         />
       )}

@@ -4,8 +4,9 @@ export const BorrowPowerTooltip = ({ ...rest }: TextWithTooltipProps) => {
   return (
     <TextWithTooltip {...rest}>
       <>
-        The % of your loan compared to your total collateral value. A higher LTV means more risk of
-        liquidation if your collateral drops in value.
+        {
+          'The % of your total borrowing power used. This is based on the amount of your collateral supplied and the total amount that you can borrow.'
+        }
       </>
     </TextWithTooltip>
   );

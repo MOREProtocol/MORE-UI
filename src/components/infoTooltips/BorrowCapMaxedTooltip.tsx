@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { ExclamationIcon } from '@heroicons/react/outline';
 import { Box } from '@mui/material';
 import { AssetCapData } from 'src/hooks/useAssetCaps';
@@ -17,12 +16,12 @@ export const BorrowCapMaxedTooltip = ({ borrowCap, ...rest }: BorrowCapMaxedTool
     <Box sx={{ ml: 2 }}>
       <TextWithTooltip {...rest} icon={<ExclamationIcon />} iconColor="warning.main" iconSize={18}>
         <>
-          <Trans>Protocol borrow cap at 100% for this asset. Further borrowing unavailable.</Trans>{' '}
+          {'Protocol borrow cap at 100% for this asset. Further borrowing unavailable. '}
           <Link
             href="https://docs.more.markets/developers/whats-new/supply-borrow-caps"
             underline="always"
           >
-            <Trans>Learn more</Trans>
+            Learn more
           </Link>
         </>
       </TextWithTooltip>

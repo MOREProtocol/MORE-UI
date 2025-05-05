@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import CloseIcon from '@mui/icons-material/Close';
 import { useMediaQuery, useTheme } from '@mui/material';
 import AppBar from '@mui/material/AppBar';
@@ -65,7 +64,7 @@ export default function TopBarNotify({ notifyText, learnMoreLink, buttonText }: 
         >
           <Box sx={{ padding: md ? '20px 10px' : '', paddingRight: 0 }}>
             <Typography component="div">
-              <Trans>{notifyText}</Trans>
+              {notifyText}
 
               {learnMoreLink && md ? (
                 <Link
@@ -73,7 +72,7 @@ export default function TopBarNotify({ notifyText, learnMoreLink, buttonText }: 
                   // target={'_blank'} Todo option to pass as prop
                   href={learnMoreLink}
                 >
-                  <Trans>{buttonText ? buttonText : `Learn more`}</Trans>
+                  {buttonText ? buttonText : `Learn more`}
                 </Link>
               ) : null}
             </Typography>
@@ -93,7 +92,7 @@ export default function TopBarNotify({ notifyText, learnMoreLink, buttonText }: 
                   color: '#EAEBEF',
                 }}
               >
-                <Trans> {buttonText ? buttonText.toUpperCase() : `LEARN MORE`}</Trans>
+                 {buttonText ? buttonText.toUpperCase() : `LEARN MORE`}
               </Button>
             ) : null}
           </Box>

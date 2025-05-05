@@ -1,4 +1,3 @@
-import { Trans } from "@lingui/react/macro";
 import { XCircleIcon } from '@heroicons/react/solid';
 import {
   Box,
@@ -68,7 +67,7 @@ export interface Asset {
 
 export interface AssetInputProps<T extends Asset = Asset> {
   value: string;
-  usdValue: string;
+  usdValue?: string;
   symbol: string;
   onChange?: (value: string) => void;
   disabled?: boolean;
@@ -125,9 +124,7 @@ export const AssetInput = <T extends Asset = Asset>({
   return (
     <Box {...sx}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-        <Typography color="text.secondary">
-          {inputTitle ? inputTitle : <Trans>Amount</Trans>}
-        </Typography>
+        <Typography color="text.secondary">{inputTitle ? inputTitle : 'Amount'}</Typography>
         {capType && <AvailableTooltip capType={capType} />}
       </Box>
 
@@ -286,7 +283,7 @@ export const AssetInput = <T extends Asset = Asset>({
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', height: '16px', px: 3, py: 2, mb: 1 }}>
-          {loading ? (
+          {loading || !usdValue ? (
             <Box sx={{ flex: 1 }} />
           ) : (
             <FormattedNumber
@@ -303,7 +300,7 @@ export const AssetInput = <T extends Asset = Asset>({
           {asset.balance && onChange && (
             <>
               <Typography component="div" variant="secondary12" color="text.secondary">
-                {balanceText && balanceText !== '' ? balanceText : <Trans>Balance</Trans>}{' '}
+                {balanceText && balanceText !== '' ? balanceText : 'Balance'}{' '}
                 <FormattedNumber
                   value={asset.balance}
                   compact
@@ -325,7 +322,7 @@ export const AssetInput = <T extends Asset = Asset>({
                   }}
                   disabled={disabled || isMaxSelected}
                 >
-                  <Trans>Max</Trans>
+                  Max
                 </Button>
               )}
             </>

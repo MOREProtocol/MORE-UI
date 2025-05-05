@@ -1,6 +1,5 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { sanctionedCountries } from "src/utils/const";
-import { Trans } from "@lingui/react/macro";
 import { ExclamationCircleIcon } from '@heroicons/react/outline';
 import { Box, SvgIcon, Typography } from '@mui/material';
 import { MainLayout } from 'src/layouts/MainLayout';
@@ -10,7 +9,7 @@ import { Link } from './primitives/Link';
 
 export const SanctionRegion = ({ children }: { children: ReactNode }) => {
   // eslint-disable-next-line @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars
-  const setOpen = (_value: boolean) => {}; // ignore, we want the modal to not be dismissable
+  const setOpen = (_value: boolean) => { }; // ignore, we want the modal to not be dismissable
   const [sanctioned, setSanctioned] = useState(false);
 
   const checkRegion = async () => {
@@ -51,31 +50,25 @@ export const SanctionRegion = ({ children }: { children: ReactNode }) => {
               <ExclamationCircleIcon />
             </SvgIcon>
             <Typography variant="h2">
-              <Trans>Access Restricted</Trans>
+              Access Restricted
             </Typography>
             <Typography variant="description" sx={{ my: 4 }}>
-              <Trans>
-                We are sorry, but our services are not available in your region at this
-                time.
-              </Trans>
+              We are sorry, but our services are not available in your region at this
+              time.
             </Typography>
             <Typography variant="description" sx={{ mb: 4 }}>
-              <Trans>
-                If you believe this is a mistake or have any questions, please contact
-                our support team at: <br />
-              </Trans>
+              If you believe this is a mistake or have any questions, please contact
+              our support team at: <br />
               <Link
                 href="mailto: support@more.markets"
-                sx={{ fontSize: '16px', textDecoration: 'underline'}}
+                sx={{ fontSize: '16px', textDecoration: 'underline' }}
                 color="theme.palette.text.primary"
               >
                 support@more.markets
               </Link>
             </Typography>
             <Typography variant="description" sx={{ textAlign: 'left', alignSelf: 'flex-start' }}>
-              <Trans>
-                Thank you for your understanding.
-              </Trans>
+              Thank you for your understanding.
             </Typography>
           </Box>
         </BasicModal>

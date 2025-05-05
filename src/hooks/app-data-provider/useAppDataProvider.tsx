@@ -1,8 +1,11 @@
+import { ReserveDataHumanized } from '@aave/contract-helpers';
 import { UserReserveData } from '@aave/math-utils';
 import React, { useContext } from 'react';
 import { EmodeCategory, IProps } from 'src/helpers/types';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
+import { allMarketsData, MarketDataType } from 'src/ui-config/marketsConfig';
+
 import { formatEmodes } from '../../store/poolSelectors';
 import {
   ExtendedFormattedUser as _ExtendedFormattedUser,
@@ -10,9 +13,9 @@ import {
 } from '../pool/useExtendedUserSummaryAndIncentives';
 import {
   FormattedReservesAndIncentives,
-  usePoolFormattedReserves,
+  usePoolsFormattedReserves,
 } from '../pool/usePoolFormattedReserves';
-import { usePoolReservesHumanized } from '../pool/usePoolReserves';
+import { usePoolsReservesHumanized } from '../pool/usePoolReserves';
 import { useUserPoolReservesHumanized } from '../pool/useUserPoolReserves';
 import { FormattedUserReserves } from '../pool/useUserSummaryAndIncentives';
 
@@ -30,6 +33,10 @@ export const unPrefixSymbol = (symbol: string, prefix: string) => {
  */
 export type ComputedReserveData = FormattedReservesAndIncentives;
 
+export type ComputedReserveDataWithMarket = FormattedReservesAndIncentives & {
+  market: MarketDataType;
+};
+
 /**
  * @deprecated Use FormattedUserReserves type from useUserSummaryAndIncentives hook
  */
@@ -42,7 +49,7 @@ export type ExtendedFormattedUser = _ExtendedFormattedUser;
 
 export interface AppDataContextType {
   loading: boolean;
-  reserves: ComputedReserveData[];
+  reserves: ComputedReserveDataWithMarket[];
   eModes: Record<number, EmodeCategory>;
   user?: ExtendedFormattedUser;
   marketReferencePriceInUsd: string;
@@ -59,17 +66,41 @@ const AppDataContext = React.createContext<AppDataContextType>({} as AppDataCont
 export const AppDataProvider: React.FC<IProps> = ({ children }) => {
   const { currentAccount } = useWeb3Context();
 
-  const currentMarketData = useRootStore((state) => state.currentMarketData);
+  const { currentMarket, currentMarketData } = useRootStore();
   // pool hooks
 
-  const { data: reservesData, isLoading: reservesDataLoading } =
-    usePoolReservesHumanized(currentMarketData);
-  const { data: formattedPoolReserves, isLoading: formattedPoolReservesLoading } =
-    usePoolFormattedReserves(currentMarketData);
-  const baseCurrencyData = reservesData?.baseCurrencyData;
+  const localMarketData = currentMarket === 'all_markets' ? allMarketsData : [currentMarketData];
+
+  const poolsReservesHumanized = usePoolsReservesHumanized(localMarketData);
+  const reservesDataLoading = poolsReservesHumanized.some((r) => r.isLoading);
+  const reservesData: (ReserveDataHumanized & { market: MarketDataType })[] =
+    !reservesDataLoading &&
+    poolsReservesHumanized
+      .map((r, index) =>
+        r.data.reservesData.map((reserve) => ({
+          ...reserve,
+          market: localMarketData[index],
+        }))
+      )
+      .flat();
+
+  const poolsFormattedReserves = usePoolsFormattedReserves(localMarketData);
+  const formattedPoolReservesLoading = poolsFormattedReserves.some((r) => r.isLoading);
+  const formattedPoolReserves: (FormattedReservesAndIncentives & { market: MarketDataType })[] =
+    !formattedPoolReservesLoading &&
+    poolsFormattedReserves
+      .map((r, index) =>
+        r.data.map((reserve) => ({
+          ...reserve,
+          market: localMarketData[index],
+        }))
+      )
+      .flat();
+
+  const baseCurrencyData = !reservesDataLoading && poolsReservesHumanized[0]?.data.baseCurrencyData;
   // user hooks
 
-  const eModes = reservesData?.reservesData ? formatEmodes(reservesData.reservesData) : {};
+  const eModes = reservesData ? formatEmodes(reservesData) : {};
 
   const { data: userReservesData, isLoading: userReservesDataLoading } =
     useUserPoolReservesHumanized(currentMarketData);
