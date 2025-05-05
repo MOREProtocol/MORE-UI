@@ -187,65 +187,65 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
               {batchTransactionGroups
                 .flat()
                 .filter((tx) => ['approve', 'delegate'].includes(tx.action)).length > 0 && (
-                <Box sx={{ mb: 5 }}>
-                  <Typography variant="h4" color="text.secondary" sx={{ mb: 1 }}>
-                    Approvals and delegations
-                  </Typography>
-                  {batchTransactionGroups.map((group, groupIndex) => {
-                    return group
-                      .filter((tx) => ['approve', 'delegate'].includes(tx.action))
-                      .map((approval, approvalIndex) => {
-                        return (
-                          <Box
-                            key={`approval-${groupIndex}-${approvalIndex}`}
-                            sx={{
-                              mb: 1,
-                              p: 2,
-                              borderRadius: '4px',
-                              bgcolor:
-                                approval.status === 'pending'
-                                  ? 'warning.200'
-                                  : approval.status === 'approved'
-                                  ? 'success.200'
-                                  : approval.status === 'failed'
-                                  ? 'error.200'
-                                  : 'background.surface',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                            }}
-                          >
-                            <Box display="flex" flexDirection="row" alignItems="center" gap={2}>
-                              <TokenIcon
-                                symbol={approval.symbol || 'TOKEN'}
-                                sx={{ fontSize: '24px' }}
-                              />
-                              <Typography variant="h3" color="text">
-                                {approval.action === 'approve' ? 'Approve' : 'Delegate'}
-                              </Typography>
-                              <Typography variant="h3" color="text.secondary">
-                                {approval.symbol || ''}
-                              </Typography>
+                  <Box sx={{ mb: 5 }}>
+                    <Typography variant="h4" color="text.secondary" sx={{ mb: 1 }}>
+                      Approvals and delegations
+                    </Typography>
+                    {batchTransactionGroups.map((group, groupIndex) => {
+                      return group
+                        .filter((tx) => ['approve', 'delegate'].includes(tx.action))
+                        .map((approval, approvalIndex) => {
+                          return (
+                            <Box
+                              key={`approval-${groupIndex}-${approvalIndex}`}
+                              sx={{
+                                mb: 1,
+                                p: 2,
+                                borderRadius: '4px',
+                                bgcolor:
+                                  approval.status === 'pending'
+                                    ? 'warning.200'
+                                    : approval.status === 'approved'
+                                      ? 'success.200'
+                                      : approval.status === 'failed'
+                                        ? 'error.200'
+                                        : 'background.surface',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <Box display="flex" flexDirection="row" alignItems="center" gap={2}>
+                                <TokenIcon
+                                  symbol={approval.symbol || 'TOKEN'}
+                                  sx={{ fontSize: '24px' }}
+                                />
+                                <Typography variant="h3" color="text">
+                                  {approval.action === 'approve' ? 'Approve' : 'Delegate'}
+                                </Typography>
+                                <Typography variant="h3" color="text.secondary">
+                                  {approval.symbol || ''}
+                                </Typography>
+                              </Box>
+                              {approval.status !== 'approved' && (
+                                <Button
+                                  variant="contained"
+                                  onClick={() => {
+                                    handleApproveOrDelegate(approval, groupIndex, approvalIndex);
+                                  }}
+                                >
+                                  {approval.action === 'approve' ? 'Approve' : 'Delegate'}
+                                  {approval.status === 'pending' && (
+                                    <CircularProgress color="inherit" size="16px" sx={{ ml: 2 }} />
+                                  )}
+                                </Button>
+                              )}
                             </Box>
-                            {approval.status !== 'approved' && (
-                              <Button
-                                variant="contained"
-                                onClick={() => {
-                                  handleApproveOrDelegate(approval, groupIndex, approvalIndex);
-                                }}
-                              >
-                                {approval.action === 'approve' ? 'Approve' : 'Delegate'}
-                                {approval.status === 'pending' && (
-                                  <CircularProgress color="inherit" size="16px" sx={{ ml: 2 }} />
-                                )}
-                              </Button>
-                            )}
-                          </Box>
-                        );
-                      });
-                  })}
-                </Box>
-              )}
+                          );
+                        });
+                    })}
+                  </Box>
+                )}
               {transactionsWithUsdValues.length > 0 && (
                 <Box sx={{ mb: 5 }}>
                   <Typography variant="h4" color="text.secondary" sx={{ mb: 1 }}>
@@ -262,10 +262,10 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
                           transaction.status === 'pending'
                             ? 'warning.200'
                             : transaction.status === 'approved'
-                            ? 'success.200'
-                            : transaction.status === 'failed'
-                            ? 'error.200'
-                            : 'background.surface',
+                              ? 'success.200'
+                              : transaction.status === 'failed'
+                                ? 'error.200'
+                                : 'background.surface',
                         position: 'relative',
                       }}
                     >
@@ -294,14 +294,14 @@ export const BatchTransactionsModal = ({ open, setOpen }: BatchTransactionsModal
                         {transaction.action === 'supply'
                           ? 'Supply'
                           : transaction.action === 'borrow'
-                          ? 'Borrow'
-                          : transaction.action === 'repay'
-                          ? 'Repay'
-                          : transaction.action === 'withdraw'
-                          ? 'Withdraw'
-                          : transaction.action === 'transfer'
-                          ? 'Transfer'
-                          : 'Unknown Action'}
+                            ? 'Borrow'
+                            : transaction.action === 'repay'
+                              ? 'Repay'
+                              : transaction.action === 'withdraw'
+                                ? 'Withdraw'
+                                : transaction.action === 'transfer'
+                                  ? 'Transfer'
+                                  : 'Unknown Action'}
                       </Typography>
                       <Typography variant="description" color="text.secondary" sx={{ mb: 1 }}>
                         Amount

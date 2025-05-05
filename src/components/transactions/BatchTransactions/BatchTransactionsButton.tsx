@@ -8,6 +8,8 @@ import { useAccount, useWalletClient } from 'wagmi';
 
 import { BatchTransactionsModal } from './BatchTransactionsModal/BatchTransactionsModal';
 import { multicalls } from 'src/utils/const';
+import { usePoolReservesHumanized } from 'src/hooks/pool/usePoolReserves';
+import { marketsData } from 'src/ui-config/marketsConfig';
 
 interface BatchTransactionProps {
   open: boolean;
@@ -15,15 +17,17 @@ interface BatchTransactionProps {
 }
 
 export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps) => {
-  const [setSigner, signer, batchTransactionGroups, setMulticallAddress] = useRootStore((state) => [
+  const [setSigner, signer, batchTransactionGroups, setMulticallAddress, setPoolReserves] = useRootStore((state) => [
     state.setSigner,
     state.signer,
     state.batchTransactionGroups,
     state.setMulticallAddress,
+    state.setPoolReserves,
   ]);
   const { isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const [currentMarket] = useRootStore((store) => [store.currentMarket]);
+  const { data: poolReserves } = usePoolReservesHumanized(marketsData[currentMarket]);
 
   const hasBatchTransactions = useMemo(
     () => batchTransactionGroups.length > 0,
@@ -35,6 +39,7 @@ export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps
       const provider = new ethers.providers.Web3Provider(
         walletClient as ethers.providers.ExternalProvider
       );
+      setPoolReserves(poolReserves);
       setMulticallAddress(multicalls[currentMarket === 'proto_flow_v3' ? 'mainnet' : 'testnet']);
       const signer = provider.getSigner();
       if (!!signer) {
@@ -47,7 +52,7 @@ export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps
     setOpen(!open);
   };
 
-  if (!signer) {
+  if (!signer || !hasBatchTransactions) {
     return <></>;
   }
 

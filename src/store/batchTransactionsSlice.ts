@@ -1,12 +1,12 @@
-import { InterestRate } from '@aave/contract-helpers';
+import { InterestRate, ReservesDataHumanized } from '@aave/contract-helpers';
 import { ethers, PopulatedTransaction } from 'ethers';
 import { parseUnits } from 'ethers/lib/utils';
-import { TOKEN_LIST } from 'src/ui-config/TokenList';
 import { CustomMarket, marketsData } from 'src/utils/marketsAndNetworksConfig';
 import { StateCreator } from 'zustand';
 
 import multicallAbi from '../libs/abis/multicall_abi.json';
 import { RootStore } from './root';
+import { APPROVAL_GAS_LIMIT } from 'src/components/transactions/utils';
 
 export interface BatchTransaction {
   action:
@@ -45,6 +45,8 @@ export interface BatchTransactionsSlice {
   setSigner: (signer: ethers.providers.JsonRpcSigner) => void;
   multicallAddress: string | undefined;
   setMulticallAddress: (multicallAddress: string) => void;
+  poolReserves: ReservesDataHumanized | undefined;
+  setPoolReserves: (poolReserves: ReservesDataHumanized) => void;
   checkAndGetTokenApproval: (
     market: CustomMarket,
     assetAddress: string,
@@ -65,7 +67,7 @@ export interface BatchTransactionsSlice {
   getTokenInfoAndAmount: (
     market: CustomMarket,
     underlyingAsset: string,
-    amount: string
+    amount: string,
   ) => {
     assetAddress: string;
     poolAddress: string;
@@ -112,6 +114,10 @@ export const createBatchTransactionsSlice: StateCreator<
   multicallAddress: undefined,
   setMulticallAddress: (multicallAddress: string) => {
     set({ multicallAddress });
+  },
+  poolReserves: undefined,
+  setPoolReserves: (poolReserves: ReservesDataHumanized) => {
+    set({ poolReserves });
   },
   checkAndGetTokenApproval: async (
     market: CustomMarket,
@@ -210,7 +216,7 @@ export const createBatchTransactionsSlice: StateCreator<
               to: assetAddress,
               value: ethers.BigNumber.from(0),
               data: approvalTx.data || '',
-              gasLimit: ethers.BigNumber.from(200000),
+              gasLimit: ethers.BigNumber.from(APPROVAL_GAS_LIMIT),
             },
           };
 
@@ -230,7 +236,7 @@ export const createBatchTransactionsSlice: StateCreator<
   getTokenInfoAndAmount: (
     market: CustomMarket,
     underlyingAsset: string,
-    amount: string
+    amount: string,
   ): {
     assetAddress: string;
     poolAddress: string;
@@ -256,17 +262,14 @@ export const createBatchTransactionsSlice: StateCreator<
       };
     }
 
-    // Convert amount to token units
-    const tokenInfo = TOKEN_LIST.tokens.find(
-      (token) =>
-        token.chainId === marketConfig.chainId &&
-        token.address.toLowerCase() === underlyingAsset.toLowerCase()
+    const tokenInfo = get().poolReserves?.reservesData.find(
+      (reserve) => reserve.underlyingAsset.toLowerCase() === underlyingAsset.toLowerCase()
     );
 
     if (!tokenInfo) {
       throw new Error(`Token info not found for ${underlyingAsset}`);
     }
-    const assetAddress = tokenInfo?.address || underlyingAsset;
+    const assetAddress = tokenInfo?.underlyingAsset || underlyingAsset;
 
     // Check if native token
     const isNativeToken =
