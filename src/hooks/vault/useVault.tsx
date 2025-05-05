@@ -169,7 +169,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
 
   // Web3 setup
   const { data: walletClient } = useWalletClient();
-  const chainId = useMemo(() => walletClient?.chain.id ?? ENABLE_TESTNET ? ChainIds.flowEVMTestnet : ChainIds.flowEVMMainnet, [walletClient]);
+  const chainId = useMemo(() => ENABLE_TESTNET ? ChainIds.flowEVMTestnet : ChainIds.flowEVMMainnet, [walletClient]);
   const provider = useVaultProvider(chainId);
   const signer = useMemo(() => {
     if (walletClient && provider) {

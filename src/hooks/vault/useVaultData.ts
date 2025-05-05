@@ -59,12 +59,12 @@ export const useVaultProvider = (chainIdParam?: number) => {
 
   return useMemo(() => {
     // Get chainId from wallet or use provided parameter
-    const chainId = walletClient?.chain.id || chainIdParam || ChainIds.flowEVMMainnet;
+    const chainId = chainIdParam || walletClient?.chain.id || ChainIds.flowEVMMainnet;
 
     // If wallet is connected, use it as provider
-    if (walletClient) {
-      return new ethers.providers.Web3Provider(walletClient as ethers.providers.ExternalProvider);
-    }
+    // if (walletClient) {
+    //   return new ethers.providers.Web3Provider(walletClient as ethers.providers.ExternalProvider);
+    // }
 
     // If no wallet is connected, create a fallback provider using the network's RPC URL
     const networkConfig = networkConfigs[chainId];
@@ -589,7 +589,7 @@ export const useDeployedVaults = <TResult = string[]>(
         provider
       );
 
-      const [vaultIds] = await Promise.all([vaultFactoryContract.getDeployedVaults()]);
+      const vaultIds = await vaultFactoryContract.getDeployedVaults();
       return vaultIds;
     },
     !!provider,

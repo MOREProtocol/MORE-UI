@@ -14,6 +14,7 @@ import { FormattedNumber } from '../../components/primitives/FormattedNumber';
 import { TopInfoPanel } from '../../components/TopInfoPanel/TopInfoPanel';
 import { TopInfoPanelItem } from '../../components/TopInfoPanel/TopInfoPanelItem';
 import { useAppDataContext } from '../../hooks/app-data-provider/useAppDataProvider';
+import { ENABLE_TESTNET } from 'src/utils/marketsAndNetworksConfig';
 
 export const VaultsTopPanel = () => {
   const { accountAddress } = useVault();
