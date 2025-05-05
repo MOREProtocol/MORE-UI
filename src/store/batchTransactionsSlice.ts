@@ -8,18 +8,16 @@ import { StateCreator } from 'zustand';
 import multicallAbi from '../libs/abis/multicall_abi.json';
 import { RootStore } from './root';
 
-const MULTICALL_ADDRESS = '0xF7d11c74B5706155d7C6DBe931d590611a371a8a';
-
 export interface BatchTransaction {
   action:
-    | 'supply'
-    | 'borrow'
-    | 'repay'
-    | 'withdraw'
-    | 'transfer'
-    | 'approve'
-    | 'delegate'
-    | 'embedded_approve';
+  | 'supply'
+  | 'borrow'
+  | 'repay'
+  | 'withdraw'
+  | 'transfer'
+  | 'approve'
+  | 'delegate'
+  | 'embedded_approve';
   market: CustomMarket;
   poolAddress: string;
   amount: string;
@@ -45,6 +43,8 @@ export interface BatchTransactionsSlice {
   clearBatch: () => void;
   signer: ethers.providers.JsonRpcSigner | undefined;
   setSigner: (signer: ethers.providers.JsonRpcSigner) => void;
+  multicallAddress: string | undefined;
+  setMulticallAddress: (multicallAddress: string) => void;
   checkAndGetTokenApproval: (
     market: CustomMarket,
     assetAddress: string,
@@ -108,6 +108,10 @@ export const createBatchTransactionsSlice: StateCreator<
     if (signer) {
       set({ signer });
     }
+  },
+  multicallAddress: undefined,
+  setMulticallAddress: (multicallAddress: string) => {
+    set({ multicallAddress });
   },
   checkAndGetTokenApproval: async (
     market: CustomMarket,
@@ -298,7 +302,7 @@ export const createBatchTransactionsSlice: StateCreator<
       // This will transfer tokens from the user to the multicall contract
       const transferFromCalldata = erc20Interface.encodeFunctionData('transferFrom', [
         signerAddress,
-        MULTICALL_ADDRESS,
+        get().multicallAddress,
         amountInWei,
       ]);
 
@@ -312,8 +316,7 @@ export const createBatchTransactionsSlice: StateCreator<
     } catch (error) {
       console.error(`Error adding transferFrom action for ${tokenSymbol}:`, error);
       throw new Error(
-        `Failed to add transferFrom action: ${
-          error instanceof Error ? error.message : String(error)
+        `Failed to add transferFrom action: ${error instanceof Error ? error.message : String(error)
         }`
       );
     }
@@ -352,7 +355,7 @@ export const createBatchTransactionsSlice: StateCreator<
         transaction.market,
         assetAddress,
         transaction.symbol,
-        MULTICALL_ADDRESS,
+        get().multicallAddress,
         amountInWei,
         'standard'
       );
@@ -382,7 +385,7 @@ export const createBatchTransactionsSlice: StateCreator<
       transaction.market,
       aTokenAddress,
       `${transaction.symbol} aToken`,
-      MULTICALL_ADDRESS,
+      get().multicallAddress,
       amountInWei,
       'standard'
     );
@@ -480,7 +483,7 @@ export const createBatchTransactionsSlice: StateCreator<
         transaction.market,
         transaction.debtTokenAddress,
         transaction.symbol,
-        MULTICALL_ADDRESS,
+        get().multicallAddress,
         amountInWei,
         'delegation'
       );
@@ -569,7 +572,7 @@ export const createBatchTransactionsSlice: StateCreator<
         transaction.market,
         assetAddress,
         transaction.symbol,
-        MULTICALL_ADDRESS,
+        get().multicallAddress,
         amountInWei,
         'standard'
       );
@@ -606,7 +609,7 @@ export const createBatchTransactionsSlice: StateCreator<
   },
   getBatchTx: async () => {
     const user = get().account;
-    const multicallContract = new ethers.Contract(MULTICALL_ADDRESS, multicallAbi, get().signer);
+    const multicallContract = new ethers.Contract(get().multicallAddress, multicallAbi, get().signer);
 
     // Flatten all transactions from all groups
     const allTransactions = get()
@@ -643,7 +646,7 @@ export const createBatchTransactionsSlice: StateCreator<
     const tx = multicallContract.interface.encodeFunctionData('aggregate3Value', [actions]);
     return {
       data: tx,
-      to: MULTICALL_ADDRESS,
+      to: get().multicallAddress,
       from: user,
       value: totalValue,
       gasLimit: totalGasLimit,

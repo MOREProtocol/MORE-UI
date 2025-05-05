@@ -7,6 +7,7 @@ import { useRootStore } from 'src/store/root';
 import { useAccount, useWalletClient } from 'wagmi';
 
 import { BatchTransactionsModal } from './BatchTransactionsModal/BatchTransactionsModal';
+import { multicalls } from 'src/utils/const';
 
 interface BatchTransactionProps {
   open: boolean;
@@ -14,13 +15,15 @@ interface BatchTransactionProps {
 }
 
 export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps) => {
-  const [setSigner, signer, batchTransactionGroups] = useRootStore((state) => [
+  const [setSigner, signer, batchTransactionGroups, setMulticallAddress] = useRootStore((state) => [
     state.setSigner,
     state.signer,
     state.batchTransactionGroups,
+    state.setMulticallAddress,
   ]);
   const { isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
+  const [currentMarket] = useRootStore((store) => [store.currentMarket]);
 
   const hasBatchTransactions = useMemo(
     () => batchTransactionGroups.length > 0,
@@ -32,6 +35,7 @@ export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps
       const provider = new ethers.providers.Web3Provider(
         walletClient as ethers.providers.ExternalProvider
       );
+      setMulticallAddress(multicalls[currentMarket === 'proto_flow_v3' ? 'mainnet' : 'testnet']);
       const signer = provider.getSigner();
       if (!!signer) {
         setSigner(signer);
@@ -59,8 +63,8 @@ export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps
           }}
           startIcon={
             hasBatchTransactions ? (
-              <Badge 
-                badgeContent={batchTransactionGroups.length} 
+              <Badge
+                badgeContent={batchTransactionGroups.length}
                 color="primary"
                 sx={{
                   '& .MuiBadge-badge': {
