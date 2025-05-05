@@ -6,7 +6,7 @@ import { TopInfoPanel } from 'src/components/TopInfoPanel/TopInfoPanel';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { useRootStore } from 'src/store/root';
 
-export default function Aave500Page() {
+export default function More500Page() {
   const theme = useTheme();
 
   const handleCopyError = () => {
@@ -65,7 +65,7 @@ export default function Aave500Page() {
             <Typography sx={{ mb: 4 }}>
               If the error continues to happen,
               <br /> you may report it to this{' '}
-              <Link href="https://discord.com/invite/aave" color="inherit" target="_blank">
+              <Link href="https://discord.com/invite/VzGm75kN" color="inherit" target="_blank">
                 Discord channel
               </Link>
               .
@@ -88,6 +88,6 @@ export default function Aave500Page() {
   );
 }
 
-Aave500Page.getLayout = function getLayout(page: React.ReactElement) {
+More500Page.getLayout = function getLayout(page: React.ReactElement) {
   return <MainLayout>{page}</MainLayout>;
 };

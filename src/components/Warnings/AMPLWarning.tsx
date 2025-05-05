@@ -5,7 +5,7 @@ export const AMPLWarning = () => {
     <>
       <b>Ampleforth</b> is a rebasing asset. Visit the{' '}
       <Link
-        href="https://docs.aave.com/developers/v/2.0/guides/ampl-asset-listing"
+        href="https://docs.more.markets/developers/v/2.0/guides/ampl-asset-listing"
         underline="always"
       >
         documentation

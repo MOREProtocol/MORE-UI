@@ -6,7 +6,7 @@ import { TopInfoPanel } from 'src/components/TopInfoPanel/TopInfoPanel';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { useRootStore } from 'src/store/root';
 
-export default function Aave404Page() {
+export default function More404Page() {
   const theme = useTheme();
   const trackEvent = useRootStore((store) => store.trackEvent);
 
@@ -53,6 +53,6 @@ export default function Aave404Page() {
   );
 }
 
-Aave404Page.getLayout = function getLayout(page: React.ReactElement) {
+More404Page.getLayout = function getLayout(page: React.ReactElement) {
   return <MainLayout>{page}</MainLayout>;
 };

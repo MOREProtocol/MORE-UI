@@ -30,21 +30,21 @@ export const FeedbackModal = () => {
 
     setIsLoading(true);
 
-    const url = process.env.NEXT_PUBLIC_API_BASEURL + '/feedback';
+    // const url = process.env.NEXT_PUBLIC_API_BASEURL + '/feedback';
 
-    const payload = {
-      text: value,
-      email: email,
-    };
+    // const payload = {
+    //   text: value,
+    //   email: email,
+    // };
 
     try {
-      await fetch(url, {
-        body: JSON.stringify(payload),
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      // await fetch(url, {
+      //   body: JSON.stringify(payload),
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      // });
 
       setSuccess(true);
     } catch (error) {
@@ -129,7 +129,7 @@ export const FeedbackModal = () => {
                 target="_blank"
                 variant="subheader1"
                 color="text.secondary"
-                href="https://discord.com/invite/aave"
+                href="https://discord.com/invite/XnU7hHQgYF"
                 underline="always"
               >
                 discord

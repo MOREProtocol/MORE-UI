@@ -149,7 +149,7 @@ export function AppHeader() {
       <Typography variant="description">
         The app is running in testnet mode. Learn how it works in{' '}
         <Link
-          href="https://docs.aave.com/faq/testing-aave"
+          href="https://docs.more.markets/faq/testing-more"
           style={{ fontSize: '14px', fontWeight: 400, textDecoration: 'underline' }}
         >
           FAQ.

@@ -18,7 +18,7 @@ export const SupplyCapMaxedTooltip = ({ supplyCap, ...rest }: SupplyCapMaxedTool
         <>
           Protocol supply cap at 100% for this asset. Further supply unavailable.{' '}
           <Link
-            href="https://docs.aave.com/developers/whats-new/supply-borrow-caps"
+            href="https://docs.more.markets/developers/whats-new/supply-borrow-caps"
             underline="always"
           >
             Learn more

@@ -707,11 +707,7 @@ export const createPoolSlice: StateCreator<
       },
     },
     generateSignatureRequest: async ({ token, amount, deadline, spender }, opts = {}) => {
-      const v3Tokens = [
-        '0xe0fd0a2a4c2e59a479aab0cf44244e355c508766',
-        '0xe0fd0a2a4c2e59a479aab0cf44244e355c508766',
-        '0xe0fd0a2a4c2e59a479aab0cf44244e355c508766',
-      ];
+      const v3Tokens = ['0xe0fd0a2a4c2e59a479aab0cf44244e355c508766'];
 
       const provider = get().jsonRpcProvider(opts.chainId);
 

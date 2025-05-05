@@ -83,14 +83,12 @@ export const ListItemWrapper = ({
           </Tooltip>
         </Link>
         {paused && <PausedTooltip />}
-        {showFrozenTooltip && <FrozenTooltip symbol={symbol} currentMarket={currentMarket} />}
+        {showFrozenTooltip && <FrozenTooltip />}
         {showRenFilTooltip && <RenFILToolTip />}
         {showAmplTooltip && <AMPLToolTip />}
         {showstETHTooltip && <StETHCollateralToolTip />}
         {offboardingDiscussion && <OffboardingTooltip discussionLink={offboardingDiscussion} />}
-        {showBorrowDisabledTooltip && (
-          <BorrowDisabledToolTip symbol={symbol} currentMarket={currentMarket} />
-        )}
+        {showBorrowDisabledTooltip && <BorrowDisabledToolTip />}
         {showSupplyCapTooltips && supplyCap.displayMaxedTooltip({ supplyCap })}
         {showBorrowCapTooltips && borrowCap.displayMaxedTooltip({ borrowCap })}
         {showDebtCeilingTooltips && debtCeiling.displayMaxedTooltip({ debtCeiling })}

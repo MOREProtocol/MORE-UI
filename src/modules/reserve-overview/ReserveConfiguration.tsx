@@ -50,7 +50,7 @@ export const ReserveConfiguration: React.FC<ReserveConfigurationProps> = ({ rese
           <Warning sx={{ mt: '16px', mb: '40px' }} severity="error">
             This asset is frozen due to an More community decision.{' '}
             <Link
-              href={getFrozenProposalLink(reserve.symbol, currentMarket)}
+              href={getFrozenProposalLink()}
               sx={{ textDecoration: 'underline' }}
             >
               More details
@@ -71,24 +71,24 @@ export const ReserveConfiguration: React.FC<ReserveConfigurationProps> = ({ rese
         {reserve.isPaused ? (
           reserve.symbol === 'MAI' ? (
             <Warning sx={{ mt: '16px', mb: '40px' }} severity="error">
-              MAI has been paused due to a community decision. Supply, borrows and repays are
+              MAI has been paused due to a community decision.Supply, borrows and repays are
               impacted.{' '}
               <Link
                 href={
-                  'https://governance.aave.com/t/arfc-add-mai-to-arbitrum-aave-v3-market/12759/8'
+                  'https://governance.more.markets/t/arfc-add-mai-to-arbitrum-more-market/12759/8'
                 }
                 sx={{ textDecoration: 'underline' }}
               >
                 More details
               </Link>
-            </Warning>
+            </Warning >
           ) : (
             <Warning sx={{ mt: '16px', mb: '40px' }} severity="error">
               <PausedTooltipText />
             </Warning>
           )
         ) : null}
-      </Box>
+      </Box >
 
       <PanelRow>
         <PanelTitle>Supply Info</PanelTitle>
@@ -102,89 +102,95 @@ export const ReserveConfiguration: React.FC<ReserveConfigurationProps> = ({ rese
         />
       </PanelRow>
 
-      {(reserve.borrowingEnabled || Number(reserve.totalDebt) > 0) && (
-        <>
-          <Divider sx={{ my: { xs: 6, sm: 10 } }} />
-          <PanelRow>
-            <PanelTitle>Borrow info</PanelTitle>
-            <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
-              {!reserve.borrowingEnabled && (
-                <Warning sx={{ mb: '40px' }} severity="error">
-                  <BorrowDisabledWarning symbol={reserve.symbol} currentMarket={currentMarket} />
-                </Warning>
-              )}
-              <BorrowInfo
-                reserve={reserve}
-                currentMarketData={currentMarketData}
-                currentNetworkConfig={currentNetworkConfig}
-                renderCharts={renderCharts}
-                showBorrowCapStatus={showBorrowCapStatus}
-                borrowCap={borrowCap}
-              />
-            </Box>
-          </PanelRow>
-        </>
-      )}
-
-      {reserve.eModeCategoryId !== 0 && (
-        <>
-          <Divider sx={{ my: { xs: 6, sm: 10 } }} />
-          <ReserveEModePanel reserve={reserve} />
-        </>
-      )}
-
-      {(reserve.borrowingEnabled || Number(reserve.totalDebt) > 0) && (
-        <>
-          <Divider sx={{ my: { xs: 6, sm: 10 } }} />
-
-          <PanelRow>
-            <PanelTitle>Interest rate model</PanelTitle>
-            <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <PanelItem title={'Utilization Rate'} className="borderless">
-                  <FormattedNumber
-                    value={reserve.borrowUsageRatio}
-                    percent
-                    variant="main16"
-                    compact
-                  />
-                </PanelItem>
-                <Button
-                  onClick={() => {
-                    trackEvent(GENERAL.EXTERNAL_LINK, {
-                      asset: reserve.underlyingAsset,
-                      Link: 'Interest Rate Strategy',
-                      assetName: reserve.name,
-                    });
-                  }}
-                  href={currentNetworkConfig.explorerLinkBuilder({
-                    address: reserve.interestRateStrategyAddress,
-                  })}
-                  endIcon={
-                    <SvgIcon sx={{ width: 14, height: 14 }}>
-                      <ExternalLinkIcon />
-                    </SvgIcon>
-                  }
-                  component={Link}
-                  size="small"
-                  variant="outlined"
-                  sx={{ verticalAlign: 'top' }}
-                >
-                  Interest rate strategy
-                </Button>
+      {
+        (reserve.borrowingEnabled || Number(reserve.totalDebt) > 0) && (
+          <>
+            <Divider sx={{ my: { xs: 6, sm: 10 } }} />
+            <PanelRow>
+              <PanelTitle>Borrow info</PanelTitle>
+              <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
+                {!reserve.borrowingEnabled && (
+                  <Warning sx={{ mb: '40px' }} severity="error">
+                    <BorrowDisabledWarning />
+                  </Warning>
+                )}
+                <BorrowInfo
+                  reserve={reserve}
+                  currentMarketData={currentMarketData}
+                  currentNetworkConfig={currentNetworkConfig}
+                  renderCharts={renderCharts}
+                  showBorrowCapStatus={showBorrowCapStatus}
+                  borrowCap={borrowCap}
+                />
               </Box>
-              <InterestRateModelGraphContainer reserve={reserve} />
-            </Box>
-          </PanelRow>
-        </>
-      )}
+            </PanelRow>
+          </>
+        )
+      }
+
+      {
+        reserve.eModeCategoryId !== 0 && (
+          <>
+            <Divider sx={{ my: { xs: 6, sm: 10 } }} />
+            <ReserveEModePanel reserve={reserve} />
+          </>
+        )
+      }
+
+      {
+        (reserve.borrowingEnabled || Number(reserve.totalDebt) > 0) && (
+          <>
+            <Divider sx={{ my: { xs: 6, sm: 10 } }} />
+
+            <PanelRow>
+              <PanelTitle>Interest rate model</PanelTitle>
+              <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <PanelItem title={'Utilization Rate'} className="borderless">
+                    <FormattedNumber
+                      value={reserve.borrowUsageRatio}
+                      percent
+                      variant="main16"
+                      compact
+                    />
+                  </PanelItem>
+                  <Button
+                    onClick={() => {
+                      trackEvent(GENERAL.EXTERNAL_LINK, {
+                        asset: reserve.underlyingAsset,
+                        Link: 'Interest Rate Strategy',
+                        assetName: reserve.name,
+                      });
+                    }}
+                    href={currentNetworkConfig.explorerLinkBuilder({
+                      address: reserve.interestRateStrategyAddress,
+                    })}
+                    endIcon={
+                      <SvgIcon sx={{ width: 14, height: 14 }}>
+                        <ExternalLinkIcon />
+                      </SvgIcon>
+                    }
+                    component={Link}
+                    size="small"
+                    variant="outlined"
+                    sx={{ verticalAlign: 'top' }}
+                  >
+                    Interest rate strategy
+                  </Button>
+                </Box>
+                <InterestRateModelGraphContainer reserve={reserve} />
+              </Box>
+            </PanelRow>
+          </>
+        )
+      }
     </>
   );
 };

@@ -37,7 +37,7 @@ declare module '@mui/material/styles/createPalette' {
 
   interface Palette {
     gradients: {
-      aaveGradient: string;
+      moreGradient: string;
       newGradient: string;
     };
     other: {
@@ -47,7 +47,7 @@ declare module '@mui/material/styles/createPalette' {
 
   interface PaletteOptions {
     gradients: {
-      aaveGradient: string;
+      moreGradient: string;
       newGradient: string;
     };
   }
@@ -205,7 +205,7 @@ export const getDesignTokens = (mode: 'light' | 'dark') => {
         standardInputLine: getColor('#383D511F', '#EBEBEF6B'),
       },
       gradients: {
-        aaveGradient: 'linear-gradient(248.86deg, #B6509E 10.51%, #2EBAC6 93.41%)',
+        moreGradient: 'linear-gradient(248.86deg, #B6509E 10.51%, #2EBAC6 93.41%)',
         newGradient: 'linear-gradient(79.67deg, #F58420 0%, #F58420 6%, #FCB319 100%)',
       },
     },

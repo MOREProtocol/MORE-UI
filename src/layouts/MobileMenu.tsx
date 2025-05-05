@@ -77,7 +77,7 @@ export const MobileMenu = ({ open, setOpen, headerHeight }: MobileMenuProps) => 
               href={'/v3-migration'}
               onClick={() => setOpen(false)}
             >
-              <ListItemText>Migrate to Aave V3</ListItemText>
+              <ListItemText>Migrate to More V3</ListItemText>
             </ListItem>
             {moreNavigation.length > 0 ? (
               moreNavigation.map((item, index) => (

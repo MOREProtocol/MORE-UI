@@ -31,7 +31,7 @@ export const DebtCeilingWarning = ({
     <Warning severity={severity} icon={icon} {...rest}>
       {renderText()}{' '}
       <Link
-        href="https://docs.aave.com/faq/aave-v3-features#how-does-isolation-mode-affect-my-borrowing-power"
+        href="https://docs.more.markets/faq/more-markets-features#how-does-isolation-mode-affect-my-borrowing-power"
         underline="always"
       >
         Learn more

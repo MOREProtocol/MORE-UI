@@ -16,7 +16,7 @@ interface AddTokenDropdownProps {
   addERC20Token: (args: ERC20TokenType) => Promise<boolean>;
   currentChainId: number;
   connectedChainId: number;
-  hideAToken?: boolean;
+  hideMToken?: boolean;
 }
 
 export const AddTokenDropdown = ({
@@ -26,12 +26,12 @@ export const AddTokenDropdown = ({
   addERC20Token,
   currentChainId,
   connectedChainId,
-  hideAToken,
+  hideMToken,
 }: AddTokenDropdownProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [changingNetwork, setChangingNetwork] = useState(false);
   const [underlyingBase64, setUnderlyingBase64] = useState('');
-  const [aTokenBase64, setATokenBase64] = useState('');
+  const [mTokenBase64, setmTokenBase64] = useState('');
   const open = Boolean(anchorEl);
   const trackEvent = useRootStore((store) => store.trackEvent);
 
@@ -69,132 +69,134 @@ export const AddTokenDropdown = ({
     return null;
   }
 
-  return (<>
-    {/* Load base64 token symbol for adding underlying and mTokens to wallet */}
-    {poolReserve?.symbol && !/_/.test(poolReserve.symbol) && (
-      <>
-        <Base64Token
-          symbol={poolReserve.iconSymbol}
-          onImageGenerated={setUnderlyingBase64}
-          aToken={false}
-        />
-        {!hideAToken && (
+  return (
+    <>
+      {/* Load base64 token symbol for adding underlying and mTokens to wallet */}
+      {poolReserve?.symbol && !/_/.test(poolReserve.symbol) && (
+        <>
           <Base64Token
             symbol={poolReserve.iconSymbol}
-            onImageGenerated={setATokenBase64}
-            aToken={true}
+            onImageGenerated={setUnderlyingBase64}
+            mToken={false}
           />
-        )}
-      </>
-    )}
-    <Box onClick={handleClick}>
-      <CircleIcon tooltipText="Add token to wallet" downToSM={downToSM}>
-        <Box
-          onClick={() => {
-            trackEvent(RESERVE_DETAILS.ADD_TOKEN_TO_WALLET_DROPDOWN, {
-              asset: poolReserve.underlyingAsset,
-              assetName: poolReserve.name,
-            });
-          }}
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            '&:hover': {
-              '.Wallet__icon': { opacity: '0 !important' },
-              '.Wallet__iconHover': { opacity: '1 !important' },
-            },
-            cursor: 'pointer',
-          }}
-        >
-          <WalletIcon sx={{ width: '14px', height: '14px', '&:hover': { stroke: '#F1F1F3' } }} />
-        </Box>
-      </CircleIcon>
-    </Box>
-    <Menu
-      anchorEl={anchorEl}
-      open={open}
-      onClose={handleClose}
-      MenuListProps={{
-        'aria-labelledby': 'basic-button',
-      }}
-      keepMounted={true}
-      data-cy="addToWaletSelector"
-    >
-      <Box sx={{ px: 4, pt: 3, pb: 2 }}>
-        <Typography variant="secondary12" color="text.secondary">
-          Underlying token
-        </Typography>
-      </Box>
-
-      <MenuItem
-        key="underlying"
-        value="underlying"
-        divider
-        onClick={() => {
-          if (currentChainId !== connectedChainId) {
-            switchNetwork(currentChainId).then(() => {
-              setChangingNetwork(true);
-            });
-          } else {
-            trackEvent(RESERVE_DETAILS.ADD_TO_WALLET, {
-              type: 'Underlying token',
-              asset: poolReserve.underlyingAsset,
-              assetName: poolReserve.name,
-            });
-
-            addERC20Token({
-              address: poolReserve.underlyingAsset,
-              decimals: poolReserve.decimals,
-              symbol: poolReserve.symbol,
-              image: !/_/.test(poolReserve.symbol) ? underlyingBase64 : undefined,
-            });
-          }
-          handleClose();
-        }}
-      >
-        <TokenIcon symbol={poolReserve.iconSymbol} sx={{ fontSize: '20px' }} />
-        <Typography variant="subheader1" sx={{ ml: 3 }} noWrap data-cy={`assetName`}>
-          {poolReserve.symbol}
-        </Typography>
-      </MenuItem>
-      {!hideAToken && (
-        <Box>
-          <Box sx={{ px: 4, pt: 3, pb: 2 }}>
-            <Typography variant="secondary12" color="text.secondary">
-              More mToken
-            </Typography>
-          </Box>
-          <MenuItem
-            key="mtoken"
-            value="mtoken"
+          {!hideMToken && (
+            <Base64Token
+              symbol={poolReserve.iconSymbol}
+              onImageGenerated={setmTokenBase64}
+              mToken={true}
+            />
+          )}
+        </>
+      )}
+      <Box onClick={handleClick}>
+        <CircleIcon tooltipText="Add token to wallet" downToSM={downToSM}>
+          <Box
             onClick={() => {
-              if (currentChainId !== connectedChainId) {
-                switchNetwork(currentChainId).then(() => {
-                  setChangingNetwork(true);
-                });
-              } else {
-                trackEvent(RESERVE_DETAILS.ADD_TO_WALLET, {
-                  asset: poolReserve.underlyingAsset,
-                  assetName: poolReserve.name,
-                });
-
-                addERC20Token({
-                  address: poolReserve.aTokenAddress,
-                  decimals: poolReserve.decimals,
-                  symbol: '',
-                  image: !/_/.test(poolReserve.symbol) ? aTokenBase64 : undefined,
-                });
-              }
-              handleClose();
+              trackEvent(RESERVE_DETAILS.ADD_TOKEN_TO_WALLET_DROPDOWN, {
+                asset: poolReserve.underlyingAsset,
+                assetName: poolReserve.name,
+              });
+            }}
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              '&:hover': {
+                '.Wallet__icon': { opacity: '0 !important' },
+                '.Wallet__iconHover': { opacity: '1 !important' },
+              },
+              cursor: 'pointer',
             }}
           >
-            <TokenIcon symbol={poolReserve.iconSymbol} sx={{ fontSize: '20px' }} aToken={true} />
-            <Typography variant="subheader1" sx={{ ml: 3 }} noWrap data-cy={`assetName`}>
-              {`m${poolReserve.symbol}`}
-            </Typography>
-          </MenuItem>
+            <WalletIcon sx={{ width: '14px', height: '14px', '&:hover': { stroke: '#F1F1F3' } }} />
+          </Box>
+        </CircleIcon>
+      </Box >
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        MenuListProps={{
+          'aria-labelledby': 'basic-button',
+        }}
+        keepMounted={true}
+        data-cy="addToWaletSelector"
+      >
+        <Box sx={{ px: 4, pt: 3, pb: 2 }}>
+          <Typography variant="secondary12" color="text.secondary">
+            Underlying token
+          </Typography>
         </Box>
-      )}
-    </Menu>
-  </>);
+
+        <MenuItem
+          key="underlying"
+          value="underlying"
+          divider
+          onClick={() => {
+            if (currentChainId !== connectedChainId) {
+              switchNetwork(currentChainId).then(() => {
+                setChangingNetwork(true);
+              });
+            } else {
+              trackEvent(RESERVE_DETAILS.ADD_TO_WALLET, {
+                type: 'Underlying token',
+                asset: poolReserve.underlyingAsset,
+                assetName: poolReserve.name,
+              });
+
+              addERC20Token({
+                address: poolReserve.underlyingAsset,
+                decimals: poolReserve.decimals,
+                symbol: poolReserve.symbol,
+                image: !/_/.test(poolReserve.symbol) ? underlyingBase64 : undefined,
+              });
+            }
+            handleClose();
+          }}
+        >
+          <TokenIcon symbol={poolReserve.iconSymbol} sx={{ fontSize: '20px' }} />
+          <Typography variant="subheader1" sx={{ ml: 3 }} noWrap data-cy={`assetName`}>
+            {poolReserve.symbol}
+          </Typography>
+        </MenuItem>
+        {!hideMToken && (
+          <Box>
+            <Box sx={{ px: 4, pt: 3, pb: 2 }}>
+              <Typography variant="secondary12" color="text.secondary">
+                More mToken
+              </Typography>
+            </Box>
+            <MenuItem
+              key="mtoken"
+              value="mtoken"
+              onClick={() => {
+                if (currentChainId !== connectedChainId) {
+                  switchNetwork(currentChainId).then(() => {
+                    setChangingNetwork(true);
+                  });
+                } else {
+                  trackEvent(RESERVE_DETAILS.ADD_TO_WALLET, {
+                    asset: poolReserve.underlyingAsset,
+                    assetName: poolReserve.name,
+                  });
+
+                  addERC20Token({
+                    address: poolReserve.aTokenAddress,
+                    decimals: poolReserve.decimals,
+                    symbol: '',
+                    image: !/_/.test(poolReserve.symbol) ? mTokenBase64 : undefined,
+                  });
+                }
+                handleClose();
+              }}
+            >
+              <TokenIcon symbol={poolReserve.iconSymbol} sx={{ fontSize: '20px' }} mToken={true} />
+              <Typography variant="subheader1" sx={{ ml: 3 }} noWrap data-cy={`assetName`}>
+                {`m${poolReserve.symbol}`}
+              </Typography>
+            </MenuItem>
+          </Box>
+        )}
+      </Menu>
+    </>
+  );
 };

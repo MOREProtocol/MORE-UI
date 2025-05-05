@@ -119,7 +119,7 @@ export const SwitchActions = ({
           maxSlippage: Number(slippage) * 10000,
           permit: signatureParams && signatureParams.signature,
           deadline: signatureParams && signatureParams.deadline,
-          partner: 'aave-widget',
+          partner: 'more-widget',
         });
         tx.chainId = chainId;
         const txWithGasEstimation = await estimateGasLimit(tx, chainId);

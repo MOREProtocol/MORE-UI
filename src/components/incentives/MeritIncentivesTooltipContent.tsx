@@ -30,7 +30,7 @@ export const MeritIncentivesTooltipContent = ({
           'This is a program initiated and implemented by the decentralised Aave community. Aave Labs does not guarantee the program and accepts no liability. '
         }
         <Link
-          href="https://governance.aave.com/t/arfc-merit-a-new-aave-alignment-user-reward-system/16646"
+          href="https://governance.more.markets/t/arfc-merit-a-new-more-alignment-user-reward-system/16646"
           sx={{ textDecoration: 'underline' }}
           variant="caption"
           color="text.secondary"

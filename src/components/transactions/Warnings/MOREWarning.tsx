@@ -3,7 +3,7 @@ import { Link, Typography } from '@mui/material';
 import { ROUTES } from '../../primitives/Link';
 import { Warning } from '../../primitives/Warning';
 
-export const AAVEWarning = () => {
+export const MOREWarning = () => {
   return (
     <Warning severity="info">
       <Typography>

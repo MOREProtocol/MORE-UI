@@ -79,9 +79,9 @@ export const BorrowedPositionsList = () => {
             ...userReserve.reserve,
             ...(userReserve.reserve.isWrappedBaseAsset
               ? fetchIconSymbolAndName({
-                  symbol: currentNetworkConfig.baseAssetSymbol,
-                  underlyingAsset: API_ETH_MOCK_ADDRESS.toLowerCase(),
-                })
+                symbol: currentNetworkConfig.baseAssetSymbol,
+                underlyingAsset: API_ETH_MOCK_ADDRESS.toLowerCase(),
+              })
               : {}),
           },
         });
@@ -94,9 +94,9 @@ export const BorrowedPositionsList = () => {
             ...userReserve.reserve,
             ...(userReserve.reserve.isWrappedBaseAsset
               ? fetchIconSymbolAndName({
-                  symbol: currentNetworkConfig.baseAssetSymbol,
-                  underlyingAsset: API_ETH_MOCK_ADDRESS.toLowerCase(),
-                })
+                symbol: currentNetworkConfig.baseAssetSymbol,
+                underlyingAsset: API_ETH_MOCK_ADDRESS.toLowerCase(),
+              })
               : {}),
           },
         });
@@ -111,14 +111,11 @@ export const BorrowedPositionsList = () => {
     borrowPositions.unshift(ghoReserve[0]);
   }
 
-  const maxBorrowAmount = valueToBigNumber(user?.totalBorrowsMarketReferenceCurrency || '0').plus(
-    user?.availableBorrowsMarketReferenceCurrency || '0'
-  );
-  const collateralUsagePercent = maxBorrowAmount.eq(0)
+  const ltv = valueToBigNumber(user?.totalCollateralMarketReferenceCurrency || '0').eq(0)
     ? '0'
     : valueToBigNumber(user?.totalBorrowsMarketReferenceCurrency || '0')
-        .div(maxBorrowAmount)
-        .toFixed();
+      .div(user?.totalCollateralMarketReferenceCurrency || '0')
+      .toFixed();
 
   // Transform to the DashboardReserve schema so the sort utils can work with it
   const preSortedReserves = borrowPositions as DashboardReserve[];
@@ -193,15 +190,15 @@ export const BorrowedPositionsList = () => {
                 }
               />
               <ListTopInfoItem
-                title={'Borrow power used'}
-                value={collateralUsagePercent || 0}
+                title={'LTV'}
+                value={ltv || 0}
                 percent
                 tooltip={
                   <BorrowPowerTooltip
                     setOpen={setTooltipOpen}
                     event={{
                       eventName: GENERAL.TOOL_TIP,
-                      eventParams: { tooltip: 'Borrow power used' },
+                      eventParams: { tooltip: 'LTV' },
                     }}
                   />
                 }

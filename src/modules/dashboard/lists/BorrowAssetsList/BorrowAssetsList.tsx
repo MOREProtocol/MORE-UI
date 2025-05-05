@@ -7,7 +7,6 @@ import { ListColumn } from 'src/components/lists/ListColumn';
 import { ListHeaderTitle } from 'src/components/lists/ListHeaderTitle';
 import { ListHeaderWrapper } from 'src/components/lists/ListHeaderWrapper';
 import { Warning } from 'src/components/primitives/Warning';
-import { MarketWarning } from 'src/components/transactions/Warnings/MarketWarning';
 import { AssetCapsProvider } from 'src/hooks/useAssetCaps';
 import { fetchIconSymbolAndName } from 'src/ui-config/reservePatches';
 import { displayGho, findAndFilterGhoReserve } from 'src/utils/ghoUtilities';
@@ -88,7 +87,7 @@ const head = [
 ];
 
 export const BorrowAssetsList = () => {
-  const { currentNetworkConfig, currentMarketData, currentMarket } = useProtocolDataContext();
+  const { currentNetworkConfig, currentMarket } = useProtocolDataContext();
   const { user, reserves, marketReferencePriceInUsd, loading } = useAppDataContext();
   const theme = useTheme();
   const downToXSM = useMediaQuery(theme.breakpoints.down('xsm'));
@@ -124,9 +123,9 @@ export const BorrowAssetsList = () => {
         iconSymbol: reserve.iconSymbol,
         ...(reserve.isWrappedBaseAsset
           ? fetchIconSymbolAndName({
-              symbol: baseAssetSymbol,
-              underlyingAsset: API_ETH_MOCK_ADDRESS.toLowerCase(),
-            })
+            symbol: baseAssetSymbol,
+            underlyingAsset: API_ETH_MOCK_ADDRESS.toLowerCase(),
+          })
           : {}),
       };
     });
@@ -137,19 +136,19 @@ export const BorrowAssetsList = () => {
   const collateralUsagePercent = maxBorrowAmount.eq(0)
     ? '0'
     : valueToBigNumber(user?.totalBorrowsMarketReferenceCurrency || '0')
-        .div(maxBorrowAmount)
-        .toFixed();
+      .div(maxBorrowAmount)
+      .toFixed();
 
   const borrowReserves =
     user?.totalCollateralMarketReferenceCurrency === '0' || +collateralUsagePercent >= 0.98
       ? tokensToBorrow
       : tokensToBorrow.filter(({ availableBorrowsInUSD, totalLiquidityUSD, symbol }) => {
-          if (displayGho({ symbol, currentMarket })) {
-            return true;
-          }
+        if (displayGho({ symbol, currentMarket })) {
+          return true;
+        }
 
-          return availableBorrowsInUSD !== '0.00' && totalLiquidityUSD !== '0';
-        });
+        return availableBorrowsInUSD !== '0.00' && totalLiquidityUSD !== '0';
+      });
 
   const { value: ghoReserve, filtered: filteredReserves } = findAndFilterGhoReserve(borrowReserves);
   const sortedReserves = handleSortDashboardReserves(
@@ -204,17 +203,6 @@ export const BorrowAssetsList = () => {
       subChildrenComponent={
         <>
           <Box sx={{ px: 6, mb: 4 }}>
-            {borrowDisabled && currentNetworkConfig.name === 'Harmony' && (
-              <MarketWarning marketName="Harmony" />
-            )}
-
-            {borrowDisabled && currentNetworkConfig.name === 'Fantom' && (
-              <MarketWarning marketName="Fantom" />
-            )}
-            {borrowDisabled && currentMarketData.marketTitle === 'Ethereum AMM' && (
-              <MarketWarning marketName="Ethereum AMM" />
-            )}
-
             {user?.healthFactor !== '-1' && Number(user?.healthFactor) <= 1.1 && (
               <Warning severity="error">
                 Be careful - You are very close to liquidation. Consider depositing more collateral
@@ -227,7 +215,7 @@ export const BorrowAssetsList = () => {
                 {user?.isInIsolationMode && (
                   <Warning severity="warning">
                     Borrowing power and assets are limited due to Isolation mode.
-                    <Link href="https://docs.aave.com/faq/" target="_blank" rel="noopener">
+                    <Link href="https://docs.more.markets/faq/" target="_blank" rel="noopener">
                       Learn More
                     </Link>
                   </Warning>

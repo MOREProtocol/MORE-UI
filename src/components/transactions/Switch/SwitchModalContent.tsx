@@ -96,7 +96,7 @@ export const SwitchModalContent = ({
     destDecimals: selectedOutputToken.decimals,
     user,
     options: {
-      partner: 'aave-widget',
+      partner: 'more-widget',
     },
   });
 

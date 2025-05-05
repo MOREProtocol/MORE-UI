@@ -33,7 +33,7 @@ export const ModalWrapper: React.FC<{
   underlyingAsset: string;
   title: React.ReactElement;
   requiredChainId?: number;
-  // if true wETH will stay wETH otherwise wETH will be returned as ETH
+  // if true wFLOW will stay wFLOW otherwise wFLOW will be returned as FLOW
   keepWrappedSymbol?: boolean;
   hideTitleSymbol?: boolean;
   children: (props: ModalWrapperProps) => React.ReactNode;

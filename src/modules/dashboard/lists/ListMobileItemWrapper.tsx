@@ -55,14 +55,12 @@ export const ListMobileItemWrapper = ({
     return (
       <>
         {paused && <PausedTooltip />}
-        {showFrozenTooltip && <FrozenTooltip symbol={symbol} currentMarket={currentMarket} />}
+        {showFrozenTooltip && <FrozenTooltip />}
         {showRenFilTooltip && <RenFILToolTip />}
         {showAmplTooltip && <AMPLToolTip />}
         {showstETHTooltip && <StETHCollateralToolTip />}
         {offboardingDiscussion && <OffboardingTooltip discussionLink={offboardingDiscussion} />}
-        {showBorrowDisabledTooltip && symbol && currentMarket && (
-          <BorrowDisabledToolTip symbol={symbol} currentMarket={currentMarket} />
-        )}
+        {showBorrowDisabledTooltip && symbol && currentMarket && <BorrowDisabledToolTip />}
       </>
     );
   };

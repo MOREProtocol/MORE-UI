@@ -27,7 +27,7 @@ export const RepayModal = () => {
   // repay with collateral is only possible:
   // 1. on chains with paraswap deployed
   // 2. when you have a different supplied(not necessarily collateral) asset then the one your debt is in
-  // For repaying your debt with the same assets mToken you can use repayWithMToken on aave protocol v3
+  // For repaying your debt with the same assets mToken you can use repayWithMToken on more protocol
   const collateralRepayPossible =
     isFeatureEnabled.collateralRepay(currentMarketData) &&
     userReserves.some(

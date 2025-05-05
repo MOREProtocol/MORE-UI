@@ -27,7 +27,7 @@ export type ERC20TokenType = {
   symbol: string;
   decimals: number;
   image?: string;
-  aToken?: boolean;
+  mToken?: boolean;
 };
 
 export type Web3Data = {
@@ -179,7 +179,7 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
     await disconnectAsync();
   };
 
-  // inject account into zustand as long as aave itnerface is using old web3 providers
+  // inject account into zustand as long as more itnerface is using old web3 providers
   useEffect(() => {
     setAccount(address?.toLowerCase());
   }, [address]);

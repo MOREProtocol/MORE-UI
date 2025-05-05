@@ -4,19 +4,19 @@ import LazyLoad from 'react-lazy-load';
 import { MarketDataType } from 'src/ui-config/marketsConfig';
 import { networkConfigs } from 'src/ui-config/networksConfig';
 
-interface ATokenIconProps {
+interface MTokenIconProps {
   symbol?: string;
 }
 
 /**
  * To save some bundle size we stopped base64 encoding & inlining svgs as base encoding increases size by up to 30%
  * and most users will never need all token icons.
- * The aToken icons have previously been separate icons also adding to bundle size. Now they are composed on the fly.
+ * The mToken icons have previously been separate icons also adding to bundle size. Now they are composed on the fly.
  * When adding a token to metamask, you can either supply a url or a base64 encoded string.
  * Supplying a url seems not very rational, but supplying a base64 for an external svg image that is composed with a react component is non trivial.
  * Therefore the solution we came up with is:
  * 1. rendering the svg component as an object
- * 2. rendering the aToken ring as a react component
+ * 2. rendering the mToken ring as a react component
  * 3. using js to manipulate the dome to have the object without the subdocument inside the react component
  * 4. base64 encode the composed dom svg
  *
@@ -26,10 +26,10 @@ interface ATokenIconProps {
 export function Base64Token({
   symbol,
   onImageGenerated,
-  aToken,
+  mToken,
 }: {
   symbol: string;
-  aToken?: boolean;
+  mToken?: boolean;
   onImageGenerated: (base64: string) => void;
 }) {
   const ref = useRef<HTMLObjectElement>(null);
@@ -38,7 +38,7 @@ export function Base64Token({
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (!loading && ref.current && ref.current?.contentDocument) {
-      if (aToken) {
+      if (mToken) {
         // eslint-disable-next-line
         const inner = ref.current?.contentDocument?.childNodes?.[0] as any;
         const oldWidth = inner.getAttribute('width');
@@ -65,7 +65,7 @@ export function Base64Token({
         );
       }
     }
-  }, [loading, aToken]);
+  }, [loading, mToken]);
   return (
     <div
       style={{
@@ -82,12 +82,12 @@ export function Base64Token({
         data={`/icons/tokens/${symbol.toLowerCase()}.svg`}
         onLoad={() => setLoading(false)}
       />
-      {aToken && <ATokenIcon ref={aRef} />}
+      {mToken && <MTokenIcon ref={aRef} />}
     </div>
   );
 }
 
-export const ATokenIcon = forwardRef<SVGSVGElement, ATokenIconProps>(({ symbol }, ref) => {
+export const MTokenIcon = forwardRef<SVGSVGElement, MTokenIconProps>(({ symbol }, ref) => {
   return (
     <svg
       style={{
@@ -136,12 +136,12 @@ export const ATokenIcon = forwardRef<SVGSVGElement, ATokenIconProps>(({ symbol }
     </svg>
   );
 });
-ATokenIcon.displayName = 'ATokenIcon';
+MTokenIcon.displayName = 'MTokenIcon';
 
 interface TokenIconProps extends IconProps {
   symbol: string;
   market?: MarketDataType;
-  aToken?: boolean;
+  mToken?: boolean;
 }
 
 /**
@@ -150,7 +150,7 @@ interface TokenIconProps extends IconProps {
  * @param param0
  * @returns
  */
-function SingleTokenIcon({ symbol, aToken, market, ...rest }: TokenIconProps) {
+function SingleTokenIcon({ symbol, mToken, market, ...rest }: TokenIconProps) {
   const [tokenSymbol, setTokenSymbol] = useState(symbol.toLowerCase());
 
   useEffect(() => {
@@ -159,8 +159,8 @@ function SingleTokenIcon({ symbol, aToken, market, ...rest }: TokenIconProps) {
 
   const tokenIcon = (
     <Icon {...rest} sx={{ display: 'flex', position: 'relative', borderRadius: '50%', ...rest.sx }}>
-      {aToken ? (
-        <ATokenIcon symbol={tokenSymbol} />
+      {mToken ? (
+        <MTokenIcon symbol={tokenSymbol} />
       ) : (
         <img
           src={`/icons/tokens/${tokenSymbol}.svg`}
@@ -229,7 +229,7 @@ export function ExternalTokenIcon({ symbol, logoURI, ...rest }: ExternalTokenIco
 interface MultiTokenIconProps extends IconProps {
   symbols: string[];
   badgeSymbol?: string;
-  aToken?: boolean;
+  mToken?: boolean;
 }
 
 export function MultiTokenIcon({ symbols, badgeSymbol, ...rest }: MultiTokenIconProps) {

@@ -66,20 +66,6 @@ export function AppFooter() {
       label: 'Send feedback',
       key: 'Send feedback',
     },
-    // {
-    //   href: 'https://docs.aave.com/faq/',
-    //   label: FAQS,
-    //   key: 'FAQS',
-    // },
-    // {
-    //   href: 'https://discord.com/invite/aave',
-    //   label: Send feedback,
-    //   key: 'Send feedback',
-    //   onClick: (event: React.MouseEvent) => {
-    //     event.preventDefault();
-    //     setFeedbackOpen(true);
-    //   },
-    // },
     {
       href: '/',
       label: 'Manage analytics',

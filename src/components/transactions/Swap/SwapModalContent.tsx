@@ -153,7 +153,7 @@ export const SwapModalContent = ({
         return (
           <>
             Due to health factor impact, a flashloan is required to perform this transaction, but
-            Aave Governance has disabled flashloan availability for this asset. Try lowering the
+            More Governance has disabled flashloan availability for this asset. Try lowering the
             amount or supplying additional collateral.
           </>
         );

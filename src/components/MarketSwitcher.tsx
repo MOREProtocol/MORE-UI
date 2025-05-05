@@ -127,6 +127,12 @@ export const MarketSwitcher = ({ showAllMarkets = true }: { showAllMarkets?: boo
     handleMarketChange(e.target.value as ExtendedMarket);
   };
 
+  const filteredAvailableMarkets = availableMarkets.filter((marketId) => {
+    const { network } = getMarketInfoById(marketId);
+    // Show all if ENABLE_TESTNET is true, otherwise only show mainnet
+    return ENABLE_TESTNET || (network && !network.isTestnet);
+  })
+
   return (
     <TextField
       select
@@ -143,7 +149,7 @@ export const MarketSwitcher = ({ showAllMarkets = true }: { showAllMarkets?: boo
       SelectProps={{
         native: false,
         className: 'MarketSwitcher__select',
-        IconComponent: (props) => (
+        IconComponent: filteredAvailableMarkets.length < 2 ? null : (props) => (
           <SvgIcon fontSize="medium" {...props}>
             <ChevronDownIcon />
           </SvgIcon>
@@ -247,34 +253,35 @@ export const MarketSwitcher = ({ showAllMarkets = true }: { showAllMarkets?: boo
         </Typography>
       </Box>
 
-      {availableMarkets.map((marketId: CustomMarket) => {
-        const { market, network } = getMarketInfoById(marketId);
-        const marketNaming = getMarketHelpData(market.marketTitle);
-        return (
-          <MenuItem
-            key={marketId}
-            data-cy={`marketSelector_${marketId}`}
-            value={marketId}
-            sx={{
-              '.MuiListItemIcon-root': { minWidth: 'unset' },
-            }}
-          >
-            <MarketLogo
-              size={32}
-              logo={network.networkLogoPath}
-              testChainName={marketNaming.testChainName}
-            />
-            <ListItemText sx={{ mr: 0 }}>
-              {marketNaming.name} {market.isFork ? 'Fork' : ''}
-            </ListItemText>
-            <ListItemText sx={{ textAlign: 'right' }}>
-              <Typography color="text.muted" variant="description">
-                {marketNaming.testChainName}
-              </Typography>
-            </ListItemText>
-          </MenuItem>
-        );
-      })}
+      {filteredAvailableMarkets
+        .map((marketId: CustomMarket) => {
+          const { market, network } = getMarketInfoById(marketId);
+          const marketNaming = getMarketHelpData(market.marketTitle);
+          return (
+            <MenuItem
+              key={marketId}
+              data-cy={`marketSelector_${marketId}`}
+              value={marketId}
+              sx={{
+                '.MuiListItemIcon-root': { minWidth: 'unset' },
+              }}
+            >
+              <MarketLogo
+                size={32}
+                logo={network.networkLogoPath}
+                testChainName={marketNaming.testChainName}
+              />
+              <ListItemText sx={{ mr: 0 }}>
+                {marketNaming.name} {market.isFork ? 'Fork' : ''}
+              </ListItemText>
+              <ListItemText sx={{ textAlign: 'right' }}>
+                <Typography color="text.muted" variant="description">
+                  {marketNaming.testChainName}
+                </Typography>
+              </ListItemText>
+            </MenuItem>
+          );
+        })}
     </TextField>
   );
 };

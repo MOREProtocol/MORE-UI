@@ -11,7 +11,7 @@ export const FixedAPYTooltipText = (
       'Interest rate that is determined by Aave Governance. This rate may be changed over time depending on the need for the GHO supply to contract/expand. '
     }
     <Link
-      href="https://docs.gho.xyz/concepts/how-gho-works/interest-rate-discount-model#interest-rate-model"
+      href="https://docs.more.markets/concepts/how-gho-works/interest-rate-discount-model#interest-rate-model"
       underline="always"
     >
       Learn more

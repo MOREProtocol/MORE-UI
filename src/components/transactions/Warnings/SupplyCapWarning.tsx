@@ -19,14 +19,14 @@ export const SupplyCapWarning = ({ supplyCap, icon = true, ...rest }: SupplyCapW
     return supplyCap.isMaxed
       ? 'Protocol supply cap is at 100% for this asset. Further supply unavailable.'
       : `Maximum amount available to supply is limited because protocol supply cap is at ${supplyCap.percentUsed.toFixed(
-          2
-        )}%.`;
+        2
+      )}%.`;
   };
 
   return (
     <Warning severity={severity} icon={icon} {...rest}>
       {renderText()}{' '}
-      <Link href="https://docs.aave.com/developers/whats-new/supply-borrow-caps" underline="always">
+      <Link href="https://docs.more.markets/developers/whats-new/supply-borrow-caps" underline="always">
         Learn more
       </Link>
     </Warning>

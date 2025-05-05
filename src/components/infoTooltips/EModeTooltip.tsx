@@ -18,7 +18,7 @@ export const EModeTooltip = ({
         />
         .{' '}
         <Link
-          href="https://docs.aave.com/faq/aave-v3-features#high-efficiency-mode-e-mode"
+          href="https://docs.more.markets/faq/more-markets-features#high-efficiency-mode-e-mode"
           sx={{ textDecoration: 'underline' }}
           variant="caption"
           color="text.secondary"

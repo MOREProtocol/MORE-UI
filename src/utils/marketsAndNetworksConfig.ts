@@ -110,15 +110,15 @@ export const availableMarkets = Object.keys(marketsData).filter((key) =>
 
 const linkBuilder =
   ({ baseUrl, addressPrefix = 'address', txPrefix = 'tx' }: ExplorerLinkBuilderConfig) =>
-  ({ tx, address }: ExplorerLinkBuilderProps): string => {
-    if (tx) {
-      return `${baseUrl}/${txPrefix}/${tx}`;
-    }
-    if (address) {
-      return `${baseUrl}/${addressPrefix}/${address}`;
-    }
-    return baseUrl;
-  };
+    ({ tx, address }: ExplorerLinkBuilderProps): string => {
+      if (tx) {
+        return `${baseUrl}/${txPrefix}/${tx}`;
+      }
+      if (address) {
+        return `${baseUrl}/${addressPrefix}/${address}`;
+      }
+      return baseUrl;
+    };
 
 export function getNetworkConfig(chainId: number): NetworkConfig {
   const config = networkConfigs[chainId];
@@ -181,8 +181,6 @@ export const getENSProvider = () => {
   const config = getNetworkConfig(chainId);
   return new StaticJsonRpcProvider(config.publicJsonRPCUrl[0], chainId);
 };
-
-export const frozenProposalMap: Record<string, string> = {};
 
 // reexport so we can forbit config import
 export { CustomMarket };

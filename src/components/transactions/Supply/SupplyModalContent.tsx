@@ -47,7 +47,7 @@ import {
   TxModalDetails,
 } from '../FlowCommons/TxModalDetails';
 import { getAssetCollateralType } from '../utils';
-import { AAVEWarning } from '../Warnings/AAVEWarning';
+import { MOREWarning } from '../Warnings/MOREWarning';
 import { IsolationModeWarning } from '../Warnings/IsolationModeWarning';
 import { SNXWarning } from '../Warnings/SNXWarning';
 import { SupplyActions } from './SupplyActions';
@@ -97,7 +97,7 @@ export const SupplyModalContentWrapper = (
       address: poolReserve.aTokenAddress,
       symbol: poolReserve.iconSymbol,
       decimals: poolReserve.decimals,
-      aToken: true,
+      mToken: true,
     },
     collateralType: getAssetCollateralType(
       userReserve,
@@ -220,8 +220,8 @@ export const SupplyModalContent = React.memo(
           </Warning>
         )}
         {process.env.NEXT_PUBLIC_ENABLE_STAKING === 'true' &&
-          poolReserve.symbol === 'AAVE' &&
-          isFeatureEnabled.staking(currentMarketData) && <AAVEWarning />}
+          poolReserve.symbol === 'MORE' &&
+          isFeatureEnabled.staking(currentMarketData) && <MOREWarning />}
         {poolReserve.symbol === 'SNX' && maxAmountToSupply !== '0' && <SNXWarning />}
 
         <AssetInput
@@ -393,8 +393,8 @@ export const SupplyWrappedTokenModalContent = ({
   if (supplyTxState.success) {
     const successModalAmount = supplyingWrappedToken
       ? BigNumber(amount)
-          .dividedBy(exchangeRate || '1')
-          .toString()
+        .dividedBy(exchangeRate || '1')
+        .toString()
       : amount;
 
     return (

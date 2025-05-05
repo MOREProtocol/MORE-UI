@@ -94,7 +94,7 @@ export const SupplyInfo = ({
                         'Asset supply is limited to a certain amount to reduce protocol exposure to the asset and to help manage risks involved. '
                       }
                       <Link
-                        href="https://docs.aave.com/developers/whats-new/supply-borrow-caps"
+                        href="https://docs.more.markets/developers/whats-new/supply-borrow-caps"
                         underline="always"
                       >
                         Learn more
@@ -179,7 +179,7 @@ export const SupplyInfo = ({
                 In Isolation mode you cannot supply other assets as collateral for borrowing. Assets
                 used as collateral in Isolation mode can only be borrowed to a specific debt
                 ceiling.{' '}
-                <Link href="https://docs.aave.com/faq/aave-v3-features#isolation-mode">
+                <Link href="https://docs.more.markets/faq/more-v3-features#isolation-mode">
                   Learn more
                 </Link>
               </Typography>
@@ -307,7 +307,7 @@ export const SupplyInfo = ({
             stETH supplied as collateral will continue to accrue staking rewards provided by daily
             rebases.{' '}
             <Link
-              href="https://blog.lido.fi/aave-integrates-lidos-steth-as-collateral/"
+              href="https://docs.more.markets"
               underline="always"
             >
               Learn more
