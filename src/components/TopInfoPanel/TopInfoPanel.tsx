@@ -35,6 +35,7 @@ export const TopInfoPanel = ({
               withMarketSwitcher={withMarketSwitcher}
               withMigrateButton={withMigrateButton}
               bridge={bridge}
+              showAllMarkets={false}
             />
           )}
 
