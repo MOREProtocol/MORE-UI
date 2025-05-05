@@ -29,9 +29,8 @@ export const MarketAssetsListContainer = () => {
   const { walletBalances } = useWalletBalances(currentMarketData);
   const [searchTerm, setSearchTerm] = useState('');
   const { breakpoints } = useTheme();
-  const lg = useMediaQuery(breakpoints.down('lg'));
   const sm = useMediaQuery(breakpoints.down('sm'));
-  const [showFilter, setShowFilter] = useState(!lg);
+  const [showFilter, setShowFilter] = useState(false);
 
   // Calculate initial ranges from reserves
   const initialFilterOptions = useMemo(() => calculateFilterOptions(reserves), [reserves]);
@@ -101,9 +100,9 @@ export const MarketAssetsListContainer = () => {
       ...reserve,
       ...(reserve.isWrappedBaseAsset
         ? fetchIconSymbolAndName({
-            symbol: currentNetworkConfig.baseAssetSymbol,
-            underlyingAsset: API_ETH_MOCK_ADDRESS.toLowerCase(),
-          })
+          symbol: currentNetworkConfig.baseAssetSymbol,
+          underlyingAsset: API_ETH_MOCK_ADDRESS.toLowerCase(),
+        })
         : {}),
     }));
   const marketFrozen = !reserves.some((reserve) => !reserve.isFrozen);

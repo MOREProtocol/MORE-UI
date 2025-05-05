@@ -42,6 +42,7 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
       title: 'Vaults',
       visibleTitle: 'Vaults',
       dataCy: 'menuVaults',
+      isVisible: () => ENABLE_TESTNET,
     },
     {
       link: ROUTES.staking,
