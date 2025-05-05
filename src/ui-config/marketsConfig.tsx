@@ -225,4 +225,4 @@ export const marketsData: {
   }, */
 } as const;
 
-export const allMarketsData = [marketsData.proto_degen_v3, marketsData.proto_flow_v3];
+export const allMarketsData = [marketsData.proto_flow_v3];
