@@ -10,6 +10,8 @@ import { useVault } from 'src/hooks/vault/useVault';
 import { useUserVaultsData, useVaultData } from 'src/hooks/vault/useVaultData';
 import { networkConfigs } from 'src/ui-config/networksConfig';
 import { roundToTokenDecimals } from 'src/utils/utils';
+import SafeWalletButton from './SafeWalletButton';
+import { ChainIds } from 'src/utils/const';
 
 interface VaultWithdrawModalProps {
   isOpen: boolean;
@@ -17,15 +19,15 @@ interface VaultWithdrawModalProps {
 }
 
 export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, setIsOpen }) => {
-  const { selectedVaultId, withdrawFromVault, checkApprovalNeeded, accountAddress, chainId } =
+  const { signer, selectedVaultId, withdrawFromVault, checkApprovalNeeded, accountAddress, chainId } =
     useVault();
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
   const currentNetwork = networkConfigs[chainId];
   const maxAmountToWithdraw = userVaultData?.[0]?.data?.maxWithdraw
     ? formatUnits(
-        userVaultData?.[0]?.data?.maxWithdraw?.toString(),
-        userVaultData?.[0]?.data?.decimals
-      )
+      userVaultData?.[0]?.data?.maxWithdraw?.toString(),
+      userVaultData?.[0]?.data?.decimals
+    )
     : new BigNumber(0);
 
   const vaultData = useVaultData(selectedVaultId);
@@ -35,6 +37,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+
   const vaultShareCurrency = useMemo(
     () => selectedVault?.overview?.shareCurrencySymbol,
     [selectedVault]
@@ -62,8 +65,9 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
       return;
     }
     setIsLoading(true);
-    const hash = await withdrawFromVault(parseUnits(amount, reserve.decimals).toString());
-    setTxHash(hash);
+    const { tx } = await withdrawFromVault(parseUnits(amount, reserve.decimals).toString());
+    const hash = await signer?.sendTransaction(tx);
+    setTxHash(hash?.hash);
     setIsLoading(false);
   };
 
@@ -82,7 +86,25 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
   return (
     <BasicModal open={isOpen} setOpen={setIsOpen}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-        <Typography variant="h2">Withdraw from the vault</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Typography variant="h2">Withdraw from the vault</Typography>
+          {chainId === ChainIds.flowEVMTestnet && (
+            <Box sx={{ display: 'flex' }}>
+              <Button
+                variant="surface"
+                size="small"
+                color="primary"
+                sx={{
+                  backgroundColor: '#B6509E',
+                  height: '22px',
+                  '&:hover, &.Mui-focusVisible': { backgroundColor: 'rgba(182, 80, 158, 0.7)' },
+                }}
+              >
+                TESTNET
+              </Button>
+            </Box>
+          )}
+        </Box>
         <Box
           sx={{
             display: 'flex',
@@ -126,17 +148,25 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
           maxValue={maxAmountToWithdraw?.toString()}
           balanceText={'Available to withdraw'}
         />
-        <Button
-          variant={txHash ? 'contained' : 'gradient'}
-          disabled={!amount || amount === '0'}
-          onClick={handleClick}
-          size="large"
-          sx={{ minHeight: '44px' }}
-          data-cy="actionButton"
-        >
-          {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
-          {buttonContent}
-        </Button>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Button
+            variant={txHash ? 'contained' : 'gradient'}
+            disabled={!amount || amount === '0'}
+            onClick={handleClick}
+            size="large"
+            sx={{ minHeight: '44px' }}
+            data-cy="actionButton"
+          >
+            {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
+            {buttonContent}
+          </Button>
+          <SafeWalletButton
+            isDisabled={!amount || amount === '0'}
+            vaultAddress={selectedVault?.id}
+            operation="withdraw"
+            amount={amount ? parseUnits(amount, reserve.decimals).toString() : '0'}
+          />
+        </Box>
       </Box>
     </BasicModal>
   );

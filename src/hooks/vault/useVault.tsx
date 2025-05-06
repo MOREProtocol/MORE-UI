@@ -19,7 +19,6 @@ import { ChainIds } from 'src/utils/const';
 import { useWalletClient } from 'wagmi';
 
 import { useVaultProvider } from './useVaultData';
-import { ENABLE_TESTNET } from 'src/utils/marketsAndNetworksConfig';
 
 // Define standardized types for monetary values
 export interface MonetaryValue {
@@ -114,6 +113,7 @@ interface VaultBatchTransaction {
 export interface VaultContextData {
   // Network context
   chainId: number;
+  signer: ethers.Signer | null;
 
   // Info reading
   selectedVaultId: string | null;
@@ -128,8 +128,13 @@ export interface VaultContextData {
   accountAddress: string | null;
   transactions: VaultBatchTransaction[];
   nbTransactions: number;
-  depositInVault: (amountInWei: string) => Promise<string>;
-  withdrawFromVault: (amountInWei: string) => Promise<string>;
+  depositInVault: (amountInWei: string, accountAddress?: string) => Promise<{
+    tx: ethers.providers.TransactionRequest;
+    action: 'approve' | 'deposit';
+  }>;
+  withdrawFromVault: (amountInWei: string, accountAddress?: string) => Promise<{
+    tx: ethers.providers.TransactionRequest;
+  }>;
   checkApprovalNeeded: (amountInWei: string) => Promise<boolean>;
   addTransaction: ({
     action,
@@ -169,7 +174,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
 
   // Web3 setup
   const { data: walletClient } = useWalletClient();
-  const chainId = useMemo(() => ENABLE_TESTNET ? ChainIds.flowEVMTestnet : ChainIds.flowEVMMainnet, [walletClient]);
+  const chainId = useMemo(() => walletClient?.chain.id, [walletClient]);
   const provider = useVaultProvider(chainId);
   const signer = useMemo(() => {
     if (walletClient && provider) {
@@ -236,11 +241,14 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   const nbTransactions = useMemo(() => transactions.length, [transactions]);
 
   const depositInVault = useCallback(
-    async (amountInWei: string): Promise<string> => {
+    async (amountInWei: string, localAccountAddress = accountAddress): Promise<{
+      tx: ethers.providers.TransactionRequest;
+      action: 'approve' | 'deposit';
+    }> => {
       if (!selectedVaultId) {
         throw new Error('No vault selected');
       }
-      if (!accountAddress) {
+      if (!localAccountAddress) {
         throw new Error('No account connected');
       }
       if (!signer) {
@@ -248,8 +256,6 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
       }
 
       console.log('Depositing', amountInWei);
-      console.log('amountInWei', amountInWei);
-      console.log('accountAddress', accountAddress);
 
       // Get the vault contract to check its state
       const vaultContract = new ethers.Contract(
@@ -283,19 +289,18 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
       }
 
       // Check allowance and approve if needed
-      const allowance = await tokenContract.allowance(accountAddress, selectedVaultId);
+      const allowance = await tokenContract.allowance(localAccountAddress, selectedVaultId);
       if (allowance.lt(amountInWei)) {
-        console.log('Approving token spend...');
-        const approveTx = await tokenContract.approve(selectedVaultId, ethers.constants.MaxUint256);
-        await approveTx.wait();
-        console.log('Approval successful');
+        const approveTx = await tokenContract.populateTransaction.approve(
+          selectedVaultId,
+          ethers.constants.MaxUint256
+        );
+        return { tx: approveTx, action: 'approve' };
       }
 
       try {
-        const tx = await vaultContract.deposit(amountInWei, accountAddress);
-        const receipt = await tx.wait();
-        console.log('Deposit successful:', receipt.transactionHash);
-        return receipt.transactionHash;
+        const tx = await vaultContract.populateTransaction.deposit(amountInWei, localAccountAddress);
+        return { tx, action: 'deposit' };
       } catch (error) {
         console.error('Deposit failed:', error);
         throw error;
@@ -305,7 +310,9 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   );
 
   const withdrawFromVault = useCallback(
-    async (amountInWei: string): Promise<string> => {
+    async (amountInWei: string, localAccountAddress = accountAddress): Promise<{
+      tx: ethers.providers.TransactionRequest;
+    }> => {
       if (!selectedVaultId) {
         throw new Error('No vault selected');
       }
@@ -332,10 +339,12 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
       }
 
       try {
-        const tx = await vaultContract.withdraw(amountInWei, accountAddress, accountAddress);
-        const receipt = await tx.wait();
-        console.log('Withdrawal successful:', receipt.transactionHash);
-        return receipt.transactionHash;
+        const tx = await vaultContract.populateTransaction.withdraw(
+          amountInWei,
+          localAccountAddress,
+          localAccountAddress
+        );
+        return { tx };
       } catch (error) {
         console.error('Withdrawal failed:', error);
         throw error;
@@ -351,15 +360,15 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
       if (!accountAddress) {
         throw new Error('No account connected');
       }
-      if (!signer) {
-        throw new Error('No signer available');
+      if (!provider) {
+        throw new Error('No provider available');
       }
 
       // Get the vault contract to get the asset address
       const vaultContract = new ethers.Contract(
         selectedVaultId,
         [`function asset() external view returns (address)`],
-        signer
+        provider
       );
 
       // Get the token contract for approval check
@@ -367,14 +376,14 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
       const tokenContract = new ethers.Contract(
         assetAddress,
         [`function allowance(address owner, address spender) external view returns (uint256)`],
-        signer
+        provider
       );
 
       // Check current allowance
       const allowance = await tokenContract.allowance(accountAddress, selectedVaultId);
       return allowance.lt(amountInWei);
     },
-    [selectedVaultId, signer, accountAddress]
+    [selectedVaultId, provider, accountAddress]
   );
 
   const addTransaction = useCallback(
@@ -488,6 +497,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   const contextValue: VaultContextData = {
     // Network context
     chainId,
+    signer,
 
     // Info reading
     selectedVaultId,

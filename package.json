@@ -20,7 +20,7 @@
     "lint": "yarn lint:code && yarn lint:formatting",
     "lint:fix": "yarn lint:code:fix && yarn lint:formatting:fix",
     "post-update": "echo \"codesandbox preview only, need an update\" && yarn upgrade --latest",
-    "prepare": "husky install",
+    "prepare": "husky",
     "test:open": "DOTENV_CONFIG_PATH='.env.local' cypress open",
     "test:headless": "export DOTENV_CONFIG_PATH='../../../.env.local' && cypress run --config-file './cypress/configs/local/full.config.ts'",
     "test": "jest --watch",

@@ -1,7 +1,7 @@
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import BigNumber from 'bignumber.js';
 import { parseUnits } from 'ethers/lib/utils';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { AssetInput } from 'src/components/transactions/AssetInput';
@@ -11,6 +11,8 @@ import { useVaultData } from 'src/hooks/vault/useVaultData';
 import { useRootStore } from 'src/store/root';
 import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableToSupply';
 import { roundToTokenDecimals } from 'src/utils/utils';
+import SafeWalletButton from './SafeWalletButton';
+import { ChainIds } from 'src/utils/const';
 
 interface VaultDepositModalProps {
   isOpen: boolean;
@@ -18,7 +20,7 @@ interface VaultDepositModalProps {
 }
 
 export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, setIsOpen }) => {
-  const { selectedVaultId, depositInVault, checkApprovalNeeded } = useVault();
+  const { chainId, signer, selectedVaultId, depositInVault, checkApprovalNeeded } = useVault();
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
   const { user, reserves } = useAppDataContext();
@@ -30,6 +32,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [txAction, setTxAction] = useState<string | null>(null);
   const vaultShareCurrency = useMemo(
     () => selectedVault?.overview?.shareCurrencySymbol,
     [selectedVault]
@@ -69,14 +72,28 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     }
   };
 
+  useEffect(() => {
+    const updateTx = async () => {
+      if (amount && amount !== '0') {
+        setIsLoading(true);
+        const { action } = await depositInVault(parseUnits(amount, reserve.decimals).toString());
+        setTxAction(action);
+        setIsLoading(false);
+      }
+    };
+    updateTx();
+  }, [amount]);
+
   const handleClick = async () => {
     if (txHash) {
       window.open(`${currentNetworkConfig.explorerLinkBuilder({ tx: txHash })}`, '_blank');
       return;
     }
     setIsLoading(true);
-    const hash = await depositInVault(parseUnits(amount, reserve.decimals).toString());
-    setTxHash(hash);
+    const { tx, action } = await depositInVault(parseUnits(amount, reserve.decimals).toString());
+    const hash = await signer?.sendTransaction(tx);
+    action === 'deposit' && setTxHash(hash?.hash);
+    action === 'approve' && setTxAction('deposit');
     setIsLoading(false);
   };
 
@@ -84,23 +101,39 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     if (txHash) {
       return 'See transaction on Flowscan';
     }
-    if (!reserve) {
+    if (!!amount && (!reserve || !txAction)) {
       return 'Loading...';
     }
     if (amount === '0' || !amount) return 'Enter an amount';
 
-    const amountInWei =
-      amount && reserve.decimals ? parseUnits(amount, reserve.decimals).toString() : '0';
-    if (amountInWei && checkApprovalNeeded(amountInWei)) {
-      return 'Approve token spend & deposit';
+    if (amount && txAction === 'approve') {
+      return 'Approve token spend';
     }
     return 'Deposit into the vault';
-  }, [amount, reserve, checkApprovalNeeded, txHash]);
+  }, [amount, reserve, checkApprovalNeeded, txHash, txAction]);
 
   return (
     <BasicModal open={isOpen} setOpen={setIsOpen}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-        <Typography variant="h2">Deposit into the vault</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Typography variant="h2">Deposit into the vault</Typography>
+          {chainId === ChainIds.flowEVMTestnet && (
+            <Box sx={{ display: 'flex' }}>
+              <Button
+                variant="surface"
+                size="small"
+                color="primary"
+                sx={{
+                  backgroundColor: '#B6509E',
+                  height: '22px',
+                  '&:hover, &.Mui-focusVisible': { backgroundColor: 'rgba(182, 80, 158, 0.7)' },
+                }}
+              >
+                TESTNET
+              </Button>
+            </Box>
+          )}
+        </Box>
         <Box
           sx={{
             display: 'flex',
@@ -144,17 +177,25 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
           maxValue={maxAmountToSupply}
           balanceText={'Wallet balance'}
         />
-        <Button
-          variant={txHash ? 'contained' : 'gradient'}
-          disabled={!amount || amount === '0'}
-          onClick={handleClick}
-          size="large"
-          sx={{ minHeight: '44px' }}
-          data-cy="actionButton"
-        >
-          {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
-          {buttonContent}
-        </Button>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Button
+            variant={txHash ? 'contained' : 'gradient'}
+            disabled={!amount || amount === '0'}
+            onClick={handleClick}
+            size="large"
+            sx={{ minHeight: '44px' }}
+            data-cy="actionButton"
+          >
+            {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
+            {buttonContent}
+          </Button>
+          <SafeWalletButton
+            isDisabled={!amount || amount === '0'}
+            vaultAddress={selectedVault?.id}
+            operation="deposit"
+            amount={amount ? parseUnits(amount, reserve.decimals).toString() : '0'}
+          />
+        </Box>
       </Box>
     </BasicModal>
   );
