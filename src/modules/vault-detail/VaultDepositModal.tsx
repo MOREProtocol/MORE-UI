@@ -21,7 +21,7 @@ interface VaultDepositModalProps {
 }
 
 export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, setIsOpen }) => {
-  const { chainId, signer, selectedVaultId, depositInVault, checkApprovalNeeded } = useVault();
+  const { chainId, signer, selectedVaultId, depositInVault } = useVault();
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
   const { reserves } = useAppDataContext();
@@ -60,6 +60,37 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       minRemainingBaseTokenBalance
     );
 
+  // Effect to reset state when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setAmount('');
+      setTxHash(null);
+      setTxAction(null);
+      setIsLoading(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const updateButtonActionState = async () => {
+      if (txHash) {
+        setTxAction(null);
+        return;
+      }
+      if (amount && amount !== '0' && reserve?.decimals != null && typeof depositInVault === 'function') {
+        try {
+          const { action } = await depositInVault(parseUnits(amount, reserve.decimals).toString());
+          setTxAction(action);
+        } catch (error) {
+          console.error("Error updating button action state:", error);
+          setTxAction(null);
+        }
+      } else {
+        setTxAction(null);
+      }
+    };
+    updateButtonActionState();
+  }, [amount, reserve?.decimals, txHash, depositInVault]);
+
   const handleChange = (value: string) => {
     if (value === '-1') {
       setAmount(maxAmountToSupply);
@@ -69,45 +100,100 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     }
   };
 
-  useEffect(() => {
-    const updateTx = async () => {
-      if (amount && amount !== '0') {
-        setIsLoading(true);
-        const { action } = await depositInVault(parseUnits(amount, reserve.decimals).toString());
-        setTxAction(action);
-        setIsLoading(false);
-      }
-    };
-    updateTx();
-  }, [amount]);
-
   const handleClick = async () => {
     if (txHash) {
       window.open(`${currentNetworkConfig.explorerLinkBuilder({ tx: txHash })}`, '_blank');
       return;
     }
+
+    if (!amount || amount === '0' || !reserve || reserve.decimals == null || !signer || typeof depositInVault !== 'function' || !txAction) {
+      console.warn('Deposit/Approval prerequisites not met or action not determined:', {
+        amount,
+        reserveExists: !!reserve,
+        signerExists: !!signer,
+        depositInVaultFn: typeof depositInVault,
+        currentTxAction: txAction,
+      });
+      return;
+    }
+
     setIsLoading(true);
-    const { tx, action } = await depositInVault(parseUnits(amount, reserve.decimals).toString());
-    const hash = await signer?.sendTransaction(tx);
-    action === 'deposit' && setTxHash(hash?.hash);
-    action === 'approve' && setTxAction('deposit');
-    setIsLoading(false);
+
+    try {
+      const parsedAmount = parseUnits(amount, reserve.decimals).toString();
+      const { tx: transactionDataForCurrentAction, action: determinedAction } = await depositInVault(parsedAmount);
+
+      if (txAction !== determinedAction) {
+        console.warn(`Action mismatch: button shows '${txAction}', but current required action is '${determinedAction}'. Updating button.`);
+        setTxAction(determinedAction);
+        setIsLoading(false);
+        return;
+      }
+
+      if (txAction === 'approve') {
+        const approveResponse = await signer.sendTransaction(transactionDataForCurrentAction);
+        const approveReceipt = await approveResponse.wait();
+
+        if (approveReceipt && approveReceipt.status === 1) {
+          const { action: nextAction } = await depositInVault(parsedAmount);
+          setTxAction(nextAction);
+        } else {
+          console.error('Approval transaction failed or was rejected.');
+        }
+      } else if (txAction === 'deposit') {
+        const depositResponse = await signer.sendTransaction(transactionDataForCurrentAction);
+        const depositReceipt = await depositResponse.wait();
+
+        if (depositReceipt && depositReceipt.status === 1) {
+          setTxHash(depositReceipt.transactionHash);
+        } else {
+          console.error('Deposit transaction failed.');
+        }
+      }
+    } catch (error) {
+      console.error('Error during transaction process:', error);
+      if (amount && amount !== '0' && reserve?.decimals != null && typeof depositInVault === 'function') {
+        try {
+          const { action: currentActionState } = await depositInVault(parseUnits(amount, reserve.decimals).toString());
+          setTxAction(currentActionState);
+        } catch (recoveryError) {
+          console.error("Error trying to recover button state:", recoveryError);
+          setTxAction(null);
+        }
+      } else {
+        setTxAction(null);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const buttonContent = useMemo(() => {
     if (txHash) {
       return 'See transaction on Flowscan';
     }
-    if (!!amount && (!reserve || !txAction)) {
-      return 'Loading...';
-    }
-    if (amount === '0' || !amount) return 'Enter an amount';
 
-    if (amount && txAction === 'approve') {
+    if (isLoading) {
+      if (txAction === 'approve') return 'Approving...';
+      if (txAction === 'deposit') return 'Depositing...';
+      return 'Processing...';
+    }
+
+    if (!amount || amount === '0') return 'Enter an amount';
+
+    if (!reserve || txAction === null) {
+      return 'Checking availability...';
+    }
+
+    if (txAction === 'approve') {
       return 'Approve token spend';
     }
+    if (txAction === 'deposit') {
+      return 'Deposit into the vault';
+    }
+
     return 'Deposit into the vault';
-  }, [amount, reserve, checkApprovalNeeded, txHash, txAction]);
+  }, [amount, reserve, txHash, txAction, isLoading]);
 
   return (
     <BasicModal open={isOpen} setOpen={setIsOpen}>
@@ -184,7 +270,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
             data-cy="actionButton"
           >
             {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
-            {!isLoading && buttonContent}
+            {buttonContent}
           </Button>
           <SafeWalletButton
             isDisabled={!amount || amount === '0'}

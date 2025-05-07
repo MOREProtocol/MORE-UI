@@ -1,7 +1,7 @@
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import BigNumber from 'bignumber.js';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { AssetInput } from 'src/components/transactions/AssetInput';
@@ -12,6 +12,7 @@ import { networkConfigs } from 'src/ui-config/networksConfig';
 import { roundToTokenDecimals } from 'src/utils/utils';
 import SafeWalletButton from './SafeWalletButton';
 import { ChainIds } from 'src/utils/const';
+import { useRootStore } from 'src/store/root';
 
 interface VaultWithdrawModalProps {
   isOpen: boolean;
@@ -19,10 +20,12 @@ interface VaultWithdrawModalProps {
 }
 
 export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, setIsOpen }) => {
-  const { signer, selectedVaultId, withdrawFromVault, checkApprovalNeeded, accountAddress, chainId } =
+  const { signer, selectedVaultId, withdrawFromVault, accountAddress, chainId } =
     useVault();
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
-  const currentNetwork = networkConfigs[chainId];
+  const [currentNetworkConfig] = useRootStore((state) => [
+    state.currentNetworkConfig,
+  ]);
   const maxAmountToWithdraw = userVaultData?.[0]?.data?.maxWithdraw
     ? formatUnits(
       userVaultData?.[0]?.data?.maxWithdraw?.toString(),
@@ -37,6 +40,24 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [txAction, setTxAction] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setAmount('');
+      setTxHash(null);
+      setTxAction(null);
+      setIsLoading(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (amount && amount !== '0') {
+      setTxAction('withdraw');
+    } else {
+      setTxAction(null);
+    }
+  }, [amount]);
 
   const vaultShareCurrency = useMemo(
     () => selectedVault?.overview?.shareCurrencySymbol,
@@ -61,27 +82,55 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
 
   const handleClick = async () => {
     if (txHash) {
-      window.open(`${currentNetwork.explorerLink}/tx/${txHash}`, '_blank');
+      const explorerLink = currentNetworkConfig?.explorerLinkBuilder?.({ tx: txHash })
+        || `${networkConfigs[chainId].explorerLink}/tx/${txHash}`;
+      window.open(explorerLink, '_blank');
       return;
     }
+
+    if (!txAction || !reserve || !signer) {
+      return;
+    }
+
     setIsLoading(true);
-    const { tx } = await withdrawFromVault(parseUnits(amount, reserve.decimals).toString());
-    const hash = await signer?.sendTransaction(tx);
-    setTxHash(hash?.hash);
-    setIsLoading(false);
+    try {
+      if (txAction === 'withdraw') {
+        const { tx } = await withdrawFromVault(parseUnits(amount, reserve.decimals).toString());
+        const response = await signer.sendTransaction(tx);
+        const receipt = await response.wait();
+
+        if (receipt && receipt.status === 1) {
+          setTxHash(receipt.transactionHash);
+          setTxAction(null);
+        } else {
+          console.error('Withdrawal transaction failed or was rejected.');
+        }
+      }
+    } catch (error) {
+      console.error('Error during withdrawal process:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const buttonContent = useMemo(() => {
     if (txHash) {
       return 'See transaction on Flowscan';
     }
+    if (isLoading && txAction === 'withdraw') {
+      return 'Withdrawing...';
+    }
     if (!reserve) {
       return 'Loading...';
     }
     if (amount === '0' || !amount) return 'Enter an amount';
 
-    return 'Withdraw from the vault';
-  }, [amount, reserve, checkApprovalNeeded, txHash]);
+    if (txAction === 'withdraw') {
+      return 'Withdraw from the vault';
+    }
+
+    return 'Enter an amount';
+  }, [amount, reserve, txHash, isLoading, txAction]);
 
   return (
     <BasicModal open={isOpen} setOpen={setIsOpen}>
