@@ -184,7 +184,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
             data-cy="actionButton"
           >
             {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
-            {buttonContent}
+            {!isLoading && buttonContent}
           </Button>
           <SafeWalletButton
             isDisabled={!amount || amount === '0'}
