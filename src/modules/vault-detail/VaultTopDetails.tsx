@@ -8,7 +8,7 @@ import { VaultDepositModal } from './VaultDepositModal';
 import { VaultWithdrawModal } from './VaultWithdrawModal';
 
 export const VaultTopDetails = () => {
-  const { selectedVaultId, accountAddress } = useVault();
+  const { selectedVaultId, accountAddress, canInteractWithVault } = useVault();
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
   const vaultData = useVaultData(selectedVaultId);
 
@@ -71,28 +71,30 @@ export const VaultTopDetails = () => {
           </Box>
         </Box>
       </Box>
+      {canInteractWithVault && (
         <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2 }}>
           <Button
             variant="gradient"
-          fullWidth
-          size="medium"
-          onClick={() => setIsDepositModalOpen(true)}
-          disabled={isLoading || !accountAddress}
-          sx={{ borderRadius: '6px', py: 2 }}
-        >
-          Deposit
-        </Button>
-        <Button
-          variant="contained"
-          fullWidth
-          size="medium"
-          onClick={() => setIsWithdrawModalOpen(true)}
-          disabled={isLoading || (maxWithdraw && !maxWithdraw.gt(0)) || !accountAddress}
-          sx={{ borderRadius: '6px', py: 2 }}
-        >
-          Withdraw
-        </Button>
+            fullWidth
+            size="medium"
+            onClick={() => setIsDepositModalOpen(true)}
+            disabled={isLoading || !accountAddress}
+            sx={{ borderRadius: '6px', py: 2 }}
+          >
+            Deposit
+          </Button>
+          <Button
+            variant="contained"
+            fullWidth
+            size="medium"
+            onClick={() => setIsWithdrawModalOpen(true)}
+            disabled={isLoading || (maxWithdraw && !maxWithdraw.gt(0)) || !accountAddress}
+            sx={{ borderRadius: '6px', py: 2 }}
+          >
+            Withdraw
+          </Button>
         </Box>
+      )}
       <VaultDepositModal isOpen={isDepositModalOpen} setIsOpen={setIsDepositModalOpen} />
       <VaultWithdrawModal isOpen={isWithdrawModalOpen} setIsOpen={setIsWithdrawModalOpen} />
     </Box>

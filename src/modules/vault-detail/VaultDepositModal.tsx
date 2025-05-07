@@ -13,6 +13,7 @@ import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableTo
 import { roundToTokenDecimals } from 'src/utils/utils';
 import SafeWalletButton from './SafeWalletButton';
 import { ChainIds } from 'src/utils/const';
+import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
 
 interface VaultDepositModalProps {
   isOpen: boolean;
@@ -23,30 +24,26 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const { chainId, signer, selectedVaultId, depositInVault, checkApprovalNeeded } = useVault();
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
-  const { user, reserves } = useAppDataContext();
-  const [minRemainingBaseTokenBalance, currentNetworkConfig] = useRootStore((state) => [
+  const { reserves } = useAppDataContext();
+  const [minRemainingBaseTokenBalance, currentNetworkConfig, currentMarketData] = useRootStore((state) => [
     state.poolComputed.minRemainingBaseTokenBalance,
     state.currentNetworkConfig,
+    state.currentMarketData,
   ]);
+  const { walletBalances } = useWalletBalances(currentMarketData);
 
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txAction, setTxAction] = useState<string | null>(null);
-  const vaultShareCurrency = useMemo(
-    () => selectedVault?.overview?.shareCurrencySymbol,
-    [selectedVault]
-  );
-  const reserve = useMemo(() => {
-    return reserves.find((reserve) => reserve.symbol === vaultShareCurrency);
-  }, [reserves, vaultShareCurrency]);
+  const reserve = useMemo(() =>
+    reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === selectedVault?.overview?.assetAddress?.toLowerCase()),
+    [reserves, selectedVault]);
 
   const amountInUsd = new BigNumber(amount).multipliedBy(
     reserve?.formattedPriceInMarketReferenceCurrency
   );
-  const walletBalance = user?.userReservesData.find(
-    (userReserve) => userReserve.reserve.symbol === reserve?.symbol
-  )?.underlyingBalance;
+  const walletBalance = walletBalances[reserve?.underlyingAsset?.toLowerCase()]?.amount || '0';
   const maxAmountToSupply =
     !!reserve &&
     getMaxAmountAvailableToSupply(
@@ -155,8 +152,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
             <Box>
               <Typography variant="main16">{selectedVault?.overview?.name}</Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <TokenIcon symbol={vaultShareCurrency || ''} sx={{ fontSize: '16px' }} />
-                <Typography variant="secondary12">{vaultShareCurrency}</Typography>
+                <TokenIcon symbol={reserve?.symbol || ''} sx={{ fontSize: '16px' }} />
+                <Typography variant="secondary12">{reserve?.symbol}</Typography>
               </Box>
             </Box>
           </Box>
@@ -165,7 +162,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
           value={amount}
           onChange={handleChange}
           usdValue={amountInUsd.toString(10)}
-          symbol={vaultShareCurrency || ''}
+          symbol={reserve?.symbol || ''}
           assets={[
             {
               balance: walletBalance,

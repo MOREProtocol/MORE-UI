@@ -25,7 +25,7 @@ export const VaultsTopPanel = () => {
 
   const { reserves } = useAppDataContext();
 
-  const loading = !vaults || vaults.some((vault) => vault.isLoading);
+  const loading = vaults.isLoading;
 
   const theme = useTheme();
   const downToSM = useMediaQuery(theme.breakpoints.down('sm'));
@@ -33,24 +33,24 @@ export const VaultsTopPanel = () => {
   const aggregatedStats = useMemo(
     () =>
       !loading &&
-      vaults.reduce(
+      vaults.data?.reduce(
         (acc, vault, index) => {
           const reserve = reserves.find(
-            (reserve) => reserve.symbol === vault?.data?.overview?.shareCurrencySymbol
+            (reserve) => reserve.symbol === vault?.overview?.shareCurrencySymbol
           );
           const vaultTVLPrice = Number(reserve?.formattedPriceInMarketReferenceCurrency || 0);
           const vaultTVLValue =
             Number(
               formatUnits(
-                vault?.data?.financials?.liquidity?.totalAssets || 0,
-                vault?.data?.overview?.assetDecimals
+                vault?.financials?.liquidity?.totalAssets || 0,
+                vault?.overview?.assetDecimals
               )
             ) * vaultTVLPrice;
 
           const userVault = userVaults[index];
           const userVaultDepositsValue =
             Number(
-              formatUnits(userVault?.data?.maxWithdraw || 0, vault?.data?.overview?.assetDecimals)
+              formatUnits(userVault?.data?.maxWithdraw || 0, vault?.overview?.assetDecimals)
             ) * vaultTVLPrice;
           return {
             tvl: acc.tvl.plus(vaultTVLValue),

@@ -18,7 +18,9 @@ import {
 import { ChainIds } from 'src/utils/const';
 import { useWalletClient } from 'wagmi';
 
+import { CustomMarket } from '../../ui-config/marketsConfig';
 import { useVaultProvider } from './useVaultData';
+import { useRootStore } from 'src/store/root';
 
 // Define standardized types for monetary values
 export interface MonetaryValue {
@@ -126,6 +128,7 @@ export interface VaultContextData {
   isDrawerOpen: boolean;
   setIsDrawerOpen: (value: boolean) => void;
   accountAddress: string | null;
+  canInteractWithVault: boolean;
   transactions: VaultBatchTransaction[];
   nbTransactions: number;
   depositInVault: (amountInWei: string, accountAddress?: string) => Promise<{
@@ -174,7 +177,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
 
   // Web3 setup
   const { data: walletClient } = useWalletClient();
-  const chainId = useMemo(() => walletClient?.chain.id, [walletClient]);
+  const chainId = useMemo(() => walletClient?.chain?.id || ChainIds.flowEVMMainnet, [walletClient]);
   const provider = useVaultProvider(chainId);
   const signer = useMemo(() => {
     if (walletClient && provider) {
@@ -194,6 +197,30 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     }
   }, [chainId]);
   const accountAddress = useMemo(() => walletClient?.account.address, [walletClient]);
+
+  const canInteractWithVault = useMemo(() => {
+    if (!accountAddress) {
+      return false; // No wallet connected
+    }
+    const whiteList = process.env.NEXT_PUBLIC_VAULT_WHITE_LIST;
+    if (!whiteList) {
+      // If whitelist is not set or empty, deny interaction as a safe default.
+      // You might want to change this behavior (e.g., allow if list is undefined).
+      console.warn('VAULT_WHITE_LIST is not set in environment variables. Denying vault interaction.');
+      return false;
+    }
+    const whiteListedAddresses = whiteList.split(',').map(addr => addr.trim().toLowerCase());
+    return whiteListedAddresses.includes(accountAddress.toLowerCase());
+  }, [accountAddress]);
+
+  const { currentMarket, setCurrentMarket } = useRootStore();
+  useEffect(() => {
+    if (network === 'mainnet' && currentMarket !== CustomMarket.proto_flow_v3) {
+      setCurrentMarket(CustomMarket.proto_flow_v3);
+    } else if (network === 'testnet' && currentMarket !== CustomMarket.proto_testnet_v3) {
+      setCurrentMarket(CustomMarket.proto_testnet_v3);
+    }
+  }, [network, setCurrentMarket]);
 
   // Update URL when tab changes
   const handleTabChange = (tab: VaultTab) => {
@@ -510,6 +537,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     isDrawerOpen,
     setIsDrawerOpen,
     accountAddress,
+    canInteractWithVault,
     transactions,
     nbTransactions,
     depositInVault,

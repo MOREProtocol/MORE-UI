@@ -266,6 +266,7 @@ export function MultiTokenIcon({ symbols, badgeSymbol, ...rest }: MultiTokenIcon
 }
 
 export function TokenIcon({ symbol, ...rest }: TokenIconProps) {
+  if (!symbol) return <SingleTokenIcon symbol="default" {...rest} />;
   const symbolChunks = symbol.split('_');
   if (symbolChunks.length > 1) {
     const [badge, ...symbols] = symbolChunks;

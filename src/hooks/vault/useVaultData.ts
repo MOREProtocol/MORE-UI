@@ -9,7 +9,6 @@ import {
 import { parseActivity } from 'src/modules/vault-detail/utils/parseActivity';
 import { vaultsConfig } from 'src/modules/vault-detail/VaultManagement/facets/vaultsConfig';
 import { networkConfigs } from 'src/ui-config/networksConfig';
-import { TOKEN_LIST } from 'src/ui-config/TokenList';
 import { ChainIds } from 'src/utils/const';
 import { useWalletClient } from 'wagmi';
 
@@ -38,6 +37,7 @@ export const vaultQueryKeys = {
   ],
   allVaultAssets: (vaultId: string, chainId?: number) => ['allVaultAssets', vaultId, chainId],
   allVaults: (chainId?: number) => ['allVaults', chainId],
+  vaultInList: (vaultId: string, chainId?: number) => ['allVaults', chainId, vaultId],
   allDeployedVaults: (chainId?: number) => ['allDeployedVaults', chainId],
   userVaultData: (vaultId: string, userAddress: string, chainId?: number) => [
     'userVaultData',
@@ -347,11 +347,9 @@ const fetchActivity = async (
         if (parsedActivity.parsedAction?.assets) {
           const assets = parsedActivity.parsedAction.assets;
           const assetsReserves = assets.map((asset) => {
-            const token = TOKEN_LIST.tokens.find((token) => token.address === asset.address);
-            const reserve = reserves.find((reserve) => reserve.symbol === token?.symbol);
+            const reserve = reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === asset.address?.toLowerCase());
             return {
               ...asset,
-              token,
               reserve,
             };
           });
@@ -359,10 +357,10 @@ const fetchActivity = async (
           return {
             ...parsedActivity,
             type: `Bundled ${parsedActivity.parsedAction.action}`,
-            assetSymbol: assetsReserves.map((asset) => asset.token?.symbol).join(' / '),
-            assetName: assetsReserves.map((asset) => asset.token?.name).join(' / '),
+            assetSymbol: assetsReserves.map((asset) => asset.reserve?.symbol).join(' / '),
+            assetName: assetsReserves.map((asset) => asset.reserve?.name).join(' / '),
             amount: assetsReserves[0]
-              ? formatUnits(assetsReserves[0]?.amount, assetsReserves[0]?.token?.decimals)
+              ? formatUnits(assetsReserves[0]?.amount, assetsReserves[0]?.reserve?.decimals)
               : '0',
             price: assetsReserves[0]?.reserve ? Number(assetsReserves[0].reserve.priceInUSD) : 0,
           };
@@ -389,10 +387,11 @@ export const useVaultsListData = <TResult = VaultData>(
 ) => {
   const { chainId } = useVault();
   const provider = useVaultProvider(chainId);
+  const { reserves } = useAppDataContext();
 
-  return useQueries({
+  const individualQueryResults = useQueries({
     queries: vaultIds.map((vaultId) => ({
-      queryKey: vaultQueryKeys.allVaults(chainId),
+      queryKey: vaultQueryKeys.vaultInList(vaultId, chainId),
       queryFn: async () => {
         if (!provider || !vaultId) {
           throw new Error('Missing required parameters');
@@ -419,28 +418,47 @@ export const useVaultsListData = <TResult = VaultData>(
           parseUnits('1', decimals)
         );
 
-        const assetData = TOKEN_LIST.tokens.find((token) => token.address === assetAddress);
-        const assetSymbol = assetData?.symbol;
-        return {
+        const reserve = reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
+        const vaultData: VaultData = {
           id: vaultId,
           overview: {
             name,
-            shareCurrencySymbol: assetSymbol,
+            shareCurrencySymbol: reserve?.symbol,
             assetDecimals: decimals,
             sharePrice: Number(formatUnits(sharePriceInAsset, decimals)),
+            assetAddress: assetAddress,
           },
           financials: {
             liquidity: {
-              totalAssets,
+              totalAssets: totalAssets.toString(),
             },
           },
         };
+        return vaultData as unknown as TResult;
       },
       refetchInterval: POLLING_INTERVAL,
       enabled: !!provider && !!vaultId && opts?.enabled !== false,
       ...opts,
     })),
   });
+
+  const isLoading = individualQueryResults.some(query => query.isLoading);
+  const isError = individualQueryResults.some(query => query.isError);
+  const allSucceeded = individualQueryResults.every(query => query.isSuccess);
+
+  let data: TResult[] | undefined = undefined;
+  if (allSucceeded && !isLoading) {
+    data = individualQueryResults
+      .map(query => query.data)
+      .filter(Boolean) as TResult[];
+  }
+
+  return {
+    data,
+    isLoading,
+    isError,
+    isSuccess: allSucceeded && !isLoading,
+  };
 };
 
 export const useUserVaultsData = <TResult = { maxWithdraw: ethers.BigNumber; decimals: number }>(
@@ -540,15 +558,15 @@ export const useVaultData = <TResult = VaultData>(
         parseUnits('1', decimals)
       );
 
-      const assetData = TOKEN_LIST.tokens.find((token) => token.address === assetAddress);
-      const assetSymbol = assetData?.symbol;
+      const reserve = reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
 
       return {
         id: vaultId,
         overview: {
           name,
-          shareCurrencySymbol: assetSymbol,
-          assetDecimals: assetData?.decimals,
+          assetDecimals: decimals,
+          assetAddress,
+          shareCurrencySymbol: reserve?.symbol,
           sharePrice: Number(formatUnits(sharePriceInAsset, decimals)),
           roles: {
             guardian,

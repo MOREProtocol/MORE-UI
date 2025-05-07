@@ -27,13 +27,14 @@ export const VaultAssetsList = () => {
   const { setSelectedVaultId } = useVault();
 
   const deployedVaultsQuery = useDeployedVaults();
-  const vaultIds = deployedVaultsQuery?.data || [];
+  const rawVaultIds = deployedVaultsQuery?.data || [];
+  const vaultIds = Array.from(new Set(rawVaultIds));
   const isLoadingVaultIds = deployedVaultsQuery?.isLoading;
 
   // Only query vaults if vaultIds are available
   const vaultsQuery = useVaultsListData(vaultIds);
-  const vaults = vaultsQuery?.map((vault) => vault.data).filter(Boolean) || [];
-  const isLoadingVaults = vaultsQuery?.some((vault) => vault.isLoading);
+  const isLoadingVaults = vaultsQuery?.isLoading;
+  const vaults = vaultsQuery?.data;
 
   // Combined loading state
   const isLoading = isLoadingVaultIds || isLoadingVaults;
@@ -59,7 +60,7 @@ export const VaultAssetsList = () => {
         ) : (
           vaults.map((vault: VaultData) => (
             <Grid item xs={12} sm={12} md={12} key={vault.id}>
-              <VaultAssetsListItem data={vault} onClick={() => handleClick(vault)} />
+              <VaultAssetsListItem key={vault.id} data={vault} onClick={() => handleClick(vault)} />
             </Grid>
           ))
         )}

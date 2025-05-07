@@ -5,10 +5,13 @@ import { useVault, VaultTab } from 'src/hooks/vault/useVault';
 
 import { NewTopInfoPanel } from './NewTopInfoPanel';
 import { VaultTopDetails } from './VaultTopDetails';
+import { useVaultData } from 'src/hooks/vault/useVaultData';
 
 export const VaultTopDetailsWrapper = () => {
   const router = useRouter();
-  const { selectedTab, setSelectedTab } = useVault();
+  const { selectedTab, setSelectedTab, selectedVaultId, accountAddress } = useVault();
+  const vaultData = useVaultData(selectedVaultId);
+  const canManageVault = vaultData?.data?.overview?.roles?.curator === accountAddress;
 
   const theme = useTheme();
   const downToSM = useMediaQuery(theme.breakpoints.down('sm'));
@@ -85,7 +88,7 @@ export const VaultTopDetailsWrapper = () => {
           <Tab label="Financials" value="financials" />
           <Tab label="Allocations" value="allocations" />
           <Tab label="Activity" value="activity" />
-          <Tab label="Manage" value="manage" />
+          {canManageVault && <Tab label="Manage" value="manage" />}
         </Tabs>
       </Box>
     </NewTopInfoPanel>

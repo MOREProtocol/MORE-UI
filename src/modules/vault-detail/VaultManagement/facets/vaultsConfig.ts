@@ -9,6 +9,9 @@ export const vaultsConfig = {
   },
   [ChainIds.flowEVMMainnet]: {
     isTestnet: false,
+    addresses: {
+      VAULT_FACTORY: '0x94C1C9F26231cD4e651D798441072b18800eAeAb',
+    },
   },
 };
 
