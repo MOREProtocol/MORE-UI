@@ -1,5 +1,5 @@
 import { useTheme } from '@mui/material/styles';
-import { AreaSeries, createChart, IChartApi, ISeriesApi, LineData, SeriesPartialOptionsMap, Time, UTCTimestamp } from 'lightweight-charts';
+import { AreaSeries, createChart, IChartApi, ISeriesApi, LineData, SeriesPartialOptionsMap, Time, UTCTimestamp, BusinessDay } from 'lightweight-charts';
 import React, { useEffect, useRef } from 'react';
 import { Typography } from '@mui/material';
 
@@ -65,6 +65,23 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
       return; // Don't proceed if width is invalid
     }
 
+    // Formatter for detailed time display (e.g., crosshair)
+    const detailedTimeFormatter = (timeValue: BusinessDay | UTCTimestamp): string => {
+      let date: Date;
+      if (typeof timeValue === 'number') {
+        date = new Date(timeValue * 1000);
+      } else {
+        date = new Date(Date.UTC(timeValue.year, timeValue.month - 1, timeValue.day));
+      }
+
+      const day = date.getDate().toString().padStart(2, '0');
+      const monthName = date.toLocaleString(undefined, { month: 'short' });
+      const year = date.getFullYear().toString().slice(-2);
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${day} ${monthName} ${year} ${hours}:${minutes}`;
+    };
+
     // Initialize chart
     if (!chartRef.current) {
       const chartOptions = {
@@ -74,6 +91,10 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
           background: { color: theme.palette.background.paper },
           textColor: theme.palette.text.secondary,
           attributionLogo: false,
+        },
+        localization: {
+          locale: navigator.language, // Use browser's locale
+          timeFormatter: detailedTimeFormatter,
         },
         grid: {
           vertLines: { visible: false },
@@ -135,6 +156,10 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         layout: {
           background: { color: theme.palette.background.paper },
           textColor: theme.palette.text.secondary,
+        },
+        localization: {
+          locale: navigator.language,
+          timeFormatter: detailedTimeFormatter,
         },
         grid: {
           horzLines: {

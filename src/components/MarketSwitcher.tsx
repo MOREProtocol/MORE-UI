@@ -26,6 +26,7 @@ import {
   networkConfigs,
   STAGING_ENV,
 } from '../utils/marketsAndNetworksConfig';
+import { useWalletClient } from 'wagmi';
 
 export const getMarketInfoById = (marketId: ExtendedMarket) => {
   if (marketId === 'all_markets') {
@@ -113,14 +114,25 @@ export const MarketLogo = ({ size, logo, testChainName, sx }: MarketLogoProps) =
 
 export const MarketSwitcher = ({ showAllMarkets = true }: { showAllMarkets?: boolean }) => {
   const { currentMarket, setCurrentMarket } = useRootStore();
+  const { data: walletClient } = useWalletClient();
   const theme = useTheme();
   const upToLG = useMediaQuery(theme.breakpoints.up('lg'));
   const downToXSM = useMediaQuery(theme.breakpoints.down('xsm'));
   const trackEvent = useRootStore((store) => store.trackEvent);
 
-  const handleMarketChange = (marketId: ExtendedMarket) => {
+  const handleMarketChange = async (marketId: ExtendedMarket) => {
     trackEvent(DASHBOARD.CHANGE_MARKET, { market: marketId });
     setCurrentMarket(marketId);
+    if (marketId !== 'all_markets' && walletClient) {
+      const { market } = getMarketInfoById(marketId);
+      if (market.chainId !== 0) {
+        try {
+          await walletClient.switchChain({ id: market.chainId });
+        } catch (e) {
+          console.error('Error switching chain:', e);
+        }
+      }
+    }
   };
 
   const handleMarketSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

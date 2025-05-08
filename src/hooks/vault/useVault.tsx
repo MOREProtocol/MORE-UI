@@ -203,12 +203,14 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
 
   const { currentMarket, setCurrentMarket } = useRootStore();
   useEffect(() => {
-    if (network === 'mainnet' && currentMarket !== CustomMarket.proto_flow_v3) {
-      setCurrentMarket(CustomMarket.proto_flow_v3);
-    } else if (network === 'testnet' && currentMarket !== CustomMarket.proto_testnet_v3) {
-      setCurrentMarket(CustomMarket.proto_testnet_v3);
+    if (walletClient) {
+      if (network === 'mainnet' && currentMarket !== CustomMarket.proto_flow_v3) {
+        setCurrentMarket(CustomMarket.proto_flow_v3);
+      } else if (network === 'testnet' && currentMarket !== CustomMarket.proto_testnet_v3) {
+        setCurrentMarket(CustomMarket.proto_testnet_v3);
+      }
     }
-  }, [network, setCurrentMarket]);
+  }, [walletClient, network, setCurrentMarket, currentMarket]);
 
   // Update URL when tab changes
   const handleTabChange = (tab: VaultTab) => {
