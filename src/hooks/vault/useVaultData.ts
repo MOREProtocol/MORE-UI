@@ -396,6 +396,14 @@ export const useVaultsListData = <TResult = VaultData>(
   const provider = useVaultProvider(chainId);
   const { reserves } = useAppDataContext();
 
+  const isHookGloballyEnabledByOpts = opts?.enabled !== false;
+  const areCoreDependenciesReady = !!provider;
+  const reservesAreReady = reserves.length > 0;
+
+  const canPotentiallyFetch = isHookGloballyEnabledByOpts && areCoreDependenciesReady;
+
+  const allowIndividualQueryExecution = canPotentiallyFetch && reservesAreReady;
+
   const individualQueryResults = useQueries({
     queries: vaultIds.map((vaultId) => ({
       queryKey: vaultQueryKeys.vaultInList(vaultId, chainId),
@@ -425,7 +433,7 @@ export const useVaultsListData = <TResult = VaultData>(
           parseUnits('1', decimals)
         );
 
-        const reserve = reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
+        const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
         const vaultData: VaultData = {
           id: vaultId,
           overview: {
@@ -444,10 +452,19 @@ export const useVaultsListData = <TResult = VaultData>(
         return vaultData as unknown as TResult;
       },
       refetchInterval: POLLING_INTERVAL,
-      enabled: !!provider && !!vaultId && opts?.enabled !== false,
+      enabled: allowIndividualQueryExecution && !!vaultId,
       ...opts,
     })),
   });
+
+  if (canPotentiallyFetch && !reservesAreReady) {
+    return {
+      data: undefined,
+      isLoading: true,
+      isError: false,
+      isSuccess: false,
+    };
+  }
 
   const isLoading = individualQueryResults.some(query => query.isLoading);
   const isError = individualQueryResults.some(query => query.isError);

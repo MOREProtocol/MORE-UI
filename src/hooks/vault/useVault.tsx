@@ -133,7 +133,6 @@ export interface VaultContextData {
   isDrawerOpen: boolean;
   setIsDrawerOpen: (value: boolean) => void;
   accountAddress: string | null;
-  canInteractWithVault: boolean;
   transactions: VaultBatchTransaction[];
   nbTransactions: number;
   depositInVault: (amountInWei: string, accountAddress?: string) => Promise<{
@@ -201,21 +200,6 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     }
   }, [chainId]);
   const accountAddress = useMemo(() => walletClient?.account.address, [walletClient]);
-
-  const canInteractWithVault = useMemo(() => {
-    if (!accountAddress) {
-      return false; // No wallet connected
-    }
-    const whiteList = process.env.NEXT_PUBLIC_VAULT_WHITE_LIST;
-    if (!whiteList) {
-      // If whitelist is not set or empty, deny interaction as a safe default.
-      // You might want to change this behavior (e.g., allow if list is undefined).
-      console.warn('VAULT_WHITE_LIST is not set in environment variables. Denying vault interaction.');
-      return false;
-    }
-    const whiteListedAddresses = whiteList.split(',').map(addr => addr.trim().toLowerCase());
-    return whiteListedAddresses.includes(accountAddress.toLowerCase());
-  }, [accountAddress]);
 
   const { currentMarket, setCurrentMarket } = useRootStore();
   useEffect(() => {
@@ -508,7 +492,6 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     isDrawerOpen,
     setIsDrawerOpen,
     accountAddress,
-    canInteractWithVault,
     transactions,
     nbTransactions,
     depositInVault,

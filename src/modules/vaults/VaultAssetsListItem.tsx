@@ -20,7 +20,7 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
   const theme = useTheme();
   const upToMD = useMediaQuery(theme.breakpoints.up('md'));
   const reserve = useMemo(() => {
-    return reserves.find((reserve) => reserve.symbol === data?.overview?.shareCurrencySymbol);
+    return reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === data?.overview?.assetAddress.toLowerCase());
   }, [reserves, data]);
 
   const aum = data

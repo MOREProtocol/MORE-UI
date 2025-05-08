@@ -22,7 +22,7 @@ export const VaultOverview: React.FC = () => {
 
   // State for dropdown menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'apy' | 'totalSupply'>('apy');
+  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'apy' | 'totalSupply'>('totalSupply');
   const open = Boolean(anchorEl);
 
   const chartDataOptions = {
@@ -168,10 +168,10 @@ export const VaultOverview: React.FC = () => {
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            gap: 5,
+            gap: 4,
           }}
         >
-          <Typography variant="main16" color="text.secondary" sx={{ mb: 4 }}>
+          <Typography variant="main16" color="text.secondary" sx={{ mb: 2 }}>
             Vault Roles
           </Typography>
           <Box>
