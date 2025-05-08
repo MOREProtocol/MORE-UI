@@ -63,6 +63,11 @@ export interface VaultData {
     sharePrice?: number;
     shareCurrencySymbol?: string;
     roles?: VaultRoles;
+    apy?: number;
+    historicalSnapshots?: {
+      apy: { time: string; value: number }[];
+      totalSupply: { time: string; value: number }[];
+    };
   };
   financials?: {
     fees?: {
@@ -138,7 +143,6 @@ export interface VaultContextData {
   withdrawFromVault: (amountInWei: string, accountAddress?: string) => Promise<{
     tx: ethers.providers.TransactionRequest;
   }>;
-  checkApprovalNeeded: (amountInWei: string) => Promise<boolean>;
   addTransaction: ({
     action,
     facet,
@@ -379,39 +383,6 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     },
     [selectedVaultId, signer, accountAddress]
   );
-  const checkApprovalNeeded = useCallback(
-    async (amountInWei: string) => {
-      if (!selectedVaultId) {
-        throw new Error('No vault selected');
-      }
-      if (!accountAddress) {
-        throw new Error('No account connected');
-      }
-      if (!provider) {
-        throw new Error('No provider available');
-      }
-
-      // Get the vault contract to get the asset address
-      const vaultContract = new ethers.Contract(
-        selectedVaultId,
-        [`function asset() external view returns (address)`],
-        provider
-      );
-
-      // Get the token contract for approval check
-      const assetAddress = await vaultContract.asset();
-      const tokenContract = new ethers.Contract(
-        assetAddress,
-        [`function allowance(address owner, address spender) external view returns (uint256)`],
-        provider
-      );
-
-      // Check current allowance
-      const allowance = await tokenContract.allowance(accountAddress, selectedVaultId);
-      return allowance.lt(amountInWei);
-    },
-    [selectedVaultId, provider, accountAddress]
-  );
 
   const addTransaction = useCallback(
     ({
@@ -542,7 +513,6 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     nbTransactions,
     depositInVault,
     withdrawFromVault,
-    checkApprovalNeeded,
     addTransaction,
     removeTransaction,
     submitAndExecuteActions,

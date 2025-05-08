@@ -12,6 +12,7 @@ export const vaultsConfig = {
     addresses: {
       VAULT_FACTORY: '0x94C1C9F26231cD4e651D798441072b18800eAeAb',
     },
+    subgraphUrl: 'https://graph.more.markets/subgraphs/name/more-markets/vaults-subgraph',
   },
 };
 

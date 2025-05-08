@@ -39,9 +39,9 @@ export const VaultFinancials: React.FC = () => {
 
   const aum = selectedVault
     ? formatUnits(
-        selectedVault?.financials?.liquidity?.totalAssets,
-        selectedVault?.overview?.assetDecimals
-      )
+      selectedVault?.financials?.liquidity?.totalAssets,
+      selectedVault?.overview?.assetDecimals
+    )
     : '0';
   const aumInUsd = new BigNumber(aum).multipliedBy(
     reserve?.formattedPriceInMarketReferenceCurrency
@@ -110,9 +110,9 @@ export const VaultFinancials: React.FC = () => {
         </Grid>
       </Box>
 
-      <Box sx={{ mb: 4 }}>
+      {/* <Box sx={{ mb: 4 }}>
         <SectionTitle>Fees</SectionTitle>
-        {/* <Grid container spacing={3}>
+        <Grid container spacing={3}>
           <Grid item xs={12} md={4}>
             <MetricCard>
               <Typography variant="main16" color="text.secondary" marginBottom={3}>
@@ -175,8 +175,8 @@ export const VaultFinancials: React.FC = () => {
               </Stack>
             </MetricCard>
           </Grid>
-        </Grid> */}
-      </Box>
+        </Grid>
+      </Box> */}
 
       <Box sx={{ mb: 4 }}>
         <SectionTitle>Liquidity</SectionTitle>
@@ -312,9 +312,9 @@ export const VaultFinancials: React.FC = () => {
         </Grid>
       </Box>
 
-      <Box sx={{ mb: 4 }}>
+      {/* <Box sx={{ mb: 4 }}>
         <SectionTitle>Risk metrics</SectionTitle>
-        {/* <Grid container spacing={3}>
+        <Grid container spacing={3}>
           <Grid item xs={12} sm={6} md={3}>
             <MetricCard>
               <Typography variant="main16" color="text.secondary" marginBottom={3}>
@@ -366,8 +366,8 @@ export const VaultFinancials: React.FC = () => {
               </Box>
             </MetricCard>
           </Grid>
-        </Grid> */}
-      </Box>
+        </Grid>
+      </Box> */}
     </Box>
   );
 };

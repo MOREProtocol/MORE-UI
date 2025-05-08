@@ -1,4 +1,4 @@
-import { useQueries, useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQueries, useQuery, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { ethers } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import { useMemo } from 'react';
@@ -13,6 +13,7 @@ import { ChainIds } from 'src/utils/const';
 import { useWalletClient } from 'wagmi';
 
 import { useVault, VaultData } from './useVault';
+import { fetchLatestVaultSnapshot, fetchVaultHistoricalSnapshots, formatSnapshotsForChart } from './vaultSubgraph';
 // Constants
 const POLLING_INTERVAL = 30000; // 30 seconds
 
@@ -44,6 +45,12 @@ export const vaultQueryKeys = {
     vaultId,
     userAddress,
     chainId,
+  ],
+  vaultDetailsWithSubgraph: (vaultId: string, chainId?: number) => [
+    'vaultDetails',
+    chainId,
+    vaultId,
+    'subgraph',
   ],
 };
 
@@ -509,8 +516,13 @@ export const useVaultData = <TResult = VaultData>(
   const provider = useVaultProvider(chainId);
   const { reserves } = useAppDataContext();
 
-  return useVaultQuery<VaultData, TResult>(
-    vaultQueryKeys.allVaults(chainId),
+  const baseQueryIsEnabled = !!provider && !!vaultId && (opts?.enabled !== false);
+  const reservesAreReady = reserves.length > 0;
+
+  const actualQueryExecutionIsEnabled = baseQueryIsEnabled && reservesAreReady;
+
+  const queryApiResult = useVaultQuery<VaultData, TResult>(
+    vaultQueryKeys.vaultDetailsWithSubgraph(vaultId, chainId),
     async () => {
       if (!provider || !vaultId) {
         throw new Error('Missing required parameters');
@@ -530,6 +542,33 @@ export const useVaultData = <TResult = VaultData>(
         ],
         provider
       );
+
+      // Fetch contract data and subgraph data in parallel where possible
+      const [
+        contractData,
+        allocationData,
+        activityData,
+        latestSnapshot,
+        historicalSnapshots,
+      ] = await Promise.all([
+        Promise.all([
+          vaultDiamondContract.totalAssets().catch(() => ethers.BigNumber.from(0)),
+          vaultDiamondContract.asset().catch(() => undefined),
+          vaultDiamondContract.name().catch(() => 'Unnamed Vault'),
+          vaultDiamondContract.decimals().catch(() => 18),
+          vaultDiamondContract.guardian().catch(() => undefined),
+          vaultDiamondContract.curator().catch(() => undefined),
+          vaultDiamondContract
+            .maxDeposit('0x0000000000000000000000000000000000000000')
+            .catch(() => ethers.BigNumber.from(0)),
+          vaultDiamondContract.convertToAssets(parseUnits('1', (await vaultDiamondContract.decimals().catch(() => 18)).toString())).catch(() => ethers.BigNumber.from(0)),
+        ]),
+        fetchAllocation(vaultId, chainId, reserves).catch(() => []),
+        fetchActivity(vaultId, chainId, reserves).catch(() => []),
+        fetchLatestVaultSnapshot(chainId, vaultId),
+        fetchVaultHistoricalSnapshots(chainId, vaultId),
+      ]);
+
       const [
         totalAssets,
         assetAddress,
@@ -538,27 +577,10 @@ export const useVaultData = <TResult = VaultData>(
         guardian,
         curator,
         maxDeposit,
-        allocation,
-        activity,
-      ] = await Promise.all([
-        vaultDiamondContract.totalAssets().catch(() => 0),
-        vaultDiamondContract.asset().catch(() => undefined),
-        vaultDiamondContract.name().catch(() => 'Unnamed Vault'),
-        vaultDiamondContract.decimals().catch(() => 18),
-        vaultDiamondContract.guardian().catch(() => undefined),
-        vaultDiamondContract.curator().catch(() => undefined),
-        vaultDiamondContract
-          .maxDeposit('0x0000000000000000000000000000000000000000')
-          .catch(() => 0),
-        fetchAllocation(vaultId, chainId, reserves),
-        fetchActivity(vaultId, chainId, reserves),
-      ]);
+        sharePriceInAsset,
+      ] = contractData;
 
-      const sharePriceInAsset = await vaultDiamondContract.convertToAssets(
-        parseUnits('1', decimals)
-      );
-
-      const reserve = reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
+      const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
 
       return {
         id: vaultId,
@@ -572,20 +594,39 @@ export const useVaultData = <TResult = VaultData>(
             guardian,
             curator,
           },
+          apy: latestSnapshot?.apy ? parseFloat(latestSnapshot.apy) : undefined,
+          historicalSnapshots: {
+            apy: formatSnapshotsForChart(historicalSnapshots, 'apy'),
+            totalSupply: formatSnapshotsForChart(historicalSnapshots, 'totalSupply'),
+          },
         },
         financials: {
           liquidity: {
-            totalAssets,
-            maxDeposit,
+            totalAssets: totalAssets.toString(),
+            maxDeposit: maxDeposit.toString(),
           },
         },
-        allocation,
-        activity,
+        allocation: allocationData,
+        activity: activityData,
       };
     },
-    !!provider && !!vaultId,
+    actualQueryExecutionIsEnabled,
     opts
   );
+
+  if (baseQueryIsEnabled && !reservesAreReady) {
+    return {
+      ...queryApiResult,
+      status: 'loading',
+      isLoading: true,
+      isFetching: true,
+      isSuccess: false,
+      isError: false,
+      data: undefined,
+    } as UseQueryResult<TResult, Error>;
+  }
+
+  return queryApiResult;
 };
 
 export const useDeployedVaults = <TResult = string[]>(
