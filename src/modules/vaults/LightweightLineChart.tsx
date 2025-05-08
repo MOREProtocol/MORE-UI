@@ -1,5 +1,5 @@
 import { useTheme } from '@mui/material/styles';
-import { AreaSeries, createChart, IChartApi, ISeriesApi, LineData, Time, UTCTimestamp } from 'lightweight-charts';
+import { AreaSeries, createChart, IChartApi, ISeriesApi, LineData, SeriesPartialOptionsMap, Time, UTCTimestamp } from 'lightweight-charts';
 import React, { useEffect, useRef } from 'react';
 import { Typography } from '@mui/material';
 
@@ -87,7 +87,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
           minBarSpacing: 5,
           timeVisible: true,
           secondsVisible: false,
-          tickMarkFormatter: (time: UTCTimestamp, tickMarkType, locale) => {
+          tickMarkFormatter: (time: UTCTimestamp) => {
             const date = new Date(time * 1000);
             const day = date.getDate().toString().padStart(2, '0');
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -115,9 +115,9 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
           exitMode: 1 /* TrackingModeExitMode.OnTouchEnd */,
         },
       };
-      chartRef.current = createChart(chartElement, chartOptions as any);
+      chartRef.current = createChart(chartElement, chartOptions);
 
-      const seriesOptions = {
+      const seriesOptions: SeriesPartialOptionsMap['Area'] = {
         lineColor: lineColor,
         topColor: lineColor,
         bottomColor: 'white',
@@ -126,7 +126,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         lastValueVisible: false,
         crosshairMarkerVisible: isInteractive,
       };
-      seriesRef.current = chartRef.current.addSeries(AreaSeries, seriesOptions as any);
+      seriesRef.current = chartRef.current.addSeries(AreaSeries, seriesOptions);
     } else {
       // Chart exists, apply updated options based on theme or other prop changes
       chartRef.current.applyOptions({
@@ -175,7 +175,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: isInteractive,
-        } as any);
+        });
       }
     }
 
