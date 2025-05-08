@@ -53,7 +53,7 @@ export const VaultOverview: React.FC = () => {
 
   const reserve = useMemo(() => {
     return reserves.find(
-      (reserve) => reserve.underlyingAsset.toLowerCase() === selectedVault?.overview?.assetAddress.toLowerCase()
+      (reserve) => reserve?.underlyingAsset?.toLowerCase() === selectedVault?.overview?.assetAddress?.toLowerCase()
     );
   }, [reserves, selectedVault]);
 

@@ -36,7 +36,9 @@ export const VaultsTopPanel = () => {
       vaults.data?.reduce(
         (acc, vault, index) => {
           const reserve = reserves.find(
-            (reserve) => reserve.symbol === vault?.overview?.shareCurrencySymbol
+            (reserve) =>
+              reserve.underlyingAsset?.toLowerCase() ===
+              vault?.overview?.shareCurrencySymbol?.toLowerCase()
           );
           const vaultTVLPrice = Number(reserve?.formattedPriceInMarketReferenceCurrency || 0);
           const vaultTVLValue =
