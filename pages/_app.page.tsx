@@ -133,13 +133,13 @@ export default function MyApp(props: MyAppProps) {
             <Web3ReactProvider getLibrary={getWeb3Library}>
               <Web3ContextProvider>
                 <AppGlobalStyles>
-                  <SanctionRegion>
-                    <AddressBlocked>
-                      <ModalContextProvider>
-                        <SharedDependenciesProvider>
-                          <AppDataProvider>
-                            <VaultProvider>
-                              <GasStationProvider>
+                  <ModalContextProvider>
+                    <SharedDependenciesProvider>
+                      <AppDataProvider>
+                        <VaultProvider>
+                          <GasStationProvider>
+                            <SanctionRegion>
+                              <AddressBlocked>
                                 {getLayout(<Component {...pageProps} />)}
                                 <SupplyModal />
                                 <WithdrawModal />
@@ -154,13 +154,13 @@ export default function MyApp(props: MyAppProps) {
                                 <FaucetModal />
                                 <TransactionEventHandler />
                                 <SwitchModal />
-                              </GasStationProvider>
-                            </VaultProvider>
-                          </AppDataProvider>
-                        </SharedDependenciesProvider>
-                      </ModalContextProvider>
-                    </AddressBlocked>
-                  </SanctionRegion>
+                              </AddressBlocked>
+                            </SanctionRegion>
+                          </GasStationProvider>
+                        </VaultProvider>
+                      </AppDataProvider>
+                    </SharedDependenciesProvider>
+                  </ModalContextProvider>
                 </AppGlobalStyles>
               </Web3ContextProvider>
             </Web3ReactProvider>
