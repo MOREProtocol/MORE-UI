@@ -9,7 +9,6 @@ export type NetworkDependentString = {
 };
 
 export type Facet = {
-  contractAddress: NetworkDependentString;
   name: string;
   icon: string;
   description: string;
@@ -49,8 +48,14 @@ export type Input = {
   options?: DropdownOption[];
   getOptions?: (
     inputs: TransactionInput,
-    provider: ethers.providers.Provider
+    provider: ethers.providers.Provider,
+    reserves?: ComputedReserveDataWithMarket[]
   ) => Promise<DropdownOption[]>;
+  getCurrencyDetails?: (
+    inputs: TransactionInput,
+    provider: ethers.providers.Provider,
+    vaultAddress?: string
+  ) => Promise<{ symbol: string; decimals: number; address: string; balance?: string }>;
   relatedInputId?: string;
   dependsOnInputs?: string[];
 };

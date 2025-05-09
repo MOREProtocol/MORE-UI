@@ -21,12 +21,10 @@ import { AssetInput } from 'src/components/transactions/AssetInput';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useVault, VaultData } from 'src/hooks/vault/useVault';
 import { useVaultProvider } from 'src/hooks/vault/useVaultData';
-import { ENABLE_TESTNET, networkConfigs } from 'src/utils/marketsAndNetworksConfig';
+import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
 
 import { Action, DisplayType, Facet, Input } from './facets/types';
 import { addressToProtocolMap } from './facets/vaultsConfig';
-
-const NETWORK = ENABLE_TESTNET ? 'testnet' : 'mainnet';
 
 interface VaultManagementActionModalProps {
   isOpen: boolean;
@@ -44,7 +42,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
   vault,
 }) => {
   const theme = useTheme();
-  const { addTransaction, chainId, getVaultAssetBalance } = useVault();
+  const { addTransaction, chainId, getVaultAssetBalance, network } = useVault();
   const { reserves } = useAppDataContext();
   const availableTokensDropdownOptions = reserves.map((reserve) => ({
     label: reserve.iconSymbol,
@@ -53,6 +51,8 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
     decimals: reserve.decimals,
   }));
 
+  type LoadingState = 'done' | 'dynamicFields' | 'initialValues';
+  const [loadingState, setLoadingState] = useState<LoadingState>('initialValues');
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [expandedInputs, setExpandedInputs] = useState<Record<string, boolean>>({});
   const [vaultBalances, setVaultBalances] = useState<Record<string, string>>({});
@@ -60,6 +60,9 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
   const baseUrl = useMemo(() => chainId && networkConfigs[chainId].explorerLink, [chainId]);
   const [dynamicOptions, setDynamicOptions] = useState<
     Record<string, Array<{ label: string; value: string; icon?: string; decimals?: number }>>
+  >({});
+  const [dynamicCurrencyDetails, setDynamicCurrencyDetails] = useState<
+    Record<string, { address: string; symbol: string; decimals: number; balance?: string }>
   >({});
 
   // Initialize input values with default values when action changes
@@ -70,7 +73,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
           acc[input.id] =
             typeof input.defaultValue === 'string'
               ? input.defaultValue
-              : input.defaultValue[NETWORK];
+              : input.defaultValue[network];
         }
         // For now, onBehalfOf and to are the vault address by default
         if (['onBehalfOf', 'to'].includes(input.id)) {
@@ -80,6 +83,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
       }, {} as Record<string, string>);
 
       setInputValues(defaultValues);
+      setLoadingState('dynamicFields');
     }
   }, [action, vault?.id]);
 
@@ -92,6 +96,10 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
         string,
         Array<{ label: string; value: string; icon?: string; decimals?: number }>
       > = {};
+      const newInputCurrencyDetails: Record<
+        string,
+        { address: string; symbol: string; decimals: number }
+      > = {};
 
       for (const input of action.inputs) {
         if (input.getOptions && inputValues) {
@@ -103,13 +111,16 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
             );
 
             if (hasDependentInputsChanged || !dynamicOptions[input.id]) {
-              const options = await input.getOptions(inputValues, provider);
+              const options = await input.getOptions(inputValues, provider, reserves);
               newDynamicOptions[input.id] = options;
             }
           } catch (error) {
             console.error(`Failed to load options for ${input.id}:`, error);
             newDynamicOptions[input.id] = [];
           }
+        } else if (input.getCurrencyDetails && inputValues) {
+          const currencyDetails = await input.getCurrencyDetails(inputValues, provider, vault?.id);
+          newInputCurrencyDetails[input.id] = currencyDetails;
         }
       }
 
@@ -117,11 +128,15 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
         ...prev,
         ...newDynamicOptions,
       }));
+      setDynamicCurrencyDetails((prev) => ({
+        ...prev,
+        ...newInputCurrencyDetails,
+      }));
+      setLoadingState('done');
     };
 
-    loadDynamicOptions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [action, provider, isOpen, inputValues]);
+    loadingState !== 'initialValues' && loadDynamicOptions();
+  }, [action, provider, isOpen, inputValues, loadingState]);
 
   // Define getRelatedInputCurrencyData before useEffect that uses it
   // Use useMemo to stabilize the function reference based on its dependencies
@@ -197,6 +212,17 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
       if (input.displayType === DisplayType.CURRENCY_AMOUNT_INPUT && input.relatedInputId) {
         const relatedInputCurrencyData = getRelatedInputCurrencyData(input.relatedInputId);
         const decimals = relatedInputCurrencyData?.currencyDecimals || 18; // Default to 18 if decimals not found
+        try {
+          // Parse the user input (assumed to be in standard unit) into Wei
+          processedValue = parseUnits(value || '0', decimals).toString();
+        } catch (error) {
+          console.error('Error parsing input value to Wei:', error);
+          processedValue = '0'; // Handle invalid input, maybe set to '0' or keep previous value?
+        }
+      }
+      if (input.displayType === DisplayType.CURRENCY_AMOUNT_INPUT && dynamicCurrencyDetails[input.id]) {
+        const currencyDetails = dynamicCurrencyDetails[input.id];
+        const decimals = currencyDetails?.decimals || 18; // Default to 18 if decimals not found
         try {
           // Parse the user input (assumed to be in standard unit) into Wei
           processedValue = parseUnits(value || '0', decimals).toString();
@@ -315,8 +341,9 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
 
       case DisplayType.CURRENCY_AMOUNT_INPUT: {
         const relatedInputCurrencyData = getRelatedInputCurrencyData(input.relatedInputId);
-        const vaultBalance = vaultBalances[inputValues[input.relatedInputId]] ?? '0';
-        const decimals = relatedInputCurrencyData?.currencyDecimals || 18;
+        const currencyDetails = dynamicCurrencyDetails[input.id];
+        const vaultBalance = vaultBalances[inputValues[input.relatedInputId]] || currencyDetails?.balance || undefined;
+        const decimals = relatedInputCurrencyData?.currencyDecimals || currencyDetails?.decimals || 18;
         const valueInWei = inputValues[input.id] || '0';
         let formattedValue = '';
 
@@ -340,13 +367,13 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
             <AssetInput
               inputTitle={input.name}
               value={formattedValue}
-              disabled={!relatedInputCurrencyData?.currencyValue}
+              disabled={!relatedInputCurrencyData?.currencyValue && !currencyDetails?.symbol}
               onChange={(i) => handleInputChange(input, i)}
-              symbol={relatedInputCurrencyData?.currencyName || ''}
+              symbol={relatedInputCurrencyData?.currencyName || currencyDetails?.symbol || ''}
               assets={[
                 {
                   balance: vaultBalance,
-                  symbol: relatedInputCurrencyData?.currencyName || '',
+                  symbol: relatedInputCurrencyData?.currencyName || currencyDetails?.symbol || '',
                   iconSymbol: relatedInputCurrencyData?.currencyIcon || '',
                 },
               ]}
@@ -411,10 +438,10 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
           input.id === 'onBehalfOf' && vault?.id
             ? vault.id
             : input.defaultValue
-            ? typeof input.defaultValue === 'string'
-              ? input.defaultValue
-              : input.defaultValue[NETWORK]
-            : null;
+              ? typeof input.defaultValue === 'string'
+                ? input.defaultValue
+                : input.defaultValue[network]
+              : null;
 
         // If we have a default value and it's not expanded, show the simplified view
         if (defaultAddress && !expandedInputs[input.id]) {
@@ -750,3 +777,4 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
     </BasicModal>
   );
 };
+

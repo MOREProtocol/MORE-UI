@@ -46,13 +46,13 @@ export const useVaultProvider = (chainIdParam?: number) => {
   const { data: walletClient } = useWalletClient();
 
   return useMemo(() => {
-    // Get chainId from wallet or use provided parameter
-    const chainId = walletClient?.chain.id || chainIdParam || ChainIds.flowEVMMainnet;
-
     // If wallet is connected, use it as provider
     if (walletClient) {
       return new ethers.providers.Web3Provider(walletClient as ethers.providers.ExternalProvider);
     }
+
+    // Get chainId from wallet or use provided parameter
+    const chainId = chainIdParam || ChainIds.flowEVMMainnet;
 
     // If no wallet is connected, create a fallback provider using the network's RPC URL
     const networkConfig = networkConfigs[chainId];
@@ -274,6 +274,9 @@ export const useVaultsListData = <TResult = VaultData>(
         if (!provider || !vaultId) {
           throw new Error('Missing required parameters');
         }
+        if (!Object.values(ChainIds).includes(chainId)) {
+          throw new Error('Invalid chainId');
+        }
 
         const vaultDiamondContract = new ethers.Contract(
           vaultId,
@@ -363,6 +366,9 @@ export const useUserVaultsData = <TResult = { maxWithdraw: ethers.BigNumber; dec
         if (!provider || !vaultId) {
           throw new Error('Missing required parameters');
         }
+        if (!Object.values(ChainIds).includes(chainId)) {
+          throw new Error('Invalid chainId');
+        }
 
         const vaultDiamondContract = new ethers.Contract(
           vaultId,
@@ -406,6 +412,9 @@ export const useVaultData = <TResult = VaultData>(
     async () => {
       if (!provider || !vaultId) {
         throw new Error('Missing required parameters');
+      }
+      if (!Object.values(ChainIds).includes(chainId)) {
+        throw new Error('Invalid chainId');
       }
 
       const vaultDiamondContract = new ethers.Contract(
@@ -520,6 +529,9 @@ export const useDeployedVaults = <TResult = string[]>(
     async () => {
       if (!provider) {
         throw new Error('Missing required parameters');
+      }
+      if (!Object.values(ChainIds).includes(chainId)) {
+        throw new Error('Invalid chainId');
       }
 
       const vaultFactoryContract = new ethers.Contract(

@@ -64,7 +64,6 @@ const getAmountForBundleDisplayDefault = (
 };
 
 export const moreFacet: Facet = {
-  contractAddress: defaultContractAddress,
   name: 'MORE Markets',
   icon: '/loveMore.svg',
   description: 'MORE is a decentralized exchange for trading cryptocurrencies.',

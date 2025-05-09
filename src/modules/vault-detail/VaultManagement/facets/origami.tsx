@@ -1,12 +1,9 @@
 import { Contract, ethers } from 'ethers';
-import { TOKEN_LIST } from 'src/ui-config/TokenList';
 
 import { DisplayType, Facet, InputType, TransactionInput } from './types';
+import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
 
 export const origamiFacet: Facet = {
-  contractAddress: {
-    testnet: '0x72eBEC124864D69a33638c5BA478bd9968798709',
-  },
   icon: '/loveMore.svg',
   name: 'MORE Leverage',
   description: 'MORE Leverage is a decentralized exchange for trading cryptocurrencies.',
@@ -31,7 +28,9 @@ export const origamiFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
-          defaultValue: '0x87fDa685d17865825474d99d5153b8a17c402bA5',
+          defaultValue: {
+            testnet: '0x87fDa685d17865825474d99d5153b8a17c402bA5'
+          },
         },
         {
           id: 'fromToken',
@@ -40,7 +39,7 @@ export const origamiFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.DROPDOWN,
-          getOptions: async (inputs: TransactionInput, provider: ethers.providers.Provider) => {
+          getOptions: async (inputs: TransactionInput, provider: ethers.providers.Provider, reserves: ComputedReserveDataWithMarket[]) => {
             const lovToken = inputs.lovToken as string;
             if (!provider || !lovToken) {
               return [];
@@ -48,12 +47,16 @@ export const origamiFacet: Facet = {
             const loveTokenAbi = `function acceptedInvestTokens() external view returns (address[])`;
             const lovTokenContract = new Contract(lovToken, [loveTokenAbi], provider);
             const acceptedInvestTokens = await lovTokenContract.acceptedInvestTokens();
-            return acceptedInvestTokens.map((token) => ({
-              icon: TOKEN_LIST?.tokens?.find((t) => t.address === token)?.logoURI || '',
-              label: TOKEN_LIST?.tokens?.find((t) => t.address === token)?.name || token,
-              decimals: TOKEN_LIST?.tokens?.find((t) => t.address === token)?.decimals || 18,
-              value: token,
-            }));
+            const tokens = acceptedInvestTokens.map((tokenAddress) => {
+              const tokenDetails = reserves.find((r) => r.underlyingAsset.toLowerCase() === tokenAddress.toLowerCase());
+              return {
+                icon: tokenDetails?.symbol || '',
+                label: tokenDetails?.symbol || tokenAddress,
+                decimals: tokenDetails?.decimals || 18,
+                value: tokenAddress,
+              };
+            });
+            return tokens;
           },
         },
         {

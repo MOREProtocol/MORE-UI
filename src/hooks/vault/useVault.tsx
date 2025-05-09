@@ -121,6 +121,7 @@ export interface VaultContextData {
   // Network context
   chainId: number;
   signer: ethers.Signer | null;
+  network: string;
 
   // Info reading
   selectedVaultId: string | null;
@@ -180,7 +181,17 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
 
   // Web3 setup
   const { data: walletClient } = useWalletClient();
-  const chainId = useMemo(() => walletClient?.chain?.id || ChainIds.flowEVMMainnet, [walletClient]);
+  const [chainId, setChainId] = useState<number | undefined>(ChainIds.flowEVMMainnet);
+  useEffect(() => {
+    const getChainId = async () => {
+      if (walletClient) {
+        const chainId = await walletClient?.getChainId();
+        setChainId(chainId);
+      }
+    };
+    getChainId();
+  }, [walletClient]);
+
   const provider = useVaultProvider(chainId);
   const signer = useMemo(() => {
     if (walletClient && provider) {
@@ -194,9 +205,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     } else if (chainId === ChainIds.flowEVMTestnet) {
       return 'testnet';
     } else {
-      console.error('Invalid network', chainId);
-      // Default to mainnet if network can't be determined
-      return 'mainnet';
+      return 'invalid';
     }
   }, [chainId]);
   const accountAddress = useMemo(() => walletClient?.account.address, [walletClient]);
@@ -406,7 +415,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     }
     const encodedActions = transactions.map((transaction) => {
       const contract = new ethers.Contract(
-        transaction.facet.contractAddress[network],
+        selectedVaultId,
         [transaction.action.abi],
         signer
       );
@@ -482,7 +491,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     // Network context
     chainId,
     signer,
-
+    network,
     // Info reading
     selectedVaultId,
     setSelectedVaultId,
