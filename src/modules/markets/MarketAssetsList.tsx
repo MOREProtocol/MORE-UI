@@ -4,7 +4,7 @@ import { VariableAPYTooltip } from 'src/components/infoTooltips/VariableAPYToolt
 import { ListColumn } from 'src/components/lists/ListColumn';
 import { ListHeaderTitle } from 'src/components/lists/ListHeaderTitle';
 import { ListHeaderWrapper } from 'src/components/lists/ListHeaderWrapper';
-import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { ComputedReserveDataWithMarket, useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { WalletBalancesMap } from 'src/hooks/app-data-provider/useWalletBalances';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 
@@ -66,6 +66,7 @@ export default function MarketAssetsList({
 }: MarketAssetsListProps) {
   const { currentAccount } = useWeb3Context();
   const { currentMarket } = useRootStore()
+  const { user } = useAppDataContext();
   const lastColumnSize = useMemo(() => (!!currentAccount && currentMarket !== 'all_markets' ? 320 : 95), [currentAccount, currentMarket]);
   const isTableChangedToCards = useMediaQuery('(max-width:1125px)');
   const [sortName, setSortName] = useState('');
@@ -132,18 +133,19 @@ export default function MarketAssetsList({
             </ListColumn>
           ))}
           {/* Width for buttons */}
-            <ListColumn maxWidth={lastColumnSize} minWidth={lastColumnSize} />
+          <ListColumn maxWidth={lastColumnSize} minWidth={lastColumnSize} />
         </ListHeaderWrapper>
       )}
 
       {reserves.map((reserve) =>
         isTableChangedToCards ? (
-          <MarketAssetsListMobileItem {...reserve} key={reserve.id} />
+          <MarketAssetsListMobileItem reserve={reserve} user={user} key={reserve.id} />
         ) : (
           <MarketAssetsListItem
             reserve={reserve}
-            key={reserve.id}
             walletBalances={walletBalances}
+            user={user}
+            key={reserve.id}
           />
         )
       )}

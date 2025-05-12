@@ -1,4 +1,4 @@
-import { Box, Button, Link, Typography } from '@mui/material';
+import { Box, Button, Link, Tooltip, Typography } from '@mui/material';
 import { useRouter } from 'next/router';
 import { useMemo } from 'react';
 import { OffboardingTooltip } from 'src/components/infoTooltips/OffboardingToolTip';
@@ -20,26 +20,42 @@ import { ListItem } from '../../components/lists/ListItem';
 import { FormattedNumber } from '../../components/primitives/FormattedNumber';
 import { ROUTES } from '../../components/primitives/Link';
 import { TokenIcon } from '../../components/primitives/TokenIcon';
-import { ComputedReserveDataWithMarket, useAppDataContext } from '../../hooks/app-data-provider/useAppDataProvider';
+import { ComputedReserveDataWithMarket, ExtendedFormattedUser } from '../../hooks/app-data-provider/useAppDataProvider';
 import { InterestRate } from '@aave/contract-helpers';
 
 export const MarketAssetsListItem = ({
   reserve,
   walletBalances,
+  user,
 }: {
   reserve: ComputedReserveDataWithMarket;
   walletBalances: WalletBalancesMap;
+  user: ExtendedFormattedUser;
 }) => {
   const router = useRouter();
   const { currentMarket, setCurrentMarket } = useRootStore();
   const { openSupply, openBorrow, openWithdraw, openRepay } = useModalContext();
   const trackEvent = useRootStore((store) => store.trackEvent);
   const { currentAccount } = useWeb3Context();
-  const { user } = useAppDataContext();
   const lastColumnSize = useMemo(() => (!!currentAccount ? 320 : 95), [currentAccount]);
+  const isReserveAlreadySupplied = useMemo(
+    () =>
+      user?.userReservesData.some(
+        (userReserve) =>
+          userReserve.reserve.underlyingAsset === reserve.underlyingAsset &&
+          userReserve.underlyingBalance !== '0'
+      ) ?? false,
+    [user, reserve]
+  );
 
-  const hasSupply = useMemo(() => user?.userReservesData.some((userReserve) => userReserve.reserve.underlyingAsset === reserve.underlyingAsset && userReserve.underlyingBalance !== '0'), [user, reserve]);
-  const hasBorrow = useMemo(() => user?.userReservesData.some((userReserve) => userReserve.reserve.underlyingAsset === reserve.underlyingAsset && userReserve.variableBorrows !== '0'), [user, reserve]);
+  const hasSupply = useMemo(
+    () => user?.userReservesData.some(
+      (userReserve) => userReserve.reserve.underlyingAsset === reserve.underlyingAsset && userReserve.underlyingBalance !== '0'),
+    [user, reserve]);
+  const hasBorrow = useMemo(
+    () => user?.userReservesData.some(
+      (userReserve) => userReserve.reserve.underlyingAsset === reserve.underlyingAsset && userReserve.variableBorrows !== '0'),
+    [user, reserve]);
 
   // Does not seem to work
   const disableSupply =
@@ -49,7 +65,8 @@ export const MarketAssetsListItem = ({
     !reserve.isActive ||
     !reserve.borrowingEnabled ||
     reserve.isFrozen ||
-    reserve.isPaused;
+    reserve.isPaused ||
+    isReserveAlreadySupplied;
 
   const offboardingDiscussion = AssetsBeingOffboarded[currentMarket]?.[reserve.symbol];
 
@@ -189,21 +206,28 @@ export const MarketAssetsListItem = ({
                 Withdraw
               </Button>
             }
-            <Button
-              disabled={disableBorrow}
-              variant="contained"
-              onClick={(event) => {
-                event.stopPropagation();
-                openBorrow(
-                  reserve.underlyingAsset,
-                  reserve.market.market,
-                  reserve.name,
-                  'market-list'
-                );
-              }}
+            <Tooltip
+              title={isReserveAlreadySupplied ? 'You cannot borrow an asset you are supplying.' : ''}
+              disableHoverListener={!isReserveAlreadySupplied}
             >
-              Borrow
-            </Button>
+              <span>
+                <Button
+                  disabled={disableBorrow}
+                  variant="contained"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openBorrow(
+                      reserve.underlyingAsset,
+                      reserve.market.market,
+                      reserve.name,
+                      'market-list'
+                    );
+                  }}
+                >
+                  Borrow
+                </Button>
+              </span>
+            </Tooltip>
             {hasBorrow &&
               <Button
                 disabled={disableBorrow}

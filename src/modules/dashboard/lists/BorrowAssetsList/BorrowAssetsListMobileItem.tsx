@@ -1,4 +1,4 @@
-import { Box, Button } from '@mui/material';
+import { Box, Button, Tooltip } from '@mui/material';
 import { VariableAPYTooltip } from 'src/components/infoTooltips/VariableAPYTooltip';
 import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
 import { DashboardReserve } from 'src/utils/dashboardSortUtils';
@@ -11,6 +11,8 @@ import { Row } from '../../../../components/primitives/Row';
 import { useModalContext } from '../../../../hooks/useModal';
 import { ListMobileItemWrapper } from '../ListMobileItemWrapper';
 import { ListValueRow } from '../ListValueRow';
+import { ExtendedFormattedUser } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { useMemo } from 'react';
 
 export const BorrowAssetsListMobileItem = ({
   symbol,
@@ -24,11 +26,21 @@ export const BorrowAssetsListMobileItem = ({
   vIncentivesData,
   underlyingAsset,
   isFreezed,
-}: DashboardReserve) => {
+  user,
+}: DashboardReserve & { user: ExtendedFormattedUser }) => {
   const { openBorrow } = useModalContext();
   const { currentMarket } = useProtocolDataContext();
+  const isReserveAlreadySupplied = useMemo(
+    () =>
+      user?.userReservesData.some(
+        (userReserve) =>
+          userReserve.reserve.underlyingAsset === underlyingAsset &&
+          userReserve.underlyingBalance !== '0'
+      ) ?? false,
+    [user, underlyingAsset]
+  );
 
-  const disableBorrow = isFreezed || Number(availableBorrows) <= 0;
+  const disableBorrow = isFreezed || Number(availableBorrows) <= 0 || isReserveAlreadySupplied;
 
   return (
     <ListMobileItemWrapper
@@ -91,15 +103,22 @@ export const BorrowAssetsListMobileItem = ({
         />
       </Row> */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 5 }}>
-        <Button
-          disabled={disableBorrow}
-          variant="contained"
-          onClick={() => openBorrow(underlyingAsset, currentMarket, name, 'dashboard')}
-          sx={{ mr: 1.5 }}
-          fullWidth
+        <Tooltip
+          title={isReserveAlreadySupplied ? 'You cannot borrow an asset you are supplying.' : ''}
+          disableHoverListener={!isReserveAlreadySupplied}
         >
-          Borrow
-        </Button>
+          <span>
+            <Button
+              disabled={disableBorrow}
+              variant="contained"
+              onClick={() => openBorrow(underlyingAsset, currentMarket, name, 'dashboard')}
+              sx={{ mr: 1.5 }}
+              fullWidth
+            >
+              Borrow
+            </Button>
+          </span>
+        </Tooltip>
         <Button
           variant="outlined"
           component={Link}

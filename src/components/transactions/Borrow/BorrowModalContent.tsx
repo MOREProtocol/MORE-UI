@@ -5,7 +5,7 @@ import {
   valueToBigNumber,
 } from '@aave/math-utils';
 import { Typography } from '@mui/material';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { APYTypeTooltip } from 'src/components/infoTooltips/APYTypeTooltip';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { Row } from 'src/components/primitives/Row';
@@ -43,6 +43,7 @@ export enum ErrorType {
   NOT_ENOUGH_LIQUIDITY,
   BORROWING_NOT_AVAILABLE,
   NOT_ENOUGH_BORROWED,
+  RESERVE_ALREADY_SUPPLIED,
 }
 
 interface BorrowModeSwitchProps {
@@ -157,6 +158,16 @@ export const BorrowModalContent = ({
   // calculating input usd value
   const usdValue = valueToBigNumber(amount).multipliedBy(poolReserve.priceInUSD);
 
+  const isReserveAlreadySupplied = useMemo(
+    () =>
+      user?.userReservesData.some(
+        (userReserve) =>
+          userReserve.reserve.underlyingAsset === underlyingAsset &&
+          userReserve.underlyingBalance !== '0'
+      ) ?? false,
+    [user, underlyingAsset]
+  );
+
   // error types handling
   let blockingError: ErrorType | undefined = undefined;
   if (interestRateMode === InterestRate.Stable && !poolReserve.stableBorrowRateEnabled) {
@@ -171,6 +182,8 @@ export const BorrowModalContent = ({
     blockingError = ErrorType.NOT_ENOUGH_LIQUIDITY;
   } else if (!poolReserve.borrowingEnabled) {
     blockingError = ErrorType.BORROWING_NOT_AVAILABLE;
+  } else if (isReserveAlreadySupplied) {
+    blockingError = ErrorType.RESERVE_ALREADY_SUPPLIED;
   }
 
   // error render handling
@@ -179,17 +192,13 @@ export const BorrowModalContent = ({
       case ErrorType.BORROWING_NOT_AVAILABLE:
         return `Borrowing is currently unavailable for ${poolReserve.symbol}.`;
       case ErrorType.NOT_ENOUGH_BORROWED:
-        return (
-          <>
-            {
-              'You can borrow this asset with a stable rate only if you borrow more than the amount you are supplying as collateral. '
-            }
-          </>
-        );
+        return `You can borrow this asset with a stable rate only if you borrow more than the amount you are supplying as collateral. `;
       case ErrorType.NOT_ENOUGH_LIQUIDITY:
-        return <>{`There are not enough funds in the ${poolReserve.symbol} reserve to borrow`}</>;
+        return `There are not enough funds in the ${poolReserve.symbol} reserve to borrow`;
       case ErrorType.STABLE_RATE_NOT_ENABLED:
         return `The Stable Rate is not enabled for this currency`;
+      case ErrorType.RESERVE_ALREADY_SUPPLIED:
+        return `You cannot borrow an asset you are supplying.`;
       default:
         return null;
     }

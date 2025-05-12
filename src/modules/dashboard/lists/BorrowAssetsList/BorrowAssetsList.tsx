@@ -243,9 +243,9 @@ export const BorrowAssetsList = () => {
           <Fragment key={item.underlyingAsset}>
             <AssetCapsProvider asset={item.reserve}>
               {downToXSM ? (
-                <BorrowAssetsListMobileItem {...item} />
+                <BorrowAssetsListMobileItem {...item} user={user} />
               ) : (
-                <BorrowAssetsListItem {...item} />
+                <BorrowAssetsListItem {...item} user={user} />
               )}
             </AssetCapsProvider>
           </Fragment>

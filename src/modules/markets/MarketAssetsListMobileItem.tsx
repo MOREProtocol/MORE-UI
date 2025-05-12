@@ -11,21 +11,35 @@ import { IncentivesCard } from '../../components/incentives/IncentivesCard';
 import { FormattedNumber } from '../../components/primitives/FormattedNumber';
 import { Link, ROUTES } from '../../components/primitives/Link';
 import { Row } from '../../components/primitives/Row';
-import { ComputedReserveDataWithMarket } from '../../hooks/app-data-provider/useAppDataProvider';
+import { ComputedReserveDataWithMarket, ExtendedFormattedUser } from '../../hooks/app-data-provider/useAppDataProvider';
 import { ListMobileItemWrapper } from '../dashboard/lists/ListMobileItemWrapper';
+import { useMemo } from 'react';
 
-export const MarketAssetsListMobileItem = ({ ...reserve }: ComputedReserveDataWithMarket) => {
+export const MarketAssetsListMobileItem = ({
+  reserve,
+  user,
+}: { reserve: ComputedReserveDataWithMarket; user: ExtendedFormattedUser }) => {
   const trackEvent = useRootStore((store) => store.trackEvent);
   const { currentMarket, setCurrentMarket } = useRootStore();
   const { openSupply, openBorrow } = useModalContext();
   const { currentAccount } = useWeb3Context();
   const disableSupply = !currentAccount || !reserve.isActive;
+  const isReserveAlreadySupplied = useMemo(
+    () =>
+      user?.userReservesData.some(
+        (userReserve) =>
+          userReserve.reserve.underlyingAsset === reserve.underlyingAsset &&
+          userReserve.underlyingBalance !== '0'
+      ) ?? false,
+    [user, reserve]
+  );
   const disableBorrow =
     !currentAccount ||
     !reserve.isActive ||
     !reserve.borrowingEnabled ||
     reserve.isFrozen ||
-    reserve.isPaused;
+    reserve.isPaused ||
+    isReserveAlreadySupplied;
 
   return (
     <ListMobileItemWrapper
