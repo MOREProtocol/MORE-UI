@@ -47,12 +47,12 @@ export function AppFooter() {
 
   const FOOTER_LINKS = [
     {
-      href: '#',
+      href: 'https://docs.more.markets/terms',
       label: 'Terms',
       key: 'Terms',
     },
     {
-      href: '#',
+      href: 'https://docs.more.markets/privacy',
       label: 'Privacy',
       key: 'Privacy',
     },
@@ -77,7 +77,7 @@ export function AppFooter() {
     },
     {
       href: 'https://deprecated.more.markets/',
-      label: <>Deprecated</>,
+      label: 'Deprecated',
       key: 'Deprecated',
     },
   ];
