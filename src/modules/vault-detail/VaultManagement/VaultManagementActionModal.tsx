@@ -55,6 +55,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
   type LoadingState = 'done' | 'dynamicFields' | 'initialValues';
   const [loadingState, setLoadingState] = useState<LoadingState>('initialValues');
   const [addTransactionLoading, setAddTransactionLoading] = useState(false);
+  const [transactionError, setTransactionError] = useState<string | null>(null);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [expandedInputs, setExpandedInputs] = useState<Record<string, boolean>>({});
   const [vaultBalances, setVaultBalances] = useState<Record<string, string>>({});
@@ -300,30 +301,38 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
 
   const handleAddToBundle = async () => {
     setAddTransactionLoading(true);
+    setTransactionError(null);
     // First, prepare the inputs with any dynamic values
     const preparedInputs = { ...inputValues };
 
-    // For each input that has getOptions, get its current value from dynamicOptions
-    action?.inputs.forEach((input) => {
-      if (input.getOptions && dynamicOptions[input.id]?.length > 0 && !preparedInputs[input.id]) {
-        // Use the first option's value as the current value
-        preparedInputs[input.id] = dynamicOptions[input.id][0].value;
+    try {
+      // For each input that has getOptions, get its current value from dynamicOptions
+      action?.inputs.forEach((input) => {
+        if (input.getOptions && dynamicOptions[input.id]?.length > 0 && !preparedInputs[input.id]) {
+          // Use the first option's value as the current value
+          preparedInputs[input.id] = dynamicOptions[input.id][0].value;
+        }
+      });
+
+      let finalInputs: TransactionInput = preparedInputs;
+      // Then apply any additional preparation from the action
+      if (action?.prepareInputs) {
+        finalInputs = action.prepareInputs(preparedInputs);
+      } else if (action?.prepareInputsWithProvider) {
+        finalInputs = await action.prepareInputsWithProvider(preparedInputs, provider);
       }
-    });
 
-    let finalInputs: TransactionInput = preparedInputs;
-    // Then apply any additional preparation from the action
-    if (action?.prepareInputs) {
-      finalInputs = action.prepareInputs(preparedInputs);
-    } else if (action?.prepareInputsWithProvider) {
-      finalInputs = await action.prepareInputsWithProvider(preparedInputs, provider);
+      // Add the transaction to the bundle
+      addTransaction({ action, facet, inputs: finalInputs, vault });
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      setTransactionError(
+        `An error occurred while adding the transaction. Please check the arguments, refresh the page and try again. ${error}`
+      );
+    } finally {
+      setAddTransactionLoading(false);
     }
-
-    // Add the transaction to the bundle
-    addTransaction({ action, facet, inputs: finalInputs, vault });
-
-    setAddTransactionLoading(false);
-    setIsOpen(false);
   };
 
   const renderInput = (input: Input) => {
@@ -862,6 +871,11 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
           {!addTransactionLoading && `Add ${action.actionButtonText.toLowerCase()} transaction to bundle`}
         </Button>
       </Box>
+      {transactionError && (
+        <Box sx={{ m: 3, p: 4, bgcolor: 'background.surface', borderRadius: 1, overflow: 'scroll' }}>
+          <Typography variant="secondary12" color="error">{transactionError}</Typography>
+        </Box>
+      )}
     </BasicModal>
   );
 };
