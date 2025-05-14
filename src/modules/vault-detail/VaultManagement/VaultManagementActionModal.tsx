@@ -3,6 +3,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
   Box,
   Button,
+  CircularProgress,
   IconButton,
   MenuItem,
   Select,
@@ -23,7 +24,7 @@ import { useVault, VaultData } from 'src/hooks/vault/useVault';
 import { useVaultProvider } from 'src/hooks/vault/useVaultData';
 import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
 
-import { Action, DisplayType, Facet, Input } from './facets/types';
+import { Action, DisplayType, Facet, Input, TransactionInput } from './facets/types';
 import { addressToProtocolMap } from './facets/vaultsConfig';
 
 interface VaultManagementActionModalProps {
@@ -53,6 +54,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
 
   type LoadingState = 'done' | 'dynamicFields' | 'initialValues';
   const [loadingState, setLoadingState] = useState<LoadingState>('initialValues');
+  const [addTransactionLoading, setAddTransactionLoading] = useState(false);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [expandedInputs, setExpandedInputs] = useState<Record<string, boolean>>({});
   const [vaultBalances, setVaultBalances] = useState<Record<string, string>>({});
@@ -297,6 +299,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
   };
 
   const handleAddToBundle = async () => {
+    setAddTransactionLoading(true);
     // First, prepare the inputs with any dynamic values
     const preparedInputs = { ...inputValues };
 
@@ -308,17 +311,18 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
       }
     });
 
+    let finalInputs: TransactionInput = preparedInputs;
     // Then apply any additional preparation from the action
     if (action?.prepareInputs) {
-      const finalInputs = action.prepareInputs(preparedInputs);
-      addTransaction({ action, facet, inputs: finalInputs, vault });
+      finalInputs = action.prepareInputs(preparedInputs);
     } else if (action?.prepareInputsWithProvider) {
-      const finalInputs = await action.prepareInputsWithProvider(preparedInputs, provider);
-      addTransaction({ action, facet, inputs: finalInputs, vault });
-    } else {
-      addTransaction({ action, facet, inputs: preparedInputs, vault });
+      finalInputs = await action.prepareInputsWithProvider(preparedInputs, provider);
     }
 
+    // Add the transaction to the bundle
+    addTransaction({ action, facet, inputs: finalInputs, vault });
+
+    setAddTransactionLoading(false);
     setIsOpen(false);
   };
 
@@ -851,8 +855,11 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
 
       {/* Actions */}
       <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Button variant="contained" fullWidth onClick={handleAddToBundle}>
-          Add {action.actionButtonText.toLowerCase()} transaction to bundle
+        <Button variant="contained" fullWidth onClick={handleAddToBundle} disabled={addTransactionLoading}>
+          {addTransactionLoading && (
+            <CircularProgress size={20} />
+          )}
+          {!addTransactionLoading && `Add ${action.actionButtonText.toLowerCase()} transaction to bundle`}
         </Button>
       </Box>
     </BasicModal>

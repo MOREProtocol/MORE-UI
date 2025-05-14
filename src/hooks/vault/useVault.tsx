@@ -414,10 +414,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     setTransactions([]);
   }, []);
 
-  const submitActions = useCallback(async (): Promise<ethers.providers.TransactionReceipt> => {
-    if (!selectedVaultId) {
-      throw new Error('No vault selected');
-    }
+  const getEncodedActions = async (transactions: VaultBatchTransaction[]) => {
     const encodedActions = await Promise.all(transactions.map((transaction) => {
       const contract = new ethers.Contract(
         selectedVaultId,
@@ -451,6 +448,14 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
 
       return contract.interface.encodeFunctionData(transaction.action.functionName || transaction.action.id, txArgs);
     }));
+    return encodedActions;
+  }
+
+  const submitActions = useCallback(async (): Promise<ethers.providers.TransactionReceipt> => {
+    if (!selectedVaultId) {
+      throw new Error('No vault selected');
+    }
+    const encodedActions = await getEncodedActions(transactions);
 
     const multicallContract = new ethers.Contract(
       selectedVaultId,

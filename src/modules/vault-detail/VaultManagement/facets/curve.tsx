@@ -19,7 +19,7 @@ const getCurrencySymbolsForBundleDisplayDefault =
       reserves &&
       reserves
         .filter((token) => [inputs._route[0], inputs._route[2]].includes(token.underlyingAsset))
-        ?.map((token) => token.iconSymbol)
+        ?.map((token) => token.symbol)
     );
   };
 
@@ -46,47 +46,51 @@ export const curveFacet: Facet = {
         const amount = inputs._amount as string;
         const tokenA = inputs._route[0] as string;
         const pool = inputs._route[1] as string;
-        const reserveAData = reserves?.find((reserve) => reserve.underlyingAsset === tokenA.toLowerCase());
+        const reserveAData = reserves?.find((reserve) => reserve.underlyingAsset.toLowerCase() === tokenA.toLowerCase());
         const decimalsA = reserveAData?.decimals || 18;
         const formattedAmountA = formatUnits(BigInt(amount), decimalsA).toString();
         const tokenB = inputs._route[2] as string;
-        const reserveBData = reserves?.find((reserve) => reserve.underlyingAsset === tokenB.toLowerCase());
+        const reserveBData = reserves?.find((reserve) => reserve.underlyingAsset.toLowerCase() === tokenB.toLowerCase());
         const decimalsB = reserveBData?.decimals || 18;
         const formattedAmountB = formatUnits(BigInt(amount), decimalsB).toString(); // TODO: get the amount of tokenB received
 
         return (
-          <Box
-            sx={{
-              display: 'flex',
-              width: '100%',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1,
-            }}
-          >
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
-              <Typography variant="helperText">Swap:</Typography>
-              <FormattedNumber
-                value={formattedAmountA}
-                symbol={reserveAData?.iconSymbol}
-                {...props}
-              />
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: 1, width: '100%' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                width: '100%',
+                justifyContent: 'space-between',
+                gap: 1,
+              }}
+            >
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
+                <Typography variant="helperText">Token in:</Typography>
+                <FormattedNumber
+                  value={formattedAmountA}
+                  symbol={reserveAData?.symbol}
+                  {...props}
+                />
+              </Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'end' }}>
+                <Typography variant="helperText">Token out:</Typography>
+                <FormattedNumber
+                  value={formattedAmountB}
+                  symbol={reserveBData?.symbol}
+                  {...props}
+                />
+              </Box>
             </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'end' }}>
-              <Typography variant="helperText">In LP:</Typography>
-              <Address
-                address={pool}
-                link={'#'}
-                {...props}
-              />
-            </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
-              <Typography variant="helperText">In:</Typography>
-              <FormattedNumber
-                value={formattedAmountB}
-                symbol={reserveBData?.iconSymbol}
-                {...props}
-              />
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
+                <Typography variant="helperText">Pool:</Typography>
+                <Address
+                  address={pool}
+                  link={'#'}
+                  {...props}
+                />
+              </Box>
             </Box>
           </Box>
         )
@@ -106,6 +110,8 @@ export const curveFacet: Facet = {
 
         if (String(tokenAAddress).toLowerCase() !== String(tokenA).toLowerCase()) {
           swapParams[0][0] = '1';
+        } else {
+          swapParams[0][1] = '1';
         }
 
         swapParams[0][2] = '1'; // action_code: 1 for swap
@@ -127,7 +133,6 @@ export const curveFacet: Facet = {
           _amount: amount.toString(),
           _min_dy: minDy.mul(98).div(100).toString(), // to avoid slippage
         };
-        console.log(result);
         return result;
       },
       inputs: [
