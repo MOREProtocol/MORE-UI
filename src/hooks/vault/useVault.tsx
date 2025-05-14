@@ -150,7 +150,8 @@ export interface VaultContextData {
     vault,
   }: Omit<VaultBatchTransaction, 'id'> & { vault: VaultData }) => void;
   removeTransaction: (id: string) => void;
-  submitAndExecuteActions: () => Promise<ethers.providers.TransactionReceipt>;
+  clearTransactions: () => void;
+  submitAndExecuteActions: () => Promise<ethers.providers.TransactionReceipt | undefined>;
   operationsLoading: boolean;
   operationsError: Error | null;
 }
@@ -409,11 +410,15 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     [transactions]
   );
 
+  const clearTransactions = useCallback(() => {
+    setTransactions([]);
+  }, []);
+
   const submitActions = useCallback(async (): Promise<ethers.providers.TransactionReceipt> => {
     if (!selectedVaultId) {
       throw new Error('No vault selected');
     }
-    const encodedActions = transactions.map((transaction) => {
+    const encodedActions = await Promise.all(transactions.map((transaction) => {
       const contract = new ethers.Contract(
         selectedVaultId,
         [transaction.action.abi],
@@ -422,7 +427,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
 
       // Parse the ABI to get the function signature and input types
       const iface = new ethers.utils.Interface([transaction.action.abi]);
-      const functionFragment = iface.getFunction(transaction.action.id);
+      const functionFragment = iface.getFunction(transaction.action.functionName || transaction.action.id);
 
       // Get the input names from the ABI
       const inputNames = functionFragment.inputs.map((input) => input.name);
@@ -444,8 +449,8 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
         return transaction.inputs[inputName] || '0';
       });
 
-      return contract.interface.encodeFunctionData(transaction.action.id, txArgs);
-    });
+      return contract.interface.encodeFunctionData(transaction.action.functionName || transaction.action.id, txArgs);
+    }));
 
     const multicallContract = new ethers.Contract(
       selectedVaultId,
@@ -509,6 +514,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     withdrawFromVault,
     addTransaction,
     removeTransaction,
+    clearTransactions,
     submitAndExecuteActions,
     operationsLoading,
     operationsError,

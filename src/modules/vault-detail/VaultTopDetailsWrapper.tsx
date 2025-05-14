@@ -2,6 +2,7 @@ import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import { Box, Button, SvgIcon, Tab, Tabs, useMediaQuery, useTheme } from '@mui/material';
 import { useRouter } from 'next/router';
 import { useVault, VaultTab } from 'src/hooks/vault/useVault';
+import { useEffect } from 'react';
 
 import { NewTopInfoPanel } from './NewTopInfoPanel';
 import { VaultTopDetails } from './VaultTopDetails';
@@ -12,6 +13,7 @@ export const VaultTopDetailsWrapper = () => {
   const { selectedTab, setSelectedTab, selectedVaultId, accountAddress } = useVault();
   const vaultData = useVaultData(selectedVaultId);
   const canManageVault = vaultData?.data?.overview?.roles?.curator === accountAddress;
+  const isVaultDataLoading = vaultData?.isLoading;
 
   const theme = useTheme();
   const downToSM = useMediaQuery(theme.breakpoints.down('sm'));
@@ -19,6 +21,12 @@ export const VaultTopDetailsWrapper = () => {
   const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
     setSelectedTab(newValue as VaultTab);
   };
+
+  useEffect(() => {
+    if (!isVaultDataLoading && selectedTab === 'manage' && !canManageVault) {
+      setSelectedTab('overview');
+    }
+  }, [isVaultDataLoading, selectedTab, canManageVault, setSelectedTab]);
 
   return (
     <NewTopInfoPanel
@@ -66,7 +74,7 @@ export const VaultTopDetailsWrapper = () => {
         }}
       >
         <Tabs
-          value={selectedTab}
+          value={isVaultDataLoading ? false : selectedTab}
           onChange={handleTabChange}
           aria-label="vault tabs"
           textColor="inherit"

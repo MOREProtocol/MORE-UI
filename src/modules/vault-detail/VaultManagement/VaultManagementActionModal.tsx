@@ -65,6 +65,16 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
     Record<string, { address: string; symbol: string; decimals: number; balance?: string }>
   >({});
 
+  // Effect to reset states when modal visibility changes
+  useEffect(() => {
+    setInputValues({});
+    setExpandedInputs({});
+    setVaultBalances({});
+    setDynamicOptions({});
+    setDynamicCurrencyDetails({});
+    setLoadingState('initialValues');
+  }, [isOpen]);
+
   // Initialize input values with default values when action changes
   useEffect(() => {
     if (action) {
@@ -113,6 +123,18 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
             if (hasDependentInputsChanged || !dynamicOptions[input.id]) {
               const options = await input.getOptions(inputValues, provider, reserves);
               newDynamicOptions[input.id] = options;
+              // Since ADDRESS type is not dynamic and unique
+              if (input.displayType === DisplayType.ADDRESS && options.length > 0) {
+                setInputValues((prev) => {
+                  if (prev[input.id] !== options[0].value) {
+                    return {
+                      ...prev,
+                      [input.id]: options[0].value,
+                    };
+                  }
+                  return prev;
+                });
+              }
             }
           } catch (error) {
             console.error(`Failed to load options for ${input.id}:`, error);
@@ -147,10 +169,14 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
 
       // First check dynamic options, then fall back to static options
       const relatedInput = action?.inputs.find((input) => input.id === relatedInputId);
-      const options =
-        relatedInput?.displayType === DisplayType.TOKEN_DROPDOWN
-          ? availableTokensDropdownOptions
-          : dynamicOptions[relatedInputId] || relatedInput?.options || [];
+      let options = [];
+      if (relatedInput?.displayType === DisplayType.TOKEN_DROPDOWN) {
+        options = availableTokensDropdownOptions;
+      } else if (dynamicOptions[relatedInputId]) {
+        options = dynamicOptions[relatedInputId];
+      } else if (relatedInput?.options) {
+        options = relatedInput?.options;
+      }
       const dropdownOption = options.find((option) => option.value === inputValue);
 
       return {
@@ -208,33 +234,48 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
 
   const handleInputChange = (input: Input, value: string) => {
     setInputValues((prev) => {
-      let processedValue = value;
-      if (input.displayType === DisplayType.CURRENCY_AMOUNT_INPUT && input.relatedInputId) {
-        const relatedInputCurrencyData = getRelatedInputCurrencyData(input.relatedInputId);
-        const decimals = relatedInputCurrencyData?.currencyDecimals || 18; // Default to 18 if decimals not found
-        try {
-          // Parse the user input (assumed to be in standard unit) into Wei
-          processedValue = parseUnits(value || '0', decimals).toString();
-        } catch (error) {
-          console.error('Error parsing input value to Wei:', error);
-          processedValue = '0'; // Handle invalid input, maybe set to '0' or keep previous value?
+      let finalValueToStore = value; // Default to the raw input value, will be updated for currency inputs
+
+      if (input.displayType === DisplayType.CURRENCY_AMOUNT_INPUT) {
+        let decimalsForParsing: string | number = 18;
+        let humanReadableMaxBalance: string | undefined = undefined;
+        let valueToParseInUnits = value; // This is the human-readable value we intend to parse
+
+        const dynamicDetail = dynamicCurrencyDetails[input.id];
+        const relatedTokenAddress = input.relatedInputId ? prev[input.relatedInputId] : undefined;
+
+        if (dynamicDetail) {
+          decimalsForParsing = dynamicDetail.decimals || 18;
+          if (dynamicDetail.balance) {
+            humanReadableMaxBalance = formatUnits(dynamicDetail.balance, decimalsForParsing);
+          }
+        } else if (input.relatedInputId && relatedTokenAddress) {
+          const relatedData = getRelatedInputCurrencyData(input.relatedInputId);
+          decimalsForParsing = relatedData?.currencyDecimals || 18;
+          humanReadableMaxBalance = vaultBalances[relatedTokenAddress];
         }
-      }
-      if (input.displayType === DisplayType.CURRENCY_AMOUNT_INPUT && dynamicCurrencyDetails[input.id]) {
-        const currencyDetails = dynamicCurrencyDetails[input.id];
-        const decimals = currencyDetails?.decimals || 18; // Default to 18 if decimals not found
+
+        // If raw input 'value' is negative, it implies using the max available balance
+        if (new BigNumber(value).isLessThan(0)) {
+          if (humanReadableMaxBalance !== undefined) {
+            valueToParseInUnits = humanReadableMaxBalance;
+          } else {
+            valueToParseInUnits = '0';
+          }
+        }
+
         try {
-          // Parse the user input (assumed to be in standard unit) into Wei
-          processedValue = parseUnits(value || '0', decimals).toString();
+          // Parse the human-readable valueToParseInUnits into its smallest unit (e.g., Wei)
+          finalValueToStore = parseUnits(valueToParseInUnits || '0', decimalsForParsing).toString();
         } catch (error) {
           console.error('Error parsing input value to Wei:', error);
-          processedValue = '0'; // Handle invalid input, maybe set to '0' or keep previous value?
+          finalValueToStore = '0'; // Store '0' (in Wei) on error
         }
       }
 
       const newValues = {
         ...prev,
-        [input.id]: processedValue,
+        [input.id]: finalValueToStore,
       };
 
       // If this input is a dependency for other inputs, clear their values
@@ -255,24 +296,29 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
     }));
   };
 
-  const handleAddToBundle = () => {
+  const handleAddToBundle = async () => {
     // First, prepare the inputs with any dynamic values
     const preparedInputs = { ...inputValues };
 
     // For each input that has getOptions, get its current value from dynamicOptions
     action?.inputs.forEach((input) => {
-      if (input.getOptions && dynamicOptions[input.id]?.length > 0) {
+      if (input.getOptions && dynamicOptions[input.id]?.length > 0 && !preparedInputs[input.id]) {
         // Use the first option's value as the current value
         preparedInputs[input.id] = dynamicOptions[input.id][0].value;
       }
     });
 
     // Then apply any additional preparation from the action
-    const finalInputs = action?.prepareInputs
-      ? action.prepareInputs(preparedInputs)
-      : preparedInputs;
+    if (action?.prepareInputs) {
+      const finalInputs = action.prepareInputs(preparedInputs);
+      addTransaction({ action, facet, inputs: finalInputs, vault });
+    } else if (action?.prepareInputsWithProvider) {
+      const finalInputs = await action.prepareInputsWithProvider(preparedInputs, provider);
+      addTransaction({ action, facet, inputs: finalInputs, vault });
+    } else {
+      addTransaction({ action, facet, inputs: preparedInputs, vault });
+    }
 
-    addTransaction({ action, facet, inputs: finalInputs, vault });
     setIsOpen(false);
   };
 
@@ -342,9 +388,12 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
       case DisplayType.CURRENCY_AMOUNT_INPUT: {
         const relatedInputCurrencyData = getRelatedInputCurrencyData(input.relatedInputId);
         const currencyDetails = dynamicCurrencyDetails[input.id];
-        const vaultBalance = vaultBalances[inputValues[input.relatedInputId]] || currencyDetails?.balance || undefined;
-        const decimals = relatedInputCurrencyData?.currencyDecimals || currencyDetails?.decimals || 18;
-        const valueInWei = inputValues[input.id] || '0';
+        const vaultBalance =
+          currencyDetails?.balance && formatUnits(currencyDetails?.balance, currencyDetails?.decimals)
+          || vaultBalances[inputValues[input.relatedInputId]]
+          || undefined;
+        const decimals = currencyDetails?.decimals || relatedInputCurrencyData?.currencyDecimals || 18;
+        const valueInWei = inputValues[input.id] || '';
         let formattedValue = '';
 
         try {
@@ -352,10 +401,12 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
           if (new BigNumber(valueInWei).isLessThan(0)) {
             formattedValue = vaultBalance; // Use the vault balance (already formatted)
           } else if (new BigNumber(valueInWei).isZero()) {
-            formattedValue = '';
-          } else {
+            formattedValue = '0';
+          } else if (valueInWei !== '') {
             // It's a Wei value, format it to standard units
             formattedValue = formatUnits(valueInWei, decimals);
+          } else {
+            formattedValue = '';
           }
         } catch (error) {
           console.error('Error formatting value:', error);
@@ -369,11 +420,11 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
               value={formattedValue}
               disabled={!relatedInputCurrencyData?.currencyValue && !currencyDetails?.symbol}
               onChange={(i) => handleInputChange(input, i)}
-              symbol={relatedInputCurrencyData?.currencyName || currencyDetails?.symbol || ''}
+              symbol={currencyDetails?.symbol || relatedInputCurrencyData?.currencyName || ''}
               assets={[
                 {
                   balance: vaultBalance,
-                  symbol: relatedInputCurrencyData?.currencyName || currencyDetails?.symbol || '',
+                  symbol: currencyDetails?.symbol || relatedInputCurrencyData?.currencyName || '',
                   iconSymbol: relatedInputCurrencyData?.currencyIcon || '',
                 },
               ]}
@@ -426,6 +477,36 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
                 value={value}
                 symbol={relatedInputCurrencyData?.currencyName || ''}
                 variant="main16"
+              />
+            </Box>
+          </Box>
+        );
+      }
+
+      case DisplayType.ADDRESS: {
+        const dynamicOption = dynamicOptions[input.id]?.[0];
+        const value = dynamicOption?.value || '0';
+
+        return (
+          <Box key={input.id} sx={{ mb: 3 }}>
+            <Typography variant="description" color="text.secondary" sx={{ mb: 1 }}>
+              {input.name}
+            </Typography>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                p: 2,
+                borderRadius: 1,
+                border: `1px solid ${theme.palette.divider}`,
+                bgcolor: 'background.default',
+              }}
+            >
+              <Address
+                address={String(value)}
+                link={`${baseUrl}/address/${String(value)}`}
+                variant="secondary14"
               />
             </Box>
           </Box>
@@ -757,7 +838,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
       </Box>
 
       {/* Transaction Overview */}
-      <Box sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
+      {/* <Box sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
         <Typography variant="main16" sx={{ mb: 2 }}>
           Transaction overview
         </Typography>
@@ -766,7 +847,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
             👨‍💻 WIP
           </Typography>
         </Box>
-      </Box>
+      </Box> */}
 
       {/* Actions */}
       <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>

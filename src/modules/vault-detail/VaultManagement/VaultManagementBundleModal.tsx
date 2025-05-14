@@ -24,6 +24,7 @@ export const VaultManagementBundleModal = ({ open, setOpen }: VaultManagementBun
   const {
     transactions,
     removeTransaction,
+    clearTransactions,
     submitAndExecuteActions,
     operationsLoading,
     operationsError,
@@ -35,13 +36,16 @@ export const VaultManagementBundleModal = ({ open, setOpen }: VaultManagementBun
 
   const handleClose = () => {
     setOpen(false);
-    setTxHash(null);
+    if (txHash) {
+      setTxHash(null);
+      clearTransactions();
+    }
   };
 
   const handleSubmitAndExecuteActions = async () => {
     try {
       const result = await submitAndExecuteActions();
-      setTxHash(result.transactionHash);
+      result?.transactionHash && setTxHash(result.transactionHash);
     } catch (error) {
       console.error('Error submitting and executing actions:', error);
     }

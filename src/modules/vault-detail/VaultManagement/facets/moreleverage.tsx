@@ -3,7 +3,7 @@ import { Contract, ethers } from 'ethers';
 import { DisplayType, Facet, InputType, TransactionInput } from './types';
 import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
 
-export const origamiFacet: Facet = {
+export const moreleverageFacet: Facet = {
   icon: '/loveMore.svg',
   name: 'MORE Leverage',
   description: 'MORE Leverage is a decentralized exchange for trading cryptocurrencies.',
@@ -87,19 +87,19 @@ export const origamiFacet: Facet = {
         },
       ],
     },
-    {
-      id: 'exitToToken',
-      name: 'Exit to Token',
-      actionButtonText: 'Exit',
-      description: 'Exit to a token',
-      abi: `function exitToToken(
-        address lovToken,
-        uint256 investmentAmount,
-        address toToken,
-        uint256 maxSlippageBps,
-        uint256 deadline
-      ) external;`,
-      inputs: [],
-    },
+    // {
+    //   id: 'exitToToken',
+    //   name: 'Exit to Token',
+    //   actionButtonText: 'Exit',
+    //   description: 'Exit to a token',
+    //   abi: `function exitToToken(
+    //     address lovToken,
+    //     uint256 investmentAmount,
+    //     address toToken,
+    //     uint256 maxSlippageBps,
+    //     uint256 deadline
+    //   ) external;`,
+    //   inputs: [],
+    // },
   ],
 };

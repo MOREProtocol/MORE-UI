@@ -1,12 +1,19 @@
 import { aggrokittyswapFacet } from './aggrokittyswap';
-import { kittypunchfarmFacet } from './kittypunchfarm';
+import { curveFacet } from './curve';
+import { multirewardsFacet } from './multirewards';
 import { moreFacet } from './more';
 import { morphoFacet } from './morpho';
-import { origamiFacet } from './origami';
+import { moreleverageFacet } from './moreleverage';
 import { uniswapFacet } from './uniswap';
 
-export const actions = [uniswapFacet, moreFacet, morphoFacet, origamiFacet, aggrokittyswapFacet, kittypunchfarmFacet].sort((a, b) =>
-  a.name.localeCompare(b.name)
-);
+export const actions = [
+  uniswapFacet,
+  moreFacet,
+  morphoFacet,
+  moreleverageFacet,
+  aggrokittyswapFacet,
+  multirewardsFacet,
+  curveFacet,
+].sort((a, b) => a.name.localeCompare(b.name));
 
 export default actions;

@@ -17,11 +17,11 @@ export function decodeActions(encodedData: string): DecodedAction[] {
     for (const facet of actions) {
       for (const action of Object.values(facet.actions)) {
         const iface = new ethers.utils.Interface([action.abi]);
-        const functionFragment = iface.getFunction(action.id);
+        const functionFragment = iface.getFunction(action.functionName || action.id);
         const selector = iface.getSighash(functionFragment);
         if (selector === functionSelector) {
           // Decode the function data
-          const decodedData = iface.decodeFunctionData(action.id, encodedData);
+          const decodedData = iface.decodeFunctionData(action.functionName || action.id, encodedData);
 
           // Convert the decoded data to a params object
           const params: Record<string, unknown> = {};

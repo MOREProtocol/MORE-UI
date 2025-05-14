@@ -132,7 +132,7 @@ const getCurrencySymbolsForBundleDisplayDefault =
     };
 
 export const uniswapFacet: Facet = {
-  name: 'Uniswap v2',
+  name: 'Uniswap v2 (PunchSwapV2 Router)',
   icon: '/icons/protocols/uniswap.svg',
   description: 'Uniswap is a decentralized exchange for trading cryptocurrencies.',
   actions: [
@@ -214,7 +214,6 @@ export const uniswapFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.ADDRESS_INPUT,
-          defaultValue: '',
         },
         {
           id: 'deadline',
@@ -347,8 +346,8 @@ export const uniswapFacet: Facet = {
         return result;
       },
       getAmountForBundleDisplay: getAmountForBundleDisplayDefault(
-        (inputs) => inputs.path[0],
-        (inputs) => inputs.path[1],
+        (inputs) => inputs.path[0] as string,
+        (inputs) => inputs.path[1] as string,
         (inputs) => inputs.amountIn as string,
         (inputs) => inputs.amountOutMin as string,
         (inputs) => inputs.router as string
