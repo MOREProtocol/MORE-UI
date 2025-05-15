@@ -540,8 +540,15 @@ export const useDeployedVaults = <TResult = string[]>(
         provider
       );
 
-      const vaultIds = await vaultFactoryContract.getDeployedVaults();
-      return vaultIds;
+      const allVaultIds = await vaultFactoryContract.getDeployedVaults();
+      const hiddenVaultsEnv = process.env.NEXT_PUBLIC_HIDDEN_VAULT_IDS || '';
+      const hiddenVaultIds = hiddenVaultsEnv.split(',').map(id => id.trim().toLowerCase());
+
+      const filteredVaultIds = allVaultIds.filter(
+        (vaultId: string) => !hiddenVaultIds.includes(vaultId.toLowerCase())
+      );
+
+      return filteredVaultIds;
     },
     !!provider,
     opts

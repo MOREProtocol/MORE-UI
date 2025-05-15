@@ -122,7 +122,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         handleScroll: isInteractive,
         handleScale: isInteractive,
         crosshair: {
-          mode: isInteractive ? 0 /* CrosshairMode.Normal */ : 3 /* CrosshairMode.Hidden */,
+          mode: isInteractive ? 1 /* CrosshairMode.Magnet */ : 2 /* CrosshairMode.Hidden */,
           vertLine: {
             labelVisible: isInteractive,
             visible: isInteractive,
@@ -145,7 +145,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         lineWidth: 2,
         priceLineVisible: false,
         lastValueVisible: false,
-        crosshairMarkerVisible: isInteractive,
+        crosshairMarkerVisible: false,
       };
       seriesRef.current = chartRef.current.addSeries(AreaSeries, seriesOptions);
     } else {
@@ -176,7 +176,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         handleScroll: isInteractive,
         handleScale: isInteractive,
         crosshair: {
-          mode: isInteractive ? 0 /* CrosshairMode.Normal */ : 3 /* CrosshairMode.Hidden */,
+          mode: isInteractive ? 1 /* CrosshairMode.Magnet */ : 2 /* CrosshairMode.Hidden */,
           vertLine: {
             labelVisible: isInteractive,
             visible: isInteractive,
@@ -199,7 +199,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
           lineWidth: 2,
           priceLineVisible: false,
           lastValueVisible: false,
-          crosshairMarkerVisible: isInteractive,
+          crosshairMarkerVisible: false,
         });
       }
     }
