@@ -10,4 +10,25 @@ export const multicalls = {
   mainnet: '0x8358d18E99F44E39ea90339c4d6E8C36101f8161',
 };
 
-export const sanctionedCountries = ["KP", "IR", "MM", "US"];
+export const strictlySanctionedCountries: string[] = [
+  "CU",  // Cuba
+  "KP",  // North Korea
+  "IR",  // Iran
+  "IQ",  // Iraq
+  "SD",  // Sudan
+  "SY",  // Syria
+  "UA"   // Ukraine
+];
+export const sanctionedCountries: string[] = [
+  "BD",  // Bangladesh
+  "BY",  // Belarus
+  "BO",  // Bolivia
+  "CA",  // Canada
+  "CI",  // Côte d’Ivoire
+  "LR",  // Liberia
+  "NL",  // Netherlands
+  "CN",  // China
+  "RU",  // Russia
+  "GB",  // United Kingdom
+  "US"   // United States of America
+];
