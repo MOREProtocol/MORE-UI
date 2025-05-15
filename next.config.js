@@ -3,9 +3,14 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });
 
-const pageExtensions = ['page.tsx'];
-if (process.env.NEXT_PUBLIC_ENABLE_GOVERNANCE === 'true') pageExtensions.push('governance.tsx');
-if (process.env.NEXT_PUBLIC_ENABLE_STAKING === 'true') pageExtensions.push('staking.tsx');
+// Define ALL valid page extensions, including those for API routes
+const pageExtensions = ['page.tsx', 'ts', 'tsx', 'js', 'jsx'];
+if (process.env.NEXT_PUBLIC_ENABLE_GOVERNANCE === 'true') {
+  if (!pageExtensions.includes('governance.tsx')) pageExtensions.push('governance.tsx');
+}
+if (process.env.NEXT_PUBLIC_ENABLE_STAKING === 'true') {
+  if (!pageExtensions.includes('staking.tsx')) pageExtensions.push('staking.tsx');
+}
 
 /** @type {import('next').NextConfig} */
 module.exports = withBundleAnalyzer({
@@ -24,7 +29,14 @@ module.exports = withBundleAnalyzer({
         },
       ],
     });
-    config.experiments = { topLevelAwait: true };
+
+    // Modify experiments, preserving existing ones if any
+    config.experiments = {
+      ...config.experiments, // Preserve other experimental flags
+      topLevelAwait: true,
+      layers: true, // Add layers experiment
+    };
+
     return config;
   },
   reactStrictMode: true,
