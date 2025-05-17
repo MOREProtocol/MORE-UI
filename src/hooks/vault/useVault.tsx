@@ -472,11 +472,23 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     if (safeAppsSdk && currentSafeInfo && currentSafeInfo.safeAddress && safeAppProvider) {
       try {
         console.log('Attempting to submit actions via Safe Apps SDK');
+        const ethersSafeAppWrappedProvider = new ethers.providers.Web3Provider(safeAppProvider);
+
+        const estimatedGasForInternalCall = await ethersSafeAppWrappedProvider.estimateGas({
+          to: selectedVaultId, // Your vault contract
+          from: currentSafeInfo.safeAddress, // The Safe itself is the sender of the internal tx
+          data: callData,
+        });
+
+        const safeTxGasWithBuffer = estimatedGasForInternalCall.add(ethers.BigNumber.from(100000));
+
+        console.log(`Estimated safeTxGas: ${estimatedGasForInternalCall.toString()}, with buffer: ${safeTxGasWithBuffer.toString()}`);
 
         const transactionsToPropose = [{
-          to: selectedVaultId, // Your vault contract
+          to: selectedVaultId,
           value: '0',
           data: callData,
+          safeTxGas: safeTxGasWithBuffer.toNumber(), // Use the dynamic estimate
         }];
 
         console.log('Proposing transaction to Safe:', transactionsToPropose);
