@@ -1,7 +1,6 @@
-import { Contract, ethers } from 'ethers';
+import { Contract } from 'ethers';
 
-import { DisplayType, Facet, InputType, TransactionInput } from './types';
-import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { DisplayType, Facet, GetOptionsArgs, InputType } from './types';
 
 export const moreleverageFacet: Facet = {
   icon: '/loveMore.svg',
@@ -39,7 +38,7 @@ export const moreleverageFacet: Facet = {
           type: InputType.ADDRESS,
           isShown: true,
           displayType: DisplayType.DROPDOWN,
-          getOptions: async (inputs: TransactionInput, provider: ethers.providers.Provider, reserves: ComputedReserveDataWithMarket[]) => {
+          getOptions: async ({ inputs, provider, reserves }: GetOptionsArgs) => {
             const lovToken = inputs.lovToken as string;
             if (!provider || !lovToken) {
               return [];

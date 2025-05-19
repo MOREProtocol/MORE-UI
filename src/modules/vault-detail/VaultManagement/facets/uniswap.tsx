@@ -1,11 +1,11 @@
 import { Box, Typography, TypographyProps } from '@mui/material';
 import { BigNumber } from 'bignumber.js';
-import { Contract, ethers } from 'ethers';
+import { Contract } from 'ethers';
 import { formatUnits } from 'ethers/lib/utils';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
 
-import { DisplayType, Facet, InputType, TransactionInput } from './types';
+import { DisplayType, Facet, GetOptionsArgs, InputType, TransactionInput } from './types';
 import { addressToProtocolMap } from './vaultsConfig';
 
 const defaultRouter = {
@@ -407,7 +407,7 @@ export const uniswapFacet: Facet = {
           displayType: DisplayType.CURRENCY_AMOUNT,
           relatedInputId: 'tokenOut',
           dependsOnInputs: ['router', 'tokenIn', 'tokenOut', 'amountIn'],
-          getOptions: async (inputs: TransactionInput, provider: ethers.providers.Provider) => {
+          getOptions: async ({ inputs, provider }: GetOptionsArgs) => {
             if (
               !provider ||
               !inputs.router ||

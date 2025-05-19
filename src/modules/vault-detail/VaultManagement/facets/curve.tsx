@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { DisplayType, DropdownOption, Facet, InputType, TransactionInput } from "./types";
+import { DisplayType, DropdownOption, Facet, GetCurrencyDetailsArgs, GetOptionsArgs, InputType, TransactionInput } from "./types";
 import { formatUnits, zeroAddress } from "viem";
 import { ComputedReserveDataWithMarket } from "src/hooks/app-data-provider/useAppDataProvider";
 import { FormattedNumber } from "src/components/primitives/FormattedNumber";
@@ -178,7 +178,7 @@ export const curveFacet: Facet = {
           isShown: true,
           displayType: DisplayType.ADDRESS,
           dependsOnInputs: ['tokenA', 'tokenB'],
-          getOptions: async (inputs: TransactionInput, provider: ethers.providers.Provider): Promise<DropdownOption[]> => {
+          getOptions: async ({ inputs, provider }: GetOptionsArgs): Promise<DropdownOption[]> => {
             const { tokenA, tokenB, factory: factoryAddress } = inputs;
             if (!tokenA || !tokenB || !factoryAddress) {
               return [];
@@ -363,7 +363,7 @@ export const curveFacet: Facet = {
           isShown: true,
           displayType: DisplayType.ADDRESS,
           dependsOnInputs: ['tokenA', 'tokenB'],
-          getOptions: async (inputs: TransactionInput, provider: ethers.providers.Provider): Promise<DropdownOption[]> => {
+          getOptions: async ({ inputs, provider }: GetOptionsArgs): Promise<DropdownOption[]> => {
             const { tokenA, tokenB, factory: factoryAddress } = inputs;
             if (!tokenA || !tokenB || !factoryAddress) {
               return [];
@@ -547,7 +547,7 @@ export const curveFacet: Facet = {
           isShown: true,
           displayType: DisplayType.ADDRESS,
           dependsOnInputs: ['tokenA', 'tokenB'],
-          getOptions: async (inputs: TransactionInput, provider: ethers.providers.Provider): Promise<DropdownOption[]> => {
+          getOptions: async ({ inputs, provider }: GetOptionsArgs): Promise<DropdownOption[]> => {
             const { tokenA, tokenB, factory: factoryAddress } = inputs;
             if (!tokenA || !tokenB || !factoryAddress) {
               return [];
@@ -594,7 +594,7 @@ export const curveFacet: Facet = {
           isShown: true,
           displayType: DisplayType.CURRENCY_AMOUNT_INPUT,
           relatedInputId: 'pool',
-          getCurrencyDetails: async (inputs: TransactionInput, provider: ethers.providers.Provider) => {
+          getCurrencyDetails: async ({ inputs, provider }: GetCurrencyDetailsArgs) => {
             const { pool } = inputs;
             if (!pool) {
               return { symbol: '', decimals: 18, address: '' };

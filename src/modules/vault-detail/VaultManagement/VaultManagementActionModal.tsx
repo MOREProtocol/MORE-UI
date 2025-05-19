@@ -124,7 +124,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
             );
 
             if (hasDependentInputsChanged || !dynamicOptions[input.id]) {
-              const options = await input.getOptions(inputValues, provider, reserves);
+              const options = await input.getOptions({ inputs: inputValues, provider, reserves });
               newDynamicOptions[input.id] = options;
               // Since ADDRESS type is not dynamic and unique
               if (input.displayType === DisplayType.ADDRESS && options.length > 0) {
@@ -144,7 +144,12 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
             newDynamicOptions[input.id] = [];
           }
         } else if (input.getCurrencyDetails && inputValues) {
-          const currencyDetails = await input.getCurrencyDetails(inputValues, provider, vault?.id);
+          const currencyDetails = await input.getCurrencyDetails({
+            inputs: inputValues,
+            provider,
+            reserves,
+            vaultAddress: vault?.id,
+          });
           newInputCurrencyDetails[input.id] = currencyDetails;
         }
       }

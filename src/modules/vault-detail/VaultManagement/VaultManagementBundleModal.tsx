@@ -45,12 +45,8 @@ export const VaultManagementBundleModal = ({ open, setOpen }: VaultManagementBun
   const handleSubmitAndExecuteActions = async () => {
     try {
       const result = await submitAndExecuteActions();
-      if (result && typeof result === 'object') {
-        if ('transactionHash' in result && result.transactionHash) {
-          setTxHash(result.transactionHash as string);
-        } else if ('safeTxHash' in result && result.safeTxHash) {
-          setTxHash(result.safeTxHash as string);
-        }
+      if (result && result.transactionHash) {
+        setTxHash(result.transactionHash);
       }
     } catch (error) {
       console.error('Error submitting and executing actions:', error);

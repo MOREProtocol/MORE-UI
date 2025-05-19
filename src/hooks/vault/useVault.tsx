@@ -17,8 +17,6 @@ import {
 } from 'src/modules/vault-detail/VaultManagement/facets/types';
 import { ChainIds } from 'src/utils/const';
 import { useWalletClient } from 'wagmi';
-import SafeAppsSDK, { SafeInfo } from '@safe-global/safe-apps-sdk';
-import { SafeAppProvider } from '@safe-global/safe-apps-provider';
 
 import { CustomMarket } from '../../ui-config/marketsConfig';
 import { useVaultProvider } from './useVaultData';
@@ -153,7 +151,7 @@ export interface VaultContextData {
   }: Omit<VaultBatchTransaction, 'id'> & { vault: VaultData }) => void;
   removeTransaction: (id: string) => void;
   clearTransactions: () => void;
-  submitAndExecuteActions: () => Promise<ethers.providers.TransactionReceipt | { safeTxHash: string } | undefined>;
+  submitAndExecuteActions: () => Promise<ethers.providers.TransactionReceipt | undefined>;
   operationsLoading: boolean;
   operationsError: Error | null;
 }
@@ -175,11 +173,6 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   const [transactions, setTransactions] = useState<VaultBatchTransaction[]>([]);
   const [operationsError, setOperationsError] = useState<Error | null>(null);
   const [operationsLoading, setOperationsLoading] = useState<boolean>(false);
-
-  // Safe Apps SDK state
-  const [safeAppsSdk, setSafeAppsSdk] = useState<SafeAppsSDK | null>(null);
-  const [currentSafeInfo, setCurrentSafeInfo] = useState<SafeInfo | null>(null);
-  const [safeAppProvider, setSafeAppProvider] = useState<SafeAppProvider | null>(null);
 
   useEffect(() => {
     if (selectedVaultIdFromUrl) {
@@ -458,63 +451,21 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     return encodedActions;
   }
 
-  const submitActions = useCallback(async (): Promise<ethers.providers.TransactionReceipt | { safeTxHash: string } | undefined> => {
+  const submitActions = useCallback(async (): Promise<ethers.providers.TransactionReceipt> => {
     if (!selectedVaultId) {
       throw new Error('No vault selected');
     }
-
     const encodedActions = await getEncodedActions(transactions);
-    const vaultInterface = new ethers.utils.Interface([
-      `function submitActions(bytes[] calldata actionsData) external returns (uint256 nonce)`,
-    ]);
-    const callData = vaultInterface.encodeFunctionData("submitActions", [encodedActions]);
 
-    if (safeAppsSdk && currentSafeInfo && currentSafeInfo.safeAddress && safeAppProvider) {
-      try {
-        console.log('Attempting to submit actions via Safe Apps SDK');
-
-        const transactionsToPropose = [{
-          to: selectedVaultId, // Your vault contract
-          value: '0',
-          data: callData,
-          safeTxGas: 50000000, // TODO: get gas limit from the vault contract
-        }];
-
-        console.log('Proposing transaction to Safe:', transactionsToPropose);
-        const sendTxResponse = await safeAppsSdk.txs.send({ txs: transactionsToPropose });
-        console.log('Safe Apps SDK send response:', sendTxResponse);
-        return { safeTxHash: sendTxResponse.safeTxHash };
-
-      } catch (error) {
-        console.error('Error executing transaction via Safe Apps SDK:', error);
-        setOperationsError(error as Error);
-        throw error;
-      }
-    } else if (signer && provider) {
-      console.log('Attempting to submit actions via standard EOA method');
-      const multicallContract = new ethers.Contract(selectedVaultId, vaultInterface, signer);
-      try {
-        const tx = await multicallContract.submitActions(encodedActions);
-        const result = await tx.wait();
-        return result;
-      } catch (error) {
-        console.error('Error executing transaction via EOA method:', error);
-        setOperationsError(error as Error);
-        throw error;
-      }
-    } else {
-      throw new Error('Signer or provider not available, and not in Safe App context.');
-    }
-  }, [
-    signer,
-    transactions,
-    selectedVaultId,
-    getEncodedActions,
-    safeAppsSdk,
-    currentSafeInfo,
-    safeAppProvider,
-    provider
-  ]);
+    const multicallContract = new ethers.Contract(
+      selectedVaultId,
+      [`function submitActions(bytes[] calldata actionsData) external returns (uint256 nonce)`],
+      signer
+    );
+    const tx = await multicallContract.submitActions(encodedActions);
+    const result = await tx.wait();
+    return result;
+  }, [network, signer, transactions, selectedVaultId]);
 
   const executeActions = useCallback(
     async (nonce: number) => {
@@ -534,38 +485,17 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   const submitAndExecuteActions = useCallback(async () => {
     setOperationsLoading(true);
     try {
-      const result: ethers.providers.TransactionReceipt | { safeTxHash: string } | undefined = await submitActions();
-
-      console.log('submitAndExecuteActions result:', result);
+      const result = await submitActions();
       return result;
 
+      // TODO: uncomment this when we execution sequence needed after submit
+      // await executeActions(nonce);
     } catch (error) {
       setOperationsError(error as Error);
     } finally {
       setOperationsLoading(false);
     }
   }, [submitActions, executeActions]);
-
-  useEffect(() => {
-    const sdk = new SafeAppsSDK(); // Initialize SDK
-    setSafeAppsSdk(sdk);
-    sdk.safe.getInfo().then(info => {
-      setCurrentSafeInfo(info);
-      if (info) {
-        // The SafeAppProvider constructor typically takes SafeInfo and the SDK instance.
-        // It then acts as an EIP-1193 provider that can be wrapped by ethers.
-        try {
-          setSafeAppProvider(new SafeAppProvider(info, sdk));
-        } catch (e) {
-          console.warn('Could not instantiate SafeAppProvider.', e);
-        }
-      }
-    }).catch(e => {
-      console.info('Not running in a Gnosis Safe App context or failed to get info.', e);
-      setCurrentSafeInfo(null);
-      setSafeAppProvider(null);
-    });
-  }, []); // Run once on mount, or if you want to re-init if safe changes, add relevant dependencies
 
   const contextValue: VaultContextData = {
     // Network context

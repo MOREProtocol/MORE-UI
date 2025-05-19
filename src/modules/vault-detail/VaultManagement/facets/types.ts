@@ -38,6 +38,18 @@ export type Action = {
   prepareInputsWithProvider?: (inputs: TransactionInput, provider: ethers.providers.Provider) => Promise<TransactionInput>;
 };
 
+export type GetCurrencyDetailsArgs = {
+  inputs: TransactionInput;
+  provider: ethers.providers.Provider;
+  reserves?: ComputedReserveDataWithMarket[];
+  vaultAddress?: string;
+};
+export type GetOptionsArgs = {
+  inputs: TransactionInput;
+  provider: ethers.providers.Provider;
+  reserves?: ComputedReserveDataWithMarket[];
+};
+
 export type Input = {
   id: string;
   name?: string;
@@ -49,14 +61,10 @@ export type Input = {
   displayType?: DisplayType;
   options?: DropdownOption[];
   getOptions?: (
-    inputs: TransactionInput,
-    provider: ethers.providers.Provider,
-    reserves?: ComputedReserveDataWithMarket[]
+    args: GetOptionsArgs
   ) => Promise<DropdownOption[]>;
   getCurrencyDetails?: (
-    inputs: TransactionInput,
-    provider: ethers.providers.Provider,
-    vaultAddress?: string
+    args: GetCurrencyDetailsArgs
   ) => Promise<{ symbol: string; decimals: number; address: string; balance?: string }>;
   relatedInputId?: string;
   dependsOnInputs?: string[];

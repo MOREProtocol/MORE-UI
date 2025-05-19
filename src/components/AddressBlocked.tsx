@@ -9,9 +9,9 @@ import { AddressBlockedModal } from './AddressBlockedModal';
 export const AddressBlocked = ({ children }: { children: ReactNode }) => {
   const { currentAccount, disconnectWallet, readOnlyMode, loading } = useWeb3Context();
   const screenAddress = readOnlyMode || loading || ENABLE_TESTNET ? '' : currentAccount;
-  const { isAllowed } = useAddressAllowed(screenAddress);
+  const { isAllowed, isLoading } = useAddressAllowed(screenAddress);
 
-  if (!isAllowed) {
+  if (!isAllowed && !isLoading) {
     return (
       <MainLayout>
         <AddressBlockedModal address={currentAccount} onDisconnectWallet={disconnectWallet} />;

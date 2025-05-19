@@ -4,10 +4,10 @@ import { DisplayType, Facet, InputType, TransactionInput } from "./types";
 import { Address } from "src/components/Address";
 
 
-export const vaultConfigFacet: Facet = {
-  name: 'Vault Config',
+export const configurationFacet: Facet = {
+  name: 'Vault Configuration',
   icon: '/MOREVault.svg',
-  description: 'Vault Config is the configuration facet for the vault.',
+  description: 'Configuration facet for the vault.',
   actions: [
     {
       id: 'addAvailableAsset',
@@ -39,7 +39,7 @@ export const vaultConfigFacet: Facet = {
           displayType: DisplayType.ADDRESS_INPUT,
         }
       ]
-    }
+    },
   ]
 }
 

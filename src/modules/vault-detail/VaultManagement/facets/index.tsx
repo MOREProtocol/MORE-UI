@@ -5,7 +5,7 @@ import { moreFacet } from './more';
 import { morphoFacet } from './morpho';
 import { moreleverageFacet } from './moreleverage';
 import { uniswapFacet } from './uniswap';
-import { vaultConfigFacet } from './vaultconfig';
+import { configurationFacet } from './configuration';
 
 export const actions = [
   uniswapFacet,
@@ -15,7 +15,7 @@ export const actions = [
   aggrokittyswapFacet,
   multirewardsFacet,
   curveFacet,
-  vaultConfigFacet,
+  configurationFacet,
 ].sort((a, b) => a.name.localeCompare(b.name));
 
 export default actions;

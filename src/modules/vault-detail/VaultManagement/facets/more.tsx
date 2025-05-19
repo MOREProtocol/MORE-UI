@@ -6,7 +6,8 @@ import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAp
 
 import { FormattedNumber } from '../../../../components/primitives/FormattedNumber';
 import { interestRateModeDropdownOptions } from './constants';
-import { DisplayType, Facet, InputType } from './types';
+import { DisplayType, Facet, GetCurrencyDetailsArgs, InputType } from './types';
+import { ethers } from 'ethers';
 
 const getCurrencySymbolsForBundleDisplayDefault = (
   inputs: Record<string, string>,
@@ -77,7 +78,6 @@ export const moreFacet: Facet = {
         address pool,
         address asset,
         uint256 amount,
-        address onBehalfOf,
         uint16 referralCode
       ) external;`,
       getAmountForBundleDisplay: getAmountForBundleDisplayDefault,
@@ -108,14 +108,6 @@ export const moreFacet: Facet = {
           isShown: true,
           displayType: DisplayType.CURRENCY_AMOUNT_INPUT,
           relatedInputId: 'asset',
-        },
-        {
-          id: 'onBehalfOf',
-          name: 'On Behalf Of',
-          description: 'The address to supply the tokens on behalf of',
-          type: InputType.ADDRESS,
-          isShown: true,
-          displayType: DisplayType.ADDRESS_INPUT,
         },
         {
           id: 'referralCode',
@@ -165,6 +157,53 @@ export const moreFacet: Facet = {
           isShown: true,
           displayType: DisplayType.CURRENCY_AMOUNT_INPUT,
           relatedInputId: 'asset',
+          getCurrencyDetails: async ({ inputs, provider, vaultAddress }: GetCurrencyDetailsArgs) => {
+            const { pool, asset } = inputs;
+            if (!pool || !asset) {
+              return { symbol: '', decimals: 18, address: '' };
+            }
+
+            const poolContract = new ethers.Contract(pool as string, [
+              `function getReserveData(address asset) external view returns (
+                (uint256 data) configuration,
+                uint128 liquidityIndex,
+                uint128 currentLiquidityRate,
+                uint128 variableBorrowIndex,
+                uint128 currentVariableBorrowRate,
+                uint128 currentStableBorrowRate,
+                uint40 lastUpdateTimestamp,
+                uint16 id,
+                address aTokenAddress,
+                address stableDebtTokenAddress,
+                address variableDebtTokenAddress,
+                address interestRateStrategyAddress,
+                uint128 accruedToTreasury,
+                uint128 unbacked,
+                uint128 isolationModeTotalDebt
+              )`,
+            ], provider);
+            const reserveData = await poolContract.getReserveData(asset);
+            console.log('reserveData', reserveData);
+            const aTokenAddress = reserveData[8];
+            const variableDebtTokenContract = new ethers.Contract(aTokenAddress as string, [
+              `function decimals() external view returns (uint8)`,
+              `function symbol() external view returns (string)`,
+              `function balanceOf(address account) external view returns (uint256)`,
+            ], provider);
+            const [symbol, decimals, balance] = await Promise.all([
+              variableDebtTokenContract.symbol(),
+              variableDebtTokenContract.decimals(),
+              variableDebtTokenContract.balanceOf(vaultAddress as string),
+            ]);
+
+            return {
+              symbol,
+              decimals,
+              address: aTokenAddress,
+              balance: balance,
+            };
+
+          },
         },
         {
           id: 'to',
@@ -298,14 +337,6 @@ export const moreFacet: Facet = {
           displayType: DisplayType.DROPDOWN,
           defaultValue: '2',
           options: interestRateModeDropdownOptions,
-        },
-        {
-          id: 'onBehalfOf',
-          name: 'On Behalf Of',
-          description: 'The address to repay the tokens on behalf of',
-          type: InputType.ADDRESS,
-          isShown: true,
-          displayType: DisplayType.ADDRESS_INPUT,
         },
       ],
     },

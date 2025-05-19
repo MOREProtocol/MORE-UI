@@ -1,5 +1,5 @@
 import { FormattedNumber } from "src/components/primitives/FormattedNumber";
-import { DisplayType, Facet, InputType, TransactionInput } from "./types";
+import { DisplayType, Facet, GetCurrencyDetailsArgs, GetOptionsArgs, InputType, TransactionInput } from "./types";
 import { Contract, ethers } from "ethers";
 import { Box, Typography, TypographyProps } from "@mui/material";
 import { ComputedReserveDataWithMarket } from "src/hooks/app-data-provider/useAppDataProvider";
@@ -83,7 +83,7 @@ export const multirewardsFacet: Facet = {
         type: InputType.ADDRESS,
         isShown: true,
         displayType: DisplayType.DROPDOWN,
-        getOptions: async (inputs: TransactionInput, provider: ethers.providers.Provider) => {
+        getOptions: async ({ inputs, provider }: GetOptionsArgs) => {
           const multirewardsFactoryAbi = [
             `function getAllMultiRewardsInfo() external view returns (${multiRewardsInfoTupleString}[] memory)`
           ];
@@ -131,7 +131,9 @@ export const multirewardsFacet: Facet = {
         isShown: true,
         displayType: DisplayType.CURRENCY_AMOUNT_INPUT,
         relatedInputId: 'staking',
-        getCurrencyDetails: async (inputs: TransactionInput, provider: ethers.providers.Provider, vaultAddress: string) => {
+        getCurrencyDetails: async (
+          { inputs, provider, vaultAddress }: GetCurrencyDetailsArgs,
+        ) => {
           const multirewardsAddress = inputs.staking as string;
           const factoryAddress = inputs.factory as string;
           if (!provider || !multirewardsAddress || !factoryAddress) {
@@ -221,7 +223,7 @@ export const multirewardsFacet: Facet = {
         type: InputType.ADDRESS,
         isShown: true,
         displayType: DisplayType.DROPDOWN,
-        getOptions: async (inputs: TransactionInput, provider: ethers.providers.Provider) => {
+        getOptions: async ({ inputs, provider }: GetOptionsArgs) => {
           const multirewardsFactoryAbi = [
             `function getAllMultiRewardsInfo() external view returns (${multiRewardsInfoTupleString}[] memory)`
           ];
@@ -269,7 +271,9 @@ export const multirewardsFacet: Facet = {
         isShown: true,
         displayType: DisplayType.CURRENCY_AMOUNT_INPUT,
         relatedInputId: 'staking',
-        getCurrencyDetails: async (inputs: TransactionInput, provider: ethers.providers.Provider, vaultAddress: string) => {
+        getCurrencyDetails: async (
+          { inputs, provider, vaultAddress }: GetCurrencyDetailsArgs,
+        ) => {
           const multirewardsAddress = inputs.staking as string;
           const factoryAddress = inputs.factory as string;
           if (!provider || !multirewardsAddress || !factoryAddress) {
@@ -342,7 +346,7 @@ export const multirewardsFacet: Facet = {
         type: InputType.ADDRESS,
         isShown: true,
         displayType: DisplayType.DROPDOWN,
-        getOptions: async (inputs: TransactionInput, provider: ethers.providers.Provider) => {
+        getOptions: async ({ inputs, provider }: GetOptionsArgs) => {
           const multirewardsFactoryAbi = [
             `function getAllMultiRewardsInfo() external view returns (${multiRewardsInfoTupleString}[] memory)`
           ];
