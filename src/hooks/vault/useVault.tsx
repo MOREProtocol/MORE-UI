@@ -42,14 +42,17 @@ export interface VaultRoles {
 
 // Define return metrics
 export interface ReturnMetrics {
-  monthToDate: number;
-  quarterToDate: number;
-  yearToDate: number;
-  inceptionToDate: number;
-  averageMonth: number;
-  bestMonth: number;
-  worstMonth: number;
-  trackRecord: number; // Number of months
+  dayToDate?: number;
+  weekToDate?: number;
+  monthToDate?: number;
+  quarterToDate?: number;
+  halfYearToDate?: number;
+  yearToDate?: number;
+  inceptionToDate?: number;
+  averageMonth?: number;
+  bestMonth?: number;
+  worstMonth?: number;
+  trackRecord?: number; // Number of months
 }
 
 // Define the complete vault data structure
@@ -151,6 +154,8 @@ export interface VaultContextData {
   }: Omit<VaultBatchTransaction, 'id'> & { vault: VaultData }) => void;
   removeTransaction: (id: string) => void;
   clearTransactions: () => void;
+  getEncodedActions: (transactions: VaultBatchTransaction[]) => Promise<string[]>;
+  submitActions: (encodedActions: string[]) => Promise<ethers.providers.TransactionReceipt>;
   submitAndExecuteActions: () => Promise<ethers.providers.TransactionReceipt | undefined>;
   operationsLoading: boolean;
   operationsError: Error | null;
@@ -451,21 +456,22 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     return encodedActions;
   }
 
-  const submitActions = useCallback(async (): Promise<ethers.providers.TransactionReceipt> => {
-    if (!selectedVaultId) {
-      throw new Error('No vault selected');
-    }
-    const encodedActions = await getEncodedActions(transactions);
+  const submitActions = useCallback(
+    async (encodedActions: string[]): Promise<ethers.providers.TransactionReceipt> => {
+      if (!selectedVaultId) {
+        throw new Error('No vault selected');
+      }
+      // const encodedActions = await getEncodedActions(transactions);
 
-    const multicallContract = new ethers.Contract(
-      selectedVaultId,
-      [`function submitActions(bytes[] calldata actionsData) external returns (uint256 nonce)`],
-      signer
-    );
-    const tx = await multicallContract.submitActions(encodedActions);
-    const result = await tx.wait();
-    return result;
-  }, [network, signer, transactions, selectedVaultId]);
+      const multicallContract = new ethers.Contract(
+        selectedVaultId,
+        [`function submitActions(bytes[] calldata actionsData) external returns (uint256 nonce)`],
+        signer
+      );
+      const tx = await multicallContract.submitActions(encodedActions);
+      const result = await tx.wait();
+      return result;
+    }, [network, signer, transactions, selectedVaultId]);
 
   const executeActions = useCallback(
     async (nonce: number) => {
@@ -485,7 +491,8 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   const submitAndExecuteActions = useCallback(async () => {
     setOperationsLoading(true);
     try {
-      const result = await submitActions();
+      const encodedActions = await getEncodedActions(transactions);
+      const result = await submitActions(encodedActions);
       return result;
 
       // TODO: uncomment this when we execution sequence needed after submit
@@ -520,6 +527,8 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     addTransaction,
     removeTransaction,
     clearTransactions,
+    getEncodedActions,
+    submitActions,
     submitAndExecuteActions,
     operationsLoading,
     operationsError,

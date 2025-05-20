@@ -107,6 +107,54 @@ export const VaultFinancials: React.FC = () => {
               </Stack>
             )}
           </Grid>
+
+          {selectedVault?.financials?.returnMetrics?.dayToDate ? (
+            <Grid item xs={12} md={4}>
+              <MetricCard>
+                <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                  Return Day-to-Date
+                </Typography>
+                <FormattedNumber
+                  value={selectedVault?.financials?.returnMetrics?.dayToDate}
+                  coloredPercent
+                  variant="main21"
+                  compact
+                />
+              </MetricCard>
+            </Grid>
+          ) : null}
+
+          {selectedVault?.financials?.returnMetrics?.weekToDate ? (
+            <Grid item xs={12} md={4}>
+              <MetricCard>
+                <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                  Return Week-to-Date
+                </Typography>
+                <FormattedNumber
+                  value={selectedVault?.financials?.returnMetrics?.weekToDate}
+                  coloredPercent
+                  variant="main21"
+                  compact
+                />
+              </MetricCard>
+            </Grid>
+          ) : null}
+
+          {selectedVault?.financials?.returnMetrics?.monthToDate ? (
+            <Grid item xs={12} md={4}>
+              <MetricCard>
+                <Typography variant="main16" color="text.secondary" marginBottom={3}>
+                  Return Month-to-Date
+                </Typography>
+                <FormattedNumber
+                  value={selectedVault?.financials?.returnMetrics?.monthToDate}
+                  coloredPercent
+                  variant="main21"
+                  compact
+                />
+              </MetricCard>
+            </Grid>
+          ) : null}
         </Grid>
       </Box>
 
@@ -192,7 +240,7 @@ export const VaultFinancials: React.FC = () => {
                   Number(selectedVault?.financials?.liquidity?.maxDeposit)
                 }
                 percent
-                variant="main16"
+                variant="main21"
                 compact
               />
               {/* <FormattedNumber

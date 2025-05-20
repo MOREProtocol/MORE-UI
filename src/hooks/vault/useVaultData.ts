@@ -504,6 +504,12 @@ export const useVaultData = <TResult = VaultData>(
             totalAssets: totalAssets.toString(),
             maxDeposit: maxDeposit.toString(),
           },
+          returnMetrics: {
+            dayToDate: latestSnapshot?.return1D ? parseFloat(latestSnapshot.return1D) : undefined,
+            weekToDate: latestSnapshot?.return7D ? parseFloat(latestSnapshot.return7D) : undefined,
+            monthToDate: latestSnapshot?.return30D ? parseFloat(latestSnapshot.return30D) : undefined,
+            halfYearToDate: latestSnapshot?.return180D ? parseFloat(latestSnapshot.return180D) : undefined,
+          },
         },
         allocation: allocationData,
         activity: activityData,

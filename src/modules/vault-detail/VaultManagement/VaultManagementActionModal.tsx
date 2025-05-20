@@ -8,6 +8,7 @@ import {
   MenuItem,
   Select,
   TextField,
+  Tooltip,
   Typography,
   useTheme,
 } from '@mui/material';
@@ -26,6 +27,7 @@ import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
 
 import { Action, DisplayType, Facet, Input, TransactionInput } from './facets/types';
 import { addressToProtocolMap } from './facets/vaultsConfig';
+import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
 
 interface VaultManagementActionModalProps {
   isOpen: boolean;
@@ -43,8 +45,9 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
   vault,
 }) => {
   const theme = useTheme();
-  const { addTransaction, chainId, getVaultAssetBalance, network } = useVault();
+  const { addTransaction, chainId, getVaultAssetBalance, network, getEncodedActions, submitActions } = useVault();
   const { reserves } = useAppDataContext();
+  const { currentNetworkConfig } = useProtocolDataContext();
   const availableTokensDropdownOptions = reserves.map((reserve) => ({
     label: reserve.iconSymbol,
     value: reserve.underlyingAsset,
@@ -55,6 +58,8 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
   type LoadingState = 'done' | 'dynamicFields' | 'initialValues';
   const [loadingState, setLoadingState] = useState<LoadingState>('initialValues');
   const [addTransactionLoading, setAddTransactionLoading] = useState(false);
+  const [executeTransactionLoading, setExecuteTransactionLoading] = useState(false);
+  const [executionTxHashResult, setExecutionTxHashResult] = useState<string | null>(null);
   const [transactionError, setTransactionError] = useState<string | null>(null);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [expandedInputs, setExpandedInputs] = useState<Record<string, boolean>>({});
@@ -75,6 +80,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
     setVaultBalances({});
     setDynamicOptions({});
     setDynamicCurrencyDetails({});
+    setExecutionTxHashResult(null);
     setLoadingState('initialValues');
   }, [isOpen]);
 
@@ -337,6 +343,55 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
       );
     } finally {
       setAddTransactionLoading(false);
+    }
+  };
+
+  const handleExecuteTransaction = async () => {
+    setExecuteTransactionLoading(true);
+    setTransactionError(null);
+    // First, prepare the inputs with any dynamic values
+    const preparedInputs = { ...inputValues };
+
+    // TODO: factorize that
+    try {
+      // For each input that has getOptions, get its current value from dynamicOptions
+      action?.inputs.forEach((input) => {
+        if (input.getOptions && dynamicOptions[input.id]?.length > 0 && !preparedInputs[input.id]) {
+          // Use the first option's value as the current value
+          preparedInputs[input.id] = dynamicOptions[input.id][0].value;
+        }
+      });
+
+      let finalInputs: TransactionInput = preparedInputs;
+      // Then apply any additional preparation from the action
+      if (action?.prepareInputs) {
+        finalInputs = action.prepareInputs(preparedInputs);
+      } else if (action?.prepareInputsWithProvider) {
+        finalInputs = await action.prepareInputsWithProvider(preparedInputs, provider);
+      }
+
+      // Add the transaction to the bundle
+      const encodedActions = await getEncodedActions([{ id: '0', action, facet, inputs: finalInputs }]);
+      const result = await submitActions(encodedActions);
+      if (result && result.transactionHash) {
+        setExecutionTxHashResult(result.transactionHash);
+      }
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      setTransactionError(
+        `An error occurred while adding the transaction. Please check the arguments, refresh the page and try again. ${error}`
+      );
+    } finally {
+      setExecuteTransactionLoading(false);
+    }
+  };
+
+  const handleViewOnFlowscan = () => {
+    if (executionTxHashResult) {
+      const explorerLink = currentNetworkConfig.explorerLinkBuilder({
+        tx: executionTxHashResult,
+      });
+      window.open(explorerLink, '_blank');
     }
   };
 
@@ -869,11 +924,24 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
 
       {/* Actions */}
       <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Button variant="contained" fullWidth onClick={handleAddToBundle} disabled={addTransactionLoading}>
-          {addTransactionLoading && (
+        <Tooltip title="This feature is in beta" placement="top" arrow>
+          <Button variant="contained" fullWidth onClick={handleAddToBundle} disabled={addTransactionLoading}>
+            {addTransactionLoading && (
+              <CircularProgress size={20} />
+            )}
+            {!addTransactionLoading && `Add ${action.actionButtonText.toLowerCase()} transaction to bundle`}
+          </Button>
+        </Tooltip>
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={executionTxHashResult ? handleViewOnFlowscan : handleExecuteTransaction}
+          disabled={executeTransactionLoading}
+        >
+          {executeTransactionLoading && (
             <CircularProgress size={20} />
           )}
-          {!addTransactionLoading && `Add ${action.actionButtonText.toLowerCase()} transaction to bundle`}
+          {!executeTransactionLoading && (executionTxHashResult ? `View on Flowscan` : `Execute transaction`)}
         </Button>
       </Box>
       {transactionError && (
