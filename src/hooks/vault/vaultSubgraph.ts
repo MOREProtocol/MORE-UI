@@ -8,6 +8,10 @@ export interface VaultSnapshotData {
   totalSupply: string;
   totalAssets: string;
   apy: string;
+  return1D: string;
+  return7D: string;
+  return30D: string;
+  return180D: string;
   vault: {
     id: string;
     symbol: string;
@@ -54,12 +58,12 @@ const fetchSubgraphData = async <T>(
 };
 
 interface VaultSnapshotsQueryResponse {
-  vaultSnapshots: VaultSnapshotData[];
+  vaultHourlySnapshots: VaultSnapshotData[];
 }
 
 const GET_VAULT_SNAPSHOTS_QUERY = `
   query GetVaultSnapshots($vaultId: String!) {
-    vaultSnapshots(
+    vaultHourlySnapshots(
       where: { vault: $vaultId }
       orderBy: hourTimestamp
       orderDirection: desc
@@ -71,6 +75,10 @@ const GET_VAULT_SNAPSHOTS_QUERY = `
       totalSupply
       totalAssets
       apy
+      return1D
+      return7D
+      return30D
+      return180D
       vault {
         id
         symbol
@@ -89,8 +97,8 @@ export const fetchLatestVaultSnapshot = async (
     GET_VAULT_SNAPSHOTS_QUERY,
     { vaultId: vaultId.toLowerCase() }
   );
-  if (data && data.vaultSnapshots && data.vaultSnapshots.length > 0) {
-    return data.vaultSnapshots[0];
+  if (data && data.vaultHourlySnapshots && data.vaultHourlySnapshots.length > 0) {
+    return data.vaultHourlySnapshots[0];
   }
   return null;
 };
@@ -104,8 +112,12 @@ const GET_VAULT_HISTORICAL_SNAPSHOTS_QUERY = `
       orderDirection: desc 
     ) {
       hourTimestamp
-      apy
       totalSupply
+      apy
+      return1D
+      return7D
+      return30D
+      return180D
     }
   }
 `;

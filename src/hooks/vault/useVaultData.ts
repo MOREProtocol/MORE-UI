@@ -375,16 +375,26 @@ export const useUserVaultsData = <TResult = { maxWithdraw: ethers.BigNumber; dec
           [
             `function maxWithdraw(address user) external view override returns (uint256)`,
             `function decimals() external view returns (uint8)`,
+            `function asset() external view returns (address)`,
           ],
           provider
         );
-        const [maxWithdraw, decimals] = await Promise.all([
+        const [maxWithdraw, decimals, assetAddress] = await Promise.all([
           vaultDiamondContract.maxWithdraw(userAddress).catch(() => 0),
           vaultDiamondContract.decimals().catch(() => 18),
+          vaultDiamondContract.asset(),
         ]);
 
+        const assetContract = new ethers.Contract(
+          assetAddress,
+          [`function balanceOf(address user) external view returns (uint256)`],
+          provider
+        );
+        const vaultBalance = await assetContract.balanceOf(vaultId).catch(() => 0);
+
         return {
-          maxWithdraw,
+          // Temporary fix, should be handled in the future in the vault SC
+          maxWithdraw: maxWithdraw.lt(vaultBalance) ? maxWithdraw : vaultBalance,
           decimals,
         };
       },
