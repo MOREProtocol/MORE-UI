@@ -11,7 +11,6 @@ import { useVaultData } from 'src/hooks/vault/useVaultData';
 import { useRootStore } from 'src/store/root';
 import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableToSupply';
 import { roundToTokenDecimals } from 'src/utils/utils';
-import SafeWalletButton from './SafeWalletButton';
 import { ChainIds } from 'src/utils/const';
 import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
 
@@ -272,12 +271,12 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
             {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
             {buttonContent}
           </Button>
-          <SafeWalletButton
+          {/* <SafeWalletButton
             isDisabled={!amount || amount === '0'}
             vaultAddress={selectedVault?.id}
             operation="deposit"
             amount={amount ? parseUnits(amount, reserve.decimals).toString() : '0'}
-          />
+          /> */}
         </Box>
       </Box>
     </BasicModal>

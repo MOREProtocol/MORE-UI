@@ -10,7 +10,6 @@ import { useVault } from 'src/hooks/vault/useVault';
 import { useUserVaultsData, useVaultData } from 'src/hooks/vault/useVaultData';
 import { networkConfigs } from 'src/ui-config/networksConfig';
 import { roundToTokenDecimals } from 'src/utils/utils';
-import SafeWalletButton from './SafeWalletButton';
 import { ChainIds } from 'src/utils/const';
 import { useRootStore } from 'src/store/root';
 
@@ -209,12 +208,12 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
             {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
             {buttonContent}
           </Button>
-          <SafeWalletButton
+          {/* <SafeWalletButton
             isDisabled={!amount || amount === '0'}
             vaultAddress={selectedVault?.id}
             operation="withdraw"
             amount={amount ? parseUnits(amount, reserve.decimals).toString() : '0'}
-          />
+          /> */}
         </Box>
       </Box>
     </BasicModal>
