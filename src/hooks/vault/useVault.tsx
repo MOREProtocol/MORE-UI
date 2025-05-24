@@ -64,6 +64,7 @@ export interface VaultData {
     assetAddress?: string;
     assetDecimals?: number;
     sharePrice?: number;
+    sharePriceInUSD?: number;
     shareCurrencySymbol?: string;
     roles?: VaultRoles;
     apy?: number;
@@ -419,8 +420,8 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     setTransactions([]);
   }, []);
 
-  const getEncodedActions = async (transactions: VaultBatchTransaction[]) => {
-    const encodedActions = await Promise.all(transactions.map((transaction) => {
+  const getEncodedActions = async (transactionsToEncode: VaultBatchTransaction[]) => {
+    const encodedActions = await Promise.all(transactionsToEncode.map((transaction) => {
       const contract = new ethers.Contract(
         selectedVaultId,
         [transaction.action.abi],
@@ -461,16 +462,45 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
       if (!selectedVaultId) {
         throw new Error('No vault selected');
       }
-      // const encodedActions = await getEncodedActions(transactions);
+      if (!signer) {
+        throw new Error('No signer available');
+      }
 
       const multicallContract = new ethers.Contract(
         selectedVaultId,
         [`function submitActions(bytes[] calldata actionsData) external returns (uint256 nonce)`],
         signer
       );
-      const tx = await multicallContract.submitActions(encodedActions);
-      const result = await tx.wait();
-      return result;
+
+      try {
+        // Simulate the transaction first
+        console.log('Simulating submitActions...');
+        await multicallContract.callStatic.submitActions(encodedActions);
+        console.log('Simulation successful.');
+
+        // If simulation is successful, proceed with actual transaction
+        const tx = await multicallContract.submitActions(encodedActions);
+        console.log('Transaction submitted. Hash:', tx.hash);
+        const result = await tx.wait();
+        return result;
+      } catch (error) {
+        console.error('Error during submitActions simulation or execution:', error);
+        if ((error as any).data) {
+          console.error('Error data:', (error as any).data);
+        }
+        // Attempt to decode error data if it's a known contract error interface
+        try {
+          const errorData = (error as any).error?.data?.data;
+          if (errorData && typeof errorData === 'string') {
+            const iface = new ethers.utils.Interface(["error Error(string)"]);
+            const decodedError = iface.decodeErrorResult("Error", errorData);
+            console.error("Decoded revert reason:", decodedError[0]);
+          }
+        } catch (decodingError) {
+          console.warn("Could not decode error data:", decodingError);
+        }
+        throw error;
+      }
     }, [network, signer, transactions, selectedVaultId]);
 
   const executeActions = useCallback(
@@ -492,6 +522,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     setOperationsLoading(true);
     try {
       const encodedActions = await getEncodedActions(transactions);
+      console.log('encodedActions', encodedActions);
       const result = await submitActions(encodedActions);
       return result;
 

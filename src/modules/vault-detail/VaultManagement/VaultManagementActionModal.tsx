@@ -65,7 +65,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
   const [expandedInputs, setExpandedInputs] = useState<Record<string, boolean>>({});
   const [vaultBalances, setVaultBalances] = useState<Record<string, string>>({});
   const provider = useVaultProvider(chainId);
-  const baseUrl = useMemo(() => chainId && networkConfigs[chainId].explorerLink, [chainId]);
+  const baseUrl = useMemo(() => chainId && networkConfigs[chainId] && networkConfigs[chainId].explorerLink, [chainId]);
   const [dynamicOptions, setDynamicOptions] = useState<
     Record<string, Array<{ label: string; value: string; icon?: string; decimals?: number }>>
   >({});
@@ -84,9 +84,9 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
     setLoadingState('initialValues');
   }, [isOpen]);
 
-  // Initialize input values with default values when action changes
+  // Initialize input values with default values when action changes or modal opens
   useEffect(() => {
-    if (action) {
+    if (isOpen && action) {
       const defaultValues = action.inputs.reduce((acc, input) => {
         if (input.defaultValue !== undefined) {
           acc[input.id] =
@@ -104,7 +104,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
       setInputValues(defaultValues);
       setLoadingState('dynamicFields');
     }
-  }, [action, vault?.id]);
+  }, [action, vault?.id, isOpen, network]);
 
   // Load dynamic options for inputs with getOptions
   useEffect(() => {

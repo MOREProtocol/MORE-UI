@@ -18,7 +18,7 @@ export const VaultOverview: React.FC = () => {
 
   const selectedVault = vaultData?.data;
   const isLoading = vaultData?.isLoading;
-  const baseUrl = useMemo(() => chainId && networkConfigs[chainId].explorerLink, [chainId]);
+  const baseUrl = useMemo(() => chainId && networkConfigs[chainId] && networkConfigs[chainId].explorerLink, [chainId]);
 
   // State for dropdown menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);

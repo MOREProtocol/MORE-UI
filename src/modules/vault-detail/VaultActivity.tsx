@@ -40,7 +40,7 @@ export const VaultActivity: React.FC = () => {
   const isLoading = vaultData?.isLoading;
   const error = vaultData?.error;
 
-  const baseUrl = useMemo(() => chainId && networkConfigs[chainId].explorerLink, [chainId]);
+  const baseUrl = useMemo(() => chainId && networkConfigs[chainId] && networkConfigs[chainId].explorerLink, [chainId]);
 
   return (
     <Box sx={{ width: '100%', pt: 5 }}>
@@ -119,7 +119,7 @@ export const VaultActivity: React.FC = () => {
                       <Tooltip title={activity.timestamp.toLocaleString()} arrow placement="top">
                         <Typography variant="secondary14" color="text">
                           {typeof activity.timestamp === 'object' &&
-                          activity.timestamp instanceof Date
+                            activity.timestamp instanceof Date
                             ? activity.timestamp.toLocaleDateString()
                             : activity.timestamp}
                         </Typography>

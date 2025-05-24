@@ -12,6 +12,7 @@ import { networkConfigs } from 'src/ui-config/networksConfig';
 import { ChainIds } from 'src/utils/const';
 import { useWalletClient } from 'wagmi';
 
+import { VAULT_ID_TO_NAME } from './constants';
 import { useVault, VaultData } from './useVault';
 import { fetchLatestVaultSnapshot, fetchVaultHistoricalSnapshots, formatSnapshotsForChart } from './vaultSubgraph';
 // Constants
@@ -33,6 +34,7 @@ export const vaultQueryKeys = {
     vaultId,
     'subgraph',
   ],
+  userGlobalData: (userAddress: string, chainId?: number) => ['userGlobalData', userAddress, chainId],
 };
 
 // General hook options type
@@ -157,6 +159,28 @@ const fetchAllocation = async (
   } catch (error) {
     console.error('Error fetching allocations:', error);
     throw error;
+  }
+};
+
+interface RewardItem {
+  merkleroot: string;
+  amount: string;
+  rewardtoken: string;
+  proof: string[];
+}
+
+const fetchRewards = async ({ userAddress }: { userAddress: string }): Promise<RewardItem[]> => {
+  try {
+    // TODO: update to use the new API
+    const response = await fetch(`http://localhost:3001/api/user?userAddress=${userAddress}`);
+    if (!response.ok) {
+      throw new Error(`Error fetching rewards: ${response.statusText}`);
+    }
+    const data: RewardItem[] = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch rewards:", error);
+    return [];
   }
 };
 
@@ -289,7 +313,7 @@ export const useVaultsListData = <TResult = VaultData>(
           ],
           provider
         );
-        const [totalAssets, assetAddress, decimals, name] = await Promise.all([
+        const [totalAssets, assetAddress, decimals, nameFromContract] = await Promise.all([
           vaultDiamondContract.totalAssets().catch(() => 0),
           vaultDiamondContract.asset().catch(() => undefined),
           vaultDiamondContract.decimals().catch(() => 18),
@@ -299,6 +323,8 @@ export const useVaultsListData = <TResult = VaultData>(
           parseUnits('1', decimals)
         );
 
+        const name = VAULT_ID_TO_NAME[vaultId as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
+
         const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
         const vaultData: VaultData = {
           id: vaultId,
@@ -307,6 +333,7 @@ export const useVaultsListData = <TResult = VaultData>(
             shareCurrencySymbol: reserve?.symbol,
             assetDecimals: decimals,
             sharePrice: Number(formatUnits(sharePriceInAsset, decimals)),
+            sharePriceInUSD: Number(reserve?.formattedPriceInMarketReferenceCurrency || 0),
             assetAddress: assetAddress,
           },
           financials: {
@@ -351,7 +378,83 @@ export const useVaultsListData = <TResult = VaultData>(
   };
 };
 
-export const useUserVaultsData = <TResult = { maxWithdraw: ethers.BigNumber; decimals: number }>(
+type RewardItemEnriched = RewardItem & {
+  price: number;
+  amountInUSD: number;
+  rewardAmountToClaim: number;
+  rewardAmountToClaimInUSD: number;
+};
+
+export const useUserData = <TResult = { userRewards: RewardItemEnriched[], claimedRewards: { amount: ethers.BigNumber, rewardToken: string }[] }>(
+  userAddress: string,
+  opts?: VaultDataHookOpts<{ userRewards: RewardItemEnriched[], claimedRewards: { amount: ethers.BigNumber, rewardToken: string }[] }, TResult>
+) => {
+  const { chainId } = useVault();
+  const provider = useVaultProvider(chainId);
+  const { reserves } = useAppDataContext();
+
+  const isHookEnabled = !!provider && !!userAddress && (opts?.enabled !== false);
+
+  return useVaultQuery<{
+    userRewards: RewardItemEnriched[];
+    claimedRewards: { amount: ethers.BigNumber; rewardToken: string }[];
+  }, TResult>(
+    vaultQueryKeys.userGlobalData(userAddress, chainId),
+    async () => {
+      if (!provider || !userAddress) {
+        throw new Error('useUserData: Missing provider or userAddress');
+      }
+
+      const userRewards = await fetchRewards({ userAddress });
+      const rewardTokens = userRewards.map((reward) => reward.rewardtoken);
+
+      // TODO: move reward contract address to config
+      const rewardContractAddress = "0xCC53F325fAA69dC4b414B0d3F02fc9A2fEA92eCE";
+      const rewardContract = new ethers.Contract(
+        rewardContractAddress,
+        [`function claimed(address account, address reward) external view returns (uint256)`],
+        provider
+      );
+
+      const claimedRewards = await Promise.all(
+        rewardTokens.map(async (rewardToken) => {
+          let amount: ethers.BigNumber;
+          try {
+            amount = await rewardContract.claimed(userAddress, rewardToken);
+          } catch (error) {
+            console.error(`Failed to fetch claimed amount for reward token ${rewardToken} for user ${userAddress} in useUserData:`, error);
+            amount = ethers.BigNumber.from(0);
+          }
+          return {
+            amount,
+            rewardToken,
+          };
+        })
+      );
+
+      const userRewardsEnriched = userRewards.map((reward) => {
+        const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === reward.rewardtoken.toLowerCase());
+        const rewardAmountToClaim = Number(formatUnits(reward.amount, reserve?.decimals)) - Number(formatUnits(claimedRewards.find((r) => r.rewardToken === reward.rewardtoken)?.amount || 0, reserve?.decimals));
+        const rewardAmountToClaimInUSD = rewardAmountToClaim * Number(reserve?.priceInUSD || 0);
+        return {
+          ...reward,
+          price: reserve ? Number(reserve.priceInUSD) : 0,
+          amountInUSD: Number(formatUnits(reward.amount, reserve?.decimals)) * Number(reserve?.priceInUSD || 0),
+          rewardAmountToClaim,
+          rewardAmountToClaimInUSD,
+        };
+      });
+
+      return { userRewards: userRewardsEnriched, claimedRewards };
+    },
+    isHookEnabled,
+    opts
+  );
+};
+
+export const useUserVaultsData = <
+  TResult = { maxWithdraw: ethers.BigNumber; decimals: number }
+>(
   userAddress: string,
   vaultIds: string[],
   opts?: VaultDataHookOpts<{ maxWithdraw: ethers.BigNumber; decimals: number }, TResult>
@@ -359,12 +462,20 @@ export const useUserVaultsData = <TResult = { maxWithdraw: ethers.BigNumber; dec
   const { chainId } = useVault();
   const provider = useVaultProvider(chainId);
 
-  return useQueries({
-    queries: vaultIds.map((vaultId) => ({
+  const areCoreDependenciesReadyForHook = !!provider && !!userAddress;
+  const isHookGloballyEnabledByOpts = opts?.enabled !== false;
+  const canPotentiallyFetchAny = areCoreDependenciesReadyForHook && isHookGloballyEnabledByOpts;
+
+  // Explicitly type the array of query options
+  const queries: UseQueryOptions<TResult, Error, TResult, unknown[]>[] = vaultIds.map((vaultId) => {
+    const allowIndividualQueryExecution = canPotentiallyFetchAny && !!vaultId;
+    return {
       queryKey: vaultQueryKeys.userVaultData(vaultId, userAddress, chainId),
       queryFn: async () => {
-        if (!provider || !vaultId) {
-          throw new Error('Missing required parameters');
+        if (!provider || !vaultId || !userAddress) {
+          throw new Error(
+            'useUserVaultsData: Missing provider, vaultId, or userAddress for a vault query'
+          );
         }
         if (!Object.values(ChainIds).includes(chainId)) {
           throw new Error('Invalid chainId');
@@ -379,29 +490,42 @@ export const useUserVaultsData = <TResult = { maxWithdraw: ethers.BigNumber; dec
           ],
           provider
         );
-        const [maxWithdraw, decimals, assetAddress] = await Promise.all([
-          vaultDiamondContract.maxWithdraw(userAddress).catch(() => 0),
+
+        const [maxWithdrawShares, decimals, assetAddress] = await Promise.all([
+          vaultDiamondContract.maxWithdraw(userAddress).catch(() => ethers.BigNumber.from(0)),
           vaultDiamondContract.decimals().catch(() => 18),
-          vaultDiamondContract.asset(),
+          vaultDiamondContract.asset().catch(() => undefined),
         ]);
 
-        const assetContract = new ethers.Contract(
-          assetAddress,
-          [`function balanceOf(address user) external view returns (uint256)`],
-          provider
-        );
-        const vaultBalance = await assetContract.balanceOf(vaultId).catch(() => 0);
+        let finalMaxWithdraw = maxWithdrawShares;
+
+        if (assetAddress) {
+          const assetContract = new ethers.Contract(
+            assetAddress,
+            [`function balanceOf(address user) external view returns (uint256)`],
+            provider
+          );
+          const vaultAssetBalance = await assetContract
+            .balanceOf(vaultId)
+            .catch(() => ethers.BigNumber.from(0));
+
+          if (maxWithdrawShares.gt(vaultAssetBalance)) {
+            finalMaxWithdraw = vaultAssetBalance;
+          }
+        }
 
         return {
-          // Temporary fix, should be handled in the future in the vault SC
-          maxWithdraw: maxWithdraw.lt(vaultBalance) ? maxWithdraw : vaultBalance,
+          maxWithdraw: finalMaxWithdraw,
           decimals,
-        };
+        } as unknown as TResult; // Cast to TResult here
       },
-      enabled: !!provider && !!vaultId && !!userAddress,
-      ...opts,
-    })),
+      enabled: allowIndividualQueryExecution,
+      refetchInterval: POLLING_INTERVAL,
+      ...(opts as object), // Spread opts as object to satisfy type constraints more generally
+    };
   });
+
+  return useQueries({ queries }) as UseQueryResult<TResult, Error>[];
 };
 
 export const useVaultData = <TResult = VaultData>(
@@ -471,13 +595,15 @@ export const useVaultData = <TResult = VaultData>(
       const [
         totalAssets,
         assetAddress,
-        name,
+        nameFromContract,
         decimals,
         guardian,
         curator,
         maxDeposit,
         sharePriceInAsset,
       ] = contractData;
+
+      const name = VAULT_ID_TO_NAME[vaultId as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
 
       const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
 
