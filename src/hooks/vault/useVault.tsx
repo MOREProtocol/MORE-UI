@@ -485,12 +485,12 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
         return result;
       } catch (error) {
         console.error('Error during submitActions simulation or execution:', error);
-        if ((error as any).data) {
-          console.error('Error data:', (error as any).data);
+        if (error?.data) {
+          console.error('Error data:', error.data);
         }
         // Attempt to decode error data if it's a known contract error interface
         try {
-          const errorData = (error as any).error?.data?.data;
+          const errorData = error?.error?.data?.data;
           if (errorData && typeof errorData === 'string') {
             const iface = new ethers.utils.Interface(["error Error(string)"]);
             const decodedError = iface.decodeErrorResult("Error", errorData);
