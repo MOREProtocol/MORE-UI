@@ -3,7 +3,7 @@ import { normalize, UserIncentiveData, valueToBigNumber } from '@aave/math-utils
 import { Box, Button, Typography, useMediaQuery, useTheme } from '@mui/material';
 import Link from 'next/link';
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { NetAPYTooltip } from 'src/components/infoTooltips/NetAPYTooltip';
 import { getMarketInfoById } from 'src/components/MarketSwitcher';
 import { ROUTES } from 'src/components/primitives/Link';
@@ -23,6 +23,8 @@ import { TopInfoPanelItem } from '../../components/TopInfoPanel/TopInfoPanelItem
 import { useAppDataContext } from '../../hooks/app-data-provider/useAppDataProvider';
 import { LiquidationRiskParametresInfoModal } from './LiquidationRiskParametresModal/LiquidationRiskParametresModal';
 import { CustomMarket } from 'src/ui-config/marketsConfig';
+import { RewardItemEnriched } from 'src/hooks/vault/useVaultData';
+import { ClaimRewardsModal } from 'src/components/transactions/RewardsDistributor/ClaimRewardsModal';
 
 export const DashboardTopPanel = () => {
   const { currentNetworkConfig, currentMarketData, currentMarket, setCurrentMarket } = useRootStore();
@@ -30,6 +32,7 @@ export const DashboardTopPanel = () => {
   const { user, reserves, loading } = useAppDataContext();
   const { currentAccount } = useWeb3Context();
   const [open, setOpen] = useState(false);
+  const [claimModalOpen, setClaimModalOpen] = useState(false);
   const { openClaimRewards } = useModalContext();
   const trackEvent = useRootStore((store) => store.trackEvent);
   const isMigrateToV3Available = useRootStore((state) => selectIsMigrationAvailable(state));
@@ -38,6 +41,44 @@ export const DashboardTopPanel = () => {
     : false;
   const theme = useTheme();
   const downToSM = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Transform userPoolRewards to RewardItemEnriched format
+  const transformedUserPoolRewards = useMemo(() => {
+    if (!user?.userPoolRewards || !reserves) return [];
+
+    return user.userPoolRewards
+      .filter(poolReward => Number(poolReward.net_claimable_amount) > 0)
+      .map(poolReward => {
+        const rewardTokenReserve = reserves.find(
+          (reserve) => reserve.underlyingAsset.toLowerCase() === poolReward.reward_token_address.toLowerCase()
+        );
+
+        if (!rewardTokenReserve) return null;
+
+        const rewardBalance = normalize(
+          poolReward.net_claimable_amount,
+          rewardTokenReserve.decimals
+        );
+
+        const rewardBalanceUsd = Number(rewardBalance) * Number(rewardTokenReserve.priceInUSD);
+
+        return {
+          reward_token_address: poolReward.reward_token_address,
+          // reward_amount_wei: poolReward.net_claimable_amount,
+          reward_amount_wei: poolReward.reward_amount_wei,
+          merkle_proof: poolReward.merkle_proof,
+          rewardContractAddress: poolReward.reward_contract_address,
+          symbol: rewardTokenReserve.symbol,
+          name: rewardTokenReserve.name,
+          decimals: rewardTokenReserve.decimals,
+          price: Number(rewardTokenReserve.priceInUSD),
+          rewardAmountToClaim: Number(poolReward.net_claimable_amount),
+          rewardAmountToClaimInUSD: rewardBalanceUsd,
+        } as RewardItemEnriched;
+      })
+      .filter(Boolean) as RewardItemEnriched[];
+  }, [user?.userPoolRewards, reserves]);
+  console.log(transformedUserPoolRewards);
 
   // To prevent all markets from being selected in dashboard view
   useEffect(() => {
@@ -48,52 +89,84 @@ export const DashboardTopPanel = () => {
 
   const { claimableRewardsUsd } = user
     ? Object.keys(user.calculatedUserIncentives).reduce(
-        (acc, rewardTokenAddress) => {
-          const incentive: UserIncentiveData = user.calculatedUserIncentives[rewardTokenAddress];
-          const rewardBalance = normalize(
-            incentive.claimableRewards,
-            incentive.rewardTokenDecimals
-          );
+      (acc, rewardTokenAddress) => {
+        const incentive: UserIncentiveData = user.calculatedUserIncentives[rewardTokenAddress];
+        const rewardBalance = normalize(
+          incentive.claimableRewards,
+          incentive.rewardTokenDecimals
+        );
 
-          let tokenPrice = 0;
-          // getting price from reserves for the native rewards for v2 markets
-          if (!currentMarketData.v3 && Number(rewardBalance) > 0) {
-            if (currentMarketData.chainId === ChainId.mainnet) {
-              const moreToken = reserves.find((reserve) => reserve.symbol === 'MORE');
-              tokenPrice = moreToken ? Number(moreToken.priceInUSD) : 0;
-            } else {
-              reserves.forEach((reserve) => {
-                if (reserve.symbol === currentNetworkConfig.wrappedBaseAssetSymbol) {
-                  tokenPrice = Number(reserve.priceInUSD);
-                }
-              });
-            }
+        let tokenPrice = 0;
+        // getting price from reserves for the native rewards for v2 markets
+        if (!currentMarketData.v3 && Number(rewardBalance) > 0) {
+          if (currentMarketData.chainId === ChainId.mainnet) {
+            const moreToken = reserves.find((reserve) => reserve.symbol === 'MORE');
+            tokenPrice = moreToken ? Number(moreToken.priceInUSD) : 0;
           } else {
-            tokenPrice = Number(incentive.rewardPriceFeed);
+            reserves.forEach((reserve) => {
+              if (reserve.symbol === currentNetworkConfig.wrappedBaseAssetSymbol) {
+                tokenPrice = Number(reserve.priceInUSD);
+              }
+            });
+          }
+        } else {
+          tokenPrice = Number(incentive.rewardPriceFeed);
+        }
+
+        const rewardBalanceUsd = Number(rewardBalance) * tokenPrice;
+
+        if (rewardBalanceUsd > 0) {
+          if (acc.assets.indexOf(incentive.rewardTokenSymbol) === -1) {
+            acc.assets.push(incentive.rewardTokenSymbol);
           }
 
+          acc.claimableRewardsUsd += Number(rewardBalanceUsd);
+        }
+
+        return acc;
+      },
+      { claimableRewardsUsd: 0, assets: [] } as { claimableRewardsUsd: number; assets: string[] }
+    )
+    : { claimableRewardsUsd: 0 };
+
+  const { userPoolRewardsUsd } = user?.userPoolRewards
+    ? user.userPoolRewards.reduce(
+      (acc, poolReward) => {
+        const rewardTokenReserve = reserves.find(
+          (reserve) => reserve.underlyingAsset.toLowerCase() === poolReward.reward_token_address.toLowerCase()
+        );
+
+        if (rewardTokenReserve && Number(poolReward.net_claimable_amount) > 0) {
+          // Convert wei to human readable amount using token decimals
+          const rewardBalance = normalize(
+            poolReward.net_claimable_amount,
+            rewardTokenReserve.decimals
+          );
+
+          const tokenPrice = Number(rewardTokenReserve.priceInUSD);
           const rewardBalanceUsd = Number(rewardBalance) * tokenPrice;
 
           if (rewardBalanceUsd > 0) {
-            if (acc.assets.indexOf(incentive.rewardTokenSymbol) === -1) {
-              acc.assets.push(incentive.rewardTokenSymbol);
+            if (acc.assets.indexOf(rewardTokenReserve.symbol) === -1) {
+              acc.assets.push(rewardTokenReserve.symbol);
             }
 
-            acc.claimableRewardsUsd += Number(rewardBalanceUsd);
+            acc.userPoolRewardsUsd += Number(rewardBalanceUsd);
           }
+        }
 
-          return acc;
-        },
-        { claimableRewardsUsd: 0, assets: [] } as { claimableRewardsUsd: number; assets: string[] }
-      )
-    : { claimableRewardsUsd: 0 };
+        return acc;
+      },
+      { userPoolRewardsUsd: 0, assets: [] } as { userPoolRewardsUsd: number; assets: string[] }
+    )
+    : { userPoolRewardsUsd: 0 };
 
   const loanToValue =
     user?.totalCollateralMarketReferenceCurrency === '0'
       ? '0'
       : valueToBigNumber(user?.totalBorrowsMarketReferenceCurrency || '0')
-          .dividedBy(user?.totalCollateralMarketReferenceCurrency || '1')
-          .toFixed();
+        .dividedBy(user?.totalCollateralMarketReferenceCurrency || '1')
+        .toFixed();
 
   const valueTypographyVariant = downToSM ? 'main16' : 'main21';
   const noDataTypographyVariant = downToSM ? 'secondary16' : 'secondary21';
@@ -243,6 +316,40 @@ export const DashboardTopPanel = () => {
             </Box>
           </TopInfoPanelItem>
         )}
+        {currentAccount && userPoolRewardsUsd > 0 && (
+          <TopInfoPanelItem title={'Claimable MORE Incentives'} loading={loading} hideIcon>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: { xs: 'flex-start', xsm: 'center' },
+                flexDirection: { xs: 'column', xsm: 'row' },
+              }}
+            >
+              <Box sx={{ display: 'inline-flex', alignItems: 'center' }} data-cy={'Claim_Box'}>
+                <FormattedNumber
+                  value={userPoolRewardsUsd}
+                  variant={valueTypographyVariant}
+                  visibleDecimals={2}
+                  compact
+                  symbol="USD"
+                  symbolsColor="#A5A8B6"
+                  symbolsVariant={noDataTypographyVariant}
+                  data-cy={'Claim_Value'}
+                />
+              </Box>
+
+              <Button
+                variant="gradient"
+                size="small"
+                onClick={() => setClaimModalOpen(true)}
+                sx={{ minWidth: 'unset', ml: { xs: 0, xsm: 2 } }}
+                data-cy={'Dashboard_Claim_Button'}
+              >
+                Claim
+              </Button>
+            </Box>
+          </TopInfoPanelItem>
+        )}
       </TopInfoPanel>
       <LiquidationRiskParametresInfoModal
         open={open}
@@ -251,6 +358,12 @@ export const DashboardTopPanel = () => {
         loanToValue={loanToValue}
         currentLoanToValue={user?.currentLoanToValue || '0'}
         currentLiquidationThreshold={user?.currentLiquidationThreshold || '0'}
+      />
+      <ClaimRewardsModal
+        open={claimModalOpen}
+        handleClose={() => setClaimModalOpen(false)}
+        userAddress={currentAccount}
+        rewards={transformedUserPoolRewards}
       />
     </>
   );

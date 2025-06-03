@@ -2,13 +2,13 @@ import { valueToBigNumber } from '@aave/math-utils';
 import { Box, Typography } from '@mui/material';
 import { BigNumber } from 'bignumber.js';
 import { CapsCircularStatus } from 'src/components/caps/CapsCircularStatus';
-import { IncentivesButton } from 'src/components/incentives/IncentivesButton';
+import { IncentivesButton, RewardsButton } from 'src/components/incentives/IncentivesButton';
 import { VariableAPYTooltip } from 'src/components/infoTooltips/VariableAPYTooltip';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { Link } from 'src/components/primitives/Link';
 import { ReserveSubheader } from 'src/components/ReserveSubheader';
 import { TextWithTooltip } from 'src/components/TextWithTooltip';
-import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { AssetCapHookData } from 'src/hooks/useAssetCaps';
 import { MarketDataType, NetworkConfig } from 'src/utils/marketsAndNetworksConfig';
 import { GENERAL } from 'src/utils/mixPanelEvents';
@@ -18,7 +18,7 @@ import { ReserveFactorOverview } from './ReserveFactorOverview';
 import { PanelItem } from './ReservePanels';
 
 interface BorrowInfoProps {
-  reserve: ComputedReserveData;
+  reserve: ComputedReserveDataWithMarket;
   currentMarketData: MarketDataType;
   currentNetworkConfig: NetworkConfig;
   renderCharts: boolean;
@@ -159,9 +159,10 @@ export const BorrowInfo = ({
           <FormattedNumber value={reserve.variableBorrowAPY} percent variant="main16" />
           <IncentivesButton
             symbol={reserve.symbol}
-            incentives={reserve.vIncentivesData}
+            incentives={reserve.vIncentivesData || []}
             displayBlank={true}
           />
+          <RewardsButton rewards={reserve.rewards} symbol={reserve.symbol} />
         </PanelItem>
         {reserve.borrowCapUSD && reserve.borrowCapUSD !== '0' && (
           <PanelItem title={'Borrow cap'}>

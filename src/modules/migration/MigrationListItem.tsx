@@ -103,9 +103,8 @@ export const MigrationListItem = ({
   return (
     <ListItem
       sx={{ flexDirection: 'column', pl: 0 }}
-      data-cy={`migration-${borrowApyType !== undefined ? 'borrow-' + borrowApyType : 'supply'}-${
-        userReserve.reserve.symbol
-      }`}
+      data-cy={`migration-${borrowApyType !== undefined ? 'borrow-' + borrowApyType : 'supply'}-${userReserve.reserve.symbol
+        }`}
     >
       <Box
         sx={{ display: 'flex', flexDirection: 'row', width: '100%', alignItems: 'center', my: 4 }}
@@ -113,17 +112,16 @@ export const MigrationListItem = ({
         <ListColumn align="center" maxWidth={64} minWidth={64}>
           <Box
             sx={(theme) => ({
-              border: `2px solid ${
-                disabled !== undefined
+              border: `2px solid ${disabled !== undefined
                   ? theme.palette.action.disabled
                   : theme.palette.text.secondary
-              }`,
+                }`,
               background:
                 disabled !== undefined
                   ? theme.palette.background.disabled
                   : checked
-                  ? theme.palette.text.secondary
-                  : theme.palette.background.paper,
+                    ? theme.palette.text.secondary
+                    : theme.palette.background.paper,
               width: 16,
               height: 16,
               borderRadius: '2px',
@@ -194,7 +192,7 @@ export const MigrationListItem = ({
           <ListColumn>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {userReserve.usageAsCollateralEnabledOnUser &&
-              userReserve.reserve.reserveLiquidationThreshold !== '0' ? (
+                userReserve.reserve.reserveLiquidationThreshold !== '0' ? (
                 <CheckRoundedIcon fontSize="small" color="success" />
               ) : (
                 <NoData variant="main14" color={baseColorSecondary} />

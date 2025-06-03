@@ -28,16 +28,19 @@ export const VaultOverview: React.FC = () => {
   const chartDataOptions = {
     apy: {
       label: 'APY',
+      valueSuffix: '%',
       data: selectedVault?.overview?.historicalSnapshots?.apy || [],
     },
     totalSupply: {
       label: 'Total Supply',
+      valueSuffix: '$',
       data: selectedVault?.overview?.historicalSnapshots?.totalSupply || [],
     },
   };
 
   const currentChartLabel = chartDataOptions[selectedChartDataKey]?.label || 'Share price';
   const currentChartData = chartDataOptions[selectedChartDataKey]?.data;
+  const currentChartValueSuffix = chartDataOptions[selectedChartDataKey]?.valueSuffix;
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -151,6 +154,7 @@ export const VaultOverview: React.FC = () => {
                 <LightweightLineChart
                   height={200}
                   data={currentChartData}
+                  valueSuffix={currentChartValueSuffix}
                 />
               ) : (
                 <Typography sx={{ textAlign: 'center', pt: 5 }}>

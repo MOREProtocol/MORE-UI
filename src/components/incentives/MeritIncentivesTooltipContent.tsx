@@ -6,7 +6,7 @@ import { Link } from '../primitives/Link';
 import { Row } from '../primitives/Row';
 import { TokenIcon } from '../primitives/TokenIcon';
 
-export const MeritIncentivesTooltipContent = ({
+export const RewardsIncentivesTooltipContent = ({
   incentiveAPR,
   rewardTokenSymbol,
 }: Omit<ReserveIncentiveResponse, 'rewardTokenAddress'>) => {
@@ -22,15 +22,17 @@ export const MeritIncentivesTooltipContent = ({
       }}
     >
       <Typography variant="caption" color="text.primary" mb={3}>
-        Eligible for the merit program.
+        Incentives Eligibility.
       </Typography>
 
       <Typography variant="caption" color="text.secondary" mb={3}>
         {
-          'This is a program initiated and implemented by the decentralised Aave community. Aave Labs does not guarantee the program and accepts no liability. '
+          'This incentive program is funded by third party donors and facilitated by the MORE DAO. MORE does not guarantee the program and accepts no liability for it. '
         }
         <Link
-          href="https://governance.more.markets/t/arfc-merit-a-new-more-alignment-user-reward-system/16646"
+          href="https://docs.more.markets/resources/incentives"
+          target="_blank"
+          rel="noopener noreferrer"
           sx={{ textDecoration: 'underline' }}
           variant="caption"
           color="text.secondary"

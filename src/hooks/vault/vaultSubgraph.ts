@@ -2,20 +2,10 @@ import { vaultsConfig } from "src/modules/vault-detail/VaultManagement/facets/va
 
 // Subgraph related types and functions
 export interface VaultSnapshotData {
-  id: string;
-  timestamp: string;
-  hourTimestamp: string;
   totalSupply: string;
   totalAssets: string;
-  apy: string;
-  return1D: string;
-  return7D: string;
-  return30D: string;
-  return180D: string;
-  vault: {
-    id: string;
-    symbol: string;
-  };
+  apyCalculatedLast360Days: string;
+  apyCalculatedSinceInception: string;
 }
 
 const fetchSubgraphData = async <T>(
@@ -58,31 +48,16 @@ const fetchSubgraphData = async <T>(
 };
 
 interface VaultSnapshotsQueryResponse {
-  vaultHourlySnapshots: VaultSnapshotData[];
+  vault: VaultSnapshotData;
 }
 
 const GET_VAULT_SNAPSHOTS_QUERY = `
   query GetVaultSnapshots($vaultId: String!) {
-    vaultHourlySnapshots(
-      where: { vault: $vaultId }
-      orderBy: hourTimestamp
-      orderDirection: desc
-      limit: 1
-    ) {
-      id
-      timestamp
-      hourTimestamp
+    vault(id: $vaultId) {
       totalSupply
       totalAssets
-      apy
-      return1D
-      return7D
-      return30D
-      return180D
-      vault {
-        id
-        symbol
-      }
+      apyCalculatedLast360Days
+      apyCalculatedSinceInception
     }
   }
 `;
@@ -97,8 +72,8 @@ export const fetchLatestVaultSnapshot = async (
     GET_VAULT_SNAPSHOTS_QUERY,
     { vaultId: vaultId.toLowerCase() }
   );
-  if (data && data.vaultHourlySnapshots && data.vaultHourlySnapshots.length > 0) {
-    return data.vaultHourlySnapshots[0];
+  if (data && data.vault) {
+    return data.vault;
   }
   return null;
 };
@@ -114,10 +89,6 @@ const GET_VAULT_HISTORICAL_SNAPSHOTS_QUERY = `
       hourTimestamp
       totalSupply
       apy
-      return1D
-      return7D
-      return30D
-      return180D
     }
   }
 `;

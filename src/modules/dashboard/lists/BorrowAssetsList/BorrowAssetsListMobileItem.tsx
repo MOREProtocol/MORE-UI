@@ -27,6 +27,7 @@ export const BorrowAssetsListMobileItem = ({
   underlyingAsset,
   isFreezed,
   user,
+  reserve,
 }: DashboardReserve & { user: ExtendedFormattedUser }) => {
   const { openBorrow } = useModalContext();
   const { currentMarket } = useProtocolDataContext();
@@ -79,6 +80,7 @@ export const BorrowAssetsListMobileItem = ({
         <IncentivesCard
           value={Number(variableBorrowRate)}
           incentives={vIncentivesData}
+          rewards={reserve?.rewards?.filter(r => ['borrow', 'supply_and_borrow'].includes(r.tracked_token_type) && r.tracked_token_address === underlyingAsset)}
           symbol={symbol}
           variant="secondary14"
         />

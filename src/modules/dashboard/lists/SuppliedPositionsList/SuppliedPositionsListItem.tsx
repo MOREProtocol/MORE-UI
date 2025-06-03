@@ -23,7 +23,7 @@ export const SuppliedPositionsListItem = ({
   underlyingAsset,
 }: DashboardReserve) => {
   const { user } = useAppDataContext();
-  const { isIsolated, aIncentivesData, isFrozen, isActive, isPaused } = reserve;
+  const { isIsolated, aIncentivesData, isFrozen, isActive, isPaused, rewards } = reserve;
   const { currentMarketData, currentMarket } = useProtocolDataContext();
   const { openSupply, openWithdraw, openCollateralChange, openSwap } = useModalContext();
   const { debtCeiling } = useAssetCaps();
@@ -32,10 +32,10 @@ export const SuppliedPositionsListItem = ({
 
   const canBeEnabledAsCollateral = user
     ? !debtCeiling.isMaxed &&
-      reserve.reserveLiquidationThreshold !== '0' &&
-      ((!reserve.isIsolated && !user.isInIsolationMode) ||
-        user.isolatedReserve?.underlyingAsset === reserve.underlyingAsset ||
-        (reserve.isIsolated && user.totalCollateralMarketReferenceCurrency === '0'))
+    reserve.reserveLiquidationThreshold !== '0' &&
+    ((!reserve.isIsolated && !user.isInIsolationMode) ||
+      user.isolatedReserve?.underlyingAsset === reserve.underlyingAsset ||
+      (reserve.isIsolated && user.totalCollateralMarketReferenceCurrency === '0'))
     : false;
 
   const disableSwap = !isActive || isPaused || reserve.symbol == 'stETH';
@@ -51,9 +51,8 @@ export const SuppliedPositionsListItem = ({
       currentMarket={currentMarket}
       frozen={reserve.isFrozen}
       paused={isPaused}
-      data-cy={`dashboardSuppliedListItem_${reserve.symbol.toUpperCase()}_${
-        canBeEnabledAsCollateral && usageAsCollateralEnabledOnUser ? 'Collateral' : 'NoCollateral'
-      }`}
+      data-cy={`dashboardSuppliedListItem_${reserve.symbol.toUpperCase()}_${canBeEnabledAsCollateral && usageAsCollateralEnabledOnUser ? 'Collateral' : 'NoCollateral'
+        }`}
       showSupplyCapTooltips
       showDebtCeilingTooltips
     >
@@ -67,6 +66,7 @@ export const SuppliedPositionsListItem = ({
       <ListAPRColumn
         value={Number(reserve.supplyAPY)}
         incentives={aIncentivesData}
+        rewards={rewards?.filter(r => ['supply', 'supply_and_borrow'].includes(r.tracked_token_type))}
         symbol={reserve.symbol}
       />
 

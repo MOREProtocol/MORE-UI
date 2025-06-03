@@ -35,7 +35,7 @@ export type UserSummaryAndIncentives =
     userReservesData: FormattedUserReserves[];
   };
 
-const formatUserSummaryAndIncentivesss = memoize(
+const formatUserSummaryAndIncentives = memoize(
   (
     poolReserves: ReservesDataHumanized,
     userPoolReserves: UserReservesDataHumanized,
@@ -77,7 +77,7 @@ export const useUserSummariesAndIncentives = (
         poolsReservesIncentivesQuery[index],
         userPoolsReservesIncentiveQuery[index],
       ] as const,
-      formatUserSummaryAndIncentivesss
+      formatUserSummaryAndIncentives
     );
   });
 };

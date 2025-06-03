@@ -102,6 +102,7 @@ export const SupplyAssetsListItemDesktop = ({
   disableSupply,
   canSupplyAsWrappedToken,
   walletBalancesMap,
+  reserve,
 }: SupplyAssetsListItemProps) => {
   const currentMarketData = useRootStore((store) => store.currentMarketData);
   const currentMarket = useRootStore((store) => store.currentMarket);
@@ -210,7 +211,12 @@ export const SupplyAssetsListItemDesktop = ({
         />
       )}
 
-      <ListAPRColumn value={Number(supplyAPY)} incentives={aIncentivesData} symbol={symbol} />
+      <ListAPRColumn
+        value={Number(supplyAPY)}
+        incentives={aIncentivesData}
+        rewards={reserve?.rewards?.filter(r => ['supply', 'supply_and_borrow'].includes(r.tracked_token_type))}
+        symbol={symbol}
+      />
 
       <ListColumn>
         {debtCeiling.isMaxed ? (
@@ -310,6 +316,7 @@ export const SupplyAssetsListItemMobile = ({
   disableSupply,
   canSupplyAsWrappedToken,
   walletBalancesMap,
+  reserve,
 }: SupplyAssetsListItemProps) => {
   const { currentMarket } = useProtocolDataContext();
   const { openSupply } = useModalContext();
@@ -393,6 +400,7 @@ export const SupplyAssetsListItemMobile = ({
         <IncentivesCard
           value={Number(supplyAPY)}
           incentives={aIncentivesData}
+          rewards={reserve?.rewards?.filter(r => ['supply', 'supply_and_borrow'].includes(r.tracked_token_type))}
           symbol={symbol}
           variant="secondary14"
         />

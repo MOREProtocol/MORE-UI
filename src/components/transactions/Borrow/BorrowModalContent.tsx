@@ -285,7 +285,18 @@ export const BorrowModalContent = ({
       )}
 
       <TxModalDetails gasLimit={gasLimit}>
-        <DetailsIncentivesLine incentives={incentive} symbol={poolReserve.symbol} />
+        <DetailsIncentivesLine
+          incentives={[
+            ...(incentive || []),
+            ...(!!poolReserve.rewards ? poolReserve.rewards.filter(r => ['borrow', 'supply_and_borrow'].includes(r.tracked_token_type)).map(r => {
+              return {
+                incentiveAPR: (r.apy_bps / 10000).toString(),
+                rewardTokenAddress: r.reward_token_address,
+                rewardTokenSymbol: r.reward_token_symbol,
+              }
+            }) : [])]}
+          symbol={poolReserve.symbol}
+        />
         <DetailsHFLine
           visibleHfChange={!!amount}
           healthFactor={user.healthFactor}
