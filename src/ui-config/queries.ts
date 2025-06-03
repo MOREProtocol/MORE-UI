@@ -81,13 +81,13 @@ export const queryKeysFactory = {
     stakedAssets: string[],
     oracles: string[]
   ) => [
-    ...queryKeysFactory.staking,
-    ...queryKeysFactory.user(user),
-    ...queryKeysFactory.market(marketData),
-    stakedAssets,
-    oracles,
-    'userStakeUiData',
-  ],
+      ...queryKeysFactory.staking,
+      ...queryKeysFactory.user(user),
+      ...queryKeysFactory.market(marketData),
+      stakedAssets,
+      oracles,
+      'userStakeUiData',
+    ],
   paraswapRates: (
     chainId: number,
     amount: string,
@@ -108,6 +108,17 @@ export const queryKeysFactory = {
     ...queryKeysFactory.market(marketData),
     ...queryKeysFactory.user(user),
     'userPoolReservesIncentiveDataHumanized',
+  ],
+  poolReservesRewardsDataHumanized: (marketData: MarketDataType) => [
+    ...queryKeysFactory.pool,
+    ...queryKeysFactory.market(marketData),
+    'poolReservesRewardsDataHumanized',
+  ],
+  userPoolReservesRewardsDataHumanized: (user: string, marketData: MarketDataType) => [
+    ...queryKeysFactory.pool,
+    ...queryKeysFactory.market(marketData),
+    ...queryKeysFactory.user(user),
+    'userPoolReservesRewardsDataHumanized',
   ],
   ghoReserveData: (marketData: MarketDataType) => [
     ...queryKeysFactory.gho,
@@ -151,10 +162,10 @@ export const queryKeysFactory = {
     marketFrom: MarketDataType,
     marketTo: MarketDataType
   ) => [
-    ...suplies.map((supply) => supply.underlyingAsset),
-    ...queryKeysFactory.market(marketFrom),
-    ...queryKeysFactory.market(marketTo),
-  ],
+      ...suplies.map((supply) => supply.underlyingAsset),
+      ...queryKeysFactory.market(marketFrom),
+      ...queryKeysFactory.market(marketTo),
+    ],
   tokensBalance: (tokenList: TokenInfo[], chainId: number, user: string) => [
     ...queryKeysFactory.user(user),
     tokenList.map((elem) => elem.address),

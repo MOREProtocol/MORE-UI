@@ -255,7 +255,15 @@ export const SupplyModalContent = React.memo(
         <TxModalDetails gasLimit={gasLimit} skipLoad={true} disabled={Number(amount) === 0}>
           <DetailsNumberLine description={'Supply APY'} value={supplyApy} percent />
           <DetailsIncentivesLine
-            incentives={poolReserve.aIncentivesData}
+            incentives={[
+              ...(poolReserve.aIncentivesData || []),
+              ...(!!poolReserve.rewards ? poolReserve.rewards.filter(r => ['supply', 'supply_and_borrow'].includes(r.tracked_token_type)).map(r => {
+                return {
+                  incentiveAPR: (r.apy_bps / 10000).toString(),
+                  rewardTokenAddress: r.reward_token_address,
+                  rewardTokenSymbol: r.reward_token_symbol,
+                }
+              }) : [])]}
             symbol={poolReserve.symbol}
           />
           <DetailsCollateralLine collateralType={collateralType} />

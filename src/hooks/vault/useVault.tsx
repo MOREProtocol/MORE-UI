@@ -72,6 +72,13 @@ export interface VaultData {
       apy: { time: string; value: number }[];
       totalSupply: { time: string; value: number }[];
     };
+    reward?: {
+      apyBps?: number;
+      symbol?: string;
+      trackedToken?: string;
+      rewardSymbol?: string;
+      rewardToken?: string;
+    };
   };
   financials?: {
     fees?: {

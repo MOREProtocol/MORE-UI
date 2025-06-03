@@ -8,6 +8,7 @@ import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvide
 import { useVault, VaultData } from 'src/hooks/vault/useVault';
 import { LightweightLineChart } from './LightweightLineChart';
 import { fetchVaultHistoricalSnapshots, formatSnapshotsForChart } from 'src/hooks/vault/vaultSubgraph';
+import { IncentivesButton } from 'src/components/incentives/IncentivesButton';
 
 interface VaultAssetsListItemProps {
   data: VaultData;
@@ -39,7 +40,7 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
     const fetchHistoricalSnapshots = async () => {
       const snapshots = await fetchVaultHistoricalSnapshots(chainId, data.id);
       if (snapshots) {
-        const formattedSnapshots = formatSnapshotsForChart(snapshots, 'totalSupply');
+        const formattedSnapshots = formatSnapshotsForChart(snapshots, 'apy');
         setHistoricalSnapshots(formattedSnapshots);
       }
     };
@@ -190,17 +191,51 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
               </Typography>
             </Box>
           </Box>
+
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: (theme) => theme.spacing(0.8),
+            }}
+          >
+            <Typography
+              sx={{
+                color: (theme) => theme.palette.text.secondary,
+                fontSize: '0.875rem',
+              }}
+            >
+              APY
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <IncentivesButton
+                symbol={data?.overview?.shareCurrencySymbol || ''}
+                incentives={[{
+                  rewardTokenAddress: data?.overview?.reward?.rewardToken,
+                  rewardTokenSymbol: data?.overview?.reward?.rewardSymbol,
+                  incentiveAPR: data?.overview?.reward?.apyBps ? (data.overview.reward.apyBps / 10000).toString() : undefined,
+                }]}
+              />
+              <FormattedNumber
+                value={data?.overview?.apy}
+                percent
+                variant="secondary14"
+                compact
+              />
+            </Box>
+          </Box>
         </Box>
       </Box>
 
       {upToMD && (
         <Box sx={{ width: '50%', minWidth: '40%', px: 5 }}>
           <LightweightLineChart
-            height={130}
+            height={150}
             data={historicalSnapshots}
             isInteractive={false}
-            title="Total Supply"
+            title="APY"
             isSmall={true}
+            valueSuffix='%'
           />
         </Box>
       )}

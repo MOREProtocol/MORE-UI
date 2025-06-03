@@ -30,6 +30,7 @@ export const SupplyAssetsListMobileItem = ({
   underlyingAsset,
   detailsAddress,
   isPaused,
+  reserve,
 }: DashboardReserve) => {
   const { currentMarket } = useProtocolDataContext();
   const { openSupply } = useModalContext();
@@ -69,6 +70,7 @@ export const SupplyAssetsListMobileItem = ({
         <IncentivesCard
           value={Number(supplyAPY)}
           incentives={aIncentivesData}
+          rewards={reserve?.rewards?.filter(r => ['supply', 'supply_and_borrow'].includes(r.tracked_token_type))}
           symbol={symbol}
           variant="secondary14"
         />

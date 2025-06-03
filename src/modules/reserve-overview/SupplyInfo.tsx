@@ -3,7 +3,7 @@ import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { AlertTitle, Box, Typography } from '@mui/material';
 import { CapsCircularStatus } from 'src/components/caps/CapsCircularStatus';
 import { DebtCeilingStatus } from 'src/components/caps/DebtCeilingStatus';
-import { IncentivesButton } from 'src/components/incentives/IncentivesButton';
+import { IncentivesButton, RewardsButton } from 'src/components/incentives/IncentivesButton';
 import { LiquidationPenaltyTooltip } from 'src/components/infoTooltips/LiquidationPenaltyTooltip';
 import { LiquidationThresholdTooltip } from 'src/components/infoTooltips/LiquidationThresholdTooltip';
 import { MaxLTVTooltip } from 'src/components/infoTooltips/MaxLTVTooltip';
@@ -13,7 +13,7 @@ import { Warning } from 'src/components/primitives/Warning';
 import { ReserveOverviewBox } from 'src/components/ReserveOverviewBox';
 import { ReserveSubheader } from 'src/components/ReserveSubheader';
 import { TextWithTooltip } from 'src/components/TextWithTooltip';
-import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { AssetCapHookData } from 'src/hooks/useAssetCaps';
 import { MarketDataType } from 'src/utils/marketsAndNetworksConfig';
 import { GENERAL } from 'src/utils/mixPanelEvents';
@@ -22,7 +22,7 @@ import { ApyGraphContainer } from './graphs/ApyGraphContainer';
 import { PanelItem } from './ReservePanels';
 
 interface SupplyInfoProps {
-  reserve: ComputedReserveData;
+  reserve: ComputedReserveDataWithMarket;
   currentMarketData: MarketDataType;
   renderCharts: boolean;
   showSupplyCapStatus: boolean;
@@ -147,9 +147,10 @@ export const SupplyInfo = ({
           <FormattedNumber value={reserve.supplyAPY} percent variant="main16" />
           <IncentivesButton
             symbol={reserve.symbol}
-            incentives={reserve.aIncentivesData}
+            incentives={reserve.aIncentivesData || []}
             displayBlank={true}
           />
+          <RewardsButton rewards={reserve.rewards} symbol={reserve.symbol} />
         </PanelItem>
         {reserve.unbacked && reserve.unbacked !== '0' && (
           <PanelItem title={'Unbacked'}>

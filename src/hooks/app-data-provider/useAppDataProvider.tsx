@@ -18,6 +18,8 @@ import {
 import { usePoolsReservesHumanized } from '../pool/usePoolReserves';
 import { useUserPoolReservesHumanized } from '../pool/useUserPoolReserves';
 import { FormattedUserReserves } from '../pool/useUserSummaryAndIncentives';
+import { PoolReservesRewardsHumanized, usePoolReservesRewardsHumanized } from '../pool/usePoolReservesRewards';
+import { UserPoolReservesRewardsHumanized, useUserPoolReservesRewardsHumanized } from '../pool/useUserPoolReservesRewards';
 
 /**
  * removes the marketPrefix from a symbol
@@ -35,6 +37,7 @@ export type ComputedReserveData = FormattedReservesAndIncentives;
 
 export type ComputedReserveDataWithMarket = FormattedReservesAndIncentives & {
   market: MarketDataType;
+  rewards?: PoolReservesRewardsHumanized[];
 };
 
 /**
@@ -45,7 +48,9 @@ export type ComputedUserReserveData = FormattedUserReserves;
 /**
  * @deprecated Use ExtendedFormattedUser type from useExtendedUserSummaryAndIncentives hook
  */
-export type ExtendedFormattedUser = _ExtendedFormattedUser;
+export type ExtendedFormattedUser = _ExtendedFormattedUser & {
+  userPoolRewards: UserPoolReservesRewardsHumanized[];
+};
 
 export interface AppDataContextType {
   loading: boolean;
@@ -85,14 +90,18 @@ export const AppDataProvider: React.FC<IProps> = ({ children }) => {
       .flat();
 
   const poolsFormattedReserves = usePoolsFormattedReserves(localMarketData);
+  const poolsReservesRewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
   const formattedPoolReservesLoading = poolsFormattedReserves.some((r) => r.isLoading);
-  const formattedPoolReserves: (FormattedReservesAndIncentives & { market: MarketDataType })[] =
+  const formattedPoolReserves: ComputedReserveDataWithMarket[] =
     !formattedPoolReservesLoading &&
     poolsFormattedReserves
       .map((r, index) =>
         r.data.map((reserve) => ({
           ...reserve,
           market: localMarketData[index],
+          ...((!poolsReservesRewardsQuery.isLoading && poolsReservesRewardsQuery?.data && Array.isArray(poolsReservesRewardsQuery.data)) ? {
+            rewards: poolsReservesRewardsQuery.data.filter(r => r.tracked_token_address === reserve.underlyingAsset && r.apy_bps > 0)
+          } : {})
         }))
       )
       .flat();
@@ -108,12 +117,53 @@ export const AppDataProvider: React.FC<IProps> = ({ children }) => {
     useExtendedUserSummaryAndIncentives(currentMarketData);
   const userReserves = userReservesData?.userReserves;
 
+  const { data: userPoolReservesRewardsData, isLoading: userPoolReservesRewardsDataLoading } =
+    useUserPoolReservesRewardsHumanized(currentMarketData);
+
+  let userWithRewards: ExtendedFormattedUser | undefined = undefined;
+  if (userSummary) {
+    const modifiedUserReservesData = userSummary.userReservesData.map((userReserveItem) => {
+      const rewardsForThisNestedReserve =
+        !poolsReservesRewardsQuery.isLoading && poolsReservesRewardsQuery.data && Array.isArray(poolsReservesRewardsQuery.data)
+          ? poolsReservesRewardsQuery.data.filter(
+            (reward) => reward.tracked_token_address === userReserveItem.reserve.underlyingAsset
+          )
+          : undefined;
+
+      // Find user-specific rewards data for this reserve
+      const userRewardsForThisReserve =
+        !userPoolReservesRewardsDataLoading && userPoolReservesRewardsData
+          ? (userPoolReservesRewardsData as UserPoolReservesRewardsHumanized[]).filter(
+            (userReward) => userReward.reward_token_address === userReserveItem.reserve.underlyingAsset
+          )
+          : undefined;
+
+      return {
+        ...userReserveItem,
+        reserve: {
+          ...userReserveItem.reserve,
+          ...(rewardsForThisNestedReserve &&
+            rewardsForThisNestedReserve.length > 0 && { rewards: rewardsForThisNestedReserve }),
+          ...(userRewardsForThisReserve &&
+            userRewardsForThisReserve.length > 0 && { userRewards: userRewardsForThisReserve }),
+        },
+      };
+    });
+
+    userWithRewards = {
+      ...userSummary,
+      userReservesData: modifiedUserReservesData,
+      // Add user pool rewards data at the top level for easy access
+      userPoolRewards: (userPoolReservesRewardsData as UserPoolReservesRewardsHumanized[]) || [],
+    };
+  }
+
   // loading
   const isReservesLoading = reservesDataLoading || formattedPoolReservesLoading;
   const isUserDataLoading = userReservesDataLoading || userSummaryLoading;
 
-  const user = userSummary;
-  // Factor discounted GHO interest into cumulative user fields
+  const user = userWithRewards;
+  console.log(user);
 
   return (
     <AppDataContext.Provider

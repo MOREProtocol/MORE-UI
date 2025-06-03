@@ -17,6 +17,7 @@ interface LightweightLineChartProps {
   title?: string;
   isInteractive?: boolean;
   isSmall?: boolean;
+  valueSuffix?: string;
 }
 
 // Props for the base chart component
@@ -27,6 +28,7 @@ interface BaseChartProps {
   isInteractive?: boolean;
   title?: string;
   isSmall?: boolean;
+  valueSuffix?: string;
 }
 
 const BaseLightweightChart: React.FC<BaseChartProps> = ({
@@ -36,6 +38,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
   isInteractive = true,
   title,
   isSmall = false,
+  valueSuffix = '',
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -82,6 +85,10 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
       return `${day} ${monthName} ${year} ${hours}:${minutes}`;
     };
 
+    const priceFormatter = (price: number): string => {
+      return `${price.toFixed(2)}${valueSuffix}`;
+    };
+
     // Initialize chart
     if (!chartRef.current) {
       const chartOptions = {
@@ -95,6 +102,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         localization: {
           locale: navigator.language, // Use browser's locale
           timeFormatter: detailedTimeFormatter,
+          priceFormatter: priceFormatter, // For crosshair
         },
         grid: {
           vertLines: { visible: false },
@@ -118,6 +126,10 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         },
         rightPriceScale: {
           borderColor: isSmall ? theme.palette.background.paper : theme.palette.divider,
+          scaleMargins: {
+            top: 0.2,
+            bottom: 0.2,
+          },
         },
         handleScroll: isInteractive,
         handleScale: isInteractive,
@@ -146,6 +158,11 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         priceLineVisible: false,
         lastValueVisible: false,
         crosshairMarkerVisible: false,
+        priceFormat: {
+          type: 'custom',
+          formatter: priceFormatter,
+          minMove: 0.01,
+        },
       };
       seriesRef.current = chartRef.current.addSeries(AreaSeries, seriesOptions);
     } else {
@@ -160,6 +177,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         localization: {
           locale: navigator.language,
           timeFormatter: detailedTimeFormatter,
+          priceFormatter: priceFormatter, // For crosshair
         },
         grid: {
           horzLines: {
@@ -169,9 +187,14 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         },
         timeScale: {
           borderColor: isSmall ? theme.palette.background.paper : theme.palette.divider,
+          rightOffset: isSmall ? 1 : 12,
         },
         rightPriceScale: {
           borderColor: isSmall ? theme.palette.background.paper : theme.palette.divider,
+          scaleMargins: {
+            top: 0.2,
+            bottom: 0.2,
+          },
         },
         handleScroll: isInteractive,
         handleScale: isInteractive,
@@ -200,6 +223,11 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: false,
+          priceFormat: {
+            type: 'custom',
+            formatter: priceFormatter,
+            minMove: 0.01,
+          },
         });
       }
     }
@@ -226,7 +254,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
     return () => {
       resizeObserver.unobserve(chartElement);
     };
-  }, [data, height, lineColor, chartContainerRef.current, theme, isInteractive, isSmall]);
+  }, [data, height, lineColor, chartContainerRef.current, theme, isInteractive, isSmall, valueSuffix]);
 
   // Effect for full cleanup on unmount
   useEffect(() => {
@@ -266,6 +294,7 @@ export const LightweightLineChart: React.FC<LightweightLineChartProps> = ({
   title,
   isInteractive = true,
   isSmall = false,
+  valueSuffix,
 }) => {
   // Convert string time to Unix timestamp for lightweight-charts
   const formattedData: ChartDataPoint[] = data
@@ -275,5 +304,5 @@ export const LightweightLineChart: React.FC<LightweightLineChartProps> = ({
     })) || [];
   // Sorting moved to BaseLightweightChart before setData for robustness
 
-  return <BaseLightweightChart data={formattedData} height={height} lineColor={lineColor} isInteractive={isInteractive} title={title} isSmall={isSmall} />;
+  return <BaseLightweightChart data={formattedData} height={height} lineColor={lineColor} isInteractive={isInteractive} title={title} isSmall={isSmall} valueSuffix={valueSuffix} />;
 };

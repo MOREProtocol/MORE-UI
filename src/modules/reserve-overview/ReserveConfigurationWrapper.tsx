@@ -1,9 +1,9 @@
 import { Box, Paper, Typography, useMediaQuery, useTheme } from '@mui/material';
 import dynamic from 'next/dynamic';
-import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
 
 type ReserveConfigurationProps = {
-  reserve: ComputedReserveData;
+  reserve: ComputedReserveDataWithMarket;
 };
 
 const ReserveConfiguration = dynamic(() =>

@@ -127,7 +127,8 @@ export const MarketAssetsListItem = ({
       <ListColumn>
         <IncentivesCard
           value={reserve.supplyAPY}
-          incentives={reserve.aIncentivesData || []}
+          incentives={reserve.aIncentivesData}
+          rewards={reserve?.rewards?.filter(r => ['supply', 'supply_and_borrow'].includes(r.tracked_token_type))}
           symbol={reserve.symbol}
           variant="main16"
           symbolsVariant="secondary16"
@@ -148,7 +149,8 @@ export const MarketAssetsListItem = ({
       <ListColumn>
         <IncentivesCard
           value={Number(reserve.totalVariableDebtUSD) > 0 ? reserve.variableBorrowAPY : '-1'}
-          incentives={reserve.vIncentivesData || []}
+          incentives={reserve.vIncentivesData}
+          rewards={reserve?.rewards?.filter(r => ['borrow', 'supply_and_borrow'].includes(r.tracked_token_type))}
           symbol={reserve.symbol}
           variant="main16"
           symbolsVariant="secondary16"

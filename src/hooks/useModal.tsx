@@ -32,6 +32,7 @@ export enum ModalType {
   Switch,
   StakingMigrate,
   GovRepresentatives,
+  Bridge,
 }
 
 export interface ModalArgsType {
@@ -111,6 +112,7 @@ export interface ModalContextType<T extends ModalArgsType> {
   openGovRepresentatives: (
     representatives: Array<{ chainId: ChainId; representative: string }>
   ) => void;
+  openBridge: () => void;
   close: () => void;
   closeWithCb: (callback: CallbackFn) => void;
   type?: ModalType;
@@ -304,6 +306,9 @@ export const ModalContextProvider: React.FC<IProps> = ({ children }) => {
           trackEvent(GENERAL.OPEN_MODAL, { modal: 'Representatives' });
           setType(ModalType.GovRepresentatives);
           setArgs({ representatives });
+        },
+        openBridge: () => {
+          setType(ModalType.Bridge);
         },
         openV3Migration: () => {
           trackEvent(GENERAL.OPEN_MODAL, { modal: 'V2->V3 Migration' });

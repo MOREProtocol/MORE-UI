@@ -3,7 +3,6 @@ import { ReserveIncentiveResponse } from '@aave/math-utils/dist/esm/formatters/i
 import { DotsHorizontalIcon } from '@heroicons/react/solid';
 import { Box, SvgIcon, Typography } from '@mui/material';
 import { useState } from 'react';
-import { useMeritIncentives, useUserMeritIncentives } from 'src/hooks/useMeritIncentives';
 import { useRootStore } from 'src/store/root';
 import { DASHBOARD } from 'src/utils/mixPanelEvents';
 
@@ -11,11 +10,18 @@ import { ContentWithTooltip } from '../ContentWithTooltip';
 import { FormattedNumber } from '../primitives/FormattedNumber';
 import { TokenIcon } from '../primitives/TokenIcon';
 import { IncentivesTooltipContent } from './IncentivesTooltipContent';
-import { MeritIncentivesTooltipContent } from './MeritIncentivesTooltipContent';
+import { RewardsIncentivesTooltipContent } from './MeritIncentivesTooltipContent';
+import { PoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 
 interface IncentivesButtonProps {
   symbol: string;
   incentives?: ReserveIncentiveResponse[];
+  displayBlank?: boolean;
+}
+
+interface RewardsButtonProps {
+  symbol: string;
+  rewards?: PoolReservesRewardsHumanized[];
   displayBlank?: boolean;
 }
 
@@ -33,68 +39,6 @@ const BlankIncentives = () => {
         &nbsp;
       </Typography>
     </Box>
-  );
-};
-
-export const UserMeritIncentivesButton = ({ symbol }: { symbol: 'gho' | 'stkgho' }) => {
-  const [open, setOpen] = useState(false);
-  const { data: meritIncentives } = useUserMeritIncentives();
-
-  if (!meritIncentives) {
-    return null;
-  }
-
-  const incentives = {
-    incentiveAPR: (meritIncentives.actionsAPR[symbol] / 100).toString(),
-    rewardTokenSymbol: 'GHO', // rewards alwasy in gho, for now
-    rewardTokenAddress: '0x', // not used for merit program
-  };
-
-  return (
-    <ContentWithTooltip
-      tooltipContent={
-        <MeritIncentivesTooltipContent
-          incentiveAPR={incentives.incentiveAPR}
-          rewardTokenSymbol={incentives.rewardTokenSymbol}
-        />
-      }
-      withoutHover
-      setOpen={setOpen}
-      open={open}
-    >
-      <Content incentives={[incentives]} incentivesNetAPR={+incentives.incentiveAPR} plus />
-    </ContentWithTooltip>
-  );
-};
-
-export const MeritIncentivesButton = ({ symbol }: { symbol: 'gho' | 'stkgho' }) => {
-  const [open, setOpen] = useState(false);
-  const { data: meritIncentives } = useMeritIncentives();
-
-  if (!meritIncentives) {
-    return null;
-  }
-
-  const incentives = {
-    incentiveAPR: (meritIncentives.actionsAPR[symbol] / 100).toString(),
-    rewardTokenSymbol: 'GHO', // rewards alwasy in gho, for now
-    rewardTokenAddress: '0x', // not used for merit program
-  };
-
-  return (
-    <ContentWithTooltip
-      tooltipContent={
-        <MeritIncentivesTooltipContent
-          incentiveAPR={incentives.incentiveAPR}
-          rewardTokenSymbol={incentives.rewardTokenSymbol}
-        />
-      }
-      withoutHover
-      setOpen={setOpen}
-      open={open}
-    >
-      <Content incentives={[incentives]} incentivesNetAPR={+incentives.incentiveAPR} plus />
-    </ContentWithTooltip>
   );
 };
 
@@ -119,8 +63,8 @@ export const IncentivesButton = ({ incentives, symbol, displayBlank }: Incentive
   const incentivesNetAPR = isIncentivesInfinity
     ? 'Infinity'
     : incentivesAPRSum !== 'Infinity'
-    ? valueToBigNumber(incentivesAPRSum || 0).toNumber()
-    : 'Infinity';
+      ? valueToBigNumber(incentivesAPRSum || 0).toNumber()
+      : 'Infinity';
 
   return (
     <ContentWithTooltip
@@ -138,6 +82,59 @@ export const IncentivesButton = ({ incentives, symbol, displayBlank }: Incentive
       <Content
         incentives={incentives}
         incentivesNetAPR={incentivesNetAPR}
+        displayBlank={displayBlank}
+      />
+    </ContentWithTooltip>
+  );
+};
+
+export const RewardsButton = ({ rewards, displayBlank }: RewardsButtonProps) => {
+  const [open, setOpen] = useState(false);
+
+  if (!(rewards && rewards.length > 0)) {
+    if (displayBlank) {
+      return <BlankIncentives />;
+    } else {
+      return null;
+    }
+  }
+
+  // const isIncentivesInfinity = incentives.some(
+  //   (incentive) => incentive.incentiveAPR === 'Infinity'
+  // );
+  // const incentivesAPRSum = isIncentivesInfinity
+  //   ? 'Infinity'
+  //   : incentives.reduce((aIncentive, bIncentive) => aIncentive + +bIncentive.incentiveAPR, 0);
+
+  // const incentivesNetAPR = isIncentivesInfinity
+  //   ? 'Infinity'
+  //   : incentivesAPRSum !== 'Infinity'
+  //     ? valueToBigNumber(incentivesAPRSum || 0).toNumber()
+  //     : 'Infinity';
+
+  const apy = rewards.reduce((acc, reward) => acc + reward.apy_bps / 10000, 0);
+
+  return (
+    <ContentWithTooltip
+      tooltipContent={
+        <RewardsIncentivesTooltipContent
+          incentiveAPR={apy.toString()}
+          rewardTokenSymbol={rewards[0].reward_token_symbol}
+        />
+      }
+      withoutHover
+      setOpen={setOpen}
+      open={open}
+    >
+      <Content
+        incentives={rewards ? rewards.filter(r => ['supply', 'supply_and_borrow'].includes(r.tracked_token_type)).map(r => {
+          return {
+            incentiveAPR: apy.toString(),
+            rewardTokenAddress: r.reward_token_address,
+            rewardTokenSymbol: r.reward_token_symbol,
+          }
+        }) : []}
+        incentivesNetAPR={apy}
         displayBlank={displayBlank}
       />
     </ContentWithTooltip>
@@ -235,21 +232,21 @@ const Content = ({
         <>
           {incentives.length < 5 ? (
             <>
-              {incentives.map((incentive) => (
+              {incentives.map((incentive, index) => (
                 <TokenIcon
                   symbol={incentive.rewardTokenSymbol}
                   sx={{ fontSize: `${iconSize}px`, ml: -1 }}
-                  key={incentive.rewardTokenSymbol}
+                  key={`${incentive.rewardTokenSymbol}-${index}`}
                 />
               ))}
             </>
           ) : (
             <>
-              {incentives.slice(0, 3).map((incentive) => (
+              {incentives.slice(0, 3).map((incentive, index) => (
                 <TokenIcon
                   symbol={incentive.rewardTokenSymbol}
                   sx={{ fontSize: `${iconSize}px`, ml: -1 }}
-                  key={incentive.rewardTokenSymbol}
+                  key={`${incentive.rewardTokenSymbol}-${index}-slice`}
                 />
               ))}
               <SvgIcon

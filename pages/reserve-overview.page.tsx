@@ -3,10 +3,7 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import StyledToggleButton from 'src/components/StyledToggleButton';
 import StyledToggleButtonGroup from 'src/components/StyledToggleButtonGroup';
-import {
-  ComputedReserveData,
-  useAppDataContext,
-} from 'src/hooks/app-data-provider/useAppDataProvider';
+import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { AssetCapsProvider } from 'src/hooks/useAssetCaps';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { ReserveActions } from 'src/modules/reserve-overview/ReserveActions';
@@ -26,7 +23,7 @@ export default function ReserveOverview() {
 
   const reserve = reserves.find(
     (reserve) => reserve.underlyingAsset === underlyingAsset
-  ) as ComputedReserveData;
+  );
 
   const [pageEventCalled, setPageEventCalled] = useState(false);
 

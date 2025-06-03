@@ -141,7 +141,12 @@ const BorrowedPositionsListItemDesktop = ({
     >
       <ListValueColumn symbol={reserve.symbol} value={totalBorrows} subValue={totalBorrowsUSD} />
 
-      <ListAPRColumn value={borrowAPY} incentives={incentives} symbol={reserve.symbol} />
+      <ListAPRColumn
+        value={borrowAPY}
+        incentives={incentives}
+        rewards={reserve.rewards?.filter(r => ['borrow', 'supply_and_borrow'].includes(r.tracked_token_type))}
+        symbol={reserve.symbol}
+      />
 
       <ListColumn>
         <ListItemAPYButton
@@ -210,6 +215,7 @@ const BorrowedPositionsListItemMobile = ({
     variableBorrowAPY,
     stableBorrowAPY,
     underlyingAsset,
+    rewards,
   } = reserve;
 
   return (
@@ -234,6 +240,7 @@ const BorrowedPositionsListItemMobile = ({
         <IncentivesCard
           value={borrowAPY}
           incentives={incentives}
+          rewards={rewards?.filter(r => ['borrow', 'supply_and_borrow'].includes(r.tracked_token_type) && r.tracked_token_address === underlyingAsset)}
           symbol={symbol}
           variant="secondary14"
         />

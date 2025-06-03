@@ -170,22 +170,24 @@ export const TxActionsWrapper = ({
           {loading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
           {content}
         </Button>
-        <Button
-          variant="contained"
-          disabled={
-            blocked || readOnlyModeAddress !== undefined || !handleAddToBatch || isAmountMissing
-          }
-          onClick={handleAddToBatchClick}
-          size="large"
-          sx={{ minHeight: '44px', ...(approvalParams ? { mt: 2 } : {}) }}
-          data-cy="batchButton"
-        >
-          {isBatchLoading ? (
-            <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />
-          ) : (
-            'Add to batch'
-          )}
-        </Button>
+        {!!handleAddToBatch && (
+          <Button
+            variant="contained"
+            disabled={
+              blocked || readOnlyModeAddress !== undefined || !handleAddToBatch || isAmountMissing
+            }
+            onClick={handleAddToBatchClick}
+            size="large"
+            sx={{ minHeight: '44px', ...(approvalParams ? { mt: 2 } : {}) }}
+            data-cy="batchButton"
+          >
+            {isBatchLoading ? (
+              <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />
+            ) : (
+              'Add to batch'
+            )}
+          </Button>
+        )}
       </Box>
       {readOnlyModeAddress && (
         <Typography variant="helperText" color="warning.main" sx={{ textAlign: 'center', mt: 2 }}>

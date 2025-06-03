@@ -34,14 +34,15 @@ export const SuppliedPositionsListMobileItem = ({
     isFrozen,
     isActive,
     isPaused,
+    rewards,
   } = reserve;
 
   const canBeEnabledAsCollateral = user
     ? !debtCeiling.isMaxed &&
-      reserve.reserveLiquidationThreshold !== '0' &&
-      ((!reserve.isIsolated && !user.isInIsolationMode) ||
-        user.isolatedReserve?.underlyingAsset === reserve.underlyingAsset ||
-        (reserve.isIsolated && user.totalCollateralMarketReferenceCurrency === '0'))
+    reserve.reserveLiquidationThreshold !== '0' &&
+    ((!reserve.isIsolated && !user.isInIsolationMode) ||
+      user.isolatedReserve?.underlyingAsset === reserve.underlyingAsset ||
+      (reserve.isIsolated && user.totalCollateralMarketReferenceCurrency === '0'))
     : false;
 
   const disableSwap = !isActive || isPaused || reserve.symbol == 'stETH';
@@ -70,6 +71,7 @@ export const SuppliedPositionsListMobileItem = ({
         <IncentivesCard
           value={Number(supplyAPY)}
           incentives={aIncentivesData}
+          rewards={rewards?.filter(r => ['supply', 'supply_and_borrow'].includes(r.tracked_token_type))}
           symbol={symbol}
           variant="secondary14"
         />

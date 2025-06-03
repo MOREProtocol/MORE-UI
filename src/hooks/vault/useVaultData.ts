@@ -163,16 +163,16 @@ const fetchAllocation = async (
 };
 
 interface RewardItem {
-  merkleroot: string;
-  amount: string;
-  rewardtoken: string;
-  proof: string[];
+  merkle_root: string;
+  reward_amount_wei: string;
+  reward_token_address: string;
+  merkle_proof: string[];
+  reward_contract_address: string;
 }
 
 const fetchRewards = async ({ userAddress }: { userAddress: string }): Promise<RewardItem[]> => {
   try {
-    // TODO: update to use the new API
-    const response = await fetch(`http://localhost:3001/api/user?userAddress=${userAddress}`);
+    const response = await fetch(`${process.env.NEXT_PUBLIC_REWARD_URL}/api/vaults/user?userAddress=${userAddress}`);
     if (!response.ok) {
       throw new Error(`Error fetching rewards: ${response.statusText}`);
     }
@@ -181,6 +181,22 @@ const fetchRewards = async ({ userAddress }: { userAddress: string }): Promise<R
   } catch (error) {
     console.error("Failed to fetch rewards:", error);
     return [];
+  }
+};
+
+const fetchVaultRewardAPY = async ({ vaultId }: { vaultId: string }): Promise<{
+  symbol: string;
+  trackedToken: string;
+  rewardToken: string;
+  totalApyBps: number;
+} | null> => {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_REWARD_URL}/api/vaults/apy?assetId=${vaultId}`);
+    const data: { symbol: string; trackedToken: string; rewardToken: string; totalApyBps: number } = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch vault reward APY:", error);
+    return null;
   }
 };
 
@@ -313,11 +329,13 @@ export const useVaultsListData = <TResult = VaultData>(
           ],
           provider
         );
-        const [totalAssets, assetAddress, decimals, nameFromContract] = await Promise.all([
+        const [totalAssets, assetAddress, decimals, nameFromContract, latestVaultSnapshot, vaultReward] = await Promise.all([
           vaultDiamondContract.totalAssets().catch(() => 0),
           vaultDiamondContract.asset().catch(() => undefined),
           vaultDiamondContract.decimals().catch(() => 18),
           vaultDiamondContract.name().catch(() => 'Unnamed Vault'),
+          fetchLatestVaultSnapshot(chainId, vaultId),
+          fetchVaultRewardAPY({ vaultId }),
         ]);
         let assetDecimals = decimals;
         if (assetAddress) {
@@ -336,6 +354,12 @@ export const useVaultsListData = <TResult = VaultData>(
         );
 
         const name = VAULT_ID_TO_NAME[vaultId as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
+        let apy = 0;
+        if (latestVaultSnapshot?.apyCalculatedLast360Days !== '0') {
+          apy = Number(latestVaultSnapshot.apyCalculatedLast360Days);
+        } else if (latestVaultSnapshot?.apyCalculatedSinceInception !== '0') {
+          apy = Number(latestVaultSnapshot.apyCalculatedSinceInception);
+        }
 
         const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
         const vaultData: VaultData = {
@@ -347,6 +371,14 @@ export const useVaultsListData = <TResult = VaultData>(
             sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
             sharePriceInUSD: Number(reserve?.formattedPriceInMarketReferenceCurrency || 0),
             assetAddress: assetAddress,
+            reward: {
+              apyBps: vaultReward?.totalApyBps,
+              symbol: vaultReward?.symbol,
+              rewardSymbol: reserves.find((r) => r.underlyingAsset.toLowerCase() === vaultReward?.rewardToken?.toLowerCase())?.symbol,
+              trackedToken: vaultReward?.trackedToken,
+              rewardToken: vaultReward?.rewardToken,
+            },
+            apy: apy,
           },
           financials: {
             liquidity: {
@@ -390,16 +422,21 @@ export const useVaultsListData = <TResult = VaultData>(
   };
 };
 
-type RewardItemEnriched = RewardItem & {
+export type RewardItemEnriched = RewardItem & {
   price: number;
-  amountInUSD: number;
+  // amountInUSD: number;
   rewardAmountToClaim: number;
   rewardAmountToClaimInUSD: number;
+  symbol: string;
+  name: string;
+  decimals: number;
+  rewardContractAddress: string;
+  proof: string[];
 };
 
-export const useUserData = <TResult = { userRewards: RewardItemEnriched[], claimedRewards: { amount: ethers.BigNumber, rewardToken: string }[] }>(
+export const useUserData = <TResult = { userRewards: RewardItemEnriched[] }>(
   userAddress: string,
-  opts?: VaultDataHookOpts<{ userRewards: RewardItemEnriched[], claimedRewards: { amount: ethers.BigNumber, rewardToken: string }[] }, TResult>
+  opts?: VaultDataHookOpts<{ userRewards: RewardItemEnriched[] }, TResult>
 ) => {
   const { chainId } = useVault();
   const provider = useVaultProvider(chainId);
@@ -409,7 +446,6 @@ export const useUserData = <TResult = { userRewards: RewardItemEnriched[], claim
 
   return useVaultQuery<{
     userRewards: RewardItemEnriched[];
-    claimedRewards: { amount: ethers.BigNumber; rewardToken: string }[];
   }, TResult>(
     vaultQueryKeys.userGlobalData(userAddress, chainId),
     async () => {
@@ -418,10 +454,8 @@ export const useUserData = <TResult = { userRewards: RewardItemEnriched[], claim
       }
 
       const userRewards = await fetchRewards({ userAddress });
-      const rewardTokens = userRewards.map((reward) => reward.rewardtoken);
 
-      // TODO: move reward contract address to config
-      const rewardContractAddress = "0xCC53F325fAA69dC4b414B0d3F02fc9A2fEA92eCE";
+      const rewardContractAddress = userRewards[0].reward_contract_address || "0xCC53F325fAA69dC4b414B0d3F02fc9A2fEA92eCE";
       const rewardContract = new ethers.Contract(
         rewardContractAddress,
         [`function claimed(address account, address reward) external view returns (uint256)`],
@@ -429,7 +463,8 @@ export const useUserData = <TResult = { userRewards: RewardItemEnriched[], claim
       );
 
       const claimedRewards = await Promise.all(
-        rewardTokens.map(async (rewardToken) => {
+        userRewards.map(async (reward) => {
+          const rewardToken = reward.reward_token_address;
           let amount: ethers.BigNumber;
           try {
             amount = await rewardContract.claimed(userAddress, rewardToken);
@@ -445,19 +480,23 @@ export const useUserData = <TResult = { userRewards: RewardItemEnriched[], claim
       );
 
       const userRewardsEnriched = userRewards.map((reward) => {
-        const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === reward.rewardtoken.toLowerCase());
-        const rewardAmountToClaim = Number(formatUnits(reward.amount, reserve?.decimals)) - Number(formatUnits(claimedRewards.find((r) => r.rewardToken === reward.rewardtoken)?.amount || 0, reserve?.decimals));
+        const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === reward.reward_token_address.toLowerCase());
+        const rewardAmountToClaim = Number(reward.reward_amount_wei) - Number(claimedRewards.find((r) => r.rewardToken === reward.reward_token_address)?.amount || 0);
         const rewardAmountToClaimInUSD = rewardAmountToClaim * Number(reserve?.priceInUSD || 0);
         return {
           ...reward,
           price: reserve ? Number(reserve.priceInUSD) : 0,
-          amountInUSD: Number(formatUnits(reward.amount, reserve?.decimals)) * Number(reserve?.priceInUSD || 0),
           rewardAmountToClaim,
           rewardAmountToClaimInUSD,
+          symbol: reserve?.symbol,
+          name: reserve?.name,
+          decimals: reserve?.decimals,
+          rewardContractAddress: rewardContractAddress,
+          proof: reward.merkle_proof,
         };
       });
 
-      return { userRewards: userRewardsEnriched, claimedRewards };
+      return { userRewards: userRewardsEnriched };
     },
     isHookEnabled,
     opts
@@ -667,7 +706,7 @@ export const useVaultData = <TResult = VaultData>(
             guardian,
             curator,
           },
-          apy: latestSnapshot?.apy ? parseFloat(latestSnapshot.apy) : undefined,
+          apy: Number(latestSnapshot?.apyCalculatedLast360Days) || Number(latestSnapshot?.apyCalculatedSinceInception) || 0,
           historicalSnapshots: {
             apy: formatSnapshotsForChart(historicalSnapshots, 'apy'),
             totalSupply: formatSnapshotsForChart(historicalSnapshots, 'totalSupply'),
@@ -678,12 +717,12 @@ export const useVaultData = <TResult = VaultData>(
             totalAssets: totalAssets.toString(),
             maxDeposit: maxDeposit.toString(),
           },
-          returnMetrics: {
-            dayToDate: latestSnapshot?.return1D ? parseFloat(latestSnapshot.return1D) : undefined,
-            weekToDate: latestSnapshot?.return7D ? parseFloat(latestSnapshot.return7D) : undefined,
-            monthToDate: latestSnapshot?.return30D ? parseFloat(latestSnapshot.return30D) : undefined,
-            halfYearToDate: latestSnapshot?.return180D ? parseFloat(latestSnapshot.return180D) : undefined,
-          },
+          // returnMetrics: {
+          //   dayToDate: latestSnapshot?.return1D ? parseFloat(latestSnapshot.return1D) : undefined,
+          //   weekToDate: latestSnapshot?.return7D ? parseFloat(latestSnapshot.return7D) : undefined,
+          //   monthToDate: latestSnapshot?.return30D ? parseFloat(latestSnapshot.return30D) : undefined,
+          //   halfYearToDate: latestSnapshot?.return180D ? parseFloat(latestSnapshot.return180D) : undefined,
+          // },
         },
         allocation: allocationData,
         activity: activityData,

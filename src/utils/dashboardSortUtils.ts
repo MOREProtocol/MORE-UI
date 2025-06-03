@@ -5,6 +5,7 @@ import { SupplyAssetsItem } from 'src/modules/dashboard/lists/SupplyAssetsList/t
 // Sorting keys
 import {
   ComputedReserveData,
+  ComputedReserveDataWithMarket,
   ComputedUserReserveData,
 } from '../hooks/app-data-provider/useAppDataProvider';
 
@@ -26,7 +27,7 @@ export type DashboardReserve = DashboardReserveData & {
   // Additions
   borrowRateMode: InterestRate; // for the borrow positions list
   // Overrides
-  reserve: ComputedReserveData;
+  reserve: ComputedReserveDataWithMarket;
 };
 
 export const handleSortDashboardReserves = (

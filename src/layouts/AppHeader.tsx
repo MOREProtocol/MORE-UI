@@ -27,6 +27,7 @@ import { NavItems } from './components/NavItems';
 import { MobileMenu } from './MobileMenu';
 import { SettingsMenu } from './SettingsMenu';
 import WalletWidget from './WalletWidget';
+// import { useModalContext } from 'src/hooks/useModal';
 
 export const HEADER_HEIGHT = 48;
 interface Props {
@@ -95,7 +96,7 @@ export function AppHeader() {
     state.setMobileDrawerOpen,
   ]);
 
-  // const { openSwitch } = useModalContext();
+  // const { openBridge } = useModalContext();
 
   const { currentMarketData } = useProtocolDataContext();
   const [walletWidgetOpen, setWalletWidgetOpen] = useState(false);
@@ -136,12 +137,6 @@ export function AppHeader() {
     // Set window.location to trigger a page reload when navigating to the the dashboard
     window.location.href = '/';
   };
-
-  // const handleSwitchClick = () => {
-  //   localStorage.setItem(SWITCH_VISITED_KEY, 'true');
-  //   setVisitedSwitch(true);
-  //   openSwitch();
-  // };
 
   const testnetTooltip = (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: 1 }}>
@@ -258,31 +253,21 @@ export function AppHeader() {
         </Box>
 
         <Box sx={{ flexGrow: 1 }} />
-        {/* <NoSsr>
-          <StyledBadge
-            invisible={visitedSwitch}
-            variant="dot"
-            badgeContent=""
-            color="secondary"
-            sx={{ mr: 2 }}
-          >
-            <Button
-              onClick={handleSwitchClick}
-              variant="surface"
-              sx={{ p: '7px 8px', minWidth: 'unset', gap: 2, alignItems: 'center' }}
-              aria-label="Switch tool"
-            >
-              {!md && (
-                <Typography component="span" typography="subheader1">
-                  Switch tokens
-                </Typography>
-              )}
-              <SvgIcon fontSize="small">
-                <SwitchHorizontalIcon />
-              </SvgIcon>
-            </Button>
-          </StyledBadge>
-        </NoSsr> */}
+        {/* <Button
+          onClick={openBridge}
+          variant="surface"
+          sx={{ p: '7px 8px', minWidth: 'unset', gap: 2, alignItems: 'center', mr: 2 }}
+          aria-label="Switch tool"
+        >
+          {!md && (
+            <Typography component="span" typography="subheader1">
+              Bridge
+            </Typography>
+          )}
+          <SvgIcon fontSize="small">
+            <SwitchHorizontalIcon />
+          </SvgIcon>
+        </Button> */}
 
         <VaultManagementBundleButton />
         <BatchTransactionsButton open={batchTransactionsOpen} setOpen={setBatchTransactionsOpen} />
