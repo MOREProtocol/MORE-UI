@@ -77,7 +77,7 @@ export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards }: C
 
       // Mark as claimed
       setClaimedRewards(prev => new Set(prev).add(rewardKey));
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error claiming reward:', error);
       setClaimErrors(prev => ({
         ...prev,
