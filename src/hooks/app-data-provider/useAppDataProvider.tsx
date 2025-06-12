@@ -163,7 +163,6 @@ export const AppDataProvider: React.FC<IProps> = ({ children }) => {
   const isUserDataLoading = userReservesDataLoading || userSummaryLoading;
 
   const user = userWithRewards;
-  console.log(user);
 
   return (
     <AppDataContext.Provider

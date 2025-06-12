@@ -78,7 +78,6 @@ export const DashboardTopPanel = () => {
       })
       .filter(Boolean) as RewardItemEnriched[];
   }, [user?.userPoolRewards, reserves]);
-  console.log(transformedUserPoolRewards);
 
   // To prevent all markets from being selected in dashboard view
   useEffect(() => {
