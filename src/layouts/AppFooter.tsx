@@ -21,17 +21,17 @@ const StyledLink = styled(Link)<StyledLinkProps>(({ theme }) => ({
 
 const FOOTER_ICONS = [
   {
-    href: 'https://x.com/More_Protocol',
+    href: 'https://x.com/more_defi/',
     icon: <X />,
     title: 'Lens',
   },
   {
-    href: 'https://discord.gg/VzGm75kN',
+    href: 'https://discord.gg/XnU7hHQgYF',
     icon: <DiscordIcon />,
     title: 'Discord',
   },
   {
-    href: 'https://github.com/moreLabsXYZ',
+    href: 'https://github.com/MOREProtocol',
     icon: <GitHub />,
     title: 'Github',
   },
