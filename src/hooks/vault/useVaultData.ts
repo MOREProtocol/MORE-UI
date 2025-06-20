@@ -453,11 +453,11 @@ export const useUserData = <TResult = { userRewards: RewardItemEnriched[], claim
 };
 
 export const useUserVaultsData = <
-  TResult = { maxWithdraw: ethers.BigNumber; decimals: number }
+  TResult = { maxWithdraw: ethers.BigNumber; decimals: number; assetDecimals: number }
 >(
   userAddress: string,
   vaultIds: string[],
-  opts?: VaultDataHookOpts<{ maxWithdraw: ethers.BigNumber; decimals: number }, TResult>
+  opts?: VaultDataHookOpts<{ maxWithdraw: ethers.BigNumber; decimals: number; assetDecimals: number }, TResult>
 ) => {
   const { chainId } = useVault();
   const provider = useVaultProvider(chainId);
@@ -498,26 +498,33 @@ export const useUserVaultsData = <
         ]);
 
         let finalMaxWithdraw = maxWithdrawShares;
+        let assetDecimals = decimals;
 
         if (assetAddress) {
           const assetContract = new ethers.Contract(
             assetAddress,
-            [`function balanceOf(address user) external view returns (uint256)`],
+            [
+              `function balanceOf(address user) external view returns (uint256)`,
+              `function decimals() external view returns (uint8)`,
+            ],
             provider
           );
-          const vaultAssetBalance = await assetContract
-            .balanceOf(vaultId)
-            .catch(() => ethers.BigNumber.from(0));
+          const [vaultAssetBalance, assetDecimalsFromContract] = await Promise.all([
+            assetContract.balanceOf(vaultId).catch(() => ethers.BigNumber.from(0)),
+            assetContract.decimals().catch(() => 18),
+          ]);
 
           if (maxWithdrawShares.gt(vaultAssetBalance)) {
             finalMaxWithdraw = vaultAssetBalance;
           }
+          assetDecimals = assetDecimalsFromContract;
         }
 
         return {
           maxWithdraw: finalMaxWithdraw,
           decimals,
-        } as unknown as TResult; // Cast to TResult here
+          assetDecimals,
+        } as TResult;
       },
       enabled: allowIndividualQueryExecution,
       refetchInterval: POLLING_INTERVAL,
@@ -525,7 +532,23 @@ export const useUserVaultsData = <
     };
   });
 
-  return useQueries({ queries }) as UseQueryResult<TResult, Error>[];
+  const results = useQueries({ queries }) as UseQueryResult<TResult, Error>[];
+
+  // Add a refetch function that refetches all queries
+  const refetch = () => {
+    results.forEach(result => {
+      if (result.refetch) {
+        result.refetch();
+      }
+    });
+  };
+
+  const extendedResults = results.map(result => ({
+    ...result,
+    refetch: refetch,
+  }));
+
+  return extendedResults;
 };
 
 export const useVaultData = <TResult = VaultData>(

@@ -83,7 +83,7 @@ export const VaultTopDetails = () => {
           Deposit
         </Button>
         <Button
-          variant="contained"
+          variant="gradient"
           fullWidth
           size="medium"
           onClick={() => setIsWithdrawModalOpen(true)}

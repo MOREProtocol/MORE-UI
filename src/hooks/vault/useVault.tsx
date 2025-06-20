@@ -147,6 +147,15 @@ export interface VaultContextData {
   withdrawFromVault: (amountInWei: string, accountAddress?: string) => Promise<{
     tx: ethers.providers.TransactionRequest;
   }>;
+  requestWithdraw: (amountInWei: string) => Promise<{
+    tx: ethers.providers.TransactionRequest;
+  }>;
+  getWithdrawalRequest: (ownerAddress?: string) => Promise<{
+    shares: string;
+    timeLockEndsAt: string;
+  }>;
+  getWithdrawalTimelock: () => Promise<string>;
+  convertToAssets: (shares: string) => Promise<string>;
   addTransaction: ({
     action,
     facet,
@@ -386,6 +395,136 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     [selectedVaultId, signer, accountAddress]
   );
 
+  const requestWithdraw = useCallback(
+    async (amountInWei: string): Promise<{
+      tx: ethers.providers.TransactionRequest;
+    }> => {
+      if (!selectedVaultId) {
+        throw new Error('No vault selected');
+      }
+      if (!signer) {
+        throw new Error('No signer available');
+      }
+
+      const vaultContract = new ethers.Contract(
+        selectedVaultId,
+        [
+          `function paused() external view returns (bool)`,
+          `function requestWithdraw(uint256 _assets) external`,
+        ],
+        signer
+      );
+
+      // Check if vault is paused
+      const isPaused = await vaultContract.paused();
+      if (isPaused) {
+        throw new Error('Vault is paused');
+      }
+
+      try {
+        const tx = await vaultContract.populateTransaction.requestWithdraw(amountInWei);
+        return { tx };
+      } catch (error) {
+        console.error('Request withdraw failed:', error);
+        throw error;
+      }
+    },
+    [selectedVaultId, signer]
+  );
+
+  const getWithdrawalRequest = useCallback(
+    async (ownerAddress = accountAddress): Promise<{
+      shares: string;
+      timeLockEndsAt: string;
+    }> => {
+      if (!selectedVaultId) {
+        throw new Error('No vault selected');
+      }
+      if (!provider) {
+        throw new Error('Provider not available');
+      }
+      if (!ownerAddress) {
+        throw new Error('No owner address provided');
+      }
+
+      const vaultContract = new ethers.Contract(
+        selectedVaultId,
+        [
+          `function getWithdrawalRequest(address owner) external view returns (uint256 shares, uint256 timeLockEndsAt)`,
+        ],
+        provider
+      );
+
+      try {
+        const [shares, timeLockEndsAt] = await vaultContract.getWithdrawalRequest(ownerAddress);
+        return {
+          shares: shares.toString(),
+          timeLockEndsAt: timeLockEndsAt.toString(),
+        };
+      } catch (error) {
+        console.error('Get withdrawal request failed:', error);
+        throw error;
+      }
+    },
+    [selectedVaultId, provider, accountAddress]
+  );
+
+  const getWithdrawalTimelock = useCallback(
+    async (): Promise<string> => {
+      if (!selectedVaultId) {
+        throw new Error('No vault selected');
+      }
+      if (!provider) {
+        throw new Error('Provider not available');
+      }
+
+      const vaultContract = new ethers.Contract(
+        selectedVaultId,
+        [
+          `function getWithdrawalTimelock() external view returns (uint64)`,
+        ],
+        provider
+      );
+
+      try {
+        const timelock = await vaultContract.getWithdrawalTimelock();
+        return timelock.toString();
+      } catch (error) {
+        console.error('Get withdrawal timelock failed:', error);
+        throw error;
+      }
+    },
+    [selectedVaultId, provider]
+  );
+
+  const convertToAssets = useCallback(
+    async (shares: string): Promise<string> => {
+      if (!selectedVaultId) {
+        throw new Error('No vault selected');
+      }
+      if (!provider) {
+        throw new Error('Provider not available');
+      }
+
+      const vaultContract = new ethers.Contract(
+        selectedVaultId,
+        [
+          `function convertToAssets(uint256 shares) external view returns (uint256)`,
+        ],
+        provider
+      );
+
+      try {
+        const assets = await vaultContract.convertToAssets(shares);
+        return assets.toString();
+      } catch (error) {
+        console.error('Convert to assets failed:', error);
+        throw error;
+      }
+    },
+    [selectedVaultId, provider]
+  );
+
   const addTransaction = useCallback(
     ({
       action,
@@ -555,6 +694,10 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     nbTransactions,
     depositInVault,
     withdrawFromVault,
+    requestWithdraw,
+    getWithdrawalRequest,
+    getWithdrawalTimelock,
+    convertToAssets,
     addTransaction,
     removeTransaction,
     clearTransactions,

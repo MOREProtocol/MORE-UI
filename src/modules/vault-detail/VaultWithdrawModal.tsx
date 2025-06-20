@@ -19,16 +19,26 @@ interface VaultWithdrawModalProps {
 }
 
 export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, setIsOpen }) => {
-  const { signer, selectedVaultId, withdrawFromVault, accountAddress, chainId } =
-    useVault();
+  const {
+    signer,
+    selectedVaultId,
+    withdrawFromVault,
+    requestWithdraw,
+    getWithdrawalRequest,
+    getWithdrawalTimelock,
+    convertToAssets,
+    accountAddress,
+    chainId
+  } = useVault();
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
+  const refreshUserVaultData = userVaultData?.[0]?.refetch;
   const [currentNetworkConfig] = useRootStore((state) => [
     state.currentNetworkConfig,
   ]);
   const maxAmountToWithdraw = userVaultData?.[0]?.data?.maxWithdraw
     ? formatUnits(
       userVaultData?.[0]?.data?.maxWithdraw?.toString(),
-      userVaultData?.[0]?.data?.decimals
+      userVaultData?.[0]?.data?.assetDecimals
     )
     : new BigNumber(0);
 
@@ -40,6 +50,14 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
   const [isLoading, setIsLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txAction, setTxAction] = useState<string | null>(null);
+  const [withdrawalRequest, setWithdrawalRequest] = useState<{
+    shares: string;
+    timeLockEndsAt: string;
+  } | null>(null);
+  const [withdrawalAssets, setWithdrawalAssets] = useState<string>('0');
+  const [timelock, setTimelock] = useState<string>('0');
+  const [currentTime, setCurrentTime] = useState<number>(Date.now() / 1000);
+  const [txError, setTxError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -47,16 +65,63 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
       setTxHash(null);
       setTxAction(null);
       setIsLoading(false);
+      setWithdrawalRequest(null);
+      setWithdrawalAssets('0');
+      setTxError(null);
     }
   }, [isOpen]);
 
+  // Load withdrawal request data when modal opens
   useEffect(() => {
-    if (amount && amount !== '0') {
-      setTxAction('withdraw');
-    } else {
-      setTxAction(null);
+    const loadWithdrawalData = async () => {
+      if (isOpen && accountAddress && selectedVaultId) {
+        try {
+          const [request, timelockDuration] = await Promise.all([
+            getWithdrawalRequest(accountAddress),
+            getWithdrawalTimelock(),
+          ]);
+
+          // Only set withdrawal request if shares > 0
+          if (request.shares !== '0') {
+            setWithdrawalRequest(request);
+            // Convert shares to assets
+            const assets = await convertToAssets(request.shares);
+            setWithdrawalAssets(assets);
+          } else {
+            setWithdrawalRequest(null);
+            setWithdrawalAssets('0');
+          }
+          setTimelock(timelockDuration);
+        } catch (error) {
+          console.error('Error loading withdrawal data:', error);
+          // Reset withdrawal request if there's an error (likely no request exists)
+          setWithdrawalRequest(null);
+          setWithdrawalAssets('0');
+        }
+      }
+    };
+
+    loadWithdrawalData();
+  }, [isOpen, accountAddress, selectedVaultId, getWithdrawalRequest, getWithdrawalTimelock, convertToAssets]);
+
+  // Update current time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now() / 1000);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Auto-hide transaction hash when timelock expires
+  useEffect(() => {
+    if (withdrawalRequest && txHash) {
+      const timeLockEndsAt = parseInt(withdrawalRequest.timeLockEndsAt);
+      if (currentTime >= timeLockEndsAt) {
+        setTxHash(null);
+      }
     }
-  }, [amount]);
+  }, [withdrawalRequest, txHash, currentTime]);
 
   const vaultShareCurrency = useMemo(
     () => selectedVault?.overview?.shareCurrencySymbol,
@@ -66,11 +131,61 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     return reserves.find((reserve) => reserve.symbol === vaultShareCurrency);
   }, [reserves, vaultShareCurrency]);
 
+  useEffect(() => {
+    if (withdrawalRequest && reserve) {
+      const timeLockEndsAt = parseInt(withdrawalRequest.timeLockEndsAt);
+      const canWithdraw = currentTime >= timeLockEndsAt;
+      const requestedAmount = formatUnits(withdrawalAssets, reserve.decimals);
+
+      // Check if amount is effectively zero (handles '0', '0.0', '0.00', etc.)
+      const isAmountZero = !amount || parseFloat(amount) === 0;
+      const hasNewAmount = !isAmountZero && amount !== requestedAmount;
+
+      if (canWithdraw && (isAmountZero || amount === requestedAmount)) {
+        setTxAction('withdraw');
+      } else if (hasNewAmount) {
+        // Allow new request if user entered a different amount (and it's not zero)
+        setTxAction('request');
+        // Clear previous transaction hash when user wants to make a new request
+        if (txHash) {
+          setTxHash(null);
+        }
+      } else if (canWithdraw) {
+        setTxAction('withdraw');
+      } else {
+        setTxAction('waiting');
+      }
+    } else if (amount && parseFloat(amount) > 0) {
+      setTxAction('request');
+    } else {
+      setTxAction(null);
+    }
+  }, [amount, withdrawalRequest, withdrawalAssets, currentTime, reserve]);
+
   const amountInUsd = new BigNumber(amount).multipliedBy(
     reserve?.formattedPriceInMarketReferenceCurrency
   );
 
+  const formatTimeRemaining = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${secs}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    } else {
+      return `${secs}s`;
+    }
+  };
+
   const handleChange = (value: string) => {
+    // Clear any previous errors when user changes amount
+    if (txError) {
+      setTxError(null);
+    }
+
     if (value === '-1') {
       setAmount(maxAmountToWithdraw.toString());
     } else {
@@ -80,7 +195,8 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
   };
 
   const handleClick = async () => {
-    if (txHash) {
+    // Only open transaction link if that's the intended action (not when user wants to make a new request)
+    if (txHash && (txAction === null || txAction === 'waiting')) {
       const explorerLink = currentNetworkConfig?.explorerLinkBuilder?.({ tx: txHash })
         || `${networkConfigs[chainId].explorerLink}/tx/${txHash}`;
       window.open(explorerLink, '_blank');
@@ -92,44 +208,149 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     }
 
     setIsLoading(true);
+    setTxError(null); // Clear any previous errors
     try {
-      if (txAction === 'withdraw') {
-        const { tx } = await withdrawFromVault(parseUnits(amount, reserve.decimals).toString());
+      if (txAction === 'request') {
+        const { tx } = await requestWithdraw(parseUnits(amount, reserve.decimals).toString());
+        const response = await signer.sendTransaction(tx);
+        const receipt = await response.wait();
+
+        if (receipt && receipt.status === 1) {
+          // Reload withdrawal request data immediately after successful request
+          try {
+            const [request, timelockDuration] = await Promise.all([
+              getWithdrawalRequest(accountAddress),
+              getWithdrawalTimelock(),
+            ]);
+
+            if (request.shares !== '0') {
+              setWithdrawalRequest(request);
+              // Convert shares to assets
+              const assets = await convertToAssets(request.shares);
+              setWithdrawalAssets(assets);
+
+              // Check if timelock is zero or if we can withdraw immediately
+              const timeLockEndsAt = parseInt(request.timeLockEndsAt);
+              const currentTimestamp = Date.now() / 1000;
+
+              if (parseInt(timelockDuration) === 0 || currentTimestamp >= timeLockEndsAt) {
+                // No timelock or timelock finished - don't show transaction link, go straight to withdraw
+                setTxHash(null);
+                setTxAction('withdraw');
+              } else {
+                // Show transaction link and set waiting state
+                setTxHash(receipt.transactionHash);
+                setTxAction('waiting');
+              }
+            } else {
+              setWithdrawalRequest(null);
+              setWithdrawalAssets('0');
+              setTxHash(receipt.transactionHash);
+              setTxAction(null);
+            }
+
+            // Refresh user vault data after successful request
+            if (refreshUserVaultData) {
+              refreshUserVaultData();
+            }
+          } catch (error) {
+            console.error('Error reloading withdrawal request:', error);
+            // Fallback to showing transaction link
+            setTxHash(receipt.transactionHash);
+            setTxAction(null);
+            // Still refresh user vault data even if request reload fails
+            if (refreshUserVaultData) {
+              refreshUserVaultData();
+            }
+          }
+        } else {
+          console.error('Request withdrawal transaction failed or was rejected.');
+          setTxError('Request withdrawal transaction failed or was rejected.');
+        }
+      } else if (txAction === 'withdraw') {
+        // For withdraw, use the converted assets amount
+        const amountToWithdraw = withdrawalRequest
+          ? formatUnits(withdrawalAssets, reserve.decimals)
+          : amount;
+
+        const { tx } = await withdrawFromVault(parseUnits(amountToWithdraw, reserve.decimals).toString());
         const response = await signer.sendTransaction(tx);
         const receipt = await response.wait();
 
         if (receipt && receipt.status === 1) {
           setTxHash(receipt.transactionHash);
           setTxAction(null);
+          setWithdrawalRequest(null); // Clear the withdrawal request after successful withdrawal
+          setWithdrawalAssets('0'); // Clear the assets amount
+
+          // Refresh user vault data after successful withdrawal
+          if (refreshUserVaultData) {
+            refreshUserVaultData();
+          }
         } else {
           console.error('Withdrawal transaction failed or was rejected.');
+          setTxError('Withdrawal transaction failed or was rejected.');
         }
       }
     } catch (error) {
       console.error('Error during withdrawal process:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during the transaction.';
+      setTxError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   const buttonContent = useMemo(() => {
-    if (txHash) {
-      return 'See transaction on Flowscan';
-    }
-    if (isLoading && txAction === 'withdraw') {
-      return 'Withdrawing...';
+    if (isLoading) {
+      if (txAction === 'request') {
+        return 'Requesting withdrawal...';
+      } else if (txAction === 'withdraw') {
+        return 'Withdrawing...';
+      }
     }
     if (!reserve) {
       return 'Loading...';
     }
-    if (amount === '0' || !amount) return 'Enter an amount';
 
-    if (txAction === 'withdraw') {
-      return 'Withdraw from the vault';
+    if (withdrawalRequest) {
+      const timeLockEndsAt = parseInt(withdrawalRequest.timeLockEndsAt);
+      const canWithdraw = currentTime >= timeLockEndsAt;
+      const requestedAmount = reserve ? formatUnits(withdrawalAssets, reserve.decimals) : '0';
+      const hasNewAmount = amount && amount !== '0' && amount !== requestedAmount;
+
+      // If timelock is finished or zero, prioritize action over showing transaction
+      if (canWithdraw && (!amount || amount === '0' || amount === requestedAmount)) {
+        return 'Complete withdrawal';
+      } else if (hasNewAmount) {
+        return 'Request new withdrawal';
+      } else if (canWithdraw) {
+        return 'Complete withdrawal';
+      } else {
+        // Only show transaction link if we're in waiting state and there's a txHash
+        if (txHash && txAction === 'waiting') {
+          return 'See transaction on Flowscan';
+        }
+        const timeRemaining = timeLockEndsAt - currentTime;
+        return `Timelock: ${formatTimeRemaining(timeRemaining)} remaining`;
+      }
+    }
+
+    // Show transaction link only if no withdrawal request exists
+    if (txHash && !withdrawalRequest) {
+      return 'See transaction on Flowscan';
+    }
+
+    if (amount === '0' || !amount) {
+      return 'Enter an amount';
+    }
+
+    if (txAction === 'request') {
+      return 'Request withdrawal';
     }
 
     return 'Enter an amount';
-  }, [amount, reserve, txHash, isLoading, txAction]);
+  }, [amount, reserve, txHash, isLoading, txAction, withdrawalRequest, withdrawalAssets, currentTime]);
 
   return (
     <BasicModal open={isOpen} setOpen={setIsOpen}>
@@ -180,6 +401,23 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
             </Box>
           </Box>
         </Box>
+        {withdrawalRequest && (
+          <Box sx={{ mb: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+            <Typography variant="subheader1" sx={{ mb: 1 }}>
+              Current Withdrawal Request
+            </Typography>
+            <Typography variant="secondary14" sx={{ mb: 1 }}>
+              Requested amount: {formatUnits(withdrawalAssets, reserve?.decimals || 18)} {vaultShareCurrency}
+            </Typography>
+            <Typography variant="secondary14">
+              {currentTime >= parseInt(withdrawalRequest.timeLockEndsAt)
+                ? 'Timelock completed - you can now withdraw'
+                : `Timelock ends in ${formatTimeRemaining(parseInt(withdrawalRequest.timeLockEndsAt) - currentTime)} (${new Date(parseInt(withdrawalRequest.timeLockEndsAt) * 1000).toLocaleString()})`
+              }
+            </Typography>
+          </Box>
+        )}
+
         <AssetInput
           value={amount}
           onChange={handleChange}
@@ -194,12 +432,54 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
           ]}
           isMaxSelected={amount === maxAmountToWithdraw?.toString()}
           maxValue={maxAmountToWithdraw?.toString()}
-          balanceText={'Available to withdraw'}
+          balanceText={withdrawalRequest ? 'Request new withdrawal amount' : 'Available to withdraw'}
         />
+
+        <Box sx={{ mb: 2, p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
+            <strong>Withdrawal process:</strong> First request a withdrawal, then wait for the timelock period to complete before you can withdraw your funds.
+            {withdrawalRequest && (
+              <span> You can request a new withdrawal amount which will replace your current request and reset the timelock.</span>
+            )}
+          </Typography>
+
+          {/* Show timelock duration when user is about to make a request */}
+          {txAction === 'request' && timelock && parseInt(timelock) > 0 && (
+            <Typography variant="secondary14" sx={{ color: 'warning.main', mt: 1, fontWeight: 'bold' }}>
+              ⏱️ Timelock duration: {formatTimeRemaining(parseInt(timelock))}
+            </Typography>
+          )}
+        </Box>
+
+        {txError && (
+          <Box
+            sx={{
+              mb: 2,
+              p: 2,
+              bgcolor: 'error.main',
+              color: 'error.contrastText',
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'error.main'
+            }}
+          >
+            <Typography variant="secondary14" sx={{ fontWeight: 'bold', mb: 1 }}>
+              Transaction Error
+            </Typography>
+            <Typography variant="caption">
+              {txError}
+            </Typography>
+          </Box>
+        )}
+
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Button
-            variant={txHash ? 'contained' : 'gradient'}
-            disabled={!amount || amount === '0'}
+            variant={(txHash && !withdrawalRequest) || (txHash && txAction === 'waiting') ? 'contained' : 'gradient'}
+            disabled={
+              (txAction === 'waiting' && !(txHash && txAction === 'waiting')) ||
+              isLoading ||
+              (!withdrawalRequest && (!amount || amount === '0'))
+            }
             onClick={handleClick}
             size="large"
             sx={{ minHeight: '44px' }}
@@ -208,12 +488,6 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
             {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
             {buttonContent}
           </Button>
-          {/* <SafeWalletButton
-            isDisabled={!amount || amount === '0'}
-            vaultAddress={selectedVault?.id}
-            operation="withdraw"
-            amount={amount ? parseUnits(amount, reserve.decimals).toString() : '0'}
-          /> */}
         </Box>
       </Box>
     </BasicModal>

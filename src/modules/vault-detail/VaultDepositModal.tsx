@@ -7,7 +7,7 @@ import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { AssetInput } from 'src/components/transactions/AssetInput';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useVault } from 'src/hooks/vault/useVault';
-import { useVaultData } from 'src/hooks/vault/useVaultData';
+import { useVaultData, useUserVaultsData } from 'src/hooks/vault/useVaultData';
 import { useRootStore } from 'src/store/root';
 import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableToSupply';
 import { roundToTokenDecimals } from 'src/utils/utils';
@@ -20,9 +20,11 @@ interface VaultDepositModalProps {
 }
 
 export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, setIsOpen }) => {
-  const { chainId, signer, selectedVaultId, depositInVault } = useVault();
+  const { chainId, signer, selectedVaultId, depositInVault, accountAddress } = useVault();
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
+  const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
+  const refreshUserVaultData = userVaultData?.[0]?.refetch;
   const { reserves } = useAppDataContext();
   const [minRemainingBaseTokenBalance, currentNetworkConfig, currentMarketData] = useRootStore((state) => [
     state.poolComputed.minRemainingBaseTokenBalance,
@@ -145,6 +147,11 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
 
         if (depositReceipt && depositReceipt.status === 1) {
           setTxHash(depositReceipt.transactionHash);
+
+          // Refresh user vault data after successful deposit
+          if (refreshUserVaultData) {
+            refreshUserVaultData();
+          }
         } else {
           console.error('Deposit transaction failed.');
         }

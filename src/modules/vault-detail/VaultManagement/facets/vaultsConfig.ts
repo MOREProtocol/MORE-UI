@@ -10,7 +10,7 @@ export const vaultsConfig = {
   [ChainIds.flowEVMMainnet]: {
     isTestnet: false,
     addresses: {
-      VAULT_FACTORY: '0x04FF9Aa9d0014df1bFc39C3BF6341F91b7ACcb76',
+      VAULT_FACTORY: '0xd640db4Ae39b32985CcF91770efd31b9f9b5A419',
     },
     subgraphUrl: 'https://graph.more.markets/subgraphs/name/more-markets/vaults-subgraph',
   },
