@@ -319,6 +319,18 @@ export const useVaultsListData = <TResult = VaultData>(
           vaultDiamondContract.decimals().catch(() => 18),
           vaultDiamondContract.name().catch(() => 'Unnamed Vault'),
         ]);
+        let assetDecimals = decimals;
+        if (assetAddress) {
+          const assetContract = new ethers.Contract(
+            assetAddress,
+            [
+              `function decimals() external view returns (uint8)`,
+            ],
+            provider
+          );
+          assetDecimals = await assetContract.decimals().catch(() => 18)
+        }
+
         const sharePriceInAsset = await vaultDiamondContract.convertToAssets(
           parseUnits('1', decimals)
         );
@@ -331,8 +343,8 @@ export const useVaultsListData = <TResult = VaultData>(
           overview: {
             name,
             shareCurrencySymbol: reserve?.symbol,
-            assetDecimals: decimals,
-            sharePrice: Number(formatUnits(sharePriceInAsset, decimals)),
+            assetDecimals,
+            sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
             sharePriceInUSD: Number(reserve?.formattedPriceInMarketReferenceCurrency || 0),
             assetAddress: assetAddress,
           },
@@ -626,6 +638,19 @@ export const useVaultData = <TResult = VaultData>(
         sharePriceInAsset,
       ] = contractData;
 
+      let assetDecimals = decimals;
+      if (assetAddress) {
+        const assetContract = new ethers.Contract(
+          assetAddress,
+          [
+            `function balanceOf(address user) external view returns (uint256)`,
+            `function decimals() external view returns (uint8)`,
+          ],
+          provider
+        );
+        assetDecimals = await assetContract.decimals().catch(() => 18)
+      }
+
       const name = VAULT_ID_TO_NAME[vaultId as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
 
       const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
@@ -634,10 +659,10 @@ export const useVaultData = <TResult = VaultData>(
         id: vaultId,
         overview: {
           name,
-          assetDecimals: decimals,
+          assetDecimals,
           assetAddress,
           shareCurrencySymbol: reserve?.symbol,
-          sharePrice: Number(formatUnits(sharePriceInAsset, decimals)),
+          sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
           roles: {
             guardian,
             curator,
