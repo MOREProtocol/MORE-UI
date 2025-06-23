@@ -19,6 +19,7 @@ export const moreleverageFacet: Facet = {
         uint256 maxSlippageBps,
         uint256 deadline
       ) external;`,
+      isBundled: true,
       inputs: [
         {
           id: 'lovToken',

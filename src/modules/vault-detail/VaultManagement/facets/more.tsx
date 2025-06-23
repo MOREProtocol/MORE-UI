@@ -80,6 +80,7 @@ export const moreFacet: Facet = {
         uint256 amount,
         uint16 referralCode
       ) external;`,
+      isBundled: true,
       getAmountForBundleDisplay: getAmountForBundleDisplayDefault,
       getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       inputs: [
@@ -129,6 +130,7 @@ export const moreFacet: Facet = {
         uint256 amount,
         address to
       ) external;`,
+      isBundled: true,
       getAmountForBundleDisplay: getAmountForBundleDisplayDefault,
       getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       inputs: [
@@ -183,7 +185,6 @@ export const moreFacet: Facet = {
               )`,
             ], provider);
             const reserveData = await poolContract.getReserveData(asset);
-            console.log('reserveData', reserveData);
             const aTokenAddress = reserveData[8];
             const variableDebtTokenContract = new ethers.Contract(aTokenAddress as string, [
               `function decimals() external view returns (uint8)`,
@@ -228,6 +229,7 @@ export const moreFacet: Facet = {
         uint16 referralCode,
         address onBehalfOf
       ) external;`,
+      isBundled: true,
       getAmountForBundleDisplay: getAmountForBundleDisplayDefault,
       getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       inputs: [
@@ -299,6 +301,7 @@ export const moreFacet: Facet = {
         uint256 interestRateMode,
         address onBehalfOf
       ) external;`,
+      isBundled: true,
       getAmountForBundleDisplay: getAmountForBundleDisplayDefault,
       getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       inputs: [
@@ -353,6 +356,7 @@ export const moreFacet: Facet = {
         bytes calldata params,
         uint16 referralCode
       ) external;`,
+      isBundled: true,
       getAmountForBundleDisplay: getAmountForBundleDisplayDefault,
       getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       inputs: [

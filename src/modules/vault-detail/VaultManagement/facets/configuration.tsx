@@ -15,6 +15,7 @@ export const configurationFacet: Facet = {
       actionButtonText: 'Make Asset Available',
       description: 'Add an asset to the vault',
       abi: `function addAvailableAsset(address asset) external`,
+      isBundled: false,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       getAmountForBundleDisplay: (inputs: TransactionInput, _reserves: ComputedReserveDataWithMarket[], props?: TypographyProps) => {
         const asset = inputs.asset as string;

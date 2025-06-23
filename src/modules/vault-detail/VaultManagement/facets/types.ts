@@ -25,6 +25,7 @@ export type Action = {
   description: string;
   abi: string;
   inputs: Input[];
+  isBundled?: boolean;
   getAmountForBundleDisplay?: (
     inputs: TransactionInput,
     reserves: ComputedReserveDataWithMarket[],

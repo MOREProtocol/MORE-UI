@@ -41,6 +41,7 @@ export const curveFacet: Facet = {
         uint256 _amount,
         uint256 _min_dy,
       ) external payable returns (uint256)`,
+      isBundled: true,
       getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       getAmountForBundleDisplay: (inputs: TransactionInput, reserves: ComputedReserveDataWithMarket[], props?: TypographyProps) => {
         const amount = inputs._amount as string;
@@ -241,6 +242,7 @@ export const curveFacet: Facet = {
         uint256 _amount,
         uint256 _min_dy,
       ) external payable returns (uint256)`,
+      isBundled: true,
       getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       getAmountForBundleDisplay: (inputs: TransactionInput, reserves: ComputedReserveDataWithMarket[], props?: TypographyProps) => {
         const amount = inputs._amount as string;
@@ -426,6 +428,7 @@ export const curveFacet: Facet = {
         uint256 _amount,
         uint256 _min_dy,
       ) external payable returns (uint256)`,
+      isBundled: true,
       getCurrencySymbolsForBundleDisplay: getCurrencySymbolsForBundleDisplayDefault,
       getAmountForBundleDisplay: (inputs: TransactionInput, reserves: ComputedReserveDataWithMarket[], props?: TypographyProps) => {
         const amount = inputs._amount as string;

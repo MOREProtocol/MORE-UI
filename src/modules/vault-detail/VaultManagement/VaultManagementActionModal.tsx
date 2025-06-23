@@ -13,6 +13,7 @@ import {
   useTheme,
 } from '@mui/material';
 import BigNumber from 'bignumber.js';
+import { ethers } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
 import { Address } from 'src/components/Address';
@@ -45,7 +46,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
   vault,
 }) => {
   const theme = useTheme();
-  const { addTransaction, chainId, getVaultAssetBalance, network, getEncodedActions, submitActions } = useVault();
+  const { addTransaction, chainId, getVaultAssetBalance, network, getEncodedActions, submitActions, signer } = useVault();
   const { reserves } = useAppDataContext();
   const { currentNetworkConfig } = useProtocolDataContext();
   const availableTokensDropdownOptions = reserves.map((reserve) => ({
@@ -255,19 +256,18 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
         let humanReadableMaxBalance: string | undefined = undefined;
         let valueToParseInUnits = value; // This is the human-readable value we intend to parse
 
-        const dynamicDetail = dynamicCurrencyDetails[input.id];
+        const currencyDetails = dynamicCurrencyDetails[input.id];
         const relatedTokenAddress = input.relatedInputId ? prev[input.relatedInputId] : undefined;
+        const relatedInputCurrencyData = getRelatedInputCurrencyData(input.relatedInputId);
 
-        if (dynamicDetail) {
-          decimalsForParsing = dynamicDetail.decimals || 18;
-          if (dynamicDetail.balance) {
-            humanReadableMaxBalance = formatUnits(dynamicDetail.balance, decimalsForParsing);
-          }
-        } else if (input.relatedInputId && relatedTokenAddress) {
-          const relatedData = getRelatedInputCurrencyData(input.relatedInputId);
-          decimalsForParsing = relatedData?.currencyDecimals || 18;
-          humanReadableMaxBalance = vaultBalances[relatedTokenAddress];
-        }
+        // Use the same balance resolution logic as renderInput
+        humanReadableMaxBalance =
+          currencyDetails?.balance && formatUnits(currencyDetails?.balance, currencyDetails?.decimals)
+          || vaultBalances[relatedTokenAddress]
+          || undefined;
+
+        // Set decimals using the same priority as renderInput
+        decimalsForParsing = currencyDetails?.decimals || relatedInputCurrencyData?.currencyDecimals || 18;
 
         // If raw input 'value' is negative, it implies using the max available balance
         if (new BigNumber(value).isLessThan(0)) {
@@ -370,16 +370,57 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
         finalInputs = await action.prepareInputsWithProvider(preparedInputs, provider);
       }
 
-      // Add the transaction to the bundle
-      const encodedActions = await getEncodedActions([{ id: '0', action, facet, inputs: finalInputs }]);
-      const result = await submitActions(encodedActions);
+      let result;
+
+      // Check if action should be bundled or executed directly
+      if (action?.isBundled === false) {
+        // Execute transaction directly without bundle
+        if (!vault?.id || !signer) {
+          throw new Error('Vault ID or signer not available');
+        }
+
+        const contract = new ethers.Contract(vault.id, [action.abi], signer);
+
+        // Parse the ABI to get the function signature and input types
+        const iface = new ethers.utils.Interface([action.abi]);
+        const functionFragment = iface.getFunction(action.functionName || action.id);
+
+        // Get the input names from the ABI
+        const inputNames = functionFragment.inputs.map((input) => input.name);
+
+        // Map the transaction inputs to the correct order based on the ABI
+        const txArgs = inputNames.map((inputName) => {
+          // Handle special cases for array inputs (like path in Uniswap)
+          if (Array.isArray(finalInputs[inputName])) {
+            return finalInputs[inputName];
+          }
+
+          // Handle deadline parameter by adding current timestamp
+          if (inputName === 'deadline') {
+            const deadlineSeconds = parseInt((finalInputs[inputName] as string) || '0');
+            const currentTimestamp = Math.floor(Date.now() / 1000);
+            return (currentTimestamp + deadlineSeconds).toString();
+          }
+
+          return finalInputs[inputName] || '0';
+        });
+
+        // Execute the transaction directly
+        const tx = await contract[action.functionName || action.id](...txArgs);
+        result = await tx.wait();
+      } else {
+        // Use bundle system (default behavior)
+        const encodedActions = await getEncodedActions([{ id: '0', action, facet, inputs: finalInputs }]);
+        result = await submitActions(encodedActions);
+      }
+
       if (result && result.transactionHash) {
         setExecutionTxHashResult(result.transactionHash);
       }
     } catch (error) {
-      console.error('Error adding transaction:', error);
+      console.error('Error executing transaction:', error);
       setTransactionError(
-        `An error occurred while adding the transaction. Please check the arguments, refresh the page and try again. ${error}`
+        `An error occurred while executing the transaction. Please check the arguments, refresh the page and try again. ${error}`
       );
     } finally {
       setExecuteTransactionLoading(false);
@@ -925,7 +966,7 @@ export const VaultManagementActionModal: React.FC<VaultManagementActionModalProp
       {/* Actions */}
       <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Tooltip title="This feature is in beta" placement="top" arrow>
-          <Button variant="contained" fullWidth onClick={handleAddToBundle} disabled={addTransactionLoading}>
+          <Button variant="contained" fullWidth onClick={handleAddToBundle} disabled={addTransactionLoading || action.isBundled === false}>
             {addTransactionLoading && (
               <CircularProgress size={20} />
             )}

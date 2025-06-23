@@ -34,6 +34,7 @@ export const multirewardsFacet: Facet = {
     actionButtonText: 'Stake',
     description: 'Stake a token to a specific pool',
     abi: `function stake(address staking, uint256 amount) external`,
+    isBundled: true,
     getAmountForBundleDisplay: (inputs: TransactionInput, _reserves: ComputedReserveDataWithMarket[], props?: TypographyProps) => {
       const amount = inputs.amount as string;
       const stakingToken = inputs.staking as string;
@@ -174,6 +175,7 @@ export const multirewardsFacet: Facet = {
     actionButtonText: 'Withdraw',
     description: 'Withdraw a token from a specific pool',
     abi: `function withdraw(address staking, uint256 amount) external`,
+    isBundled: true,
     getAmountForBundleDisplay: (inputs: TransactionInput, _reserves: ComputedReserveDataWithMarket[], props?: TypographyProps) => {
       const amount = inputs.amount as string;
       const stakingToken = inputs.staking as string;
@@ -316,6 +318,7 @@ export const multirewardsFacet: Facet = {
     actionButtonText: 'Get Reward',
     description: 'Get reward from a specific pool',
     abi: `function getReward(address staking) external`,
+    isBundled: true,
     getAmountForBundleDisplay: (inputs: TransactionInput, _reserves: ComputedReserveDataWithMarket[], props?: TypographyProps) => {
       const stakingToken = inputs.staking as string;
 

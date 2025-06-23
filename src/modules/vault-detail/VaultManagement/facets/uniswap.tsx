@@ -152,6 +152,7 @@ export const uniswapFacet: Facet = {
         address to,
         uint deadline
       ) external;`,
+      isBundled: true,
       getAmountForBundleDisplay: getAmountForBundleDisplayDefault(
         (inputs) => inputs.tokenA as string,
         (inputs) => inputs.tokenB as string,
@@ -241,6 +242,7 @@ export const uniswapFacet: Facet = {
         address to,
         uint deadline
       ) external;`,
+      isBundled: true,
       getAmountForBundleDisplay: getAmountForBundleDisplayDefault(
         (inputs) => inputs.tokenA as string,
         (inputs) => inputs.tokenB as string,
@@ -337,6 +339,7 @@ export const uniswapFacet: Facet = {
         address to,
         uint deadline
       ) external;`,
+      isBundled: true,
       prepareInputs: (inputs: TransactionInput): TransactionInput => {
         const { tokenIn, tokenOut, ...restInputs } = inputs;
         const result: TransactionInput = {
