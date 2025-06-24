@@ -15,9 +15,10 @@ interface ClaimRewardsModalProps {
   handleClose: () => void;
   userAddress: string;
   rewards: RewardItemEnriched[];
+  onClaimSuccess?: (claimedRewardAddresses: string[]) => void;
 }
 
-export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards }: ClaimRewardsModalProps) => {
+export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onClaimSuccess }: ClaimRewardsModalProps) => {
   const { data: walletClient } = useWalletClient();
   const chainId = useChainId();
   const [signer, setSigner] = useState<Signer | null>(null);
@@ -77,6 +78,11 @@ export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards }: C
 
       // Mark as claimed
       setClaimedRewards(prev => new Set(prev).add(rewardKey));
+
+      // Call success callback for data refresh
+      if (onClaimSuccess) {
+        onClaimSuccess([reward.reward_token_address]);
+      }
     } catch (error) {
       console.error('Error claiming reward:', error);
       setClaimErrors(prev => ({

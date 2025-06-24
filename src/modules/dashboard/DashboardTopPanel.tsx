@@ -1,9 +1,10 @@
 import { ChainId } from '@aave/contract-helpers';
 import { normalize, UserIncentiveData, valueToBigNumber } from '@aave/math-utils';
 import { Box, Button, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import * as React from 'react';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { NetAPYTooltip } from 'src/components/infoTooltips/NetAPYTooltip';
 import { getMarketInfoById } from 'src/components/MarketSwitcher';
 import { ROUTES } from 'src/components/primitives/Link';
@@ -13,6 +14,7 @@ import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
 import { selectIsMigrationAvailable } from 'src/store/v3MigrationSelectors';
 import { DASHBOARD, GENERAL } from 'src/utils/mixPanelEvents';
+import { queryKeysFactory } from 'src/ui-config/queries';
 
 import HALLink from '../../components/HALLink';
 import { HealthFactorNumber } from '../../components/HealthFactorNumber';
@@ -33,6 +35,9 @@ export const DashboardTopPanel = () => {
   const { currentAccount } = useWeb3Context();
   const [open, setOpen] = useState(false);
   const [claimModalOpen, setClaimModalOpen] = useState(false);
+  const [claimedRewards, setClaimedRewards] = useState<string[]>([]);
+  const [modalRewards, setModalRewards] = useState<RewardItemEnriched[]>([]);
+  const queryClient = useQueryClient();
   const { openClaimRewards } = useModalContext();
   const trackEvent = useRootStore((store) => store.trackEvent);
   const isMigrateToV3Available = useRootStore((state) => selectIsMigrationAvailable(state));
@@ -42,8 +47,25 @@ export const DashboardTopPanel = () => {
   const theme = useTheme();
   const downToSM = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // Transform userPoolRewards to RewardItemEnriched format
-  const transformedUserPoolRewards = useMemo(() => {
+  // Handle successful reward claim
+  const handleClaimSuccess = useCallback((claimedRewardAddresses: string[]) => {
+    // 1. Immediate optimistic update
+    setClaimedRewards(prev => [...prev, ...claimedRewardAddresses]);
+
+    // 2. Targeted data refresh
+    queryClient.invalidateQueries({
+      queryKey: queryKeysFactory.userPoolReservesRewardsDataHumanized(currentAccount, currentMarketData),
+      refetchType: 'active' // Only refetch if component is active
+    });
+
+    // 3. Clear optimistic state after delay to let real data load
+    setTimeout(() => {
+      setClaimedRewards([]);
+    }, 2000);
+  }, [queryClient, currentAccount, currentMarketData]);
+
+  // Transform userPoolRewards to RewardItemEnriched format (for modal - keep all rewards)
+  const allTransformedUserPoolRewards = useMemo(() => {
     if (!user?.userPoolRewards || !reserves) return [];
 
     return user.userPoolRewards
@@ -78,6 +100,61 @@ export const DashboardTopPanel = () => {
       })
       .filter(Boolean) as RewardItemEnriched[];
   }, [user?.userPoolRewards, reserves]);
+
+  // Handle opening the claim modal and capture current rewards
+  const handleOpenClaimModal = useCallback(() => {
+    setModalRewards(allTransformedUserPoolRewards);
+    setClaimModalOpen(true);
+  }, [allTransformedUserPoolRewards]);
+
+  // Handle closing the claim modal and reset modal rewards
+  const handleCloseClaimModal = useCallback(() => {
+    setClaimModalOpen(false);
+    setModalRewards([]);
+  }, []);
+
+  // Calculate filtered rewards count and USD value for dashboard display (apply optimistic filtering here)
+  const { filteredRewardsUsd, hasClaimableRewards } = useMemo(() => {
+    if (!user?.userPoolRewards || !reserves) return { filteredRewardsUsd: 0, hasClaimableRewards: false };
+
+    const result = user.userPoolRewards.reduce(
+      (acc, poolReward) => {
+        // Filter out locally claimed rewards from dashboard calculations
+        const isLocallyClaimed = claimedRewards.includes(poolReward.reward_token_address);
+
+        const rewardTokenReserve = reserves.find(
+          (reserve) => reserve.underlyingAsset.toLowerCase() === poolReward.reward_token_address.toLowerCase()
+        );
+
+        if (rewardTokenReserve && Number(poolReward.net_claimable_amount) > 0 && !isLocallyClaimed) {
+          // Convert wei to human readable amount using token decimals
+          const rewardBalance = normalize(
+            poolReward.net_claimable_amount,
+            rewardTokenReserve.decimals
+          );
+
+          const tokenPrice = Number(rewardTokenReserve.priceInUSD);
+          const rewardBalanceUsd = Number(rewardBalance) * tokenPrice;
+
+          if (rewardBalanceUsd > 0) {
+            if (acc.assets.indexOf(rewardTokenReserve.symbol) === -1) {
+              acc.assets.push(rewardTokenReserve.symbol);
+            }
+
+            acc.userPoolRewardsUsd += Number(rewardBalanceUsd);
+          }
+        }
+
+        return acc;
+      },
+      { userPoolRewardsUsd: 0, assets: [] } as { userPoolRewardsUsd: number; assets: string[] }
+    );
+
+    return {
+      filteredRewardsUsd: result.userPoolRewardsUsd,
+      hasClaimableRewards: result.userPoolRewardsUsd > 0
+    };
+  }, [user?.userPoolRewards, reserves, claimedRewards]);
 
   // To prevent all markets from being selected in dashboard view
   useEffect(() => {
@@ -128,37 +205,7 @@ export const DashboardTopPanel = () => {
     )
     : { claimableRewardsUsd: 0 };
 
-  const { userPoolRewardsUsd } = user?.userPoolRewards
-    ? user.userPoolRewards.reduce(
-      (acc, poolReward) => {
-        const rewardTokenReserve = reserves.find(
-          (reserve) => reserve.underlyingAsset.toLowerCase() === poolReward.reward_token_address.toLowerCase()
-        );
 
-        if (rewardTokenReserve && Number(poolReward.net_claimable_amount) > 0) {
-          // Convert wei to human readable amount using token decimals
-          const rewardBalance = normalize(
-            poolReward.net_claimable_amount,
-            rewardTokenReserve.decimals
-          );
-
-          const tokenPrice = Number(rewardTokenReserve.priceInUSD);
-          const rewardBalanceUsd = Number(rewardBalance) * tokenPrice;
-
-          if (rewardBalanceUsd > 0) {
-            if (acc.assets.indexOf(rewardTokenReserve.symbol) === -1) {
-              acc.assets.push(rewardTokenReserve.symbol);
-            }
-
-            acc.userPoolRewardsUsd += Number(rewardBalanceUsd);
-          }
-        }
-
-        return acc;
-      },
-      { userPoolRewardsUsd: 0, assets: [] } as { userPoolRewardsUsd: number; assets: string[] }
-    )
-    : { userPoolRewardsUsd: 0 };
 
   const loanToValue =
     user?.totalCollateralMarketReferenceCurrency === '0'
@@ -315,7 +362,7 @@ export const DashboardTopPanel = () => {
             </Box>
           </TopInfoPanelItem>
         )}
-        {currentAccount && userPoolRewardsUsd > 0 && (
+        {currentAccount && hasClaimableRewards && (
           <TopInfoPanelItem title={'Claimable MORE Incentives'} loading={loading} hideIcon>
             <Box
               sx={{
@@ -326,7 +373,7 @@ export const DashboardTopPanel = () => {
             >
               <Box sx={{ display: 'inline-flex', alignItems: 'center' }} data-cy={'Claim_Box'}>
                 <FormattedNumber
-                  value={userPoolRewardsUsd}
+                  value={filteredRewardsUsd}
                   variant={valueTypographyVariant}
                   visibleDecimals={2}
                   compact
@@ -340,7 +387,7 @@ export const DashboardTopPanel = () => {
               <Button
                 variant="gradient"
                 size="small"
-                onClick={() => setClaimModalOpen(true)}
+                onClick={handleOpenClaimModal}
                 sx={{ minWidth: 'unset', ml: { xs: 0, xsm: 2 } }}
                 data-cy={'Dashboard_Claim_Button'}
               >
@@ -360,9 +407,10 @@ export const DashboardTopPanel = () => {
       />
       <ClaimRewardsModal
         open={claimModalOpen}
-        handleClose={() => setClaimModalOpen(false)}
+        handleClose={handleCloseClaimModal}
         userAddress={currentAccount}
-        rewards={transformedUserPoolRewards}
+        rewards={modalRewards}
+        onClaimSuccess={handleClaimSuccess}
       />
     </>
   );
