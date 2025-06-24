@@ -1,4 +1,4 @@
-import { Box, Button, CircularProgress, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, Typography, Checkbox, FormControlLabel, Collapse } from '@mui/material';
 import BigNumber from 'bignumber.js';
 import { parseUnits } from 'ethers/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
@@ -11,7 +11,6 @@ import { useVaultData, useUserVaultsData } from 'src/hooks/vault/useVaultData';
 import { useRootStore } from 'src/store/root';
 import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableToSupply';
 import { roundToTokenDecimals } from 'src/utils/utils';
-import { ChainIds } from 'src/utils/const';
 import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
 
 interface VaultDepositModalProps {
@@ -20,7 +19,7 @@ interface VaultDepositModalProps {
 }
 
 export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, setIsOpen }) => {
-  const { chainId, signer, selectedVaultId, depositInVault, accountAddress } = useVault();
+  const { signer, selectedVaultId, depositInVault, accountAddress } = useVault();
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
@@ -37,6 +36,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const [isLoading, setIsLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txAction, setTxAction] = useState<string | null>(null);
+  const [riskAccepted, setRiskAccepted] = useState(false);
+  const [txError, setTxError] = useState<string | null>(null);
   const reserve = useMemo(() =>
     reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === selectedVault?.overview?.assetAddress?.toLowerCase()),
     [reserves, selectedVault]);
@@ -68,6 +69,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       setTxHash(null);
       setTxAction(null);
       setIsLoading(false);
+      setRiskAccepted(false);
+      setTxError(null);
     }
   }, [isOpen]);
 
@@ -93,6 +96,11 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   }, [amount, reserve?.decimals, txHash, depositInVault]);
 
   const handleChange = (value: string) => {
+    // Clear any previous errors when user changes amount
+    if (txError) {
+      setTxError(null);
+    }
+
     if (value === '-1') {
       setAmount(maxAmountToSupply);
     } else {
@@ -119,6 +127,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     }
 
     setIsLoading(true);
+    setTxError(null); // Clear any previous errors
 
     try {
       const parsedAmount = parseUnits(amount, reserve.decimals).toString();
@@ -140,6 +149,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
           setTxAction(nextAction);
         } else {
           console.error('Approval transaction failed or was rejected.');
+          setTxError('Approval transaction failed or was rejected.');
         }
       } else if (txAction === 'deposit') {
         const depositResponse = await signer.sendTransaction(transactionDataForCurrentAction);
@@ -154,10 +164,14 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
           }
         } else {
           console.error('Deposit transaction failed.');
+          setTxError('Deposit transaction failed or was rejected.');
         }
       }
     } catch (error) {
       console.error('Error during transaction process:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during the transaction.';
+      setTxError(errorMessage);
+
       if (amount && amount !== '0' && reserve?.decimals != null && typeof depositInVault === 'function') {
         try {
           const { action: currentActionState } = await depositInVault(parseUnits(amount, reserve.decimals).toString());
@@ -206,85 +220,119 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <Typography variant="h2">Deposit into the vault</Typography>
-          {chainId === ChainIds.flowEVMTestnet && (
-            <Box sx={{ display: 'flex' }}>
-              <Button
-                variant="surface"
-                size="small"
-                color="primary"
-                sx={{
-                  backgroundColor: '#B6509E',
-                  height: '22px',
-                  '&:hover, &.Mui-focusVisible': { backgroundColor: 'rgba(182, 80, 158, 0.7)' },
-                }}
-              >
-                TESTNET
-              </Button>
-            </Box>
-          )}
         </Box>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            // borderBottom: 1,
-            pb: 3,
-            borderColor: 'divider',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <img
-              src={`/MOREVault.svg`}
-              width="45px"
-              height="45px"
-              alt="token-svg"
-              style={{ borderRadius: '50%' }}
+        {/* Risk Disclosure Section */}
+        <Collapse in={!riskAccepted}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box sx={{ mb: 2, p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
+                I understand that depositing into this vault involves risk of loss. The protocol only supplies the infrastructure. The vault&apos;s owner and curator exclusively manage its strategy and allocations and bear full responsibility for performance.
+              </Typography>
+            </Box>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={riskAccepted}
+                  onChange={(e) => setRiskAccepted(e.target.checked)}
+                  sx={{ color: 'text.secondary' }}
+                />
+              }
+              label={
+                <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
+                  I understand and accept the risks.
+                </Typography>
+              }
             />
-            <Box>
-              <Typography variant="main16">{selectedVault?.overview?.name}</Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <TokenIcon symbol={reserve?.symbol || ''} sx={{ fontSize: '16px' }} />
-                <Typography variant="secondary12">{reserve?.symbol}</Typography>
+          </Box>
+        </Collapse>
+
+        {/* Deposit Interface Section */}
+        <Collapse in={riskAccepted}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                pb: 3,
+                borderColor: 'divider',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <img
+                  src={`/MOREVault.svg`}
+                  width="45px"
+                  height="45px"
+                  alt="token-svg"
+                  style={{ borderRadius: '50%' }}
+                />
+                <Box>
+                  <Typography variant="main16">{selectedVault?.overview?.name}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <TokenIcon symbol={reserve?.symbol || ''} sx={{ fontSize: '16px' }} />
+                    <Typography variant="secondary12">{reserve?.symbol}</Typography>
+                  </Box>
+                </Box>
               </Box>
             </Box>
+            <AssetInput
+              value={amount}
+              onChange={handleChange}
+              usdValue={amountInUsd.toString(10)}
+              symbol={reserve?.symbol || ''}
+              assets={[
+                {
+                  balance: walletBalance,
+                  symbol: reserve?.symbol,
+                  iconSymbol: reserve?.iconSymbol,
+                },
+              ]}
+              isMaxSelected={amount === maxAmountToSupply}
+              maxValue={maxAmountToSupply}
+              balanceText={'Wallet balance'}
+            />
+            {txError && (
+              <Box
+                sx={{
+                  mb: 2,
+                  p: 2,
+                  bgcolor: 'error.main',
+                  color: 'error.contrastText',
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'error.main'
+                }}
+              >
+                <Typography variant="secondary14" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  Transaction Error
+                </Typography>
+                <Typography variant="caption">
+                  {txError}
+                </Typography>
+              </Box>
+            )}
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Button
+                variant={txHash ? 'contained' : 'gradient'}
+                disabled={!amount || amount === '0'}
+                onClick={handleClick}
+                size="large"
+                sx={{ minHeight: '44px' }}
+                data-cy="actionButton"
+              >
+                {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
+                {buttonContent}
+              </Button>
+              {/* <SafeWalletButton
+                isDisabled={!amount || amount === '0'}
+                vaultAddress={selectedVault?.id}
+                operation="deposit"
+                amount={amount ? parseUnits(amount, reserve.decimals).toString() : '0'}
+              /> */}
+            </Box>
           </Box>
-        </Box>
-        <AssetInput
-          value={amount}
-          onChange={handleChange}
-          usdValue={amountInUsd.toString(10)}
-          symbol={reserve?.symbol || ''}
-          assets={[
-            {
-              balance: walletBalance,
-              symbol: reserve?.symbol,
-              iconSymbol: reserve?.iconSymbol,
-            },
-          ]}
-          isMaxSelected={amount === maxAmountToSupply}
-          maxValue={maxAmountToSupply}
-          balanceText={'Wallet balance'}
-        />
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Button
-            variant={txHash ? 'contained' : 'gradient'}
-            disabled={!amount || amount === '0'}
-            onClick={handleClick}
-            size="large"
-            sx={{ minHeight: '44px' }}
-            data-cy="actionButton"
-          >
-            {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
-            {buttonContent}
-          </Button>
-          {/* <SafeWalletButton
-            isDisabled={!amount || amount === '0'}
-            vaultAddress={selectedVault?.id}
-            operation="deposit"
-            amount={amount ? parseUnits(amount, reserve.decimals).toString() : '0'}
-          /> */}
-        </Box>
+        </Collapse>
       </Box>
     </BasicModal>
   );

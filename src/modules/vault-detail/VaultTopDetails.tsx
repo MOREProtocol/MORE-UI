@@ -6,6 +6,7 @@ import { useUserVaultsData, useVaultData } from 'src/hooks/vault/useVaultData';
 
 import { VaultDepositModal } from './VaultDepositModal';
 import { VaultWithdrawModal } from './VaultWithdrawModal';
+import { VaultWhitelistModal } from './VaultWhitelistModal';
 
 export const VaultTopDetails = () => {
   const { selectedVaultId, accountAddress } = useVault();
@@ -14,10 +15,22 @@ export const VaultTopDetails = () => {
 
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [isWhitelistModalOpen, setIsWhitelistModalOpen] = useState(false);
 
   const selectedVault = vaultData?.data;
   const isLoading = vaultData?.isLoading;
   const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
+
+  // Hardcoded whitelist check - replace with actual smart contract call later
+  const isWhitelisted = true; // TODO: Replace with actual whitelist check
+
+  const handleDepositClick = () => {
+    if (isWhitelisted) {
+      setIsDepositModalOpen(true);
+    } else {
+      setIsWhitelistModalOpen(true);
+    }
+  };
   return (
     <Box
       sx={{
@@ -76,7 +89,7 @@ export const VaultTopDetails = () => {
           variant="gradient"
           fullWidth
           size="medium"
-          onClick={() => setIsDepositModalOpen(true)}
+          onClick={handleDepositClick}
           disabled={isLoading || !accountAddress}
           sx={{ borderRadius: '6px', py: 2 }}
         >
@@ -95,6 +108,7 @@ export const VaultTopDetails = () => {
       </Box>
       <VaultDepositModal isOpen={isDepositModalOpen} setIsOpen={setIsDepositModalOpen} />
       <VaultWithdrawModal isOpen={isWithdrawModalOpen} setIsOpen={setIsWithdrawModalOpen} />
+      <VaultWhitelistModal isOpen={isWhitelistModalOpen} setIsOpen={setIsWhitelistModalOpen} />
     </Box>
   );
 };
