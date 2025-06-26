@@ -62,6 +62,11 @@ export function AppFooter() {
       key: 'Docs',
     },
     {
+      href: '/attributions',
+      label: 'Attributions',
+      key: 'Attributions',
+    },
+    {
       href: 'https://discord.gg/XnU7hHQgYF',
       label: 'Send feedback',
       key: 'Send feedback',
