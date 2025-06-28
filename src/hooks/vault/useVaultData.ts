@@ -335,7 +335,7 @@ export const useVaultsListData = <TResult = VaultData>(
           parseUnits('1', decimals)
         );
 
-        const name = VAULT_ID_TO_NAME[vaultId as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
+        const name = VAULT_ID_TO_NAME[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
 
         const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
         const vaultData: VaultData = {

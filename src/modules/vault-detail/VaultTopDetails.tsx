@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { useVault } from 'src/hooks/vault/useVault';
 import { useUserVaultsData, useVaultData } from 'src/hooks/vault/useVaultData';
+import { useDepositWhitelist } from 'src/hooks/vault/useDepositWhitelist';
 
 import { VaultDepositModal } from './VaultDepositModal';
 import { VaultWithdrawModal } from './VaultWithdrawModal';
@@ -21,8 +22,8 @@ export const VaultTopDetails = () => {
   const isLoading = vaultData?.isLoading;
   const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
 
-  // Hardcoded whitelist check - replace with actual smart contract call later
-  const isWhitelisted = true; // TODO: Replace with actual whitelist check
+  // Get whitelist data from smart contract
+  const { isWhitelisted, whitelistAmount } = useDepositWhitelist();
 
   const handleDepositClick = () => {
     if (isWhitelisted) {
@@ -106,7 +107,11 @@ export const VaultTopDetails = () => {
           Withdraw
         </Button>
       </Box>
-      <VaultDepositModal isOpen={isDepositModalOpen} setIsOpen={setIsDepositModalOpen} />
+      <VaultDepositModal
+        isOpen={isDepositModalOpen}
+        setIsOpen={setIsDepositModalOpen}
+        whitelistAmount={whitelistAmount}
+      />
       <VaultWithdrawModal isOpen={isWithdrawModalOpen} setIsOpen={setIsWithdrawModalOpen} />
       <VaultWhitelistModal isOpen={isWhitelistModalOpen} setIsOpen={setIsWhitelistModalOpen} />
     </Box>

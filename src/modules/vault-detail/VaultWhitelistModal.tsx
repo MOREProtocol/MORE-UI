@@ -61,12 +61,12 @@ export const VaultWhitelistModal: React.FC<VaultWhitelistModalProps> = ({
     <BasicModal open={isOpen} setOpen={setIsOpen} withCloseButton>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         <Typography variant="h2">
-          Ask to whitelist your wallet
+          Request Access
         </Typography>
         <Box sx={{ mb: 2, p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
             <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
-              This wallet address
+              The connected wallet
             </Typography>
             <Address
               address={accountAddress}
@@ -76,7 +76,7 @@ export const VaultWhitelistModal: React.FC<VaultWhitelistModalProps> = ({
               sx={{ color: 'text.secondary', pl: 1 }}
             />
             <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
-              is <strong>not currently whitelisted to deposit</strong> into this vault. Share your contact details to be notified by the curators once you&apos;re added to the whitelist.
+              is not currently whitelisted for deposits into this portfolio. You may request access by validating this pop-up. To receive a notification when the curator approves your request, you can optionally include your Telegram handle or email address.
             </Typography>
           </Box>
         </Box>

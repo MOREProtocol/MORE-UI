@@ -16,9 +16,10 @@ import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances
 interface VaultDepositModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  whitelistAmount?: string;
 }
 
-export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, setIsOpen }) => {
+export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, setIsOpen, whitelistAmount }) => {
   const { signer, selectedVaultId, depositInVault, accountAddress } = useVault();
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
@@ -46,10 +47,33 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     reserve?.formattedPriceInMarketReferenceCurrency
   );
   const walletBalance = walletBalances[reserve?.underlyingAsset?.toLowerCase()]?.amount || '0';
-  const maxAmountToSupply =
-    !!reserve &&
-    getMaxAmountAvailableToSupply(
-      walletBalance,
+
+  // Calculate max amount considering both wallet balance and whitelist limits
+  const maxAmountToSupply = useMemo(() => {
+    if (!reserve?.decimals) return '0';
+
+    // Start with wallet balance
+    let effectiveMaxAmount = walletBalance;
+
+    // Apply whitelist limit if provided
+    if (whitelistAmount && whitelistAmount !== '0') {
+      // Convert whitelist amount from wei to readable format
+      const whitelistAmountFormatted = roundToTokenDecimals(
+        new BigNumber(whitelistAmount)
+          .dividedBy(new BigNumber(10).pow(reserve.decimals))
+          .toString(),
+        reserve.decimals
+      );
+
+      // Take the minimum between wallet balance and whitelist amount
+      effectiveMaxAmount = new BigNumber(walletBalance).isLessThan(whitelistAmountFormatted)
+        ? walletBalance
+        : whitelistAmountFormatted;
+    }
+
+    // Apply protocol limits (supply cap, etc.) to the effective max amount
+    const finalMaxAmount = getMaxAmountAvailableToSupply(
+      effectiveMaxAmount,
       {
         supplyCap: reserve.supplyCap,
         totalLiquidity: reserve.totalLiquidity,
@@ -61,6 +85,30 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       reserve.underlyingAsset,
       minRemainingBaseTokenBalance
     );
+
+    return finalMaxAmount || '0';
+  }, [walletBalance, whitelistAmount, reserve, minRemainingBaseTokenBalance]);
+
+  // Determine which balance and text to show in AssetInput
+  const assetInputConfig = useMemo(() => {
+    if (!reserve?.decimals || !whitelistAmount || whitelistAmount === '0') {
+      return {
+        balance: walletBalance,
+        balanceText: 'Wallet balance'
+      };
+    }
+
+    const whitelistAmountFormatted = new BigNumber(whitelistAmount)
+      .dividedBy(new BigNumber(10).pow(reserve.decimals))
+      .toString();
+
+    const isWalletLimiting = new BigNumber(walletBalance).isLessThan(whitelistAmountFormatted);
+
+    return {
+      balance: isWalletLimiting ? walletBalance : whitelistAmountFormatted,
+      balanceText: isWalletLimiting ? 'Wallet balance' : 'Max whitelist allowance'
+    };
+  }, [walletBalance, whitelistAmount, reserve?.decimals]);
 
   // Effect to reset state when modal is closed
   useEffect(() => {
@@ -219,14 +267,14 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     <BasicModal open={isOpen} setOpen={setIsOpen}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Typography variant="h2">Deposit into the vault</Typography>
+          <Typography variant="h2">Deposit into the portfolio</Typography>
         </Box>
         {/* Risk Disclosure Section */}
         <Collapse in={!riskAccepted}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <Box sx={{ mb: 2, p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
-                I understand that depositing into this vault involves risk of loss. The protocol only supplies the infrastructure. The vault&apos;s owner and curator exclusively manage its strategy and allocations and bear full responsibility for performance.
+                I understand that depositing into this portfolio involves a risk of loss. The protocol provides only the underlying infrastructure. The portfolio&apos;s owner and curator are solely responsible for managing its strategy and allocations, and assume full responsibility for its performance.
               </Typography>
             </Box>
             <FormControlLabel
@@ -282,14 +330,14 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
               symbol={reserve?.symbol || ''}
               assets={[
                 {
-                  balance: walletBalance,
+                  balance: assetInputConfig.balance,
                   symbol: reserve?.symbol,
                   iconSymbol: reserve?.iconSymbol,
                 },
               ]}
               isMaxSelected={amount === maxAmountToSupply}
               maxValue={maxAmountToSupply}
-              balanceText={'Wallet balance'}
+              balanceText={assetInputConfig.balanceText}
             />
             {txError && (
               <Box

@@ -9,12 +9,12 @@ interface WhitelistNotificationRequest {
 
 const vaultMapping = {
   // SafeYields
-  "0xDB822963f9d0C4D62e20a06977Be0B9CA6CAFE62": {
-    "chatId": ""
+  "0xdb822963f9d0c4d62e20a06977be0b9ca6cafe62": {
+    "chatId": "-4818866689"
   },
   // TAU
-  "0x0000000000000000000000000000000000000000": {
-    "chatId": ""
+  "0xc52e820d2d6207d18667a97e2c6ac22eb26e803c": {
+    "chatId": "-4871747090"
   }
 };
 
@@ -44,7 +44,7 @@ export default async function handler(
     }
 
     // Get the chat ID for the vault
-    const vaultConfig = vaultMapping[vaultId as keyof typeof vaultMapping];
+    const vaultConfig = vaultMapping[vaultId.toLowerCase() as keyof typeof vaultMapping];
     if (!vaultConfig) {
       return res.status(404).json({ message: 'Vault not found in mapping' });
     }
@@ -70,9 +70,8 @@ export default async function handler(
 
     // More lenient escaping for contact info (emails/telegram handles)
     const escapeContactInfo = (text: string): string => {
-      // Only escape characters that would break markdown, but preserve email/telegram valid chars
-      // Keep: @ . + - _ (needed for emails and telegram handles)
-      return text.replace(/[*\[\]()~`>#=|{}!]/g, '\\$&');
+      // Escape characters that would break markdown, including dots
+      return text.replace(/[_*\[\]()~`>#+=|{}.!-]/g, '\\$&');
     };
 
     if (botToken && chatId) {
@@ -89,8 +88,12 @@ export default async function handler(
           ? `Contact info: ${sanitizedContactInfo}`
           : 'No contact info provided';
 
-        // Create the message with escaped content
-        const message = `🔐 Whitelist Request\n\nWallet ${sanitizedWalletAddress} is requesting to deposit in the vault \`${sanitizedVaultId}\`\.\n\n${contactInfoText}`;
+        // Create the message with escaped content - escape static text too
+        const message = `🔐 Whitelist Request
+
+Wallet ${sanitizedWalletAddress} is requesting to deposit in the vault \`${sanitizedVaultId}\`\\.
+
+${contactInfoText}`;
 
         // Send the message with MarkdownV2 parse mode for better security
         await bot.telegram.sendMessage(chatId, message, {
