@@ -35,6 +35,7 @@ export const vaultQueryKeys = {
     'subgraph',
   ],
   userGlobalData: (userAddress: string, chainId?: number) => ['userGlobalData', userAddress, chainId],
+  incentives: (chainId?: number) => ['incentives', chainId],
 };
 
 // General hook options type
@@ -184,20 +185,58 @@ const fetchRewards = async ({ userAddress }: { userAddress: string }): Promise<R
   }
 };
 
-const fetchVaultRewardAPY = async ({ vaultId }: { vaultId: string }): Promise<{
-  symbol: string;
-  trackedToken: string;
-  rewardToken: string;
-  totalApyBps: number;
-} | null> => {
+interface IncentiveItem {
+  id: number;
+  name: string;
+  start_timestamp: number;
+  end_timestamp: number;
+  reward_token_address: string;
+  total_reward_amount_wei: string;
+  tracked_token_address: string;
+  tracked_token_type: string;
+  created_at: number;
+  reward_token_symbol: string;
+  apy_bps: number;
+}
+
+const fetchIncentives = async (): Promise<IncentiveItem[]> => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_REWARD_URL}/api/vaults/apy?assetId=${vaultId}`);
-    const data: { symbol: string; trackedToken: string; rewardToken: string; totalApyBps: number } = await response.json();
+    const response = await fetch(`${process.env.NEXT_PUBLIC_REWARD_URL}/api/vaults/apy`);
+    if (!response.ok) {
+      throw new Error(`Error fetching incentives: ${response.statusText}`);
+    }
+    const data: IncentiveItem[] = await response.json();
     return data;
   } catch (error) {
-    console.error("Failed to fetch vault reward APY:", error);
-    return null;
+    console.error("Failed to fetch incentives:", error);
+    return [];
   }
+};
+
+// Separate hook for incentives that can be shared across vault queries
+export const useIncentives = <TResult = IncentiveItem[]>(
+  opts?: VaultDataHookOpts<IncentiveItem[], TResult>
+) => {
+  const { chainId } = useVault();
+
+  return useVaultQuery<IncentiveItem[], TResult>(
+    vaultQueryKeys.incentives(chainId),
+    fetchIncentives,
+    opts?.enabled !== false,
+    {
+      ...opts,
+      // Cache incentives for longer since they don't change as frequently
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+    }
+  );
+};
+
+// Helper function to get incentives for a specific vault
+const getVaultIncentives = (incentives: IncentiveItem[], vaultId: string): IncentiveItem[] => {
+  return incentives.filter(
+    (incentive) => incentive.tracked_token_address.toLowerCase() === vaultId.toLowerCase()
+  );
 };
 
 const fetchActivity = async (
@@ -307,6 +346,11 @@ export const useVaultsListData = <TResult = VaultData>(
 
   const allowIndividualQueryExecution = canPotentiallyFetch && reservesAreReady;
 
+  // Fetch incentives independently to avoid blocking vault queries
+  const { data: incentivesData } = useIncentives({
+    enabled: canPotentiallyFetch,
+  });
+
   const individualQueryResults = useQueries({
     queries: vaultIds.map((vaultId) => ({
       queryKey: vaultQueryKeys.vaultInList(vaultId, chainId),
@@ -329,13 +373,12 @@ export const useVaultsListData = <TResult = VaultData>(
           ],
           provider
         );
-        const [totalAssets, assetAddress, decimals, nameFromContract, latestVaultSnapshot, vaultReward] = await Promise.all([
+        const [totalAssets, assetAddress, decimals, nameFromContract, latestVaultSnapshot] = await Promise.all([
           vaultDiamondContract.totalAssets().catch(() => 0),
           vaultDiamondContract.asset().catch(() => undefined),
           vaultDiamondContract.decimals().catch(() => 18),
           vaultDiamondContract.name().catch(() => 'Unnamed Vault'),
           fetchLatestVaultSnapshot(chainId, vaultId),
-          fetchVaultRewardAPY({ vaultId }),
         ]);
         let assetDecimals = decimals;
         if (assetAddress) {
@@ -362,6 +405,9 @@ export const useVaultsListData = <TResult = VaultData>(
         }
 
         const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
+        // Get incentives for this vault
+        const vaultIncentives = incentivesData ? getVaultIncentives(incentivesData, vaultId) : [];
+
         const vaultData: VaultData = {
           id: vaultId,
           overview: {
@@ -371,13 +417,6 @@ export const useVaultsListData = <TResult = VaultData>(
             sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
             sharePriceInUSD: Number(reserve?.formattedPriceInMarketReferenceCurrency || 0),
             assetAddress: assetAddress,
-            reward: {
-              apyBps: vaultReward?.totalApyBps,
-              symbol: vaultReward?.symbol,
-              rewardSymbol: reserves.find((r) => r.underlyingAsset.toLowerCase() === vaultReward?.rewardToken?.toLowerCase())?.symbol,
-              trackedToken: vaultReward?.trackedToken,
-              rewardToken: vaultReward?.rewardToken,
-            },
             apy: apy,
           },
           financials: {
@@ -385,6 +424,7 @@ export const useVaultsListData = <TResult = VaultData>(
               totalAssets: totalAssets.toString(),
             },
           },
+          incentives: vaultIncentives,
         };
         return vaultData as unknown as TResult;
       },
@@ -455,7 +495,7 @@ export const useUserData = <TResult = { userRewards: RewardItemEnriched[] }>(
 
       const userRewards = await fetchRewards({ userAddress });
 
-      const rewardContractAddress = userRewards[0].reward_contract_address || "0xCC53F325fAA69dC4b414B0d3F02fc9A2fEA92eCE";
+      const rewardContractAddress = userRewards?.[0]?.reward_contract_address;
       const rewardContract = new ethers.Contract(
         rewardContractAddress,
         [`function claimed(address account, address reward) external view returns (uint256)`],
@@ -481,12 +521,13 @@ export const useUserData = <TResult = { userRewards: RewardItemEnriched[] }>(
 
       const userRewardsEnriched = userRewards.map((reward) => {
         const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === reward.reward_token_address.toLowerCase());
-        const rewardAmountToClaim = Number(reward.reward_amount_wei) - Number(claimedRewards.find((r) => r.rewardToken === reward.reward_token_address)?.amount || 0);
+        const rewardAmountToClaimWei = Number(reward.reward_amount_wei) - Number(claimedRewards.find((r) => r.rewardToken === reward.reward_token_address)?.amount || 0);
+        const rewardAmountToClaim = Number(formatUnits(rewardAmountToClaimWei.toString(), reserve?.decimals || 18));
         const rewardAmountToClaimInUSD = rewardAmountToClaim * Number(reserve?.priceInUSD || 0);
         return {
           ...reward,
           price: reserve ? Number(reserve.priceInUSD) : 0,
-          rewardAmountToClaim,
+          rewardAmountToClaim: rewardAmountToClaimWei,
           rewardAmountToClaimInUSD,
           symbol: reserve?.symbol,
           name: reserve?.name,
@@ -615,6 +656,11 @@ export const useVaultData = <TResult = VaultData>(
 
   const actualQueryExecutionIsEnabled = baseQueryIsEnabled && reservesAreReady;
 
+  // Fetch incentives independently to avoid blocking vault query
+  const { data: incentivesData } = useIncentives({
+    enabled: baseQueryIsEnabled,
+  });
+
   const queryApiResult = useVaultQuery<VaultData, TResult>(
     vaultQueryKeys.vaultDetailsWithSubgraph(vaultId, chainId),
     async () => {
@@ -694,6 +740,9 @@ export const useVaultData = <TResult = VaultData>(
 
       const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
 
+      // Get incentives for this vault
+      const vaultIncentives = incentivesData ? getVaultIncentives(incentivesData, vaultId) : [];
+
       return {
         id: vaultId,
         overview: {
@@ -726,6 +775,7 @@ export const useVaultData = <TResult = VaultData>(
         },
         allocation: allocationData,
         activity: activityData,
+        incentives: vaultIncentives,
       };
     },
     actualQueryExecutionIsEnabled,

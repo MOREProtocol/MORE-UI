@@ -10,6 +10,7 @@ import { useVault } from 'src/hooks/vault/useVault';
 import { useVaultData } from 'src/hooks/vault/useVaultData';
 import { LightweightLineChart } from 'src/modules/vaults/LightweightLineChart';
 import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
+import { RewardsButton } from 'src/components/incentives/IncentivesButton';
 
 export const VaultOverview: React.FC = () => {
   const { selectedVaultId, chainId } = useVault();
@@ -22,7 +23,7 @@ export const VaultOverview: React.FC = () => {
 
   // State for dropdown menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'apy' | 'totalSupply'>('totalSupply');
+  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'apy' | 'totalSupply'>('apy');
   const open = Boolean(anchorEl);
 
   const chartDataOptions = {
@@ -75,30 +76,73 @@ export const VaultOverview: React.FC = () => {
       <Grid container spacing={20} sx={{ pb: 10 }}>
         <Grid item xs={12} md={9} sx={{ gap: 30, paddingY: 5 }}>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="main16" color="text.secondary">
-              Share Price
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'start', flexDirection: 'column' }}>
-              {/* This section displays the current main value (e.g. current Share Price), not historical data */}
-              {isLoading ? (
-                <>
-                  <Skeleton width={200} height={53} sx={{ mb: 1 }} />
-                  <Skeleton width={100} height={28} />
-                </>
-              ) : (
-                <>
-                  <FormattedNumber
-                    value={selectedVault?.overview?.sharePrice || ''} // This might need to change based on dropdown too if we want this header value to change
-                    symbol={selectedVault?.overview?.shareCurrencySymbol || ''} // This might need to change
-                    variant="main40"
-                  />
-                  <FormattedNumber
-                    value={sharePriceInUsd.toString() || ''} // And this USD value
-                    symbol={'USD'}
-                    variant="secondary21"
-                  />
-                </>
-              )}
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'left',
+              alignItems: { xs: 'flex-start', md: 'top' },
+              gap: { xs: 10, md: 30 },
+              flexDirection: { xs: 'column', md: 'row' }
+            }}>
+              <Box>
+                <Typography variant="main16" color="text.secondary">
+                  Share Price
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'start', flexDirection: 'column' }}>
+                  {/* This section displays the current main value (e.g. current Share Price), not historical data */}
+                  {isLoading ? (
+                    <>
+                      <Skeleton width={200} height={53} sx={{ mb: 1 }} />
+                      <Skeleton width={100} height={28} />
+                    </>
+                  ) : (
+                    <>
+                      <FormattedNumber
+                        value={selectedVault?.overview?.sharePrice || ''} // This might need to change based on dropdown too if we want this header value to change
+                        symbol={selectedVault?.overview?.shareCurrencySymbol || ''} // This might need to change
+                        variant="main40"
+                      />
+                      <FormattedNumber
+                        value={sharePriceInUsd.toString() || ''} // And this USD value
+                        symbol={'USD'}
+                        variant="secondary21"
+                      />
+                    </>
+                  )}
+                </Box>
+              </Box>
+              <Box>
+                <Typography variant="main16" color="text.secondary">
+                  APY
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'start', flexDirection: 'column' }}>
+                  {/* This section displays the current main value (e.g. current Share Price), not historical data */}
+                  {isLoading ? (
+                    <>
+                      <Skeleton width={200} height={53} sx={{ mb: 1 }} />
+                      <Skeleton width={100} height={28} />
+                    </>
+                  ) : (
+                    <>
+                      <FormattedNumber
+                        value={selectedVault?.overview?.apy || ''} // This might need to change based on dropdown too if we want this header value to change
+                        percent
+                        variant="main40"
+                      />
+                      {selectedVault?.incentives && selectedVault?.incentives.length > 0 && (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="main14" color="text.secondary" sx={{ ml: 1, mr: 1 }}>
+                            +
+                          </Typography>
+                          <RewardsButton
+                            symbol={selectedVault?.overview?.shareCurrencySymbol || ''}
+                            rewards={selectedVault?.incentives as any}
+                          />
+                        </Box>
+                      )}
+                    </>
+                  )}
+                </Box>
+              </Box>
             </Box>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 7 }}>

@@ -10,6 +10,13 @@ import { LightweightLineChart } from './LightweightLineChart';
 import { fetchVaultHistoricalSnapshots, formatSnapshotsForChart } from 'src/hooks/vault/vaultSubgraph';
 import { IncentivesButton } from 'src/components/incentives/IncentivesButton';
 
+// Interface to match what IncentivesButton expects
+interface FormattedIncentive {
+  incentiveAPR: string;
+  rewardTokenSymbol: string;
+  rewardTokenAddress: string;
+}
+
 interface VaultAssetsListItemProps {
   data: VaultData;
   onClick?: () => void;
@@ -46,6 +53,24 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
     };
     fetchHistoricalSnapshots();
   }, [chainId, data.id]);
+
+  // Format incentives data for IncentivesButton component
+  const formattedIncentives = useMemo((): FormattedIncentive[] | undefined => {
+    if (!data.incentives || data.incentives.length === 0) return undefined;
+
+    const now = Date.now() / 1000;
+    const activeIncentives = data.incentives.filter(
+      (incentive) => now >= incentive.start_timestamp && now <= incentive.end_timestamp
+    );
+
+    if (activeIncentives.length === 0) return undefined;
+
+    return activeIncentives.map((incentive): FormattedIncentive => ({
+      incentiveAPR: (incentive.apy_bps / 100).toString(), // Convert basis points to percentage string
+      rewardTokenSymbol: incentive.reward_token_symbol,
+      rewardTokenAddress: incentive.reward_token_address,
+    }));
+  }, [data.incentives]);
 
   return (
     <Paper
@@ -140,31 +165,60 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
                 fontSize: '0.875rem',
               }}
             >
-              Share Price
+              Base APY
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
               <FormattedNumber
-                value={sharePrice}
-                symbol={data?.overview?.shareCurrencySymbol}
+                value={data.overview.apy || 0}
+                percent
                 variant="main14"
-                compact
+                color="text.primary"
               />
-              <Box sx={{ display: 'flex', flexDirection: 'row' }}>
-                <Typography variant="secondary14" color="text.secondary">
-                  {'('}
-                </Typography>
-                <FormattedNumber
-                  value={sharePriceInUsd.toString()}
-                  symbol={'USD'}
-                  variant="secondary14"
-                  compact
-                />
-                <Typography variant="secondary14" color="text.secondary">
-                  {')'}
-                </Typography>
-              </Box>
+              <IncentivesButton
+                symbol={data.overview.shareCurrencySymbol || ''}
+                incentives={formattedIncentives as any}
+              />
             </Box>
           </Box>
+
+          {/* <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: (theme) => theme.spacing(0.8),
+            }}
+          >
+            <Typography
+              sx={{
+                color: (theme) => theme.palette.text.secondary,
+                fontSize: '0.875rem',
+              }}
+            >
+              Reward APY
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+              {totalRewardApy > 0 ? (
+                <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 0.5 }}>
+                  <FormattedNumber
+                    value={totalRewardApy}
+                    percent
+                    variant="main14"
+                    color="success.main"
+                  />
+                  {data.incentives && data.incentives.length > 0 && (
+                    <TokenIcon
+                      symbol={data.incentives[0].reward_token_symbol}
+                      sx={{ fontSize: '14px' }}
+                    />
+                  )}
+                </Box>
+              ) : (
+                <Typography variant="main14" color="text.secondary">
+                  0%
+                </Typography>
+              )}
+            </Box>
+          </Box> */}
 
           <Box
             sx={{
@@ -189,39 +243,6 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
               <Typography sx={{ fontWeight: 500, textAlign: 'right' }}>
                 {data?.overview?.shareCurrencySymbol}
               </Typography>
-            </Box>
-          </Box>
-
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: (theme) => theme.spacing(0.8),
-            }}
-          >
-            <Typography
-              sx={{
-                color: (theme) => theme.palette.text.secondary,
-                fontSize: '0.875rem',
-              }}
-            >
-              APY
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-              <IncentivesButton
-                symbol={data?.overview?.shareCurrencySymbol || ''}
-                incentives={[{
-                  rewardTokenAddress: data?.overview?.reward?.rewardToken,
-                  rewardTokenSymbol: data?.overview?.reward?.rewardSymbol,
-                  incentiveAPR: data?.overview?.reward?.apyBps ? (data.overview.reward.apyBps / 10000).toString() : undefined,
-                }]}
-              />
-              <FormattedNumber
-                value={data?.overview?.apy}
-                percent
-                variant="secondary14"
-                compact
-              />
             </Box>
           </Box>
         </Box>

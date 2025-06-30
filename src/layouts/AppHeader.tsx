@@ -27,7 +27,7 @@ import { NavItems } from './components/NavItems';
 import { MobileMenu } from './MobileMenu';
 import { SettingsMenu } from './SettingsMenu';
 import WalletWidget from './WalletWidget';
-// import { useModalContext } from 'src/hooks/useModal';
+import { PointsDisplay } from './components/PointsDisplay';
 
 export const HEADER_HEIGHT = 48;
 interface Props {
@@ -253,21 +253,8 @@ export function AppHeader() {
         </Box>
 
         <Box sx={{ flexGrow: 1 }} />
-        {/* <Button
-          onClick={openBridge}
-          variant="surface"
-          sx={{ p: '7px 8px', minWidth: 'unset', gap: 2, alignItems: 'center', mr: 2 }}
-          aria-label="Switch tool"
-        >
-          {!md && (
-            <Typography component="span" typography="subheader1">
-              Bridge
-            </Typography>
-          )}
-          <SvgIcon fontSize="small">
-            <SwitchHorizontalIcon />
-          </SvgIcon>
-        </Button> */}
+
+        <PointsDisplay />
 
         <VaultManagementBundleButton />
         <BatchTransactionsButton open={batchTransactionsOpen} setOpen={setBatchTransactionsOpen} />
