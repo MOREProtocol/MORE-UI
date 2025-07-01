@@ -1,26 +1,22 @@
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import {
-  metaMaskWallet,
-  coinbaseWallet,
-  walletConnectWallet,
-  safeWallet
-} from "@rainbow-me/rainbowkit/wallets";
+import { getDefaultConfig } from 'connectkit';
+import { createConfig } from 'wagmi';
 import { flowMainnet, flowTestnet } from 'viem/chains';
 
-export const config = getDefaultConfig({
+const connectKitConfig = getDefaultConfig({
   appName: 'MORE Markets',
-  projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID,
+  appUrl: 'https://app.more.markets',
+  appIcon: '/loveMore.svg',
+
+  // WalletConnect Project ID (required)
+  walletConnectProjectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID!,
+
+  // Family accounts disabled for traditional wallet flow
+  enableFamily: true,
+
+  // Supported chains
   chains: [flowMainnet, flowTestnet],
-  wallets: [
-    {
-      groupName: "Suggested",
-      wallets: [
-        metaMaskWallet,
-        coinbaseWallet,
-        walletConnectWallet,
-        safeWallet
-      ],
-    },
-  ],
+
   ssr: true
 });
+export const config = createConfig(connectKitConfig);
+

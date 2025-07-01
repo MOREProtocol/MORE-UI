@@ -2,7 +2,6 @@
 
 import '/public/fonts/inter/inter.css';
 import '/src/styles/variables.css';
-import '@rainbow-me/rainbowkit/styles.css';
 
 import { CacheProvider, EmotionCache } from '@emotion/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -76,9 +75,9 @@ const WithdrawModal = dynamic(() =>
   )
 );
 
-// Preventing SSR issues with RainbowKitProvider
-const RainbowKitProvider = dynamic(
-  () => import('@rainbow-me/rainbowkit').then((module) => module.RainbowKitProvider),
+// Preventing SSR issues with ConnectKitProvider
+const ConnectKitProvider = dynamic(
+  () => import('connectkit').then((module) => module.ConnectKitProvider),
   {
     ssr: false,
   }
@@ -129,7 +128,7 @@ export default function MyApp(props: MyAppProps) {
       <Meta />
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider>
+          <ConnectKitProvider customTheme={{ '--ck-family-accounts-brand': '#F58420' }}>
             <Web3ReactProvider getLibrary={getWeb3Library}>
               <Web3ContextProvider>
                 <AppGlobalStyles>
@@ -164,7 +163,7 @@ export default function MyApp(props: MyAppProps) {
                 </AppGlobalStyles>
               </Web3ContextProvider>
             </Web3ReactProvider>
-          </RainbowKitProvider>
+          </ConnectKitProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </CacheProvider>
