@@ -6,6 +6,7 @@ import '/src/styles/variables.css';
 import { CacheProvider, EmotionCache } from '@emotion/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Web3ReactProvider } from '@web3-react/core';
+import { ConnectKitProvider } from 'connectkit';
 import { providers } from 'ethers';
 import { NextPage } from 'next';
 import { AppProps } from 'next/app';
@@ -73,14 +74,6 @@ const WithdrawModal = dynamic(() =>
   import('src/components/transactions/Withdraw/WithdrawModal').then(
     (module) => module.WithdrawModal
   )
-);
-
-// Preventing SSR issues with ConnectKitProvider
-const ConnectKitProvider = dynamic(
-  () => import('connectkit').then((module) => module.ConnectKitProvider),
-  {
-    ssr: false,
-  }
 );
 
 // Client-side cache, shared for the whole session of the user in the browser.
