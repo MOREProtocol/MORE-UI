@@ -17,7 +17,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { useModal } from 'connectkit';
 import React, { useState } from 'react';
 import { AvatarSize } from 'src/components/Avatar';
 import { CompactMode } from 'src/components/CompactableTypography';
@@ -41,7 +41,7 @@ interface WalletWidgetProps {
 export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidgetProps) {
   const { disconnectWallet, currentAccount, connected, chainId, loading, readOnlyModeAddress } =
     useWeb3Context();
-  const { openConnectModal } = useConnectModal();
+  const { setOpen: setConnectModalOpen } = useModal();
 
   const { breakpoints, palette } = useTheme();
   const xsm = useMediaQuery(breakpoints.down('xsm'));
@@ -67,7 +67,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
   const handleClick = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     if (!connected) {
       trackEvent(GENERAL.OPEN_MODAL, { modal: 'Connect Waller' });
-      openConnectModal();
+      setConnectModalOpen(true);
     } else {
       setOpen(true);
       setAnchorEl(event.currentTarget);

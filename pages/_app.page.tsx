@@ -128,7 +128,9 @@ export default function MyApp(props: MyAppProps) {
       <Meta />
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
-          <ConnectKitProvider customTheme={{ '--ck-family-accounts-brand': '#F58420' }}>
+          <ConnectKitProvider customTheme={{
+            '--ck-family-accounts-brand': '#F58420',
+          }}>
             <Web3ReactProvider getLibrary={getWeb3Library}>
               <Web3ContextProvider>
                 <AppGlobalStyles>
