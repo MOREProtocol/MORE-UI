@@ -157,6 +157,7 @@ export interface VaultContextData {
   getWithdrawalTimelock: () => Promise<string>;
   convertToAssets: (shares: string) => Promise<string>;
   getDepositWhitelist: (depositorAddress?: string) => Promise<string>;
+  isDepositWhitelistEnabled: () => Promise<boolean>;
   addTransaction: ({
     action,
     facet,
@@ -557,6 +558,34 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     [selectedVaultId, provider, accountAddress]
   );
 
+  const isDepositWhitelistEnabled = useCallback(
+    async (): Promise<boolean> => {
+      if (!selectedVaultId) {
+        throw new Error('No vault selected');
+      }
+      if (!provider) {
+        throw new Error('Provider not available');
+      }
+
+      const vaultContract = new ethers.Contract(
+        selectedVaultId,
+        [
+          `function isDepositWhitelistEnabled() external view returns (bool)`,
+        ],
+        provider
+      );
+
+      try {
+        const isEnabled = await vaultContract.isDepositWhitelistEnabled();
+        return isEnabled;
+      } catch (error) {
+        console.error('Get deposit whitelist enabled status failed:', error);
+        throw error;
+      }
+    },
+    [selectedVaultId, provider]
+  );
+
   const addTransaction = useCallback(
     ({
       action,
@@ -731,6 +760,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     getWithdrawalTimelock,
     convertToAssets,
     getDepositWhitelist,
+    isDepositWhitelistEnabled,
     addTransaction,
     removeTransaction,
     clearTransactions,

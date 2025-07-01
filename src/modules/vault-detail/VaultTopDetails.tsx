@@ -23,12 +23,17 @@ export const VaultTopDetails = () => {
   const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
 
   // Get whitelist data from smart contract
-  const { isWhitelisted, whitelistAmount } = useDepositWhitelist();
+  const { isWhitelisted, whitelistAmount, isWhitelistEnabled } = useDepositWhitelist();
 
   const handleDepositClick = () => {
-    if (isWhitelisted) {
+    // If whitelisting is not enabled, allow direct deposit
+    if (!isWhitelistEnabled) {
+      setIsDepositModalOpen(true);
+    } else if (isWhitelisted) {
+      // If whitelisting is enabled and user is whitelisted, allow deposit
       setIsDepositModalOpen(true);
     } else {
+      // If whitelisting is enabled but user is not whitelisted, show whitelist modal
       setIsWhitelistModalOpen(true);
     }
   };
