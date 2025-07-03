@@ -1,7 +1,7 @@
 import { useTheme } from '@mui/material/styles';
 import { AreaSeries, createChart, IChartApi, ISeriesApi, LineData, SeriesPartialOptionsMap, Time, UTCTimestamp, BusinessDay } from 'lightweight-charts';
 import React, { useEffect, useRef } from 'react';
-import { Typography } from '@mui/material';
+import { Typography, Box } from '@mui/material';
 import { compactNumber } from 'src/components/primitives/FormattedNumber';
 
 // Data type for the chart
@@ -301,6 +301,55 @@ export const LightweightLineChart: React.FC<LightweightLineChartProps> = ({
   isSmall = false,
   yAxisFormat,
 }) => {
+  const theme = useTheme();
+
+  // Check if data is too old (more than 24 hours)
+  const isDataTooOld = () => {
+    if (!data || data.length === 0) return false;
+
+    // Get the most recent data point
+    const sortedData = [...data].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    const mostRecentDataPoint = sortedData[0];
+
+    if (!mostRecentDataPoint) return false;
+
+    const mostRecentTime = new Date(mostRecentDataPoint.time).getTime();
+    const currentTime = new Date().getTime();
+    const timeDifference = currentTime - mostRecentTime;
+
+    // 24 hours in milliseconds
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+
+    return timeDifference > twentyFourHours;
+  };
+
+  // If data is too old, show indexing message
+  if (isDataTooOld()) {
+    return (
+      <Box
+        sx={{
+          height: `${height}px`,
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          position: 'relative',
+        }}
+      >
+        <Typography
+          sx={{
+            color: theme.palette.text.secondary,
+            textAlign: 'center',
+            fontStyle: 'italic',
+          }}
+        >
+          Chart data is currently indexing...
+        </Typography>
+      </Box>
+    );
+  }
+
   // Convert string time to Unix timestamp for lightweight-charts
   const formattedData: ChartDataPoint[] = data
     ?.map(item => ({
