@@ -38,6 +38,7 @@ export interface Fee {
 export interface VaultRoles {
   curator: string;
   guardian: string;
+  owner: string;
 }
 
 // Define return metrics

@@ -177,13 +177,14 @@ export const formatSnapshotsForChart = (
 
     const rawValue = snapshot[dataKey];
     // Handle potential GQL scientific notation for large numbers if APY can be very small or totalSupply very large
-    const numericValue = parseFloat(rawValue);
+    let numericValue = parseFloat(rawValue);
 
-    // If APY is a percentage, like "0.05" for 5%, you might need to multiply by 100
-    // Assuming APY from subgraph is already in a direct percentage form (e.g., 5 for 5%)
-    // or a direct decimal (e.g. 0.05 for 5%)
-    // If total supply comes in as base units (e.g. wei for ETH), it might need formatting (e.g. to ETH)
-    // For now, a direct parse is done.
+    // If APY is a percentage decimal (0.05 for 5%), multiply by 100 to get percentage
+    if (dataKey === 'apy') {
+      numericValue = numericValue * 100;
+    }
+    // If total supply comes in as base units (e.g. wei for ETH), it might need formatting
+    // For total supply, we keep the raw numeric value for now
 
     return {
       time: timeString,

@@ -1,6 +1,5 @@
 import { Box, Grid, Skeleton, Typography, useMediaQuery, useTheme, Button, Menu, MenuItem } from '@mui/material';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import BigNumber from 'bignumber.js';
 import React, { useMemo, useState } from 'react';
 import { Address } from 'src/components/Address';
 import { CompactMode } from 'src/components/CompactableTypography';
@@ -10,10 +9,12 @@ import { useVault } from 'src/hooks/vault/useVault';
 import { useVaultData } from 'src/hooks/vault/useVaultData';
 import { LightweightLineChart } from 'src/modules/vaults/LightweightLineChart';
 import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
+import { formatUnits } from 'viem';
+import { USD_DECIMALS, valueToBigNumber } from '@aave/math-utils';
 
 export const VaultOverview: React.FC = () => {
   const { selectedVaultId, chainId } = useVault();
-  const { reserves } = useAppDataContext();
+  const { reserves, marketReferencePriceInUsd } = useAppDataContext();
   const vaultData = useVaultData(selectedVaultId);
 
   const selectedVault = vaultData?.data;
@@ -22,7 +23,7 @@ export const VaultOverview: React.FC = () => {
 
   // State for dropdown menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'apy' | 'totalSupply'>('totalSupply');
+  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'apy' | 'totalSupply'>('apy');
   const open = Boolean(anchorEl);
 
   const chartDataOptions = {
@@ -31,7 +32,7 @@ export const VaultOverview: React.FC = () => {
       data: selectedVault?.overview?.historicalSnapshots?.apy || [],
     },
     totalSupply: {
-      label: 'Total Supply',
+      label: 'AUM',
       data: selectedVault?.overview?.historicalSnapshots?.totalSupply || [],
     },
   };
@@ -57,10 +58,21 @@ export const VaultOverview: React.FC = () => {
     );
   }, [reserves, selectedVault]);
 
-  // This sharePriceInUsd is for the main display, not the chart
-  const sharePriceInUsd = new BigNumber(selectedVault?.overview?.sharePrice).multipliedBy(
-    reserve?.formattedPriceInMarketReferenceCurrency
-  );
+  const aum = useMemo(() => {
+    return formatUnits(BigInt(selectedVault?.financials.liquidity.totalAssets || 0), selectedVault?.overview?.assetDecimals || 0) || '';
+  }, [selectedVault]);
+  const aumInUsd = useMemo(() => {
+    if (!selectedVault?.financials.liquidity.totalAssets || !reserve?.formattedPriceInMarketReferenceCurrency || !marketReferencePriceInUsd) {
+      return '0';
+    }
+
+    return valueToBigNumber(selectedVault.financials.liquidity.totalAssets)
+      .multipliedBy(reserve.formattedPriceInMarketReferenceCurrency)
+      .multipliedBy(marketReferencePriceInUsd)
+      .shiftedBy(-USD_DECIMALS)
+      .shiftedBy(-(selectedVault?.overview?.assetDecimals || 0))
+      .toString();
+  }, [selectedVault, reserve, marketReferencePriceInUsd]);
 
   const theme = useTheme();
   const downToMd = useMediaQuery(theme.breakpoints.down('md'));
@@ -72,30 +84,59 @@ export const VaultOverview: React.FC = () => {
       <Grid container spacing={20} sx={{ pb: 10 }}>
         <Grid item xs={12} md={9} sx={{ gap: 30, paddingY: 5 }}>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="main16" color="text.secondary">
-              Share Price
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'start', flexDirection: 'column' }}>
-              {/* This section displays the current main value (e.g. current Share Price), not historical data */}
-              {isLoading ? (
-                <>
-                  <Skeleton width={200} height={53} sx={{ mb: 1 }} />
-                  <Skeleton width={100} height={28} />
-                </>
-              ) : (
-                <>
-                  <FormattedNumber
-                    value={selectedVault?.overview?.sharePrice || ''} // This might need to change based on dropdown too if we want this header value to change
-                    symbol={selectedVault?.overview?.shareCurrencySymbol || ''} // This might need to change
-                    variant="main40"
-                  />
-                  <FormattedNumber
-                    value={sharePriceInUsd.toString() || ''} // And this USD value
-                    symbol={'USD'}
-                    variant="secondary21"
-                  />
-                </>
-              )}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'top', mb: 2 }}>
+              <Box>
+                <Box>
+                  <Typography variant="main16" color="text.secondary">
+                    AUM
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'start', flexDirection: 'column' }}>
+                    {/* This section displays the current main value (e.g. current Share Price), not historical data */}
+                    {isLoading ? (
+                      <>
+                        <Skeleton width={200} height={53} sx={{ mb: 1 }} />
+                        <Skeleton width={100} height={28} />
+                      </>
+                    ) : (
+                      <>
+                        <FormattedNumber
+                          value={aum}
+                          symbol={selectedVault?.overview?.shareCurrencySymbol || ''}
+                          variant="main40"
+                        />
+                        <FormattedNumber
+                          value={aumInUsd}
+                          symbol={'USD'}
+                          variant="secondary21"
+                        />
+                      </>
+                    )}
+                  </Box>
+                </Box>
+              </Box>
+              <Box>
+                <Typography variant="main16" color="text.secondary" align="right">
+                  Annualized APY
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'start', flexDirection: 'column' }}>
+                  {/* This section displays the current main value (e.g. current Share Price), not historical data */}
+                  {isLoading ? (
+                    <>
+                      <Skeleton width={200} height={53} sx={{ mb: 1 }} />
+                      <Skeleton width={100} height={28} />
+                    </>
+                  ) : (
+                    <>
+                      <FormattedNumber
+                        value={selectedVault?.overview?.apy || ''}
+                        percent
+                        variant="main40"
+                      />
+                    </>
+                  )}
+                </Box>
+              </Box>
+
             </Box>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 7 }}>
@@ -151,6 +192,7 @@ export const VaultOverview: React.FC = () => {
                 <LightweightLineChart
                   height={200}
                   data={currentChartData}
+                  yAxisFormat={selectedChartDataKey === 'apy' ? '%' : selectedVault?.overview?.shareCurrencySymbol}
                 />
               ) : (
                 <Typography sx={{ textAlign: 'center', pt: 5 }}>
@@ -174,6 +216,29 @@ export const VaultOverview: React.FC = () => {
           <Typography variant="main16" color="text.secondary" sx={{ mb: 2 }}>
             Vault Roles
           </Typography>
+          <Box>
+            <Typography variant="main14" sx={{ py: 2 }}>
+              Owner
+            </Typography>
+            {isLoading ? (
+              <Skeleton width={100} height={20} />
+            ) : (
+              selectedVault?.overview?.roles?.owner ? (
+                <Address
+                  address={selectedVault?.overview?.roles.owner}
+                  link={`${baseUrl}/address/${selectedVault?.overview?.roles.owner}`}
+                  loading={isLoading}
+                  isUser
+                  variant="secondary14"
+                  compactMode={downToMd ? CompactMode.SM : CompactMode.MD}
+                />
+              ) : (
+                <Typography variant="secondary14">
+                  None
+                </Typography>
+              )
+            )}
+          </Box>
           <Box>
             <Typography variant="main14" sx={{ py: 2 }}>
               Curator

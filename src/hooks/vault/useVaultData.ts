@@ -313,11 +313,12 @@ export const useVaultsListData = <TResult = VaultData>(
           ],
           provider
         );
-        const [totalAssets, assetAddress, decimals, nameFromContract] = await Promise.all([
+        const [totalAssets, assetAddress, decimals, nameFromContract, latestSnapshot] = await Promise.all([
           vaultDiamondContract.totalAssets().catch(() => 0),
           vaultDiamondContract.asset().catch(() => undefined),
           vaultDiamondContract.decimals().catch(() => 18),
           vaultDiamondContract.name().catch(() => 'Unnamed Vault'),
+          fetchLatestVaultSnapshot(chainId, vaultId),
         ]);
         let assetDecimals = decimals;
         if (assetAddress) {
@@ -347,6 +348,7 @@ export const useVaultsListData = <TResult = VaultData>(
             sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
             sharePriceInUSD: Number(reserve?.formattedPriceInMarketReferenceCurrency || 0),
             assetAddress: assetAddress,
+            apy: latestSnapshot?.apy ? parseFloat(latestSnapshot.apy) : undefined,
           },
           financials: {
             liquidity: {
@@ -595,6 +597,7 @@ export const useVaultData = <TResult = VaultData>(
           `function decimals() external view returns (uint8)`,
           `function guardian() external view returns (address)`,
           `function curator() external view returns (address)`,
+          `function owner() external view returns (address)`,
           `function maxDeposit(address receiver) external view returns (uint256 maxAssets)`,
           `function convertToAssets(uint256 shares) external view returns (uint256 assets)`,
         ],
@@ -616,6 +619,7 @@ export const useVaultData = <TResult = VaultData>(
           vaultDiamondContract.decimals().catch(() => 18),
           vaultDiamondContract.guardian().catch(() => undefined),
           vaultDiamondContract.curator().catch(() => undefined),
+          vaultDiamondContract.owner().catch(() => undefined),
           vaultDiamondContract
             .maxDeposit('0x0000000000000000000000000000000000000000')
             .catch(() => ethers.BigNumber.from(0)),
@@ -634,6 +638,7 @@ export const useVaultData = <TResult = VaultData>(
         decimals,
         guardian,
         curator,
+        owner,
         maxDeposit,
         sharePriceInAsset,
       ] = contractData;
@@ -666,6 +671,7 @@ export const useVaultData = <TResult = VaultData>(
           roles: {
             guardian,
             curator,
+            owner,
           },
           apy: latestSnapshot?.apy ? parseFloat(latestSnapshot.apy) : undefined,
           historicalSnapshots: {

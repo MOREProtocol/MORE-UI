@@ -1,4 +1,5 @@
-import { Box, Paper, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Paper, SvgIcon, Typography, useMediaQuery, useTheme } from '@mui/material';
+import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import { BigNumber } from 'bignumber.js';
 import { formatUnits } from 'ethers/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
@@ -29,17 +30,13 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
   const aumInUsd = new BigNumber(aum).multipliedBy(
     reserve?.formattedPriceInMarketReferenceCurrency
   );
-  const sharePrice = data?.overview?.sharePrice;
-  const sharePriceInUsd = new BigNumber(sharePrice).multipliedBy(
-    reserve?.formattedPriceInMarketReferenceCurrency
-  );
 
   const [historicalSnapshots, setHistoricalSnapshots] = useState<{ time: string; value: number }[] | null>(null);
   useEffect(() => {
     const fetchHistoricalSnapshots = async () => {
       const snapshots = await fetchVaultHistoricalSnapshots(chainId, data.id);
       if (snapshots) {
-        const formattedSnapshots = formatSnapshotsForChart(snapshots, 'totalSupply');
+        const formattedSnapshots = formatSnapshotsForChart(snapshots, 'apy');
         setHistoricalSnapshots(formattedSnapshots);
       }
     };
@@ -52,13 +49,17 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
       sx={{
         display: 'flex',
         flexDirection: 'row',
+        alignItems: 'center',
         padding: 5,
-        gap: 15,
+        gap: 10,
         height: '100%',
         cursor: 'pointer',
         borderRadius: (theme) => theme.spacing(2),
         border: (theme) => `0.5px solid ${theme.palette.divider}`,
         overflow: 'hidden',
+        '&:hover': {
+          backgroundColor: (theme) => theme.palette.background.surface,
+        },
       }}
     >
       <Box
@@ -139,29 +140,15 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
                 fontSize: '0.875rem',
               }}
             >
-              Share Price
+              Annualized APY
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
               <FormattedNumber
-                value={sharePrice}
-                symbol={data?.overview?.shareCurrencySymbol}
+                value={data?.overview?.apy}
+                percent
                 variant="main14"
                 compact
               />
-              <Box sx={{ display: 'flex', flexDirection: 'row' }}>
-                <Typography variant="secondary14" color="text.secondary">
-                  {'('}
-                </Typography>
-                <FormattedNumber
-                  value={sharePriceInUsd.toString()}
-                  symbol={'USD'}
-                  variant="secondary14"
-                  compact
-                />
-                <Typography variant="secondary14" color="text.secondary">
-                  {')'}
-                </Typography>
-              </Box>
             </Box>
           </Box>
 
@@ -199,11 +186,16 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
             height={130}
             data={historicalSnapshots}
             isInteractive={false}
-            title="Total Supply"
+            title="APY"
+            yAxisFormat="%"
             isSmall={true}
           />
         </Box>
       )}
+
+      <SvgIcon sx={{ fontSize: '20px' }}>
+        <ArrowForwardRounded />
+      </SvgIcon>
 
     </Paper>
   );
