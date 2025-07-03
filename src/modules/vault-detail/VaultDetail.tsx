@@ -17,9 +17,12 @@ import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { formatUnits } from 'viem';
 import { formatTimeRemaining } from 'src/helpers/timeHelper';
 import { useRouter } from 'next/router';
+import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
+import BigNumber from 'bignumber.js';
 
 export const VaultDetail = () => {
   const router = useRouter();
+  const { reserves } = useAppDataContext();
   const { selectedVaultId, accountAddress, chainId } = useVault();
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
   const vaultData = useVaultData(selectedVaultId);
@@ -39,6 +42,19 @@ export const VaultDetail = () => {
   const selectedVault = vaultData?.data;
   const isLoading = vaultData?.isLoading;
   const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
+
+  const reserve = useMemo(() => {
+    return reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === selectedVault?.overview?.asset?.address?.toLowerCase());
+  }, [reserves, selectedVault]);
+  const aum = selectedVault
+    ? BigInt(selectedVault?.financials?.liquidity?.totalAssets)
+    : BigInt(0);
+  const aumFormatted = selectedVault
+    ? formatUnits(aum, selectedVault?.overview?.asset?.decimals || 18)
+    : '0';
+  const aumInUsd = new BigNumber(aumFormatted).multipliedBy(
+    reserve?.formattedPriceInMarketReferenceCurrency || 0
+  );
 
   const chartDataOptions = {
     apy: {
@@ -169,7 +185,7 @@ export const VaultDetail = () => {
           }}>
             {/* Row 1 - Deposit Tokens */}
             <Box>
-              <Typography variant="secondary14" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography variant="secondary14" color="text.secondary">
                 Deposit Tokens
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -185,7 +201,7 @@ export const VaultDetail = () => {
 
             {/* Row 1 - Deposit Cap */}
             <Box>
-              <Typography variant="secondary14" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography variant="secondary14" color="text.secondary">
                 Deposit Cap
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -202,7 +218,7 @@ export const VaultDetail = () => {
 
             {/* Row 2 - Networks */}
             <Box>
-              <Typography variant="secondary14" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography variant="secondary14" color="text.secondary">
                 Networks
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0 }}>
@@ -220,7 +236,7 @@ export const VaultDetail = () => {
 
             {/* Row 2 - Available Liquidity */}
             <Box>
-              <Typography variant="secondary14" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography variant="secondary14" color="text.secondary">
                 Available Liquidity
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -237,7 +253,7 @@ export const VaultDetail = () => {
 
             {/* Row 3 - Rebalance Timelock */}
             <Box>
-              <Typography variant="secondary14" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography variant="secondary14" color="text.secondary">
                 Rebalance Timelock
               </Typography>
               <Typography variant="main16" fontWeight={600}>
@@ -251,7 +267,7 @@ export const VaultDetail = () => {
 
             {/* Row 3 - Fee */}
             <Box>
-              <Typography variant="secondary14" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography variant="secondary14" color="text.secondary">
                 Fee
               </Typography>
               {isLoading ? <Skeleton width={60} height={24} /> : <FormattedNumber
@@ -262,28 +278,48 @@ export const VaultDetail = () => {
             </Box>
 
             {/* Row 4 - Lifetime */}
-            {/* <Box>
-              <Typography variant="secondary14" color="text.secondary" sx={{ mb: 1 }}>
+            <Box>
+              <Typography variant="secondary14" color="text.secondary">
                 Lifetime
               </Typography>
               <Typography variant="main16" fontWeight={600}>
-                {isLoading ? <Skeleton width={60} /> : '68 days'}
+                {isLoading ? <Skeleton width={60} /> : 'N/A'}
               </Typography>
-            </Box> */}
+            </Box>
 
             {/* Row 4 - Risk Score */}
-            {/* <Box>
-              <Typography variant="secondary14" color="text.secondary" sx={{ mb: 1 }}>
+            <Box>
+              <Typography variant="secondary14" color="text.secondary">
                 Risk Score
               </Typography>
               <Typography variant="main16" fontWeight={600}>
-                {isLoading ? <Skeleton width={60} /> : 'Medium'}
+                {isLoading ? <Skeleton width={60} /> : 'N/A'}
               </Typography>
-            </Box> */}
+            </Box>
           </Box>
         </Box>
         {/* RIGHT SIDE CHART */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', flex: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', flex: 3, pt: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'row', gap: 5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
+              <Typography variant="secondary14" color="text.secondary">TVM</Typography>
+              <FormattedNumber
+                value={aumInUsd.toString() || '0'}
+                symbol={'USD'}
+                variant="main16"
+                sx={{ fontWeight: 800 }}
+              />
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
+              <Typography variant="secondary14" color="text.secondary">APY</Typography>
+              <FormattedNumber
+                value={vaultData?.data?.overview?.apy || '0'}
+                percent
+                variant="main16"
+                sx={{ fontWeight: 800 }}
+              />
+            </Box>
+          </Box>
           {isLoading ? (
             <Skeleton variant="rectangular" width="100%" height={300} />
           ) : currentChartData && currentChartData.length > 0 ? (
