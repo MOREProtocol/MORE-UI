@@ -36,6 +36,7 @@ export interface Fee {
 
 // Define roles in the vault
 export interface VaultRoles {
+  owner: string;
   curator: string;
   guardian: string;
 }
@@ -61,17 +62,21 @@ export interface VaultData {
   overview: {
     name?: string;
     description?: string;
-    assetAddress?: string;
-    assetDecimals?: number;
+    asset?: {
+      symbol?: string;
+      decimals?: number;
+      address?: string;
+    };
     sharePrice?: number;
     sharePriceInUSD?: number;
-    shareCurrencySymbol?: string;
     roles?: VaultRoles;
     apy?: number;
     historicalSnapshots?: {
       apy: { time: string; value: number }[];
       totalSupply: { time: string; value: number }[];
     };
+    withdrawalTimelock?: string;
+    fee?: string;
   };
   financials?: {
     fees?: {

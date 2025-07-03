@@ -20,11 +20,11 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
   const theme = useTheme();
   const upToMD = useMediaQuery(theme.breakpoints.up('md'));
   const reserve = useMemo(() => {
-    return reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === data?.overview?.assetAddress.toLowerCase());
+    return reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === data?.overview?.asset?.address?.toLowerCase());
   }, [reserves, data]);
 
   const aum = data
-    ? formatUnits(data?.financials?.liquidity?.totalAssets, data?.overview?.assetDecimals)
+    ? formatUnits(data?.financials?.liquidity?.totalAssets, data?.overview?.asset?.decimals || 18)
     : '0';
   const aumInUsd = new BigNumber(aum).multipliedBy(
     reserve?.formattedPriceInMarketReferenceCurrency
@@ -105,7 +105,7 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
             <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
               <FormattedNumber
                 value={aum}
-                symbol={data.overview?.shareCurrencySymbol}
+                symbol={data.overview?.asset?.symbol}
                 variant="main14"
                 compact
               />
@@ -144,7 +144,7 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
             <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
               <FormattedNumber
                 value={sharePrice}
-                symbol={data?.overview?.shareCurrencySymbol}
+                symbol={data?.overview?.asset?.symbol}
                 variant="main14"
                 compact
               />
@@ -182,11 +182,11 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1 }}>
               <TokenIcon
-                symbol={data?.overview?.shareCurrencySymbol || ''}
+                symbol={data?.overview?.asset?.symbol || ''}
                 sx={{ fontSize: '16px' }}
               />
               <Typography sx={{ fontWeight: 500, textAlign: 'right' }}>
-                {data?.overview?.shareCurrencySymbol}
+                {data?.overview?.asset?.symbol}
               </Typography>
             </Box>
           </Box>

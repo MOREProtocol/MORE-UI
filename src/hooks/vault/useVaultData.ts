@@ -342,11 +342,13 @@ export const useVaultsListData = <TResult = VaultData>(
           id: vaultId,
           overview: {
             name,
-            shareCurrencySymbol: reserve?.symbol,
-            assetDecimals,
+            asset: {
+              symbol: reserve?.symbol,
+              decimals: assetDecimals,
+              address: assetAddress,
+            },
             sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
             sharePriceInUSD: Number(reserve?.formattedPriceInMarketReferenceCurrency || 0),
-            assetAddress: assetAddress,
           },
           financials: {
             liquidity: {
@@ -595,8 +597,11 @@ export const useVaultData = <TResult = VaultData>(
           `function decimals() external view returns (uint8)`,
           `function guardian() external view returns (address)`,
           `function curator() external view returns (address)`,
+          `function owner() external view returns (address)`,
           `function maxDeposit(address receiver) external view returns (uint256 maxAssets)`,
           `function convertToAssets(uint256 shares) external view returns (uint256 assets)`,
+          `function getWithdrawalTimelock() external view returns (uint256)`,
+          `function fee() external view returns (uint256)`,
         ],
         provider
       );
@@ -616,10 +621,13 @@ export const useVaultData = <TResult = VaultData>(
           vaultDiamondContract.decimals().catch(() => 18),
           vaultDiamondContract.guardian().catch(() => undefined),
           vaultDiamondContract.curator().catch(() => undefined),
+          vaultDiamondContract.owner().catch(() => undefined),
           vaultDiamondContract
             .maxDeposit('0x0000000000000000000000000000000000000000')
             .catch(() => ethers.BigNumber.from(0)),
           vaultDiamondContract.convertToAssets(parseUnits('1', (await vaultDiamondContract.decimals().catch(() => 18)).toString())).catch(() => ethers.BigNumber.from(0)),
+          vaultDiamondContract.getWithdrawalTimelock().catch(() => 0),
+          vaultDiamondContract.fee().catch(() => 0),
         ]),
         fetchAllocation(vaultId, chainId, reserves).catch(() => []),
         fetchActivity(vaultId, chainId, reserves).catch(() => []),
@@ -634,8 +642,11 @@ export const useVaultData = <TResult = VaultData>(
         decimals,
         guardian,
         curator,
+        owner,
         maxDeposit,
         sharePriceInAsset,
+        withdrawalTimelock,
+        fee,
       ] = contractData;
 
       let assetDecimals = decimals;
@@ -659,19 +670,24 @@ export const useVaultData = <TResult = VaultData>(
         id: vaultId,
         overview: {
           name,
-          assetDecimals,
-          assetAddress,
-          shareCurrencySymbol: reserve?.symbol,
+          asset: {
+            symbol: reserve?.symbol,
+            decimals: assetDecimals,
+            address: assetAddress,
+          },
           sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
           roles: {
             guardian,
             curator,
+            owner,
           },
           apy: latestSnapshot?.apy ? parseFloat(latestSnapshot.apy) : undefined,
           historicalSnapshots: {
             apy: formatSnapshotsForChart(historicalSnapshots, 'apy'),
             totalSupply: formatSnapshotsForChart(historicalSnapshots, 'totalSupply'),
           },
+          withdrawalTimelock: withdrawalTimelock.toString(),
+          fee: fee.toString(),
         },
         financials: {
           liquidity: {

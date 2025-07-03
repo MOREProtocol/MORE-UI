@@ -11,3 +11,17 @@ export const formattedTime = (time: number) =>
 
 export const timeText = (time: number) =>
   daysFromSeconds(time) < 1 ? (hoursFromSeconds(time) < 1 ? 'minutes' : 'hours') : 'days';
+
+export const formatTimeRemaining = (seconds: number) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${secs}s`;
+  } else if (minutes > 0) {
+    return `${minutes}m ${secs}s`;
+  } else {
+    return `${secs}s`;
+  }
+};
