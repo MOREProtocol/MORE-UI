@@ -82,7 +82,7 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
               marginRight: (theme) => theme.spacing(1.5),
             }}
           >
-            <img src={'/MOREVault.svg'} alt="Flow Logo" style={{ width: 35, height: 35 }} />
+            <img src={data?.overview?.curatorLogo || '/MOREVault.svg'} alt="Flow Logo" style={{ width: 35, height: 35 }} />
           </Box>
           <Typography fontWeight={700}>{data.overview.name}</Typography>
         </Box>

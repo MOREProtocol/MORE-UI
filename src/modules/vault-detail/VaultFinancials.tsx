@@ -33,14 +33,14 @@ export const VaultFinancials: React.FC = () => {
 
   const reserve = useMemo(() => {
     return reserves.find(
-      (reserve) => reserve.symbol === selectedVault?.overview?.shareCurrencySymbol
+      (reserve) => reserve.symbol === selectedVault?.overview?.asset?.symbol
     );
   }, [reserves, selectedVault]);
 
   const aum = selectedVault
     ? formatUnits(
       selectedVault?.financials?.liquidity?.totalAssets,
-      selectedVault?.overview?.assetDecimals
+      selectedVault?.overview?.asset?.decimals
     )
     : '0';
   const aumInUsd = new BigNumber(aum).multipliedBy(
@@ -81,7 +81,7 @@ export const VaultFinancials: React.FC = () => {
               'Asset Under Management',
               <Stack direction="row" spacing={2} alignItems="center">
                 <TokenIcon
-                  symbol={selectedVault?.overview?.shareCurrencySymbol || ''}
+                  symbol={selectedVault?.overview?.asset?.symbol || ''}
                   sx={{ fontSize: '40px' }}
                 />
                 <Box
@@ -93,7 +93,7 @@ export const VaultFinancials: React.FC = () => {
                 >
                   <FormattedNumber
                     value={aum}
-                    symbol={selectedVault?.overview?.shareCurrencySymbol}
+                    symbol={selectedVault?.overview?.asset?.symbol}
                     variant="main16"
                     compact
                   />

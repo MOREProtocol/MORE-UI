@@ -53,7 +53,7 @@ export const VaultOverview: React.FC = () => {
 
   const reserve = useMemo(() => {
     return reserves.find(
-      (reserve) => reserve?.underlyingAsset?.toLowerCase() === selectedVault?.overview?.assetAddress?.toLowerCase()
+      (reserve) => reserve?.underlyingAsset?.toLowerCase() === selectedVault?.overview?.asset?.address?.toLowerCase()
     );
   }, [reserves, selectedVault]);
 
@@ -86,7 +86,7 @@ export const VaultOverview: React.FC = () => {
                 <>
                   <FormattedNumber
                     value={selectedVault?.overview?.sharePrice || ''} // This might need to change based on dropdown too if we want this header value to change
-                    symbol={selectedVault?.overview?.shareCurrencySymbol || ''} // This might need to change
+                    symbol={selectedVault?.overview?.asset?.symbol || ''} // This might need to change
                     variant="main40"
                   />
                   <FormattedNumber

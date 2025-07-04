@@ -125,7 +125,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
   }, [withdrawalRequest, txHash, currentTime]);
 
   const vaultShareCurrency = useMemo(
-    () => selectedVault?.overview?.shareCurrencySymbol,
+    () => selectedVault?.overview?.asset?.symbol,
     [selectedVault]
   );
   const reserve = useMemo(() => {

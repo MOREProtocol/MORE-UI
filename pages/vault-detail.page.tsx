@@ -1,4 +1,4 @@
-import { Box, Container, useTheme } from '@mui/material';
+import { Box, useTheme } from '@mui/material';
 import { ReactNode } from 'react';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { VaultDetail } from 'src/modules/vault-detail/VaultDetail';
@@ -17,10 +17,9 @@ const ContentContainer = ({ children }: ContentContainerProps) => {
         flexDirection: 'column',
         flex: 1,
         background: theme.palette.background.paper,
-        // mt: { xs: '-32px', lg: '-46px', xl: '-44px', xxl: '-48px' },
       }}
     >
-      <Container>{children}</Container>
+      {children}
     </Box>
   );
 };

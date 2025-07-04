@@ -12,10 +12,18 @@ export interface VaultSnapshotData {
   return7D: string;
   return30D: string;
   return180D: string;
+  return360D: string;
   vault: {
     id: string;
     symbol: string;
   };
+}
+
+export interface VaultData {
+  apyCalculatedLast360Days: string;
+  totalSupply: string;
+  totalAssets: string;
+  creationTimestamp: string;
 }
 
 const fetchSubgraphData = async <T>(
@@ -57,48 +65,35 @@ const fetchSubgraphData = async <T>(
   }
 };
 
-interface VaultSnapshotsQueryResponse {
-  vaultHourlySnapshots: VaultSnapshotData[];
+interface VaultQueryResponse {
+  vaults: VaultData[];
 }
 
-const GET_VAULT_SNAPSHOTS_QUERY = `
-  query GetVaultSnapshots($vaultId: String!) {
-    vaultHourlySnapshots(
-      where: { vault: $vaultId }
-      orderBy: hourTimestamp
-      orderDirection: desc
-      limit: 1
+const GET_VAULT_QUERY = `
+  query GetVault($vaultId: String!) {
+    vaults(
+      where: { id: $vaultId }
     ) {
-      id
-      timestamp
-      hourTimestamp
+      apyCalculatedLast360Days
       totalSupply
       totalAssets
-      apy
-      return1D
-      return7D
-      return30D
-      return180D
-      vault {
-        id
-        symbol
-      }
+      creationTimestamp
     }
   }
 `;
 
-export const fetchLatestVaultSnapshot = async (
+export const fetchVaultData = async (
   chainId: number,
   vaultId: string
-): Promise<VaultSnapshotData | null> => {
+): Promise<VaultData | null> => {
   if (!vaultId) return null;
-  const data = await fetchSubgraphData<VaultSnapshotsQueryResponse>(
+  const data = await fetchSubgraphData<VaultQueryResponse>(
     chainId,
-    GET_VAULT_SNAPSHOTS_QUERY,
+    GET_VAULT_QUERY,
     { vaultId: vaultId.toLowerCase() }
   );
-  if (data && data.vaultHourlySnapshots && data.vaultHourlySnapshots.length > 0) {
-    return data.vaultHourlySnapshots[0];
+  if (data && data.vaults && data.vaults.length > 0) {
+    return data.vaults[0];
   }
   return null;
 };
@@ -118,6 +113,7 @@ const GET_VAULT_HISTORICAL_SNAPSHOTS_QUERY = `
       return7D
       return30D
       return180D
+      return360D
     }
   }
 `;
@@ -126,6 +122,11 @@ interface HistoricalSnapshotEntry {
   hourTimestamp: string;
   apy: string;
   totalSupply: string;
+  return1D: string;
+  return7D: string;
+  return30D: string;
+  return180D: string;
+  return360D: string;
 }
 
 interface HistoricalSnapshotsQueryResponse {
@@ -177,13 +178,14 @@ export const formatSnapshotsForChart = (
 
     const rawValue = snapshot[dataKey];
     // Handle potential GQL scientific notation for large numbers if APY can be very small or totalSupply very large
-    const numericValue = parseFloat(rawValue);
+    let numericValue = parseFloat(rawValue);
 
-    // If APY is a percentage, like "0.05" for 5%, you might need to multiply by 100
-    // Assuming APY from subgraph is already in a direct percentage form (e.g., 5 for 5%)
-    // or a direct decimal (e.g. 0.05 for 5%)
-    // If total supply comes in as base units (e.g. wei for ETH), it might need formatting (e.g. to ETH)
-    // For now, a direct parse is done.
+    // If APY is a percentage decimal (0.05 for 5%), multiply by 100 to get percentage
+    if (dataKey === 'apy') {
+      numericValue = numericValue * 100;
+    }
+    // If total supply comes in as base units (e.g. wei for ETH), it might need formatting
+    // For total supply, we keep the raw numeric value for now
 
     return {
       time: timeString,

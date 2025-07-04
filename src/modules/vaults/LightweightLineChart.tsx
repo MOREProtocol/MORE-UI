@@ -1,7 +1,8 @@
 import { useTheme } from '@mui/material/styles';
 import { AreaSeries, createChart, IChartApi, ISeriesApi, LineData, SeriesPartialOptionsMap, Time, UTCTimestamp, BusinessDay } from 'lightweight-charts';
 import React, { useEffect, useRef } from 'react';
-import { Typography } from '@mui/material';
+import { Typography, Box } from '@mui/material';
+import { compactNumber } from 'src/components/primitives/FormattedNumber';
 
 // Data type for the chart
 interface ChartDataPoint {
@@ -17,6 +18,7 @@ interface LightweightLineChartProps {
   title?: string;
   isInteractive?: boolean;
   isSmall?: boolean;
+  yAxisFormat?: string; // Format for Y-axis (e.g., '%', 'USD', 'ETH', etc.)
 }
 
 // Props for the base chart component
@@ -27,6 +29,7 @@ interface BaseChartProps {
   isInteractive?: boolean;
   title?: string;
   isSmall?: boolean;
+  yAxisFormat?: string;
 }
 
 const BaseLightweightChart: React.FC<BaseChartProps> = ({
@@ -36,6 +39,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
   isInteractive = true,
   title,
   isSmall = false,
+  yAxisFormat,
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -82,13 +86,32 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
       return `${day} ${monthName} ${year} ${hours}:${minutes}`;
     };
 
+    // Formatter for Y-axis price display
+    const priceFormatter = (price: number): string => {
+      if (!yAxisFormat) return price.toString();
+
+      // Format the number to a reasonable precision
+      const formattedNumber = price.toFixed(0);
+      const { prefix, postfix } = compactNumber({ value: price, visibleDecimals: 0, roundDown: true });
+
+      // Handle different format types
+      if (yAxisFormat === '%') {
+        return `${formattedNumber}%`;
+      } else if (yAxisFormat === 'USD' || yAxisFormat === '$') {
+        return `$${prefix}${postfix}`;
+      } else {
+        // For other formats like 'ETH', 'BTC', etc.
+        return `${prefix}${postfix} ${yAxisFormat}`;
+      }
+    };
+
     // Initialize chart
     if (!chartRef.current) {
       const chartOptions = {
         width: currentWidth,
         height: height,
         layout: {
-          background: { color: theme.palette.background.paper },
+          background: { color: 'transparent' },
           textColor: theme.palette.text.secondary,
           attributionLogo: false,
         },
@@ -104,8 +127,8 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
           },
         },
         timeScale: {
-          rightOffset: 12,
-          minBarSpacing: 5,
+          rightOffset: isSmall ? 2 : 12,
+          minBarSpacing: isSmall ? 3 : 5,
           timeVisible: true,
           secondsVisible: false,
           tickMarkFormatter: (time: UTCTimestamp) => {
@@ -114,10 +137,10 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
             return `${day}/${month}`;
           },
-          borderColor: isSmall ? theme.palette.background.paper : theme.palette.divider,
+          borderColor: isSmall ? 'transparent' : theme.palette.divider,
         },
         rightPriceScale: {
-          borderColor: isSmall ? theme.palette.background.paper : theme.palette.divider,
+          borderColor: isSmall ? 'transparent' : theme.palette.divider,
         },
         handleScroll: isInteractive,
         handleScale: isInteractive,
@@ -141,11 +164,15 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
       const seriesOptions: SeriesPartialOptionsMap['Area'] = {
         lineColor: lineColor,
         topColor: lineColor,
-        bottomColor: 'white',
+        bottomColor: 'rgba(255, 255, 255, 0)',
         lineWidth: 2,
         priceLineVisible: false,
         lastValueVisible: false,
         crosshairMarkerVisible: false,
+        priceFormat: yAxisFormat ? {
+          type: 'custom',
+          formatter: priceFormatter,
+        } : undefined,
       };
       seriesRef.current = chartRef.current.addSeries(AreaSeries, seriesOptions);
     } else {
@@ -154,7 +181,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         width: currentWidth,
         height: height,
         layout: {
-          background: { color: theme.palette.background.paper },
+          background: { color: 'transparent' },
           textColor: theme.palette.text.secondary,
         },
         localization: {
@@ -168,10 +195,12 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
           },
         },
         timeScale: {
-          borderColor: isSmall ? theme.palette.background.paper : theme.palette.divider,
+          rightOffset: isSmall ? 2 : 12,
+          minBarSpacing: isSmall ? 3 : 5,
+          borderColor: isSmall ? 'transparent' : theme.palette.divider,
         },
         rightPriceScale: {
-          borderColor: isSmall ? theme.palette.background.paper : theme.palette.divider,
+          borderColor: isSmall ? 'transparent' : theme.palette.divider,
         },
         handleScroll: isInteractive,
         handleScale: isInteractive,
@@ -195,11 +224,15 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         seriesRef.current.applyOptions({
           lineColor: lineColor,
           topColor: lineColor,
-          bottomColor: 'white',
+          bottomColor: 'rgba(255, 255, 255, 0)',
           lineWidth: 2,
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: false,
+          priceFormat: yAxisFormat ? {
+            type: 'custom',
+            formatter: priceFormatter,
+          } : undefined,
         });
       }
     }
@@ -208,6 +241,9 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
     if (seriesRef.current && data.length > 0) {
       // Ensure data is sorted by time for lightweight-charts
       const sortedData = [...data].sort((a, b) => (a.time as number) - (b.time as number));
+
+      // Force chart to recalculate scales by clearing and resetting data
+      seriesRef.current.setData([]);
       seriesRef.current.setData(sortedData as LineData<Time>[]);
       chartRef.current?.timeScale().fitContent();
     } else if (seriesRef.current) {
@@ -226,7 +262,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
     return () => {
       resizeObserver.unobserve(chartElement);
     };
-  }, [data, height, lineColor, chartContainerRef.current, theme, isInteractive, isSmall]);
+  }, [data, height, lineColor, chartContainerRef.current, theme, isInteractive, isSmall, yAxisFormat]);
 
   // Effect for full cleanup on unmount
   useEffect(() => {
@@ -266,7 +302,57 @@ export const LightweightLineChart: React.FC<LightweightLineChartProps> = ({
   title,
   isInteractive = true,
   isSmall = false,
+  yAxisFormat,
 }) => {
+  const theme = useTheme();
+
+  // Check if data is too old (more than 24 hours)
+  const isDataTooOld = () => {
+    if (!data || data.length === 0) return false;
+
+    // Get the most recent data point
+    const sortedData = [...data].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    const mostRecentDataPoint = sortedData[0];
+
+    if (!mostRecentDataPoint) return false;
+
+    const mostRecentTime = new Date(mostRecentDataPoint.time).getTime();
+    const currentTime = new Date().getTime();
+    const timeDifference = currentTime - mostRecentTime;
+
+    // 24 hours in milliseconds
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+
+    return timeDifference > twentyFourHours;
+  };
+
+  // If data is too old, show indexing message
+  if (isDataTooOld()) {
+    return (
+      <Box
+        sx={{
+          height: `${height}px`,
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          position: 'relative',
+        }}
+      >
+        <Typography
+          sx={{
+            color: theme.palette.text.secondary,
+            textAlign: 'center',
+            fontStyle: 'italic',
+          }}
+        >
+          Chart data is currently indexing...
+        </Typography>
+      </Box>
+    );
+  }
+
   // Convert string time to Unix timestamp for lightweight-charts
   const formattedData: ChartDataPoint[] = data
     ?.map(item => ({
@@ -275,5 +361,5 @@ export const LightweightLineChart: React.FC<LightweightLineChartProps> = ({
     })) || [];
   // Sorting moved to BaseLightweightChart before setData for robustness
 
-  return <BaseLightweightChart data={formattedData} height={height} lineColor={lineColor} isInteractive={isInteractive} title={title} isSmall={isSmall} />;
+  return <BaseLightweightChart data={formattedData} height={height} lineColor={lineColor} isInteractive={isInteractive} title={title} isSmall={isSmall} yAxisFormat={yAxisFormat} />;
 };

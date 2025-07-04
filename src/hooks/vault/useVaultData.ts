@@ -12,9 +12,9 @@ import { networkConfigs } from 'src/ui-config/networksConfig';
 import { ChainIds } from 'src/utils/const';
 import { useWalletClient } from 'wagmi';
 
-import { VAULT_ID_TO_NAME } from './constants';
+import { VAULT_ID_TO_CURATOR_LOGO, VAULT_ID_TO_NAME } from './constants';
 import { useVault, VaultData } from './useVault';
-import { fetchLatestVaultSnapshot, fetchVaultHistoricalSnapshots, formatSnapshotsForChart } from './vaultSubgraph';
+import { fetchVaultData, fetchVaultHistoricalSnapshots, formatSnapshotsForChart } from './vaultSubgraph';
 // Constants
 const POLLING_INTERVAL = 30000; // 30 seconds
 
@@ -336,12 +336,14 @@ export const useVaultsListData = <TResult = VaultData>(
         );
 
         const name = VAULT_ID_TO_NAME[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
+        const curatorLogo = VAULT_ID_TO_CURATOR_LOGO[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_CURATOR_LOGO] || undefined;
 
         const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
         const vaultData: VaultData = {
           id: vaultId,
           overview: {
             name,
+            curatorLogo,
             asset: {
               symbol: reserve?.symbol,
               decimals: assetDecimals,
@@ -511,7 +513,7 @@ export const useUserVaultsData = <
           vaultDiamondContract.asset().catch(() => undefined),
         ]);
 
-        let finalMaxWithdraw = maxWithdrawShares;
+        const finalMaxWithdraw = maxWithdrawShares;
         let assetDecimals = decimals;
 
         if (assetAddress) {
@@ -523,14 +525,14 @@ export const useUserVaultsData = <
             ],
             provider
           );
-          const [vaultAssetBalance, assetDecimalsFromContract] = await Promise.all([
-            assetContract.balanceOf(vaultId).catch(() => ethers.BigNumber.from(0)),
+          const [assetDecimalsFromContract] = await Promise.all([
+            // assetContract.balanceOf(vaultId).catch(() => ethers.BigNumber.from(0)),
             assetContract.decimals().catch(() => 18),
           ]);
 
-          if (maxWithdrawShares.gt(vaultAssetBalance)) {
-            finalMaxWithdraw = vaultAssetBalance;
-          }
+          // if (maxWithdrawShares.gt(vaultAssetBalance)) {
+          //   finalMaxWithdraw = vaultAssetBalance;
+          // }
           assetDecimals = assetDecimalsFromContract;
         }
 
@@ -611,7 +613,7 @@ export const useVaultData = <TResult = VaultData>(
         contractData,
         allocationData,
         activityData,
-        latestSnapshot,
+        vaultData,
         historicalSnapshots,
       ] = await Promise.all([
         Promise.all([
@@ -631,7 +633,7 @@ export const useVaultData = <TResult = VaultData>(
         ]),
         fetchAllocation(vaultId, chainId, reserves).catch(() => []),
         fetchActivity(vaultId, chainId, reserves).catch(() => []),
-        fetchLatestVaultSnapshot(chainId, vaultId),
+        fetchVaultData(chainId, vaultId),
         fetchVaultHistoricalSnapshots(chainId, vaultId),
       ]);
 
@@ -662,14 +664,18 @@ export const useVaultData = <TResult = VaultData>(
         assetDecimals = await assetContract.decimals().catch(() => 18)
       }
 
-      const name = VAULT_ID_TO_NAME[vaultId as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
+      const name = VAULT_ID_TO_NAME[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
+      const curatorLogo = VAULT_ID_TO_CURATOR_LOGO[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_CURATOR_LOGO] || undefined;
 
       const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
+
+      const latestSnapshot = historicalSnapshots?.[0];
 
       return {
         id: vaultId,
         overview: {
           name,
+          curatorLogo,
           asset: {
             symbol: reserve?.symbol,
             decimals: assetDecimals,
@@ -681,13 +687,14 @@ export const useVaultData = <TResult = VaultData>(
             curator,
             owner,
           },
-          apy: latestSnapshot?.apy ? parseFloat(latestSnapshot.apy) : undefined,
+          apy: vaultData?.apyCalculatedLast360Days ? parseFloat(vaultData.apyCalculatedLast360Days) : undefined,
           historicalSnapshots: {
             apy: formatSnapshotsForChart(historicalSnapshots, 'apy'),
             totalSupply: formatSnapshotsForChart(historicalSnapshots, 'totalSupply'),
           },
           withdrawalTimelock: withdrawalTimelock.toString(),
           fee: fee.toString(),
+          creationTimestamp: vaultData?.creationTimestamp.toString(),
         },
         financials: {
           liquidity: {
