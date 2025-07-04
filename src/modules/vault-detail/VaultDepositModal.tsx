@@ -40,7 +40,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const [riskAccepted, setRiskAccepted] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
   const reserve = useMemo(() =>
-    reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === selectedVault?.overview?.assetAddress?.toLowerCase()),
+    reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === selectedVault?.overview?.asset?.address?.toLowerCase()),
     [reserves, selectedVault]);
 
   const amountInUsd = new BigNumber(amount).multipliedBy(

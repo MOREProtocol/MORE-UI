@@ -54,12 +54,12 @@ export const VaultOverview: React.FC = () => {
 
   const reserve = useMemo(() => {
     return reserves.find(
-      (reserve) => reserve?.underlyingAsset?.toLowerCase() === selectedVault?.overview?.assetAddress?.toLowerCase()
+      (reserve) => reserve?.underlyingAsset?.toLowerCase() === selectedVault?.overview?.asset?.address?.toLowerCase()
     );
   }, [reserves, selectedVault]);
 
   const aum = useMemo(() => {
-    return formatUnits(BigInt(selectedVault?.financials.liquidity.totalAssets || 0), selectedVault?.overview?.assetDecimals || 0) || '';
+    return formatUnits(BigInt(selectedVault?.financials.liquidity.totalAssets || 0), selectedVault?.overview?.asset?.decimals || 0) || '';
   }, [selectedVault]);
   const aumInUsd = useMemo(() => {
     if (!selectedVault?.financials.liquidity.totalAssets || !reserve?.formattedPriceInMarketReferenceCurrency || !marketReferencePriceInUsd) {
@@ -70,7 +70,7 @@ export const VaultOverview: React.FC = () => {
       .multipliedBy(reserve.formattedPriceInMarketReferenceCurrency)
       .multipliedBy(marketReferencePriceInUsd)
       .shiftedBy(-USD_DECIMALS)
-      .shiftedBy(-(selectedVault?.overview?.assetDecimals || 0))
+      .shiftedBy(-(selectedVault?.overview?.asset?.decimals || 0))
       .toString();
   }, [selectedVault, reserve, marketReferencePriceInUsd]);
 
@@ -101,7 +101,7 @@ export const VaultOverview: React.FC = () => {
                       <>
                         <FormattedNumber
                           value={aum}
-                          symbol={selectedVault?.overview?.shareCurrencySymbol || ''}
+                          symbol={selectedVault?.overview?.asset?.symbol || ''}
                           variant="main40"
                         />
                         <FormattedNumber
@@ -192,7 +192,7 @@ export const VaultOverview: React.FC = () => {
                 <LightweightLineChart
                   height={200}
                   data={currentChartData}
-                  yAxisFormat={selectedChartDataKey === 'apy' ? '%' : selectedVault?.overview?.shareCurrencySymbol}
+                  yAxisFormat={selectedChartDataKey === 'apy' ? '%' : selectedVault?.overview?.asset?.symbol}
                 />
               ) : (
                 <Typography sx={{ textAlign: 'center', pt: 5 }}>

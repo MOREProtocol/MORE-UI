@@ -1,8 +1,7 @@
-import { Box, Container, useTheme } from '@mui/material';
+import { Box, useTheme } from '@mui/material';
 import { ReactNode } from 'react';
 import { MainLayout } from 'src/layouts/MainLayout';
-import { VaultTabContent } from 'src/modules/vault-detail/VaultTabContent';
-import { VaultTopDetailsWrapper } from 'src/modules/vault-detail/VaultTopDetailsWrapper';
+import { VaultDetail } from 'src/modules/vault-detail/VaultDetail';
 
 interface ContentContainerProps {
   children: ReactNode;
@@ -18,25 +17,21 @@ const ContentContainer = ({ children }: ContentContainerProps) => {
         flexDirection: 'column',
         flex: 1,
         background: theme.palette.background.paper,
-        // mt: { xs: '-32px', lg: '-46px', xl: '-44px', xxl: '-48px' },
       }}
     >
-      <Container>{children}</Container>
+      {children}
     </Box>
   );
 };
 
-export default function VaultDetail() {
+export default function VaultDetailPage() {
   return (
-    <>
-      <VaultTopDetailsWrapper />
-      <ContentContainer>
-        <VaultTabContent />
-      </ContentContainer>
-    </>
+    <ContentContainer>
+      <VaultDetail />
+    </ContentContainer>
   );
 }
 
-VaultDetail.getLayout = function getLayout(page: React.ReactElement) {
+VaultDetailPage.getLayout = function getLayout(page: React.ReactElement) {
   return <MainLayout>{page}</MainLayout>;
 };

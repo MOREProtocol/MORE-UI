@@ -77,11 +77,11 @@ export const VaultTopDetails = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <TokenIcon
-                      symbol={selectedVault?.overview?.shareCurrencySymbol || ''}
+                      symbol={selectedVault?.overview?.asset?.symbol || ''}
                       sx={{ fontSize: '16px' }}
                     />
                     <Typography variant="secondary12">
-                      {selectedVault?.overview?.shareCurrencySymbol}
+                      {selectedVault?.overview?.asset?.symbol}
                     </Typography>
                   </Box>
                 </Box>

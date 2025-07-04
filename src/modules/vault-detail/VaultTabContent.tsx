@@ -1,6 +1,6 @@
 import { Box, Typography } from '@mui/material';
-import React from 'react';
-import { useVault } from 'src/hooks/vault/useVault';
+import React, { useState } from 'react';
+import { useVault, VaultTab } from 'src/hooks/vault/useVault';
 
 import { VaultActivity } from './VaultActivity';
 import { VaultAllocations } from './VaultAllocations';
@@ -9,7 +9,8 @@ import { VaultManagement } from './VaultManagement/VaultManagement';
 import { VaultOverview } from './VaultOverview';
 
 export const VaultTabContent: React.FC = () => {
-  const { selectedTab, selectedVaultId } = useVault();
+  const { selectedVaultId } = useVault();
+  const [selectedTab] = useState<VaultTab>('allocations');
 
   if (!selectedVaultId) {
     return <Typography>No vault selected</Typography>;

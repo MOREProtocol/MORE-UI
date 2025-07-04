@@ -241,6 +241,9 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
     if (seriesRef.current && data.length > 0) {
       // Ensure data is sorted by time for lightweight-charts
       const sortedData = [...data].sort((a, b) => (a.time as number) - (b.time as number));
+
+      // Force chart to recalculate scales by clearing and resetting data
+      seriesRef.current.setData([]);
       seriesRef.current.setData(sortedData as LineData<Time>[]);
       chartRef.current?.timeScale().fitContent();
     } else if (seriesRef.current) {

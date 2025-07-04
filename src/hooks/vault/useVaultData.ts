@@ -12,9 +12,9 @@ import { networkConfigs } from 'src/ui-config/networksConfig';
 import { ChainIds } from 'src/utils/const';
 import { useWalletClient } from 'wagmi';
 
-import { VAULT_ID_TO_NAME } from './constants';
+import { VAULT_ID_TO_CURATOR_LOGO, VAULT_ID_TO_NAME } from './constants';
 import { useVault, VaultData } from './useVault';
-import { fetchLatestVaultSnapshot, fetchVaultHistoricalSnapshots, formatSnapshotsForChart } from './vaultSubgraph';
+import { fetchVaultData, fetchVaultHistoricalSnapshots, formatSnapshotsForChart } from './vaultSubgraph';
 // Constants
 const POLLING_INTERVAL = 30000; // 30 seconds
 
@@ -318,7 +318,7 @@ export const useVaultsListData = <TResult = VaultData>(
           vaultDiamondContract.asset().catch(() => undefined),
           vaultDiamondContract.decimals().catch(() => 18),
           vaultDiamondContract.name().catch(() => 'Unnamed Vault'),
-          fetchLatestVaultSnapshot(chainId, vaultId),
+          fetchVaultData(chainId, vaultId),
         ]);
         let assetDecimals = decimals;
         if (assetAddress) {
@@ -337,18 +337,22 @@ export const useVaultsListData = <TResult = VaultData>(
         );
 
         const name = VAULT_ID_TO_NAME[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
+        const curatorLogo = VAULT_ID_TO_CURATOR_LOGO[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_CURATOR_LOGO] || undefined;
 
         const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
         const vaultData: VaultData = {
           id: vaultId,
           overview: {
             name,
-            shareCurrencySymbol: reserve?.symbol,
-            assetDecimals,
+            curatorLogo,
+            asset: {
+              symbol: reserve?.symbol,
+              decimals: assetDecimals,
+              address: assetAddress,
+            },
             sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
             sharePriceInUSD: Number(reserve?.formattedPriceInMarketReferenceCurrency || 0),
-            assetAddress: assetAddress,
-            apy: latestSnapshot?.apy ? parseFloat(latestSnapshot.apy) : undefined,
+            apy: latestSnapshot?.apyCalculatedLast360Days ? parseFloat(latestSnapshot.apyCalculatedLast360Days) : undefined,
           },
           financials: {
             liquidity: {
@@ -511,7 +515,7 @@ export const useUserVaultsData = <
           vaultDiamondContract.asset().catch(() => undefined),
         ]);
 
-        let finalMaxWithdraw = maxWithdrawShares;
+        const finalMaxWithdraw = maxWithdrawShares;
         let assetDecimals = decimals;
 
         if (assetAddress) {
@@ -523,14 +527,14 @@ export const useUserVaultsData = <
             ],
             provider
           );
-          const [vaultAssetBalance, assetDecimalsFromContract] = await Promise.all([
-            assetContract.balanceOf(vaultId).catch(() => ethers.BigNumber.from(0)),
+          const [assetDecimalsFromContract] = await Promise.all([
+            // assetContract.balanceOf(vaultId).catch(() => ethers.BigNumber.from(0)),
             assetContract.decimals().catch(() => 18),
           ]);
 
-          if (maxWithdrawShares.gt(vaultAssetBalance)) {
-            finalMaxWithdraw = vaultAssetBalance;
-          }
+          // if (maxWithdrawShares.gt(vaultAssetBalance)) {
+          //   finalMaxWithdraw = vaultAssetBalance;
+          // }
           assetDecimals = assetDecimalsFromContract;
         }
 
@@ -600,6 +604,8 @@ export const useVaultData = <TResult = VaultData>(
           `function owner() external view returns (address)`,
           `function maxDeposit(address receiver) external view returns (uint256 maxAssets)`,
           `function convertToAssets(uint256 shares) external view returns (uint256 assets)`,
+          `function getWithdrawalTimelock() external view returns (uint256)`,
+          `function fee() external view returns (uint256)`,
         ],
         provider
       );
@@ -609,7 +615,7 @@ export const useVaultData = <TResult = VaultData>(
         contractData,
         allocationData,
         activityData,
-        latestSnapshot,
+        vaultData,
         historicalSnapshots,
       ] = await Promise.all([
         Promise.all([
@@ -624,10 +630,12 @@ export const useVaultData = <TResult = VaultData>(
             .maxDeposit('0x0000000000000000000000000000000000000000')
             .catch(() => ethers.BigNumber.from(0)),
           vaultDiamondContract.convertToAssets(parseUnits('1', (await vaultDiamondContract.decimals().catch(() => 18)).toString())).catch(() => ethers.BigNumber.from(0)),
+          vaultDiamondContract.getWithdrawalTimelock().catch(() => 0),
+          vaultDiamondContract.fee().catch(() => 0),
         ]),
         fetchAllocation(vaultId, chainId, reserves).catch(() => []),
         fetchActivity(vaultId, chainId, reserves).catch(() => []),
-        fetchLatestVaultSnapshot(chainId, vaultId),
+        fetchVaultData(chainId, vaultId),
         fetchVaultHistoricalSnapshots(chainId, vaultId),
       ]);
 
@@ -641,6 +649,8 @@ export const useVaultData = <TResult = VaultData>(
         owner,
         maxDeposit,
         sharePriceInAsset,
+        withdrawalTimelock,
+        fee,
       ] = contractData;
 
       let assetDecimals = decimals;
@@ -656,28 +666,37 @@ export const useVaultData = <TResult = VaultData>(
         assetDecimals = await assetContract.decimals().catch(() => 18)
       }
 
-      const name = VAULT_ID_TO_NAME[vaultId as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
+      const name = VAULT_ID_TO_NAME[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
+      const curatorLogo = VAULT_ID_TO_CURATOR_LOGO[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_CURATOR_LOGO] || undefined;
 
       const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
+
+      const latestSnapshot = historicalSnapshots?.[0];
 
       return {
         id: vaultId,
         overview: {
           name,
-          assetDecimals,
-          assetAddress,
-          shareCurrencySymbol: reserve?.symbol,
+          curatorLogo,
+          asset: {
+            symbol: reserve?.symbol,
+            decimals: assetDecimals,
+            address: assetAddress,
+          },
           sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
           roles: {
             guardian,
             curator,
             owner,
           },
-          apy: latestSnapshot?.apy ? parseFloat(latestSnapshot.apy) : undefined,
+          apy: vaultData?.apyCalculatedLast360Days ? parseFloat(vaultData.apyCalculatedLast360Days) : undefined,
           historicalSnapshots: {
             apy: formatSnapshotsForChart(historicalSnapshots, 'apy'),
             totalSupply: formatSnapshotsForChart(historicalSnapshots, 'totalSupply'),
           },
+          withdrawalTimelock: withdrawalTimelock.toString(),
+          fee: fee.toString(),
+          creationTimestamp: vaultData?.creationTimestamp.toString(),
         },
         financials: {
           liquidity: {

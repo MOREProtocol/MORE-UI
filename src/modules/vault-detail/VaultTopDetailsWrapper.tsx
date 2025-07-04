@@ -2,7 +2,7 @@ import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import { Box, Button, SvgIcon, Tab, Tabs, useMediaQuery, useTheme } from '@mui/material';
 import { useRouter } from 'next/router';
 import { useVault, VaultTab } from 'src/hooks/vault/useVault';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { NewTopInfoPanel } from './NewTopInfoPanel';
 import { VaultTopDetails } from './VaultTopDetails';
@@ -10,7 +10,8 @@ import { useVaultData } from 'src/hooks/vault/useVaultData';
 
 export const VaultTopDetailsWrapper = () => {
   const router = useRouter();
-  const { selectedTab, setSelectedTab, selectedVaultId, accountAddress } = useVault();
+  const { selectedVaultId, accountAddress } = useVault();
+  const [selectedTab, setSelectedTab] = useState<VaultTab>('allocations');
   const vaultData = useVaultData(selectedVaultId);
   const canManageVault = vaultData?.data?.overview?.roles?.curator === accountAddress;
   const isVaultDataLoading = vaultData?.isLoading;

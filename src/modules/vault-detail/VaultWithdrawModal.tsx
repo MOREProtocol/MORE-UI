@@ -12,6 +12,7 @@ import { networkConfigs } from 'src/ui-config/networksConfig';
 import { roundToTokenDecimals } from 'src/utils/utils';
 import { ChainIds } from 'src/utils/const';
 import { useRootStore } from 'src/store/root';
+import { formatTimeRemaining } from 'src/helpers/timeHelper';
 
 interface VaultWithdrawModalProps {
   isOpen: boolean;
@@ -124,7 +125,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
   }, [withdrawalRequest, txHash, currentTime]);
 
   const vaultShareCurrency = useMemo(
-    () => selectedVault?.overview?.shareCurrencySymbol,
+    () => selectedVault?.overview?.asset?.symbol,
     [selectedVault]
   );
   const reserve = useMemo(() => {
@@ -165,20 +166,6 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
   const amountInUsd = new BigNumber(amount).multipliedBy(
     reserve?.formattedPriceInMarketReferenceCurrency
   );
-
-  const formatTimeRemaining = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${secs}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${secs}s`;
-    } else {
-      return `${secs}s`;
-    }
-  };
 
   const handleChange = (value: string) => {
     // Clear any previous errors when user changes amount

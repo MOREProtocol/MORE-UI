@@ -50,14 +50,14 @@ export const VaultsTopPanel = () => {
             Number(
               formatUnits(
                 vault?.financials?.liquidity?.totalAssets || 0,
-                vault?.overview?.assetDecimals
+                vault?.overview?.asset?.decimals
               )
             ) * vaultTVLPrice;
 
           const userVault = userVaults[index];
           const userVaultDepositsValue =
             Number(
-              formatUnits(userVault?.maxWithdraw || 0, vault?.overview?.assetDecimals)
+              formatUnits(userVault?.maxWithdraw || 0, vault?.overview?.asset?.decimals)
             ) * vaultTVLPrice;
           return {
             tvl: acc.tvl.plus(vaultTVLValue),

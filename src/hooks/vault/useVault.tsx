@@ -36,9 +36,9 @@ export interface Fee {
 
 // Define roles in the vault
 export interface VaultRoles {
-  curator: string;
-  guardian: string;
-  owner: string;
+  owner?: string;
+  curator?: string;
+  guardian?: string;
 }
 
 // Define return metrics
@@ -62,17 +62,23 @@ export interface VaultData {
   overview: {
     name?: string;
     description?: string;
-    assetAddress?: string;
-    assetDecimals?: number;
+    curatorLogo?: string;
+    asset?: {
+      symbol?: string;
+      decimals?: number;
+      address?: string;
+    };
     sharePrice?: number;
     sharePriceInUSD?: number;
-    shareCurrencySymbol?: string;
     roles?: VaultRoles;
     apy?: number;
     historicalSnapshots?: {
       apy: { time: string; value: number }[];
       totalSupply: { time: string; value: number }[];
     };
+    withdrawalTimelock?: string;
+    fee?: string;
+    creationTimestamp?: string;
   };
   financials?: {
     fees?: {
@@ -131,8 +137,6 @@ export interface VaultContextData {
   // Info reading
   selectedVaultId: string | null;
   setSelectedVaultId: (vaultId: string) => void;
-  selectedTab: VaultTab;
-  setSelectedTab: (tab: VaultTab) => void;
   getVaultAssetBalance: (assetAddress: string) => Promise<string>;
 
   // Operations
@@ -180,11 +184,10 @@ const VaultContext = createContext<VaultContextData | undefined>(undefined);
 // Create the provider component
 export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const router = useRouter();
-  const { selectedTab: tabFromUrl, vaultId: selectedVaultIdFromUrl } = router.query;
+  const { vaultId: selectedVaultIdFromUrl } = router.query;
 
   // Info reading state
   const [selectedVaultId, setSelectedVaultId] = useState<string | null>(null);
-  const [selectedTab, setSelectedTab] = useState<VaultTab>((tabFromUrl as VaultTab) || 'overview');
 
   // Operations state
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
@@ -239,26 +242,6 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
       }
     }
   }, [walletClient, network, setCurrentMarket, currentMarket]);
-
-  // Update URL when tab changes
-  const handleTabChange = (tab: VaultTab) => {
-    setSelectedTab(tab);
-    router.push(
-      {
-        pathname: router.pathname,
-        query: { ...router.query, selectedTab: tab },
-      },
-      undefined,
-      { shallow: true }
-    );
-  };
-
-  // Sync with URL parameters
-  useEffect(() => {
-    if (tabFromUrl && typeof tabFromUrl === 'string') {
-      setSelectedTab(tabFromUrl as VaultTab);
-    }
-  }, [tabFromUrl]);
 
   // Use the useVaultAssetBalance hook to get a balance
   const getVaultAssetBalance = useCallback(
@@ -744,8 +727,6 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     // Info reading
     selectedVaultId,
     setSelectedVaultId,
-    selectedTab,
-    setSelectedTab: handleTabChange,
     getVaultAssetBalance,
 
     // Operations
