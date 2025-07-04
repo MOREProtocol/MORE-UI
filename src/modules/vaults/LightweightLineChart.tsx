@@ -1,5 +1,5 @@
 import { useTheme } from '@mui/material/styles';
-import { AreaSeries, createChart, IChartApi, ISeriesApi, LineData, SeriesPartialOptionsMap, Time, UTCTimestamp, BusinessDay } from 'lightweight-charts';
+import { createChart, IChartApi, ISeriesApi, LineData, SeriesPartialOptionsMap, Time, UTCTimestamp, BusinessDay, LineSeries } from 'lightweight-charts';
 import React, { useEffect, useRef } from 'react';
 import { Typography, Box } from '@mui/material';
 import { compactNumber } from 'src/components/primitives/FormattedNumber';
@@ -43,7 +43,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<'Area'> | null>(null);
+  const seriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const theme = useTheme();
 
   useEffect(() => {
@@ -121,15 +121,12 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         },
         grid: {
           vertLines: { visible: false },
-          horzLines: {
-            color: theme.palette.divider,
-            visible: !isSmall,
-          },
+          horzLines: { visible: false },
         },
         timeScale: {
           rightOffset: isSmall ? 2 : 12,
           minBarSpacing: isSmall ? 3 : 5,
-          timeVisible: true,
+          timeVisible: isSmall,
           secondsVisible: false,
           tickMarkFormatter: (time: UTCTimestamp) => {
             const date = new Date(time * 1000);
@@ -137,10 +134,11 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
             return `${day}/${month}`;
           },
-          borderColor: isSmall ? 'transparent' : theme.palette.divider,
+          borderVisible: false,
         },
         rightPriceScale: {
-          borderColor: isSmall ? 'transparent' : theme.palette.divider,
+          borderVisible: false,
+          ticksVisible: isSmall,
         },
         handleScroll: isInteractive,
         handleScale: isInteractive,
@@ -161,10 +159,8 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
       };
       chartRef.current = createChart(chartElement, chartOptions);
 
-      const seriesOptions: SeriesPartialOptionsMap['Area'] = {
-        lineColor: lineColor,
-        topColor: lineColor,
-        bottomColor: 'rgba(255, 255, 255, 0)',
+      const seriesOptions: SeriesPartialOptionsMap['Line'] = {
+        color: lineColor,
         lineWidth: 2,
         priceLineVisible: false,
         lastValueVisible: false,
@@ -174,7 +170,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
           formatter: priceFormatter,
         } : undefined,
       };
-      seriesRef.current = chartRef.current.addSeries(AreaSeries, seriesOptions);
+      seriesRef.current = chartRef.current.addSeries(LineSeries, seriesOptions);
     } else {
       // Chart exists, apply updated options based on theme or other prop changes
       chartRef.current.applyOptions({
@@ -189,18 +185,17 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
           timeFormatter: detailedTimeFormatter,
         },
         grid: {
-          horzLines: {
-            color: theme.palette.divider,
-            visible: !isSmall,
-          },
+          horzLines: { visible: false },
         },
         timeScale: {
           rightOffset: isSmall ? 2 : 12,
           minBarSpacing: isSmall ? 3 : 5,
-          borderColor: isSmall ? 'transparent' : theme.palette.divider,
+          timeVisible: isSmall,
+          borderVisible: false,
         },
         rightPriceScale: {
-          borderColor: isSmall ? 'transparent' : theme.palette.divider,
+          borderVisible: false,
+          ticksVisible: isSmall,
         },
         handleScroll: isInteractive,
         handleScale: isInteractive,
@@ -222,9 +217,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
 
       if (seriesRef.current) {
         seriesRef.current.applyOptions({
-          lineColor: lineColor,
-          topColor: lineColor,
-          bottomColor: 'rgba(255, 255, 255, 0)',
+          color: lineColor,
           lineWidth: 2,
           priceLineVisible: false,
           lastValueVisible: false,

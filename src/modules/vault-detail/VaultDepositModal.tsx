@@ -308,7 +308,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <img
-                  src={`/MOREVault.svg`}
+                  src={selectedVault?.overview?.curatorLogo || '/MOREVault.svg'}
                   width="45px"
                   height="45px"
                   alt="token-svg"
