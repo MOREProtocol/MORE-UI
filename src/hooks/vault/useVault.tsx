@@ -89,6 +89,7 @@ export interface VaultData {
     liquidity?: {
       maxDeposit?: string;
       totalAssets?: string;
+      depositCapacity?: string;
     };
     returnMetrics?: ReturnMetrics;
   };

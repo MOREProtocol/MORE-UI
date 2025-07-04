@@ -253,7 +253,7 @@ export const VaultDetail = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 {isLoading ? <Skeleton width={80} height={24} /> : <FormattedNumber
                   value={formatUnits(
-                    BigInt(vaultData?.data?.financials?.liquidity?.maxDeposit || '0'),
+                    BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0'),
                     vaultData?.data?.overview?.asset?.decimals || 18
                   ) || ''}
                   symbol={vaultData?.data?.overview?.asset?.symbol || ''}

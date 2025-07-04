@@ -603,6 +603,7 @@ export const useVaultData = <TResult = VaultData>(
           `function curator() external view returns (address)`,
           `function owner() external view returns (address)`,
           `function maxDeposit(address receiver) external view returns (uint256 maxAssets)`,
+          `function depositCapacity() external view returns (uint256)`,
           `function convertToAssets(uint256 shares) external view returns (uint256 assets)`,
           `function getWithdrawalTimelock() external view returns (uint256)`,
           `function fee() external view returns (uint256)`,
@@ -629,6 +630,7 @@ export const useVaultData = <TResult = VaultData>(
           vaultDiamondContract
             .maxDeposit('0x0000000000000000000000000000000000000000')
             .catch(() => ethers.BigNumber.from(0)),
+          vaultDiamondContract.depositCapacity().catch(() => ethers.BigNumber.from(0)),
           vaultDiamondContract.convertToAssets(parseUnits('1', (await vaultDiamondContract.decimals().catch(() => 18)).toString())).catch(() => ethers.BigNumber.from(0)),
           vaultDiamondContract.getWithdrawalTimelock().catch(() => 0),
           vaultDiamondContract.fee().catch(() => 0),
@@ -648,6 +650,7 @@ export const useVaultData = <TResult = VaultData>(
         curator,
         owner,
         maxDeposit,
+        depositCapacity,
         sharePriceInAsset,
         withdrawalTimelock,
         fee,
@@ -702,6 +705,7 @@ export const useVaultData = <TResult = VaultData>(
           liquidity: {
             totalAssets: totalAssets.toString(),
             maxDeposit: maxDeposit.toString(),
+            depositCapacity: depositCapacity.toString(),
           },
           returnMetrics: {
             dayToDate: latestSnapshot?.return1D ? parseFloat(latestSnapshot.return1D) : undefined,
