@@ -115,7 +115,7 @@ export const VaultDetail = () => {
         px: xPadding,
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <SvgIcon sx={{ fontSize: '20px', cursor: 'pointer', color: '#F1F1F3' }} onClick={() => router.push('/vaults')}>
+          <SvgIcon sx={{ fontSize: '20px', cursor: 'pointer', color: '#F1F1F3', '&:hover': { color: '#A5A8B6' } }} onClick={() => router.push('/vaults')}>
             <ArrowBackRoundedIcon />
           </SvgIcon>
           {isLoading ? (
@@ -349,7 +349,18 @@ export const VaultDetail = () => {
           <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'row', gap: 5 }}>
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
               <Typography variant="secondary14" color="text.secondary">Annualized APY</Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: 'row', gap: 1 }}>
+              <Box
+                onClick={() => setSelectedChartDataKey('apy')}
+                sx={{
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  gap: 1,
+                  border: selectedChartDataKey === 'apy' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
+                  borderRadius: '8px',
+                  padding: '2px 6px',
+                }}>
                 {isLoading ? <Skeleton width={60} height={24} /> : <>
                   <FormattedNumber
                     value={vaultData?.data?.overview?.apy || '0'}
@@ -359,11 +370,9 @@ export const VaultDetail = () => {
                   />
                   <SvgIcon sx={{
                     fontSize: '20px',
-                    cursor: 'pointer',
                     color: selectedChartDataKey === 'apy' ? "#FF9900" : theme.palette.text.muted,
-                    transition: 'color 0.3s ease'
                   }}
-                    onClick={() => setSelectedChartDataKey('apy')}>
+                  >
                     <ShowChartIcon />
                   </SvgIcon>
                 </>
@@ -372,7 +381,18 @@ export const VaultDetail = () => {
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
               <Typography variant="secondary14" color="text.secondary">NAV</Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: 'row', gap: 1 }}>
+              <Box
+                onClick={() => setSelectedChartDataKey('totalSupply')}
+                sx={{
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  gap: 1,
+                  border: selectedChartDataKey === 'totalSupply' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
+                  borderRadius: '8px',
+                  padding: '2px 6px',
+                }}>
                 {isLoading ? <Skeleton width={60} height={24} /> : <>
                   <FormattedNumber
                     value={aumInUsd.toString() || '0'}
@@ -382,11 +402,9 @@ export const VaultDetail = () => {
                   />
                   <SvgIcon sx={{
                     fontSize: '20px',
-                    cursor: 'pointer',
                     color: selectedChartDataKey === 'totalSupply' ? "#FF9900" : theme.palette.text.muted,
-                    transition: 'color 0.3s ease'
                   }}
-                    onClick={() => setSelectedChartDataKey('totalSupply')}>
+                  >
                     <ShowChartIcon />
                   </SvgIcon>
                 </>

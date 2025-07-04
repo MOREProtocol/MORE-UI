@@ -1,4 +1,4 @@
-import { Box, Paper, SvgIcon, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Button, Paper, SvgIcon, Typography, useMediaQuery, useTheme } from '@mui/material';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import { BigNumber } from 'bignumber.js';
 import { formatUnits } from 'ethers/lib/utils';
@@ -193,9 +193,18 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
         </Box>
       )}
 
-      <SvgIcon sx={{ fontSize: '20px' }}>
-        <ArrowForwardRounded />
-      </SvgIcon>
+      <Button
+        variant="gradient"
+        endIcon={upToMD && (
+          <SvgIcon sx={{ fontSize: '20px' }}>
+            <ArrowForwardRounded />
+          </SvgIcon>
+        )}
+      >
+        <Typography variant="main14" fontWeight={600}>
+          Deposit
+        </Typography>
+      </Button>
 
     </Paper>
   );
