@@ -357,7 +357,7 @@ export const VaultDetail = () => {
                   alignItems: 'center',
                   flexDirection: 'row',
                   gap: 1,
-                  border: selectedChartDataKey === 'apy' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
+                  border: isLoading ? 'none' : selectedChartDataKey === 'apy' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
                   borderRadius: '8px',
                   padding: '2px 6px',
                 }}>
@@ -389,7 +389,7 @@ export const VaultDetail = () => {
                   alignItems: 'center',
                   flexDirection: 'row',
                   gap: 1,
-                  border: selectedChartDataKey === 'totalSupply' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
+                  border: isLoading ? 'none' : selectedChartDataKey === 'totalSupply' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
                   borderRadius: '8px',
                   padding: '2px 6px',
                 }}>
