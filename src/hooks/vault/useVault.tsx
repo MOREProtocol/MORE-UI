@@ -41,21 +41,6 @@ export interface VaultRoles {
   guardian?: string;
 }
 
-// Define return metrics
-export interface ReturnMetrics {
-  dayToDate?: number;
-  weekToDate?: number;
-  monthToDate?: number;
-  quarterToDate?: number;
-  halfYearToDate?: number;
-  yearToDate?: number;
-  inceptionToDate?: number;
-  averageMonth?: number;
-  bestMonth?: number;
-  worstMonth?: number;
-  trackRecord?: number; // Number of months
-}
-
 // Define the complete vault data structure
 export interface VaultData {
   id: string;
@@ -91,7 +76,6 @@ export interface VaultData {
       totalAssets?: string;
       depositCapacity?: string;
     };
-    returnMetrics?: ReturnMetrics;
   };
   allocation?: {
     assetName: string;

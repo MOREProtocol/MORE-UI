@@ -674,8 +674,6 @@ export const useVaultData = <TResult = VaultData>(
 
       const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
 
-      const latestSnapshot = historicalSnapshots?.[0];
-
       return {
         id: vaultId,
         overview: {
@@ -706,12 +704,6 @@ export const useVaultData = <TResult = VaultData>(
             totalAssets: totalAssets.toString(),
             maxDeposit: maxDeposit.toString(),
             depositCapacity: depositCapacity.toString(),
-          },
-          returnMetrics: {
-            dayToDate: latestSnapshot?.return1D ? parseFloat(latestSnapshot.return1D) : undefined,
-            weekToDate: latestSnapshot?.return7D ? parseFloat(latestSnapshot.return7D) : undefined,
-            monthToDate: latestSnapshot?.return30D ? parseFloat(latestSnapshot.return30D) : undefined,
-            halfYearToDate: latestSnapshot?.return180D ? parseFloat(latestSnapshot.return180D) : undefined,
           },
         },
         allocation: allocationData,

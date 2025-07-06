@@ -105,15 +105,11 @@ const GET_VAULT_HISTORICAL_SNAPSHOTS_QUERY = `
       where: { vault: $vaultId }
       orderBy: hourTimestamp
       orderDirection: desc 
+      first: 1000
     ) {
       hourTimestamp
       totalSupply
       apy
-      return1D
-      return7D
-      return30D
-      return180D
-      return360D
     }
   }
 `;
@@ -122,11 +118,6 @@ interface HistoricalSnapshotEntry {
   hourTimestamp: string;
   apy: string;
   totalSupply: string;
-  return1D: string;
-  return7D: string;
-  return30D: string;
-  return180D: string;
-  return360D: string;
 }
 
 interface HistoricalSnapshotsQueryResponse {

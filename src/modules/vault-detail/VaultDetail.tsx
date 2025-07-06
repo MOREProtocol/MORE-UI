@@ -193,7 +193,6 @@ export const VaultDetail = () => {
           alignItems: 'left',
           flexDirection: downToMdLg && !downToMd ? 'column' : 'row',
           gap: 2,
-          visibility: downToMd ? 'hidden' : 'visible'
         }}>
           <Button variant="gradient" color="primary" onClick={handleDepositClick} disabled={isLoading}>
             Deposit
