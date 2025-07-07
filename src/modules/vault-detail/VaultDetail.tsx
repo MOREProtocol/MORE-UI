@@ -15,6 +15,7 @@ import { LightweightLineChart } from '../vaults/LightweightLineChart';
 import { MarketLogo } from 'src/components/MarketSwitcher';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
+import { UsdChip } from 'src/components/primitives/UsdChip';
 import { formatUnits } from 'viem';
 import { formattedTime, formatTimeRemaining, timeText } from 'src/helpers/timeHelper';
 import { useRouter } from 'next/router';
@@ -223,7 +224,7 @@ export const VaultDetail = () => {
         <Box sx={{ display: 'flex', flexDirection: 'column', flex: 2 }}>
           <Box sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+            gridTemplateColumns: { xs: '1fr', xsm: '1fr 1fr' },
             height: '100%',
             gap: 3,
             p: 3,
@@ -249,15 +250,28 @@ export const VaultDetail = () => {
               <Typography variant="secondary14" color="text.secondary">
                 Deposit Cap
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {isLoading ? <Skeleton width={80} height={24} /> : <FormattedNumber
-                  value={formatUnits(
-                    BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0'),
-                    vaultData?.data?.overview?.asset?.decimals || 18
-                  ) || ''}
-                  symbol={vaultData?.data?.overview?.asset?.symbol || ''}
-                  variant="main16"
-                />}
+              <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {isLoading ? <Skeleton width={80} height={24} /> : <FormattedNumber
+                    value={formatUnits(
+                      BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0'),
+                      vaultData?.data?.overview?.asset?.decimals || 18
+                    ) || ''}
+                    symbol={vaultData?.data?.overview?.asset?.symbol || ''}
+                    variant="main16"
+                    compact
+                  />}
+                </Box>
+                {!isLoading && (
+                  <UsdChip
+                    value={new BigNumber(formatUnits(
+                      BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0'),
+                      vaultData?.data?.overview?.asset?.decimals || 18
+                    ) || '0').multipliedBy(
+                      reserve?.formattedPriceInMarketReferenceCurrency || 0
+                    ).toString() || '0'}
+                  />
+                )}
               </Box>
             </Box>
 
@@ -284,15 +298,23 @@ export const VaultDetail = () => {
               <Typography variant="secondary14" color="text.secondary">
                 Net Asset Value
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {isLoading ? <Skeleton width={80} height={24} /> : <FormattedNumber
-                  value={formatUnits(
-                    BigInt(vaultData?.data?.financials?.liquidity?.totalAssets || '0'),
-                    vaultData?.data?.overview?.asset?.decimals || 18
-                  ) || ''}
-                  symbol={vaultData?.data?.overview?.asset?.symbol || ''}
-                  variant="main16"
-                />}
+              <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {isLoading ? <Skeleton width={80} height={24} /> : <FormattedNumber
+                    value={formatUnits(
+                      BigInt(aum || '0'),
+                      vaultData?.data?.overview?.asset?.decimals || 18
+                    ) || ''}
+                    symbol={vaultData?.data?.overview?.asset?.symbol || ''}
+                    variant="main16"
+                    compact
+                  />}
+                </Box>
+                {!isLoading && (
+                  <UsdChip
+                    value={aumInUsd.toString() || '0'}
+                  />
+                )}
               </Box>
             </Box>
 
@@ -359,6 +381,7 @@ export const VaultDetail = () => {
                   border: isLoading ? 'none' : selectedChartDataKey === 'apy' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
                   borderRadius: '8px',
                   padding: '2px 6px',
+                  width: 'fit-content',
                 }}>
                 {isLoading ? <Skeleton width={60} height={24} /> : <>
                   <FormattedNumber
@@ -391,6 +414,7 @@ export const VaultDetail = () => {
                   border: isLoading ? 'none' : selectedChartDataKey === 'totalSupply' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
                   borderRadius: '8px',
                   padding: '2px 6px',
+                  width: 'fit-content',
                 }}>
                 {isLoading ? <Skeleton width={60} height={24} /> : <>
                   <FormattedNumber

@@ -188,12 +188,13 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
 
   // Web3 setup
   const { data: walletClient } = useWalletClient();
-  const [chainId, setChainId] = useState<number | undefined>(ChainIds.flowEVMMainnet);
+  const [chainId, setChainId] = useState<number>(ChainIds.flowEVMMainnet);
+
   useEffect(() => {
     const getChainId = async () => {
       if (walletClient) {
-        const chainId = await walletClient?.getChainId();
-        setChainId(chainId);
+        const walletChainId = await walletClient.getChainId();
+        setChainId(walletChainId);
       }
     };
     getChainId();

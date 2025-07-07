@@ -5,6 +5,7 @@ import { formatUnits } from 'ethers/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
+import { UsdChip } from 'src/components/primitives/UsdChip';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useVault, VaultData } from 'src/hooks/vault/useVault';
 import { LightweightLineChart } from './LightweightLineChart';
@@ -111,18 +112,9 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
                 compact
               />
               <Box sx={{ display: 'flex', flexDirection: 'row' }}>
-                <Typography variant="secondary14" color="text.secondary">
-                  {'('}
-                </Typography>
-                <FormattedNumber
-                  value={aumInUsd.toString()}
-                  symbol={'USD'}
-                  variant="secondary14"
-                  compact
+                <UsdChip
+                  value={aumInUsd.toString() || '0'}
                 />
-                <Typography variant="secondary14" color="text.secondary">
-                  {')'}
-                </Typography>
               </Box>
             </Box>
           </Box>

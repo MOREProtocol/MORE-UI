@@ -232,7 +232,17 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
   }, []);
 
   return (
-    <div ref={chartContainerRef} style={{ position: 'relative', height: `${height}px`, width: '100%', display: 'block' }}>
+    <div ref={chartContainerRef} style={{
+      position: 'relative',
+      height: `${height}px`,
+      width: '100%',
+      display: 'block',
+      // CSS mask to create fade effect on all edges
+      WebkitMask: 'linear-gradient(to right, transparent 0px, black 6px, black calc(100% - 6px), transparent 100%), linear-gradient(to bottom, transparent 0px, black 6px, black calc(100% - 6px), transparent 100%)',
+      mask: 'linear-gradient(to right, transparent 0px, black 6px, black calc(100% - 6px), transparent 100%), linear-gradient(to bottom, transparent 0px, black 6px, black calc(100% - 6px), transparent 100%)',
+      WebkitMaskComposite: 'intersect',
+      maskComposite: 'intersect',
+    }}>
       {title && (
         <Typography
           variant="caption"
