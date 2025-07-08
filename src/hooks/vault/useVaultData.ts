@@ -173,6 +173,11 @@ interface RewardItem {
 
 const fetchRewards = async ({ userAddress }: { userAddress: string }): Promise<RewardItem[]> => {
   try {
+    if (!process.env.NEXT_PUBLIC_REWARD_URL) {
+      console.warn("NEXT_PUBLIC_REWARD_URL is not defined, skipping rewards fetch");
+      return [];
+    }
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_REWARD_URL}/api/vaults/user?userAddress=${userAddress}`);
     if (!response.ok) {
       throw new Error(`Error fetching rewards: ${response.statusText}`);
@@ -201,6 +206,11 @@ interface IncentiveItem {
 
 const fetchIncentives = async (): Promise<IncentiveItem[]> => {
   try {
+    if (!process.env.NEXT_PUBLIC_REWARD_URL) {
+      console.warn("NEXT_PUBLIC_REWARD_URL is not defined, skipping incentives fetch");
+      return [];
+    }
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_REWARD_URL}/api/vaults/apy`);
     if (!response.ok) {
       throw new Error(`Error fetching incentives: ${response.statusText}`);
@@ -344,12 +354,13 @@ export const useVaultsListData = <TResult = VaultData>(
 
   const canPotentiallyFetch = isHookGloballyEnabledByOpts && areCoreDependenciesReady;
 
-  const allowIndividualQueryExecution = canPotentiallyFetch && reservesAreReady;
-
   // Fetch incentives independently to avoid blocking vault queries
-  const { data: incentivesData } = useIncentives({
+  const { data: incentivesData, isLoading: incentivesLoading, isSuccess: incentivesSuccess } = useIncentives({
     enabled: canPotentiallyFetch,
   });
+
+  // Wait for both reserves and incentives to be ready
+  const allowIndividualQueryExecution = canPotentiallyFetch && reservesAreReady && incentivesSuccess;
 
   const individualQueryResults = useQueries({
     queries: vaultIds.map((vaultId) => ({
@@ -434,7 +445,7 @@ export const useVaultsListData = <TResult = VaultData>(
     })),
   });
 
-  if (canPotentiallyFetch && !reservesAreReady) {
+  if (canPotentiallyFetch && (!reservesAreReady || incentivesLoading)) {
     return {
       data: undefined,
       isLoading: true,
