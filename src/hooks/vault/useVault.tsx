@@ -100,6 +100,19 @@ export interface VaultData {
     transactionHash: string;
     user: string;
   }[];
+  incentives?: {
+    id: number;
+    name: string;
+    start_timestamp: number;
+    end_timestamp: number;
+    reward_token_address: string;
+    total_reward_amount_wei: string;
+    tracked_token_address: string;
+    tracked_token_type: "supply" | "borrow" | "supply_and_borrow";
+    created_at: number;
+    reward_token_symbol: string;
+    apy_bps: number;
+  }[];
 }
 
 // Define the tabs for your vault page

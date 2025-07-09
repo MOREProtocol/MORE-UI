@@ -1,12 +1,12 @@
 import { valueToBigNumber } from '@aave/math-utils';
-import { useMediaQuery, useTheme } from '@mui/material';
+import { Box, Button, useMediaQuery, useTheme } from '@mui/material';
 import { formatUnits } from 'ethers/lib/utils';
 import { marketContainerProps } from 'pages/markets.page';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useVault } from 'src/hooks/vault/useVault';
 import {
   useDeployedVaults,
-  // useUserData,
+  useUserData,
   useUserVaultsData,
   useVaultsListData,
 } from 'src/hooks/vault/useVaultData';
@@ -14,7 +14,7 @@ import {
 import { FormattedNumber } from '../../components/primitives/FormattedNumber';
 import { TopInfoPanel } from '../../components/TopInfoPanel/TopInfoPanel';
 import { TopInfoPanelItem } from '../../components/TopInfoPanel/TopInfoPanelItem';
-// import { VaultsRewardModal } from './VaultsRewardModal';
+import { VaultsRewardModal } from './VaultsRewardModal';
 
 export const VaultsTopPanel = () => {
   const { accountAddress } = useVault();
@@ -29,13 +29,13 @@ export const VaultsTopPanel = () => {
   const userVaults = userVaultsQuery?.map(vault => vault.data);
   const isLoadingUserVaults = userVaultsQuery?.some(vault => vault.isLoading);
 
-  // const userDataQuery = useUserData(accountAddress);
-  // const userData = userDataQuery?.data;
-  // const isLoadingUserData = userDataQuery?.isLoading;
+  const userDataQuery = useUserData(accountAddress);
+  const userData = userDataQuery?.data;
+  const isLoadingUserData = userDataQuery?.isLoading;
 
-  const loading = isLoadingUserVaults || isLoadingVaults;
+  const loading = isLoadingUserVaults || isLoadingVaults || isLoadingUserData;
 
-  // const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
+  const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
 
   const theme = useTheme();
   const downToSM = useMediaQuery(theme.breakpoints.down('sm'));
@@ -76,15 +76,15 @@ export const VaultsTopPanel = () => {
   const valueTypographyVariant = downToSM ? 'main16' : 'main21';
   const symbolsVariant = downToSM ? 'secondary16' : 'secondary21';
 
-  // const claimableRewardsUsd = useMemo(() => userData?.userRewards.reduce((acc, reward) => acc + reward.rewardAmountToClaimInUSD, 0), [userData]);
-  // const handleOpenRewardModal = () => {
-  //   if (accountAddress) {
-  //     setIsRewardModalOpen(true);
-  //   }
-  // };
-  // const handleCloseRewardModal = () => {
-  //   setIsRewardModalOpen(false);
-  // };
+  const claimableRewardsUsd = useMemo(() => userData?.userRewards.reduce((acc, reward) => acc + reward.rewardAmountToClaimInUSD, 0), [userData]);
+  const handleOpenRewardModal = () => {
+    if (accountAddress) {
+      setIsRewardModalOpen(true);
+    }
+  };
+  const handleCloseRewardModal = () => {
+    setIsRewardModalOpen(false);
+  };
 
   return (
     <TopInfoPanel containerProps={marketContainerProps} pageTitle={'Vaults'}>
@@ -112,7 +112,7 @@ export const VaultsTopPanel = () => {
           />
         </TopInfoPanelItem>
       )}
-      {/* {claimableRewardsUsd > 0 && (
+      {claimableRewardsUsd > 0 && (
         <TopInfoPanelItem title={'Available rewards'} loading={loading} hideIcon>
           <Box
             sx={{
@@ -151,7 +151,7 @@ export const VaultsTopPanel = () => {
           handleClose={handleCloseRewardModal}
           userAddress={accountAddress}
         />
-      )} */}
+      )}
     </TopInfoPanel>
   );
 };

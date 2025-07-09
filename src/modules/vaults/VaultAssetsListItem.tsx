@@ -10,6 +10,7 @@ import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvide
 import { useVault, VaultData } from 'src/hooks/vault/useVault';
 import { LightweightLineChart } from './LightweightLineChart';
 import { fetchVaultHistoricalSnapshots, formatSnapshotsForChart } from 'src/hooks/vault/vaultSubgraph';
+import { RewardsButton } from 'src/components/incentives/IncentivesButton';
 
 interface VaultAssetsListItemProps {
   data: VaultData;
@@ -141,6 +142,14 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
                 variant="main14"
                 compact
               />
+              {data?.incentives && data?.incentives.length > 0 && (
+                <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
+                  <Typography variant="main14" color="text.secondary" sx={{ ml: 1, mr: 1 }}>
+                    +
+                  </Typography>
+                  <RewardsButton rewards={data?.incentives} />
+                </Box>
+              )}
             </Box>
           </Box>
 

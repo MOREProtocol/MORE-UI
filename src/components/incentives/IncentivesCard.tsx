@@ -4,12 +4,14 @@ import { ReactNode } from 'react';
 
 import { FormattedNumber } from '../primitives/FormattedNumber';
 import { NoData } from '../primitives/NoData';
-import { IncentivesButton } from './IncentivesButton';
+import { IncentivesButton, RewardsButton } from './IncentivesButton';
+import { PoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 
 interface IncentivesCardProps {
   symbol: string;
   value: string | number;
   incentives?: ReserveIncentiveResponse[];
+  rewards?: PoolReservesRewardsHumanized[];
   variant?: 'main14' | 'main16' | 'secondary14';
   symbolsVariant?: 'secondary14' | 'secondary16';
   align?: 'center' | 'flex-end';
@@ -21,6 +23,7 @@ export const IncentivesCard = ({
   symbol,
   value,
   incentives,
+  rewards,
   variant = 'secondary14',
   symbolsVariant,
   align,
@@ -55,6 +58,7 @@ export const IncentivesCard = ({
       )}
 
       <IncentivesButton incentives={incentives} symbol={symbol} />
+      <RewardsButton rewards={rewards} />
     </Box>
   );
 };

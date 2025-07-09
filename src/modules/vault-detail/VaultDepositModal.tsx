@@ -1,5 +1,6 @@
-import { Box, Button, CircularProgress, Typography, Checkbox, FormControlLabel, Collapse } from '@mui/material';
+import { Box, Button, CircularProgress, Typography, Checkbox, FormControlLabel, Collapse, Tooltip } from '@mui/material';
 import BigNumber from 'bignumber.js';
+import { ethers } from 'ethers';
 import { parseUnits } from 'ethers/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
@@ -12,6 +13,7 @@ import { useRootStore } from 'src/store/root';
 import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableToSupply';
 import { roundToTokenDecimals } from 'src/utils/utils';
 import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
+import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 
 interface VaultDepositModalProps {
   isOpen: boolean;
@@ -32,6 +34,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     state.currentMarketData,
   ]);
   const { walletBalances } = useWalletBalances(currentMarketData);
+  const { addERC20Token } = useWeb3Context();
 
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -39,6 +42,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const [txAction, setTxAction] = useState<string | null>(null);
   const [riskAccepted, setRiskAccepted] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
+  const [addTokenLoading, setAddTokenLoading] = useState(false);
+  const [addTokenSuccess, setAddTokenSuccess] = useState(false);
   const reserve = useMemo(() =>
     reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === selectedVault?.overview?.asset?.address?.toLowerCase()),
     [reserves, selectedVault]);
@@ -47,6 +52,54 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     reserve?.formattedPriceInMarketReferenceCurrency
   );
   const walletBalance = walletBalances[reserve?.underlyingAsset?.toLowerCase()]?.amount || '0';
+
+  // Check if user has vault tokens
+  const userVaultBalance = userVaultData?.[0]?.data?.maxWithdraw?.toString() || '0';
+  const hasVaultTokens = new BigNumber(userVaultBalance).isGreaterThan(0);
+
+  // Handle adding vault token to wallet when curator icon is clicked
+  const handleCuratorIconClick = async () => {
+    if (!selectedVaultId || !selectedVault || !signer || (!txHash && !hasVaultTokens)) return;
+
+    setAddTokenLoading(true);
+    try {
+      // Get the actual ERC20 symbol from the vault contract
+      const vaultContract = new ethers.Contract(
+        selectedVaultId,
+        [
+          `function symbol() external view returns (string)`,
+          `function decimals() external view returns (uint8)`,
+        ],
+        signer
+      );
+
+      const [vaultSymbol, vaultDecimals] = await Promise.all([
+        vaultContract.symbol().catch(() => 'VAULT'),
+        vaultContract.decimals().catch(() => 18),
+      ]);
+
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASEURL ||
+        (typeof window !== 'undefined' ? window.location.origin : 'https://app.more.markets');
+      const imageUrl = selectedVault.overview.curatorLogo
+        ? `${baseUrl}/${selectedVault.overview.curatorLogo}`
+        : undefined;
+
+      const success = await addERC20Token({
+        address: selectedVaultId,
+        symbol: vaultSymbol,
+        decimals: vaultDecimals,
+        image: imageUrl,
+      });
+
+      if (success) {
+        setAddTokenSuccess(true);
+      }
+    } catch (error) {
+      console.error('Failed to add vault token to wallet:', error);
+    } finally {
+      setAddTokenLoading(false);
+    }
+  };
 
   // Calculate max amount considering both wallet balance and whitelist limits
   const maxAmountToSupply = useMemo(() => {
@@ -119,6 +172,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       setIsLoading(false);
       setRiskAccepted(false);
       setTxError(null);
+      setAddTokenLoading(false);
+      setAddTokenSuccess(false);
     }
   }, [isOpen]);
 
@@ -307,13 +362,70 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <img
-                  src={selectedVault?.overview?.curatorLogo || '/MOREVault.svg'}
-                  width="45px"
-                  height="45px"
-                  alt="token-svg"
-                  style={{ borderRadius: '50%' }}
-                />
+                <Tooltip
+                  title={
+                    addTokenSuccess
+                      ? 'Vault token added to wallet!'
+                      : (txHash || hasVaultTokens)
+                        ? 'Click to add vault token to your wallet'
+                        : ''
+                  }
+                  enterDelay={1000}
+                  placement="top"
+                  arrow
+                >
+                  <Box
+                    onClick={handleCuratorIconClick}
+                    sx={{
+                      cursor: (txHash || hasVaultTokens) && !addTokenLoading ? 'pointer' : 'default',
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      '&:hover': {
+                        opacity: (txHash || hasVaultTokens) && !addTokenLoading ? 0.8 : 1,
+                      },
+                      transition: 'opacity 0.2s',
+                    }}
+                  >
+                    <img
+                      src={selectedVault?.overview?.curatorLogo || '/MOREVault.svg'}
+                      width="45px"
+                      height="45px"
+                      alt="token-svg"
+                      style={{ borderRadius: '50%' }}
+                    />
+                    {addTokenLoading && (
+                      <CircularProgress
+                        size={20}
+                        sx={{
+                          position: 'absolute',
+                          color: 'primary.main',
+                        }}
+                      />
+                    )}
+                    {addTokenSuccess && (
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: -5,
+                          right: -5,
+                          backgroundColor: 'success.main',
+                          borderRadius: '50%',
+                          width: 16,
+                          height: 16,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
+                          color: 'white',
+                        }}
+                      >
+                        ✓
+                      </Box>
+                    )}
+                  </Box>
+                </Tooltip>
                 <Box>
                   <Typography variant="main16">{selectedVault?.overview?.name}</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -372,6 +484,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
                 {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
                 {buttonContent}
               </Button>
+
               {/* <SafeWalletButton
                 isDisabled={!amount || amount === '0'}
                 vaultAddress={selectedVault?.id}

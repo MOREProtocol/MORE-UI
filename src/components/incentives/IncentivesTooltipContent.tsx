@@ -77,7 +77,7 @@ export const IncentivesTooltipContent = ({
         ))}
 
         {incentives.length > 1 && (
-          <Box sx={(theme) => ({ pt: 1, mt: 1, border: `1px solid ${theme.palette.divider}` })}>
+          <Box sx={(theme) => ({ p: 1, border: `1px solid ${theme.palette.divider}`, borderRadius: '4px' })}>
             <Row caption="Net APR" height={32}>
               <Number incentiveAPR={incentivesNetAPR} />
             </Row>

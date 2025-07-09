@@ -14,6 +14,7 @@ import {
 } from './usePoolFormattedReserves';
 import { useUserSummariesAndIncentives } from './useUserSummaryAndIncentives';
 import { combineQueries, SimplifiedUseQueryResult } from './utils';
+import { PoolReservesRewardsHumanized, usePoolsReservesRewardsHumanized } from './usePoolReservesRewards';
 
 export interface UserYield {
   earnedAPY: number;
@@ -26,6 +27,7 @@ const formatUserYield = memoize(
     formattedPoolReserves: FormattedReservesAndIncentives[],
     formattedGhoReserveData: FormattedGhoReserveData | undefined,
     formattedGhoUserData: FormattedGhoUserData | undefined,
+    poolsReservesRewards: PoolReservesRewardsHumanized[],
     user: FormatUserSummaryAndIncentivesResponse,
     currentMarket: string
   ) => {
@@ -112,14 +114,52 @@ const formatUserYield = memoize(
       }
     );
 
+    // Add rewards from poolsReservesRewards
+    if (Array.isArray(poolsReservesRewards)) {
+      poolsReservesRewards.forEach((reward) => {
+        if (reward.apy_bps === 0) {
+          return;
+        }
+        // apy_bps is in basis points and needs division by 10000
+        const rewardAPY = new BigNumber(reward.apy_bps).dividedBy(10000);
+        if (reward.tracked_token_type === 'supply' || reward.tracked_token_type === 'supply_and_borrow') {
+          const userReserveData = user.userReservesData.find(
+            (r) => r.reserve.underlyingAsset === reward.tracked_token_address
+          );
+          if (userReserveData && userReserveData.underlyingBalanceUSD !== '0') {
+            proportions.positiveProportion = proportions.positiveProportion.plus(
+              rewardAPY.multipliedBy(userReserveData.underlyingBalanceUSD)
+            );
+          }
+        }
+        if (reward.tracked_token_type === 'borrow' || reward.tracked_token_type === 'supply_and_borrow') {
+          const userReserveData = user.userReservesData.find(
+            (r) => r.reserve.underlyingAsset === reward.tracked_token_address
+          );
+          if (userReserveData) {
+            if (userReserveData.variableBorrowsUSD !== '0') {
+              proportions.positiveProportion = proportions.positiveProportion.plus(
+                rewardAPY.multipliedBy(userReserveData.variableBorrowsUSD)
+              );
+            }
+            if (userReserveData.stableBorrowsUSD !== '0') {
+              proportions.positiveProportion = proportions.positiveProportion.plus(
+                rewardAPY.multipliedBy(userReserveData.stableBorrowsUSD)
+              );
+            }
+          }
+        }
+      });
+    }
+
     const earnedAPY = proportions.positiveProportion.dividedBy(user.totalLiquidityUSD).toNumber();
     const debtAPY = proportions.negativeProportion.dividedBy(user.totalBorrowsUSD).toNumber();
     const netAPY =
       (earnedAPY || 0) *
-        (Number(user.totalLiquidityUSD) /
-          Number(user.netWorthUSD !== '0' ? user.netWorthUSD : '1')) -
+      (Number(user.totalLiquidityUSD) /
+        Number(user.netWorthUSD !== '0' ? user.netWorthUSD : '1')) -
       (debtAPY || 0) *
-        (Number(user.totalBorrowsUSD) / Number(user.netWorthUSD !== '0' ? user.netWorthUSD : '1'));
+      (Number(user.totalBorrowsUSD) / Number(user.netWorthUSD !== '0' ? user.netWorthUSD : '1'));
     return {
       earnedAPY,
       debtAPY,
@@ -133,14 +173,18 @@ export const useUserYields = (
 ): SimplifiedUseQueryResult<UserYield>[] => {
   const poolsFormattedReservesQuery = usePoolsFormattedReserves(marketsData);
   const userSummaryQuery = useUserSummariesAndIncentives(marketsData);
+  const poolsReservesRewardsQuery = usePoolsReservesRewardsHumanized(marketsData);
 
   return poolsFormattedReservesQuery.map((elem, index) => {
     const marketData = marketsData[index];
+    const poolReservesRewardsData = Array.isArray(poolsReservesRewardsQuery[index].data)
+      ? poolsReservesRewardsQuery[index].data
+      : [];
     const ghoSelector = (
       formattedPoolReserves: FormattedReservesAndIncentives[],
       user: FormatUserSummaryAndIncentivesResponse
     ) => {
-      return formatUserYield(formattedPoolReserves, undefined, undefined, user, marketData.market);
+      return formatUserYield(formattedPoolReserves, undefined, undefined, poolReservesRewardsData, user, marketData.market);
     };
     return combineQueries([elem, userSummaryQuery[index]] as const, ghoSelector);
   });

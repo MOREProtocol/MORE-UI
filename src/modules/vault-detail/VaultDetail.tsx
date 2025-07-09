@@ -24,6 +24,7 @@ import BigNumber from 'bignumber.js';
 import { VaultActivity } from './VaultActivity';
 import { VaultAllocations } from './VaultAllocations';
 import { VaultManagement } from './VaultManagement/VaultManagement';
+import { RewardsButton } from 'src/components/incentives/IncentivesButton';
 
 export const VaultDetail = () => {
   const router = useRouter();
@@ -370,35 +371,49 @@ export const VaultDetail = () => {
           <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'row', gap: 5 }}>
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
               <Typography variant="secondary14" color="text.secondary">Annualized APY</Typography>
-              <Box
-                onClick={() => setSelectedChartDataKey('apy')}
-                sx={{
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  flexDirection: 'row',
-                  gap: 1,
-                  border: isLoading ? 'none' : selectedChartDataKey === 'apy' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
-                  borderRadius: '8px',
-                  padding: '2px 6px',
-                  width: 'fit-content',
-                }}>
-                {isLoading ? <Skeleton width={60} height={24} /> : <>
-                  <FormattedNumber
-                    value={vaultData?.data?.overview?.apy || '0'}
-                    percent
-                    variant="main16"
-                    sx={{ fontWeight: 800 }}
-                  />
-                  <SvgIcon sx={{
-                    fontSize: '20px',
-                    color: selectedChartDataKey === 'apy' ? "#FF9900" : theme.palette.text.muted,
-                  }}
-                  >
-                    <ShowChartIcon />
-                  </SvgIcon>
-                </>
-                }
+              <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'row', gap: 1 }}>
+                <Box
+                  onClick={() => setSelectedChartDataKey('apy')}
+                  sx={{
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    flexDirection: 'row',
+                    gap: 1,
+                    border: isLoading ? 'none' : selectedChartDataKey === 'apy' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
+                    borderRadius: '6px',
+                    padding: '2px 6px',
+                    width: 'fit-content',
+                    '&:hover': {
+                      backgroundColor: theme.palette.background.default,
+                      border: `1.5px solid ${theme.palette.text.muted}`,
+                    },
+                  }}>
+                  {isLoading ? <Skeleton width={60} height={24} /> : <>
+                    <FormattedNumber
+                      value={vaultData?.data?.overview?.apy || '0'}
+                      percent
+                      variant="main16"
+                      sx={{ fontWeight: 800 }}
+                    />
+                    <SvgIcon sx={{
+                      fontSize: '20px',
+                      color: selectedChartDataKey === 'apy' ? "#FF9900" : theme.palette.text.muted,
+                    }}
+                    >
+                      <ShowChartIcon />
+                    </SvgIcon>
+                  </>
+                  }
+                </Box>
+                {selectedVault?.incentives && selectedVault?.incentives.length > 0 && (
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="main14" color="text.secondary" sx={{ ml: 1, mr: 1 }}>
+                      +
+                    </Typography>
+                    <RewardsButton rewards={selectedVault?.incentives} />
+                  </Box>
+                )}
               </Box>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
@@ -412,9 +427,13 @@ export const VaultDetail = () => {
                   flexDirection: 'row',
                   gap: 1,
                   border: isLoading ? 'none' : selectedChartDataKey === 'totalSupply' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   padding: '2px 6px',
                   width: 'fit-content',
+                  '&:hover': {
+                    backgroundColor: theme.palette.background.default,
+                    border: `1.5px solid ${theme.palette.text.muted}`,
+                  },
                 }}>
                 {isLoading ? <Skeleton width={60} height={24} /> : <>
                   <FormattedNumber
