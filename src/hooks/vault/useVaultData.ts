@@ -36,6 +36,7 @@ export const vaultQueryKeys = {
   ],
   userGlobalData: (userAddress: string, chainId?: number) => ['userGlobalData', userAddress, chainId],
   incentives: (chainId?: number) => ['incentives', chainId],
+  userRewards: (userAddress: string, chainId?: number) => ['userRewards', userAddress, chainId],
 };
 
 // General hook options type
@@ -98,6 +99,12 @@ const fetchAllocation = async (
   const networkConfig = networkConfigs[chainId];
   const baseUrl = networkConfig.explorerLink;
 
+  // Guard clause to handle undefined or empty reserves
+  if (!reserves || !Array.isArray(reserves)) {
+    console.warn('Reserves array is not valid:', reserves);
+    return [];
+  }
+
   try {
     const response = await fetch(
       `${baseUrl}/api/v2/addresses/${vaultId}/tokens?type=ERC-20%2CERC-721%2CERC-1155`,
@@ -133,6 +140,12 @@ const fetchAllocation = async (
       }>;
       next_page_params: string | null;
     } = await response.json();
+
+    // Guard clause to handle undefined or empty items
+    if (!data.items || !Array.isArray(data.items)) {
+      console.warn('API response does not contain valid items array:', data);
+      return [];
+    }
 
     const processedData = data.items.map((item) => {
       const reserve = reserves.find(
@@ -184,6 +197,13 @@ const fetchRewards = async ({ userAddress }: { userAddress: string }): Promise<R
       throw new Error(`Error fetching rewards: ${response.statusText}`);
     }
     const data: RewardItem[] = await response.json();
+
+    // Guard clause to handle undefined or empty data
+    if (!data || !Array.isArray(data)) {
+      console.warn('API response is not a valid array:', data);
+      return [];
+    }
+
     return data;
   } catch (error) {
     console.error("Failed to fetch rewards:", error);
@@ -237,6 +257,12 @@ const fetchIncentives = async (): Promise<IncentiveItem[]> => {
     }
     const rawData: (Omit<IncentiveItem, 'tracked_token_type'> & { tracked_token_type: string })[] = await response.json();
 
+    // Guard clause to handle undefined or empty rawData
+    if (!rawData || !Array.isArray(rawData)) {
+      console.warn('API response is not a valid array:', rawData);
+      return [];
+    }
+
     // Encode/validate the tracked_token_type field for each incentive
     const data: IncentiveItem[] = rawData.map((incentive) => ({
       ...incentive,
@@ -269,6 +295,26 @@ export const useIncentives = <TResult = IncentiveItem[]>(
   );
 };
 
+// Separate hook for rewards that can be shared across vault queries
+export const useRewards = <TResult = RewardItem[]>(
+  userAddress: string,
+  opts?: VaultDataHookOpts<RewardItem[], TResult>
+) => {
+  const { chainId } = useVault();
+
+  return useVaultQuery<RewardItem[], TResult>(
+    vaultQueryKeys.userRewards(userAddress, chainId),
+    () => fetchRewards({ userAddress }),
+    !!userAddress && opts?.enabled !== false,
+    {
+      ...opts,
+      // Cache rewards for a shorter time since they're user-specific
+      staleTime: 2 * 60 * 1000, // 2 minutes
+      cacheTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+};
+
 // Helper function to get incentives for a specific vault
 const getVaultIncentives = (incentives: IncentiveItem[], vaultId: string): IncentiveItem[] => {
   return incentives
@@ -286,6 +332,12 @@ const fetchActivity = async (
 ): Promise<VaultData['activity']> => {
   const networkConfig = networkConfigs[chainId];
   const baseUrl = networkConfig.explorerLink;
+
+  // Guard clause to handle undefined or empty reserves
+  if (!reserves || !Array.isArray(reserves)) {
+    console.warn('Reserves array is not valid:', reserves);
+    return [];
+  }
 
   try {
     const response = await fetch(`${baseUrl}/api/v2/addresses/${vaultId}/transactions`, {
@@ -325,6 +377,12 @@ const fetchActivity = async (
       }>;
       next_page_params: string | null;
     } = await response.json();
+
+    // Guard clause to handle undefined or empty items
+    if (!data.items || !Array.isArray(data.items)) {
+      console.warn('API response does not contain valid items array:', data);
+      return [];
+    }
 
     const items = data.items;
     const processedData = items
@@ -384,6 +442,9 @@ export const useVaultsListData = <TResult = VaultData>(
 
   const canPotentiallyFetch = isHookGloballyEnabledByOpts && areCoreDependenciesReady;
 
+  // Create safe vaultIds array for mapping
+  const safeVaultIds = (!vaultIds || !Array.isArray(vaultIds)) ? [] : vaultIds;
+
   // Fetch incentives independently to avoid blocking vault queries
   const { data: incentivesData, isLoading: incentivesLoading, isSuccess: incentivesSuccess } = useIncentives({
     enabled: canPotentiallyFetch,
@@ -393,7 +454,7 @@ export const useVaultsListData = <TResult = VaultData>(
   const allowIndividualQueryExecution = canPotentiallyFetch && reservesAreReady && incentivesSuccess;
 
   const individualQueryResults = useQueries({
-    queries: vaultIds.map((vaultId) => ({
+    queries: safeVaultIds.map((vaultId) => ({
       queryKey: vaultQueryKeys.vaultInList(vaultId, chainId),
       queryFn: async () => {
         if (!provider || !vaultId) {
@@ -472,6 +533,16 @@ export const useVaultsListData = <TResult = VaultData>(
     })),
   });
 
+  // Add guard clause to handle undefined or null vaultIds (after all hooks)
+  if (!vaultIds || !Array.isArray(vaultIds) || vaultIds.length === 0) {
+    return {
+      data: [],
+      isLoading: false,
+      isError: false,
+      isSuccess: true,
+    };
+  }
+
   if (canPotentiallyFetch && (!reservesAreReady || incentivesLoading)) {
     return {
       data: undefined,
@@ -519,20 +590,31 @@ export const useUserData = <TResult = { userRewards: RewardItemEnriched[] }>(
   const provider = useVaultProvider(chainId);
   const { reserves } = useAppDataContext();
 
-  const isHookEnabled = !!provider && !!userAddress && (opts?.enabled !== false);
+  const isHookGloballyEnabledByOpts = opts?.enabled !== false;
+  const areCoreDependenciesReady = !!provider && !!userAddress;
+  const reservesAreReady = reserves.length > 0;
 
-  return useVaultQuery<{
+  const canPotentiallyFetch = isHookGloballyEnabledByOpts && areCoreDependenciesReady;
+
+  // Fetch rewards independently to avoid blocking user data query
+  const { data: rewardsData, isLoading: rewardsLoading, isSuccess: rewardsSuccess } = useRewards(userAddress, {
+    enabled: canPotentiallyFetch,
+  });
+
+  // Wait for both reserves and rewards to be ready
+  const allowQueryExecution = canPotentiallyFetch && reservesAreReady && rewardsSuccess;
+
+  const queryApiResult = useVaultQuery<{
     userRewards: RewardItemEnriched[];
   }, TResult>(
     vaultQueryKeys.userGlobalData(userAddress, chainId),
     async () => {
-      if (!provider || !userAddress) {
-        throw new Error('useUserData: Missing provider or userAddress');
+      if (!provider || !userAddress || !rewardsData) {
+        throw new Error('useUserData: Missing provider, userAddress, or rewards data');
       }
 
-      const userRewards = await fetchRewards({ userAddress });
+      const userRewards = rewardsData;
 
-      // TODO: move reward contract address to config
       const rewardContractAddress = userRewards?.[0]?.reward_contract_address;
       const rewardContract = new ethers.Contract(
         rewardContractAddress,
@@ -577,9 +659,21 @@ export const useUserData = <TResult = { userRewards: RewardItemEnriched[] }>(
 
       return { userRewards: userRewardsEnriched };
     },
-    isHookEnabled,
+    allowQueryExecution,
     opts
   );
+
+  if (canPotentiallyFetch && (!reservesAreReady || rewardsLoading)) {
+    return {
+      ...queryApiResult,
+      data: undefined,
+      isLoading: true,
+      isError: false,
+      isSuccess: false,
+    };
+  }
+
+  return queryApiResult;
 };
 
 export const useUserVaultsData = <
@@ -596,19 +690,22 @@ export const useUserVaultsData = <
   const isHookGloballyEnabledByOpts = opts?.enabled !== false;
   const canPotentiallyFetchAny = areCoreDependenciesReadyForHook && isHookGloballyEnabledByOpts;
 
-  // Explicitly type the array of query options
-  const queries: UseQueryOptions<TResult, Error, TResult, unknown[]>[] = vaultIds.map((vaultId) => {
-    const allowIndividualQueryExecution = canPotentiallyFetchAny && !!vaultId;
+  // Create safe vaultIds array for mapping
+  const safeVaultIds = (!vaultIds || !Array.isArray(vaultIds)) ? [] : vaultIds;
+
+  const queries: UseQueryOptions<TResult, Error, TResult, unknown[]>[] = safeVaultIds.map((vaultId) => {
+    const allowIndividualQueryExecution = canPotentiallyFetchAny && !!vaultId && vaultId.trim() !== '';
+
     return {
       queryKey: vaultQueryKeys.userVaultData(vaultId, userAddress, chainId),
       queryFn: async () => {
         if (!provider || !vaultId || !userAddress) {
           throw new Error(
-            'useUserVaultsData: Missing provider, vaultId, or userAddress for a vault query'
+            `useUserVaultsData: Missing provider (${!!provider}), vaultId (${!!vaultId}), or userAddress (${!!userAddress}) for a vault query`
           );
         }
         if (!Object.values(ChainIds).includes(chainId)) {
-          throw new Error('Invalid chainId');
+          throw new Error(`Invalid chainId: ${chainId}`);
         }
 
         const vaultDiamondContract = new ethers.Contract(
@@ -640,13 +737,9 @@ export const useUserVaultsData = <
             provider
           );
           const [assetDecimalsFromContract] = await Promise.all([
-            // assetContract.balanceOf(vaultId).catch(() => ethers.BigNumber.from(0)),
             assetContract.decimals().catch(() => 18),
           ]);
 
-          // if (maxWithdrawShares.gt(vaultAssetBalance)) {
-          //   finalMaxWithdraw = vaultAssetBalance;
-          // }
           assetDecimals = assetDecimalsFromContract;
         }
 
@@ -664,14 +757,26 @@ export const useUserVaultsData = <
 
   const results = useQueries({ queries }) as UseQueryResult<TResult, Error>[];
 
-  // Add a refetch function that refetches all queries
+  // Add guard clause to handle undefined or null vaultIds (after all hooks)
+  if (!vaultIds || !Array.isArray(vaultIds) || vaultIds.length === 0) {
+    return [];
+  }
+
   const refetch = () => {
-    results.forEach(result => {
-      if (result.refetch) {
-        result.refetch();
-      }
-    });
+    // Add guard clause to ensure results is always an array
+    if (results && Array.isArray(results)) {
+      results.forEach(result => {
+        if (result.refetch) {
+          result.refetch();
+        }
+      });
+    }
   };
+
+  // Add guard clause to ensure results is always an array
+  if (!results || !Array.isArray(results)) {
+    return [];
+  }
 
   const extendedResults = results.map(result => ({
     ...result,

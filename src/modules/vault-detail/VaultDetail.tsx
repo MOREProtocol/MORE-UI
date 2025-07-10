@@ -50,7 +50,7 @@ export const VaultDetail = () => {
 
   const selectedVault = vaultData?.data;
   const isLoading = vaultData?.isLoading;
-  const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
+  const isUserVaultDataLoading = userVaultData?.[0]?.isLoading;
 
   const reserve = useMemo(() => {
     return reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === selectedVault?.overview?.asset?.address?.toLowerCase());
@@ -64,6 +64,7 @@ export const VaultDetail = () => {
   const aumInUsd = new BigNumber(aumFormatted).multipliedBy(
     reserve?.formattedPriceInMarketReferenceCurrency || 0
   );
+  const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
 
   const secondsSinceInception = Number(new Date().getTime() / 1000) - Number(selectedVault?.overview?.creationTimestamp);
   const lifetime = selectedVault?.overview?.creationTimestamp
@@ -148,7 +149,7 @@ export const VaultDetail = () => {
                 loading={isLoading}
                 isUser
                 variant="secondary12"
-                compactMode={downToMd ? CompactMode.SM : CompactMode.MD}
+                compactMode={CompactMode.SM}
                 sx={{ color: '#F1F1F3' }}
               />
             </Box>
@@ -184,7 +185,7 @@ export const VaultDetail = () => {
                 loading={isLoading}
                 isUser
                 variant="secondary12"
-                compactMode={downToMd ? CompactMode.SM : CompactMode.MD}
+                compactMode={CompactMode.SM}
                 sx={{ color: '#F1F1F3' }}
               />
             </Box>
@@ -199,12 +200,12 @@ export const VaultDetail = () => {
           <Button variant="gradient" color="primary" onClick={handleDepositClick} disabled={isLoading}>
             Deposit
           </Button>
-          {!isLoading && (maxWithdraw && maxWithdraw.gt(0)) && accountAddress &&
+          {!isLoading && !isUserVaultDataLoading && (maxWithdraw && maxWithdraw.gt(0)) && accountAddress &&
             <Button
               variant="gradient"
               size="medium"
               onClick={() => setIsWithdrawModalOpen(true)}
-              disabled={isLoading}
+              disabled={isLoading || isUserVaultDataLoading}
             >
               Withdraw
             </Button>
@@ -230,6 +231,36 @@ export const VaultDetail = () => {
             gap: 3,
             p: 3,
           }}>
+            {/* Row 1 - My deposits */}
+            <Box>
+              <Typography variant="secondary14" color="text.secondary">
+                My deposits
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {isLoading || isUserVaultDataLoading ? <Skeleton width={80} height={24} /> : <FormattedNumber
+                    value={formatUnits(
+                      maxWithdraw?.toBigInt() || BigInt(0),
+                      vaultData?.data?.overview?.asset?.decimals || 18
+                    ) || ''}
+                    symbol={vaultData?.data?.overview?.asset?.symbol || ''}
+                    variant="main16"
+                    compact
+                  />}
+                </Box>
+                {!isLoading && !isUserVaultDataLoading && (
+                  <UsdChip
+                    value={new BigNumber(formatUnits(
+                      maxWithdraw?.toBigInt() || BigInt(0),
+                      vaultData?.data?.overview?.asset?.decimals || 18
+                    ) || '0').multipliedBy(
+                      reserve?.formattedPriceInMarketReferenceCurrency || 0
+                    ).toString() || '0'}
+                  />
+                )}
+              </Box>
+            </Box>
+
             {/* Row 1 - Deposit Tokens */}
             <Box>
               <Typography variant="secondary14" color="text.secondary">
@@ -246,7 +277,7 @@ export const VaultDetail = () => {
               </Box>
             </Box>
 
-            {/* Row 1 - Deposit Cap */}
+            {/* Row 2 - Deposit Cap */}
             <Box>
               <Typography variant="secondary14" color="text.secondary">
                 Deposit Cap
@@ -294,7 +325,7 @@ export const VaultDetail = () => {
               </Box>
             </Box>
 
-            {/* Row 2 - Available Liquidity */}
+            {/* Row 3 - Available Liquidity */}
             <Box>
               <Typography variant="secondary14" color="text.secondary">
                 Net Asset Value
@@ -333,7 +364,7 @@ export const VaultDetail = () => {
               </Typography>
             </Box>
 
-            {/* Row 3 - Fee */}
+            {/* Row 4 - Fee */}
             <Box>
               <Typography variant="secondary14" color="text.secondary">
                 Fee
@@ -352,16 +383,6 @@ export const VaultDetail = () => {
               </Typography>
               <Typography variant="main16" fontWeight={600}>
                 {isLoading ? <Skeleton width={60} /> : lifetime}
-              </Typography>
-            </Box>
-
-            {/* Row 4 - Risk Score */}
-            <Box>
-              <Typography variant="secondary14" color="text.secondary">
-                Risk Score
-              </Typography>
-              <Typography variant="main16" fontWeight={600}>
-                {isLoading ? <Skeleton width={60} /> : 'N/A'}
               </Typography>
             </Box>
           </Box>

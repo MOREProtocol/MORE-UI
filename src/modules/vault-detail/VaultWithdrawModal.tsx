@@ -132,6 +132,14 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     return reserves.find((reserve) => reserve.symbol === vaultShareCurrency);
   }, [reserves, vaultShareCurrency]);
 
+  // Pre-fill amount when withdrawal request is loaded and reserve is available
+  useEffect(() => {
+    if (withdrawalRequest && reserve && withdrawalAssets !== '0') {
+      const formattedAmount = formatUnits(withdrawalAssets, reserve.decimals);
+      setAmount(formattedAmount);
+    }
+  }, [withdrawalRequest, reserve, withdrawalAssets]);
+
   useEffect(() => {
     if (withdrawalRequest && reserve) {
       const timeLockEndsAt = parseInt(withdrawalRequest.timeLockEndsAt);

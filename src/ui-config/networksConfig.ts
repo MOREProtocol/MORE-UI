@@ -54,7 +54,6 @@ export type BaseNetworkConfig = Omit<NetworkConfig, 'explorerLinkBuilder'>;
 export const networkConfigs: Record<string, BaseNetworkConfig> = {
   [ChainIds.flowEVMTestnet]: {
     name: 'EVM on Flow Testnet',
-    // privateJsonRPCUrl: 'https://flow-testnet.g.alchemy.com/v2/1JWRo2MpkikZipT0k0sk5zgJj3RjdbBw',
     publicJsonRPCUrl: ['https://testnet.evm.nodes.onflow.org'],
     baseUniswapAdapter: '0x0',
     baseAssetSymbol: 'FLOW',
@@ -67,7 +66,6 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
   },
   [ChainIds.flowEVMMainnet]: {
     name: 'EVM on Flow',
-    // privateJsonRPCUrl: 'https://flow-mainnet.g.alchemy.com/v2/1JWRo2MpkikZipT0k0sk5zgJj3RjdbBw',
     publicJsonRPCUrl: ['https://mainnet.evm.nodes.onflow.org'],
     baseUniswapAdapter: '0x0',
     baseAssetSymbol: 'FLOW',

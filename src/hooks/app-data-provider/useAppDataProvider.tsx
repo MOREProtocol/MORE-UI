@@ -77,10 +77,10 @@ export const AppDataProvider: React.FC<IProps> = ({ children }) => {
     !reservesDataLoading &&
     poolsReservesHumanized
       .map((r, index) =>
-        r.data.reservesData.map((reserve) => ({
+        r.data?.reservesData?.map((reserve) => ({
           ...reserve,
           market: localMarketData[index],
-        }))
+        })) || []
       )
       .flat();
 
@@ -90,10 +90,10 @@ export const AppDataProvider: React.FC<IProps> = ({ children }) => {
     !formattedPoolReservesLoading &&
     poolsFormattedReserves
       .map((r, index) =>
-        r.data.map((reserve) => ({
+        r.data?.map((reserve) => ({
           ...reserve,
           market: localMarketData[index],
-        }))
+        })) || []
       )
       .flat();
 

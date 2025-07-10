@@ -1,4 +1,4 @@
-import { Box, Button, Paper, SvgIcon, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Button, Paper, Skeleton, SvgIcon, Typography, useMediaQuery, useTheme } from '@mui/material';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import { BigNumber } from 'bignumber.js';
 import { formatUnits } from 'ethers/lib/utils';
@@ -11,6 +11,7 @@ import { useVault, VaultData } from 'src/hooks/vault/useVault';
 import { LightweightLineChart } from './LightweightLineChart';
 import { fetchVaultHistoricalSnapshots, formatSnapshotsForChart } from 'src/hooks/vault/vaultSubgraph';
 import { RewardsButton } from 'src/components/incentives/IncentivesButton';
+import { useUserVaultsData } from 'src/hooks/vault/useVaultData';
 
 interface VaultAssetsListItemProps {
   data: VaultData;
@@ -19,7 +20,23 @@ interface VaultAssetsListItemProps {
 
 export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps) => {
   const { reserves } = useAppDataContext();
-  const { chainId } = useVault();
+  const { chainId, accountAddress } = useVault();
+
+  // Use the vault ID from the data prop, not the globally selected vault ID
+  const vaultId = data?.id;
+
+  // Normalize vault ID to lowercase for consistency
+  const normalizedVaultId = vaultId?.toLowerCase();
+
+  // Only call the hook when we have a valid vault ID and account address
+  const userVaultData = useUserVaultsData(
+    accountAddress || '',
+    normalizedVaultId ? [normalizedVaultId] : [],
+    {
+      enabled: !!normalizedVaultId && !!accountAddress
+    }
+  );
+
   const theme = useTheme();
   const upToMD = useMediaQuery(theme.breakpoints.up('md'));
   const reserve = useMemo(() => {
@@ -32,6 +49,8 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
   const aumInUsd = new BigNumber(aum).multipliedBy(
     reserve?.formattedPriceInMarketReferenceCurrency
   );
+  const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
+  const isUserVaultDataLoading = userVaultData?.[0]?.isLoading;
 
   const [historicalSnapshots, setHistoricalSnapshots] = useState<{ time: string; value: number }[] | null>(null);
   useEffect(() => {
@@ -117,6 +136,48 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
                   value={aumInUsd.toString() || '0'}
                 />
               </Box>
+            </Box>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: (theme) => theme.spacing(0.8),
+            }}
+          >
+            <Typography
+              sx={{
+                color: (theme) => theme.palette.text.secondary,
+                fontSize: '0.875rem',
+              }}
+            >
+              My deposits
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
+              {isUserVaultDataLoading ? (
+                <Skeleton width={80} height={20} />
+              ) : (
+                <>
+                  <FormattedNumber
+                    value={formatUnits(
+                      maxWithdraw?.toBigInt() || BigInt(0),
+                      data?.overview?.asset?.decimals || 18
+                    ) || ''}
+                    symbol={data.overview?.asset?.symbol}
+                    variant="main14"
+                    compact
+                  />
+                  <UsdChip
+                    value={new BigNumber(formatUnits(
+                      maxWithdraw?.toBigInt() || BigInt(0),
+                      data?.overview?.asset?.decimals || 18
+                    ) || '0').multipliedBy(
+                      reserve?.formattedPriceInMarketReferenceCurrency || 0
+                    ).toString() || '0'}
+                  />
+                </>
+              )}
             </Box>
           </Box>
 
