@@ -40,9 +40,14 @@ export const compactNumber = ({
     formattedValue =
       Math.trunc(Number(formattedValue) * 10 ** visibleDecimals) / 10 ** visibleDecimals;
   }
+
+  // Check if the decimal part is zero
+  const hasNonZeroDecimals = formattedValue % 1 !== 0;
+  const actualDecimals = hasNonZeroDecimals ? visibleDecimals : 0;
+
   const prefix = new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: visibleDecimals,
-    minimumFractionDigits: visibleDecimals,
+    maximumFractionDigits: actualDecimals,
+    minimumFractionDigits: actualDecimals,
   }).format(formattedValue);
 
   return { prefix, postfix };
@@ -148,12 +153,16 @@ export function FormattedNumber({
         </Typography>
       )}
 
-      {!forceCompact ? (
-        new Intl.NumberFormat('en-US', {
-          maximumFractionDigits: decimals,
-          minimumFractionDigits: decimals,
-        }).format(formattedNumber)
-      ) : (
+      {!forceCompact ? (() => {
+        // Check if the decimal part is zero
+        const hasNonZeroDecimals = formattedNumber % 1 !== 0;
+        const actualDecimals = hasNonZeroDecimals ? decimals : 0;
+
+        return new Intl.NumberFormat('en-US', {
+          maximumFractionDigits: actualDecimals,
+          minimumFractionDigits: actualDecimals,
+        }).format(formattedNumber);
+      })() : (
         <CompactNumber
           value={formattedNumber}
           visibleDecimals={decimals}

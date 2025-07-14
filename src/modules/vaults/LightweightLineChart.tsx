@@ -88,7 +88,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
       if (!yAxisFormat) return price.toString();
 
       const formattedNumber = price.toFixed(0);
-      const { prefix, postfix } = compactNumber({ value: price, visibleDecimals: 0, roundDown: true });
+      const { prefix, postfix } = compactNumber({ value: price, visibleDecimals: 1, roundDown: true });
 
       if (yAxisFormat === '%') {
         return `${formattedNumber}%`;

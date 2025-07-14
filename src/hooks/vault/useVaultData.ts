@@ -818,6 +818,7 @@ export const useVaultData = <TResult = VaultData>(
         vaultId,
         [
           `function totalAssets() external view override returns (uint256)`,
+          `function totalSupply() external view override returns (uint256)`,
           `function asset() external view override returns (address)`,
           `function name() external view override returns (string)`,
           `function decimals() external view returns (uint8)`,
@@ -843,6 +844,7 @@ export const useVaultData = <TResult = VaultData>(
       ] = await Promise.all([
         Promise.all([
           vaultDiamondContract.totalAssets().catch(() => ethers.BigNumber.from(0)),
+          vaultDiamondContract.totalSupply().catch(() => ethers.BigNumber.from(0)),
           vaultDiamondContract.asset().catch(() => undefined),
           vaultDiamondContract.name().catch(() => 'Unnamed Vault'),
           vaultDiamondContract.decimals().catch(() => 18),
@@ -865,6 +867,7 @@ export const useVaultData = <TResult = VaultData>(
 
       const [
         totalAssets,
+        totalSupply,
         assetAddress,
         nameFromContract,
         decimals,
@@ -910,6 +913,7 @@ export const useVaultData = <TResult = VaultData>(
             address: assetAddress,
           },
           sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
+          decimals: decimals, // vault decimals
           roles: {
             guardian,
             curator,
@@ -927,6 +931,7 @@ export const useVaultData = <TResult = VaultData>(
         financials: {
           liquidity: {
             totalAssets: totalAssets.toString(),
+            totalSupply: totalSupply.toString(),
             maxDeposit: maxDeposit.toString(),
             depositCapacity: depositCapacity.toString(),
           },

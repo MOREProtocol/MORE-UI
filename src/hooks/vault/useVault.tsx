@@ -64,6 +64,7 @@ export interface VaultData {
     withdrawalTimelock?: string;
     fee?: string;
     creationTimestamp?: string;
+    decimals?: number;
   };
   financials?: {
     fees?: {
@@ -74,6 +75,7 @@ export interface VaultData {
     liquidity?: {
       maxDeposit?: string;
       totalAssets?: string;
+      totalSupply?: string;
       depositCapacity?: string;
     };
   };

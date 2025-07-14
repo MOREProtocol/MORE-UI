@@ -30,7 +30,7 @@ export const VaultDetail = () => {
   const router = useRouter();
   const { reserves } = useAppDataContext();
   const { selectedVaultId, accountAddress, chainId } = useVault();
-  const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
+  const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId], { enabled: !!selectedVaultId && !!accountAddress });
   const vaultData = useVaultData(selectedVaultId);
   const theme = useTheme();
   const downToMd = useMediaQuery(theme.breakpoints.down('md'));
@@ -62,6 +62,15 @@ export const VaultDetail = () => {
     ? formatUnits(aum, selectedVault?.overview?.asset?.decimals || 18)
     : '0';
   const aumInUsd = new BigNumber(aumFormatted).multipliedBy(
+    reserve?.formattedPriceInMarketReferenceCurrency || 0
+  );
+  const totalSupply = selectedVault
+    ? BigInt(selectedVault?.financials?.liquidity?.totalSupply)
+    : BigInt(0);
+  const totalSupplyFormatted = selectedVault
+    ? formatUnits(totalSupply, selectedVault?.overview?.decimals || 18)
+    : '0';
+  const totalSupplyInUsd = new BigNumber(totalSupplyFormatted).multipliedBy(
     reserve?.formattedPriceInMarketReferenceCurrency || 0
   );
   const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
@@ -286,7 +295,7 @@ export const VaultDetail = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   {isLoading ? <Skeleton width={80} height={24} /> : <FormattedNumber
                     value={formatUnits(
-                      BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0'),
+                      BigInt(vaultData?.data?.financials?.liquidity?.maxDeposit || '0'),
                       vaultData?.data?.overview?.asset?.decimals || 18
                     ) || ''}
                     symbol={vaultData?.data?.overview?.asset?.symbol || ''}
@@ -297,7 +306,7 @@ export const VaultDetail = () => {
                 {!isLoading && (
                   <UsdChip
                     value={new BigNumber(formatUnits(
-                      BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0'),
+                      BigInt(vaultData?.data?.financials?.liquidity?.maxDeposit || '0'),
                       vaultData?.data?.overview?.asset?.decimals || 18
                     ) || '0').multipliedBy(
                       reserve?.formattedPriceInMarketReferenceCurrency || 0
@@ -438,7 +447,7 @@ export const VaultDetail = () => {
               </Box>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
-              <Typography variant="secondary14" color="text.secondary">NAV</Typography>
+              <Typography variant="secondary14" color="text.secondary">Total Supply</Typography>
               <Box
                 onClick={() => setSelectedChartDataKey('totalSupply')}
                 sx={{
@@ -458,7 +467,7 @@ export const VaultDetail = () => {
                 }}>
                 {isLoading ? <Skeleton width={60} height={24} /> : <>
                   <FormattedNumber
-                    value={aumInUsd.toString() || '0'}
+                    value={totalSupplyInUsd.toString() || '0'}
                     symbol={'USD'}
                     variant="main16"
                     sx={{ fontWeight: 800 }}
