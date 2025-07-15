@@ -69,10 +69,10 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
       onClick={onClick}
       sx={{
         display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: { xs: 'column', md: 'row' },
+        alignItems: { xs: 'stretch', md: 'center' },
         padding: 5,
-        gap: 10,
+        gap: { xs: 3, md: 10 },
         height: '100%',
         cursor: 'pointer',
         borderRadius: (theme) => theme.spacing(2),
@@ -88,7 +88,7 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'left',
-          width: upToMD ? '50%' : '100%',
+          width: { xs: '100%', md: '50%' },
           gap: 4,
         }}
       >
@@ -257,6 +257,10 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
 
       <Button
         variant="gradient"
+        sx={{
+          alignSelf: { xs: 'stretch', md: 'auto' },
+          mt: { xs: 2, md: 0 }
+        }}
         endIcon={upToMD && (
           <SvgIcon sx={{ fontSize: '20px' }}>
             <ArrowForwardRounded />

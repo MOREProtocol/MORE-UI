@@ -190,8 +190,8 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
   };
 
   const handleClick = async () => {
-    // Only open transaction link if that's the intended action (not when user wants to make a new request)
-    if (txHash && (txAction === null || txAction === 'waiting')) {
+    // Only open transaction link when specifically in waiting state or when showing transaction link
+    if (txHash && (txAction === 'waiting' || (!withdrawalRequest && txAction === null))) {
       const explorerLink = currentNetworkConfig?.explorerLinkBuilder?.({ tx: txHash })
         || `${networkConfigs[chainId].explorerLink}/tx/${txHash}`;
       window.open(explorerLink, '_blank');

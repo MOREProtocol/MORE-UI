@@ -61,7 +61,7 @@ export const MobileMenu = ({ open, setOpen, headerHeight }: MobileMenuProps) => 
 
       <DrawerWrapper open={open} setOpen={setOpen} headerHeight={headerHeight}>
         <MenuItemsWrapper title={'Menu'}>
-          <NavItems />
+          <NavItems setOpen={setOpen} />
         </MenuItemsWrapper>
         <MenuItemsWrapper title={'Global settings'}>
           <List>
@@ -81,7 +81,13 @@ export const MobileMenu = ({ open, setOpen, headerHeight }: MobileMenuProps) => 
             </ListItem>
             {moreNavigation.length > 0 ? (
               moreNavigation.map((item, index) => (
-                <ListItem component={Link} href={item.link} sx={{ color: '#F1F1F3' }} key={index}>
+                <ListItem
+                  component={Link}
+                  href={item.link}
+                  sx={{ color: '#F1F1F3' }}
+                  key={index}
+                  onClick={() => setOpen(false)}
+                >
                   <ListItemIcon sx={{ minWidth: 'unset', mr: 3 }}>
                     <SvgIcon sx={{ fontSize: '20px', color: '#F1F1F3' }}>{item.icon}</SvgIcon>
                   </ListItemIcon>

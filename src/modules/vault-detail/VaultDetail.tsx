@@ -1,6 +1,7 @@
-import { Avatar, Box, Button, Skeleton, SvgIcon, Tab, Tabs, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Avatar, Box, Button, Skeleton, SvgIcon, Tab, Tabs, Typography, useMediaQuery, useTheme, Tooltip } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
+import InfoIcon from '@mui/icons-material/InfoOutlined';
 import { useVault, VaultTab } from 'src/hooks/vault/useVault';
 import { useMemo, useState } from 'react';
 import { useUserVaultsData, useVaultData } from 'src/hooks/vault/useVaultData';
@@ -243,7 +244,7 @@ export const VaultDetail = () => {
             {/* Row 1 - My deposits */}
             <Box>
               <Typography variant="secondary14" color="text.secondary">
-                My deposits
+                My Deposits
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -288,9 +289,44 @@ export const VaultDetail = () => {
 
             {/* Row 2 - Deposit Cap */}
             <Box>
-              <Typography variant="secondary14" color="text.secondary">
-                Deposit Cap
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="secondary14" color="text.secondary">
+                  Remaining Capacity
+                </Typography>
+                <Tooltip
+                  title={
+                    <Box>
+                      <Typography variant="main12" sx={{ fontWeight: 600 }}>
+                        Deposit Cap
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <FormattedNumber
+                          value={formatUnits(
+                            BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0'),
+                            vaultData?.data?.overview?.asset?.decimals || 18
+                          ) || ''}
+                          symbol={vaultData?.data?.overview?.asset?.symbol || ''}
+                          variant="secondary12"
+                          compact
+                          symbolsColor="#F1F1F3"
+                        />
+                        <UsdChip
+                          value={new BigNumber(formatUnits(
+                            BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0'),
+                            vaultData?.data?.overview?.asset?.decimals || 18
+                          ) || '0').multipliedBy(
+                            reserve?.formattedPriceInMarketReferenceCurrency || 0
+                          ).toString() || '0'}
+                        />
+                      </Box>
+                    </Box>
+                  }
+                  arrow
+                  placement="top"
+                >
+                  <InfoIcon sx={{ fontSize: '14px', color: 'text.secondary' }} />
+                </Tooltip>
+              </Box>
               <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   {isLoading ? <Skeleton width={80} height={24} /> : <FormattedNumber
