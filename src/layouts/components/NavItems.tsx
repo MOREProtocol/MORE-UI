@@ -45,24 +45,10 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
       isVisible: () => process.env.NEXT_PUBLIC_VAULTS_ENABLED === 'true',
     },
     {
-      link: ROUTES.staking,
-      title: 'Stake',
-      visibleTitle: 'Stake',
-      dataCy: 'menuStake',
-      isVisible: () =>
-        process.env.NEXT_PUBLIC_ENABLE_STAKING === 'true' &&
-        process.env.NEXT_PUBLIC_ENV === 'prod' &&
-        !ENABLE_TESTNET,
-    },
-    {
-      link: ROUTES.governance,
-      title: 'Governance',
-      visibleTitle: 'Governance',
-      dataCy: 'menuGovernance',
-      isVisible: () =>
-        process.env.NEXT_PUBLIC_ENABLE_GOVERNANCE === 'true' &&
-        process.env.NEXT_PUBLIC_ENV === 'prod' &&
-        !ENABLE_TESTNET,
+      link: ROUTES.bridge,
+      title: 'Bridge',
+      visibleTitle: 'Bridge',
+      dataCy: 'menuBridge',
     },
     {
       link: ROUTES.faucet,
@@ -70,6 +56,26 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
       visibleTitle: 'Faucet',
       isVisible: () => process.env.NEXT_PUBLIC_ENV === 'staging' || ENABLE_TESTNET,
     },
+    // {
+    //   link: ROUTES.staking,
+    //   title: 'Stake',
+    //   visibleTitle: 'Stake',
+    //   dataCy: 'menuStake',
+    //   isVisible: () =>
+    //     process.env.NEXT_PUBLIC_ENABLE_STAKING === 'true' &&
+    //     process.env.NEXT_PUBLIC_ENV === 'prod' &&
+    //     !ENABLE_TESTNET,
+    // },
+    // {
+    //   link: ROUTES.governance,
+    //   title: 'Governance',
+    //   visibleTitle: 'Governance',
+    //   dataCy: 'menuGovernance',
+    //   isVisible: () =>
+    //     process.env.NEXT_PUBLIC_ENABLE_GOVERNANCE === 'true' &&
+    //     process.env.NEXT_PUBLIC_ENV === 'prod' &&
+    //     !ENABLE_TESTNET,
+    // },
   ];
 
   const { breakpoints } = useTheme();

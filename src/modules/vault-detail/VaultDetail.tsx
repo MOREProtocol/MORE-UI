@@ -4,7 +4,7 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import InfoIcon from '@mui/icons-material/InfoOutlined';
 import { useVault, VaultTab } from 'src/hooks/vault/useVault';
 import { useMemo, useState } from 'react';
-import { useUserVaultsData, useVaultData } from 'src/hooks/vault/useVaultData';
+import { useUserVaultsData, useVaultData, useAssetData } from 'src/hooks/vault/useVaultData';
 import { CompactMode } from 'src/components/CompactableTypography';
 import { Address } from 'src/components/Address';
 import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
@@ -20,7 +20,6 @@ import { UsdChip } from 'src/components/primitives/UsdChip';
 import { formatUnits } from 'viem';
 import { formattedTime, formatTimeRemaining, timeText } from 'src/helpers/timeHelper';
 import { useRouter } from 'next/router';
-import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import BigNumber from 'bignumber.js';
 import { VaultActivity } from './VaultActivity';
 import { VaultAllocations } from './VaultAllocations';
@@ -29,7 +28,6 @@ import { RewardsButton } from 'src/components/incentives/IncentivesButton';
 
 export const VaultDetail = () => {
   const router = useRouter();
-  const { reserves } = useAppDataContext();
   const { selectedVaultId, accountAddress, chainId } = useVault();
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId], { enabled: !!selectedVaultId && !!accountAddress });
   const vaultData = useVaultData(selectedVaultId);
@@ -53,9 +51,10 @@ export const VaultDetail = () => {
   const isLoading = vaultData?.isLoading;
   const isUserVaultDataLoading = userVaultData?.[0]?.isLoading;
 
-  const reserve = useMemo(() => {
-    return reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === selectedVault?.overview?.asset?.address?.toLowerCase());
-  }, [reserves, selectedVault]);
+  // Get asset data using oracle + fallback to reserve
+  const assetData = useAssetData(selectedVault?.overview?.asset?.address || '', {
+    enabled: !!selectedVault?.overview?.asset?.address
+  });
   const aum = selectedVault
     ? BigInt(selectedVault?.financials?.liquidity?.totalAssets)
     : BigInt(0);
@@ -63,7 +62,7 @@ export const VaultDetail = () => {
     ? formatUnits(aum, selectedVault?.overview?.asset?.decimals || 18)
     : '0';
   const aumInUsd = new BigNumber(aumFormatted).multipliedBy(
-    reserve?.formattedPriceInMarketReferenceCurrency || 0
+    assetData.data?.price || 0
   );
   const totalSupply = selectedVault
     ? BigInt(selectedVault?.financials?.liquidity?.totalSupply)
@@ -72,7 +71,7 @@ export const VaultDetail = () => {
     ? formatUnits(totalSupply, selectedVault?.overview?.decimals || 18)
     : '0';
   const totalSupplyInUsd = new BigNumber(totalSupplyFormatted).multipliedBy(
-    reserve?.formattedPriceInMarketReferenceCurrency || 0
+    assetData.data?.price || 0
   );
   const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
 
@@ -264,7 +263,7 @@ export const VaultDetail = () => {
                       maxWithdraw?.toBigInt() || BigInt(0),
                       vaultData?.data?.overview?.asset?.decimals || 18
                     ) || '0').multipliedBy(
-                      reserve?.formattedPriceInMarketReferenceCurrency || 0
+                      assetData.data?.price || 0
                     ).toString() || '0'}
                   />
                 )}
@@ -315,7 +314,7 @@ export const VaultDetail = () => {
                             BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0'),
                             vaultData?.data?.overview?.asset?.decimals || 18
                           ) || '0').multipliedBy(
-                            reserve?.formattedPriceInMarketReferenceCurrency || 0
+                            assetData.data?.price || 0
                           ).toString() || '0'}
                         />
                       </Box>
@@ -345,7 +344,7 @@ export const VaultDetail = () => {
                       BigInt(vaultData?.data?.financials?.liquidity?.maxDeposit || '0'),
                       vaultData?.data?.overview?.asset?.decimals || 18
                     ) || '0').multipliedBy(
-                      reserve?.formattedPriceInMarketReferenceCurrency || 0
+                      assetData.data?.price || 0
                     ).toString() || '0'}
                   />
                 )}
@@ -362,9 +361,9 @@ export const VaultDetail = () => {
                   <>
                     <MarketLogo
                       size={24}
-                      logo={networkConfigs[747].networkLogoPath} // TODO: change to vault network
+                      logo={networkConfigs[chainId]?.networkLogoPath}
                     />
-                    <Typography variant="main16">FLOW EVM</Typography>
+                    <Typography variant="main16">{networkConfigs[chainId]?.name || 'Unknown Network'}</Typography>
                   </>
                 }
               </Box>

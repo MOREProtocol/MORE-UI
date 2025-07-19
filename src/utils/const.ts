@@ -1,4 +1,5 @@
 export const ChainIds = {
+  ethereum: 1,
   flowEVMTestnet: 545,
   flowEVMMainnet: 747,
 };

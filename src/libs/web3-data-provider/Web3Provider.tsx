@@ -4,12 +4,13 @@ import { Provider } from '@ethersproject/providers';
 import { waitForTransactionReceipt } from '@wagmi/core';
 import { useWeb3React } from '@web3-react/core';
 import { BigNumber, PopulatedTransaction, providers } from 'ethers';
-import React, { ReactElement, useEffect, useState } from 'react';
+import React, { ReactElement, useEffect, useState, useMemo } from 'react';
 import { WalletType } from 'src/helpers/types';
 import { Web3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
 import { hexToAscii } from 'src/utils/utils';
 import { config as wagmiConfig } from 'src/utils/wagmi';
+import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
 import {
   useAccount,
   useChainId,
@@ -68,10 +69,32 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
   const [setAccount] = useRootStore((store) => [store.setAccount]);
   const setAccountLoading = useRootStore((store) => store.setAccountLoading);
 
-  // Convert viem public client to ethers.js provider
-  const provider = publicClient
-    ? new providers.JsonRpcProvider(publicClient.transport.url)
-    : undefined;
+  // Convert viem public client to ethers.js provider  
+  // Use custom network config with smart RPC selection
+  const provider = useMemo(() => {
+    if (publicClient) {
+      try {
+        // Get custom RPC URL from network config
+        const effectiveChainId = chainId || 747; // Fallback to Flow EVM Mainnet
+        const networkConfig = getNetworkConfig(effectiveChainId);
+
+        let rpcUrl: string;
+
+        if (isConnected && address) {
+          rpcUrl = networkConfig.publicJsonRPCUrl[0];
+        } else {
+          rpcUrl = networkConfig.privateJsonRPCUrl || networkConfig.publicJsonRPCUrl[0];
+        }
+
+        return new providers.JsonRpcProvider(rpcUrl, effectiveChainId);
+      } catch (error) {
+        console.error('Provider configuration error:', error);
+        // Fallback to Flow EVM Mainnet if config fails
+        return new providers.JsonRpcProvider('https://mainnet.evm.nodes.onflow.org', 747);
+      }
+    }
+    return undefined;
+  }, [publicClient, chainId, isConnected, address]);
 
   // TODO: we use from instead of currentAccount because of the mock wallet.
   // If we used current account then the tx could get executed

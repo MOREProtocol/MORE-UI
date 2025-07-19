@@ -5,9 +5,8 @@ import { useMemo, useState, useEffect } from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { AssetInput } from 'src/components/transactions/AssetInput';
-import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useVault } from 'src/hooks/vault/useVault';
-import { useUserVaultsData, useVaultData } from 'src/hooks/vault/useVaultData';
+import { useUserVaultsData, useVaultData, useAssetData } from 'src/hooks/vault/useVaultData';
 import { networkConfigs } from 'src/ui-config/networksConfig';
 import { roundToTokenDecimals } from 'src/utils/utils';
 import { ChainIds } from 'src/utils/const';
@@ -36,6 +35,8 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
   const [currentNetworkConfig] = useRootStore((state) => [
     state.currentNetworkConfig,
   ]);
+
+  // Calculate max amount to withdraw from user vault data
   const maxAmountToWithdraw = userVaultData?.[0]?.data?.maxWithdraw
     ? formatUnits(
       userVaultData?.[0]?.data?.maxWithdraw?.toString(),
@@ -45,7 +46,9 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
 
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
-  const { reserves } = useAppDataContext();
+
+  // Use the new asset data hook instead of reserves lookup
+  const assetData = useAssetData(selectedVault?.overview?.asset?.address || '');
 
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -128,23 +131,20 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     () => selectedVault?.overview?.asset?.symbol,
     [selectedVault]
   );
-  const reserve = useMemo(() => {
-    return reserves.find((reserve) => reserve.symbol === vaultShareCurrency);
-  }, [reserves, vaultShareCurrency]);
 
-  // Pre-fill amount when withdrawal request is loaded and reserve is available
+  // Pre-fill amount when withdrawal request is loaded and asset data is available
   useEffect(() => {
-    if (withdrawalRequest && reserve && withdrawalAssets !== '0') {
-      const formattedAmount = formatUnits(withdrawalAssets, reserve.decimals);
+    if (withdrawalRequest && assetData.data && withdrawalAssets !== '0') {
+      const formattedAmount = formatUnits(withdrawalAssets, assetData.data.decimals);
       setAmount(formattedAmount);
     }
-  }, [withdrawalRequest, reserve, withdrawalAssets]);
+  }, [withdrawalRequest, assetData.data, withdrawalAssets]);
 
   useEffect(() => {
-    if (withdrawalRequest && reserve) {
+    if (withdrawalRequest && assetData.data) {
       const timeLockEndsAt = parseInt(withdrawalRequest.timeLockEndsAt);
       const canWithdraw = currentTime >= timeLockEndsAt;
-      const requestedAmount = formatUnits(withdrawalAssets, reserve.decimals);
+      const requestedAmount = formatUnits(withdrawalAssets, assetData.data.decimals);
 
       // Check if amount is effectively zero (handles '0', '0.0', '0.00', etc.)
       const isAmountZero = !amount || parseFloat(amount) === 0;
@@ -169,11 +169,9 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     } else {
       setTxAction(null);
     }
-  }, [amount, withdrawalRequest, withdrawalAssets, currentTime, reserve]);
+  }, [amount, withdrawalRequest, withdrawalAssets, currentTime, assetData.data]);
 
-  const amountInUsd = new BigNumber(amount).multipliedBy(
-    reserve?.formattedPriceInMarketReferenceCurrency
-  );
+  const amountInUsd = new BigNumber(amount).multipliedBy(assetData.data?.price || 0);
 
   const handleChange = (value: string) => {
     // Clear any previous errors when user changes amount
@@ -184,7 +182,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     if (value === '-1') {
       setAmount(maxAmountToWithdraw.toString());
     } else {
-      const decimalTruncatedValue = roundToTokenDecimals(value, reserve.decimals);
+      const decimalTruncatedValue = roundToTokenDecimals(value, assetData.data?.decimals || 18);
       setAmount(decimalTruncatedValue);
     }
   };
@@ -198,7 +196,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
       return;
     }
 
-    if (!txAction || !reserve || !signer) {
+    if (!txAction || !assetData.data || !signer) {
       return;
     }
 
@@ -206,7 +204,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     setTxError(null); // Clear any previous errors
     try {
       if (txAction === 'request') {
-        const { tx } = await requestWithdraw(parseUnits(amount, reserve.decimals).toString());
+        const { tx } = await requestWithdraw(parseUnits(amount, assetData.data.decimals).toString());
         const response = await signer.sendTransaction(tx);
         const receipt = await response.wait();
 
@@ -265,10 +263,10 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
       } else if (txAction === 'withdraw') {
         // For withdraw, use the converted assets amount
         const amountToWithdraw = withdrawalRequest
-          ? formatUnits(withdrawalAssets, reserve.decimals)
+          ? formatUnits(withdrawalAssets, assetData.data.decimals)
           : amount;
 
-        const { tx } = await withdrawFromVault(parseUnits(amountToWithdraw, reserve.decimals).toString());
+        const { tx } = await withdrawFromVault(parseUnits(amountToWithdraw, assetData.data.decimals).toString());
         const response = await signer.sendTransaction(tx);
         const receipt = await response.wait();
 
@@ -304,14 +302,14 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
         return 'Withdrawing...';
       }
     }
-    if (!reserve) {
+    if (!assetData.data) {
       return 'Loading...';
     }
 
     if (withdrawalRequest) {
       const timeLockEndsAt = parseInt(withdrawalRequest.timeLockEndsAt);
       const canWithdraw = currentTime >= timeLockEndsAt;
-      const requestedAmount = reserve ? formatUnits(withdrawalAssets, reserve.decimals) : '0';
+      const requestedAmount = assetData.data ? formatUnits(withdrawalAssets, assetData.data.decimals) : '0';
       const hasNewAmount = amount && amount !== '0' && amount !== requestedAmount;
 
       // If timelock is finished or zero, prioritize action over showing transaction
@@ -324,7 +322,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
       } else {
         // Only show transaction link if we're in waiting state and there's a txHash
         if (txHash && txAction === 'waiting') {
-          return 'See transaction on Flowscan';
+          return `See transaction on ${currentNetworkConfig?.explorerName}`;
         }
         const timeRemaining = timeLockEndsAt - currentTime;
         return `Timelock: ${formatTimeRemaining(timeRemaining)} remaining`;
@@ -333,7 +331,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
 
     // Show transaction link only if no withdrawal request exists
     if (txHash && !withdrawalRequest) {
-      return 'See transaction on Flowscan';
+      return `See transaction on ${currentNetworkConfig?.explorerName}`;
     }
 
     if (amount === '0' || !amount) {
@@ -345,7 +343,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     }
 
     return 'Enter an amount';
-  }, [amount, reserve, txHash, isLoading, txAction, withdrawalRequest, withdrawalAssets, currentTime]);
+  }, [amount, assetData.data, txHash, isLoading, txAction, withdrawalRequest, withdrawalAssets, currentTime, currentNetworkConfig?.explorerName]);
 
   return (
     <BasicModal open={isOpen} setOpen={setIsOpen}>
@@ -402,7 +400,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
               Current Withdrawal Request
             </Typography>
             <Typography variant="secondary14" sx={{ mb: 1 }}>
-              Requested amount: {formatUnits(withdrawalAssets, reserve?.decimals || 18)} {vaultShareCurrency}
+              Requested amount: {formatUnits(withdrawalAssets, assetData.data?.decimals || 18)} {vaultShareCurrency}
             </Typography>
             <Typography variant="secondary14">
               {currentTime >= parseInt(withdrawalRequest.timeLockEndsAt)
@@ -421,8 +419,8 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
           assets={[
             {
               balance: maxAmountToWithdraw?.toString(),
-              symbol: reserve?.symbol,
-              iconSymbol: reserve?.iconSymbol,
+              symbol: assetData.data?.symbol,
+              iconSymbol: assetData.data?.symbol,
             },
           ]}
           isMaxSelected={amount === maxAmountToWithdraw?.toString()}

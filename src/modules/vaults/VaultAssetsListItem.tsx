@@ -2,16 +2,15 @@ import { Box, Button, Paper, Skeleton, SvgIcon, Typography, useMediaQuery, useTh
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import { BigNumber } from 'bignumber.js';
 import { formatUnits } from 'ethers/lib/utils';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { UsdChip } from 'src/components/primitives/UsdChip';
-import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useVault, VaultData } from 'src/hooks/vault/useVault';
 import { LightweightLineChart } from './LightweightLineChart';
 import { fetchVaultHistoricalSnapshots, formatSnapshotsForChart } from 'src/hooks/vault/vaultSubgraph';
 import { RewardsButton } from 'src/components/incentives/IncentivesButton';
-import { useUserVaultsData } from 'src/hooks/vault/useVaultData';
+import { useUserVaultsData, useAssetData } from 'src/hooks/vault/useVaultData';
 
 interface VaultAssetsListItemProps {
   data: VaultData;
@@ -19,7 +18,6 @@ interface VaultAssetsListItemProps {
 }
 
 export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps) => {
-  const { reserves } = useAppDataContext();
   const { chainId, accountAddress } = useVault();
 
   // Use the vault ID from the data prop, not the globally selected vault ID
@@ -39,15 +37,17 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
 
   const theme = useTheme();
   const upToMD = useMediaQuery(theme.breakpoints.up('md'));
-  const reserve = useMemo(() => {
-    return reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === data?.overview?.asset?.address?.toLowerCase());
-  }, [reserves, data]);
+
+  // Get asset data using oracle + fallback to reserve
+  const assetData = useAssetData(data?.overview?.asset?.address || '', {
+    enabled: !!data?.overview?.asset?.address
+  });
 
   const aum = data
     ? formatUnits(data?.financials?.liquidity?.totalAssets, data?.overview?.asset?.decimals || 18)
     : '0';
   const aumInUsd = new BigNumber(aum).multipliedBy(
-    reserve?.formattedPriceInMarketReferenceCurrency
+    assetData.data?.price || 0
   );
   const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
   const isUserVaultDataLoading = userVaultData?.[0]?.isLoading;
@@ -173,7 +173,7 @@ export const VaultAssetsListItem = ({ data, onClick }: VaultAssetsListItemProps)
                       maxWithdraw?.toBigInt() || BigInt(0),
                       data?.overview?.asset?.decimals || 18
                     ) || '0').multipliedBy(
-                      reserve?.formattedPriceInMarketReferenceCurrency || 0
+                      assetData.data?.price || 0
                     ).toString() || '0'}
                   />
                 </>

@@ -9,6 +9,7 @@ import {
   useUserData,
   useUserVaultsData,
   useVaultsListData,
+  useAssetsData,
 } from 'src/hooks/vault/useVaultData';
 
 import { FormattedNumber } from '../../components/primitives/FormattedNumber';
@@ -33,7 +34,32 @@ export const VaultsTopPanel = () => {
   const userData = userDataQuery?.data;
   const isLoadingUserData = userDataQuery?.isLoading;
 
-  const loading = isLoadingUserVaults || isLoadingVaults || isLoadingUserData;
+  // Get unique asset addresses from vaults
+  const uniqueAssetAddresses = useMemo(() => {
+    if (!vaults) return [];
+    const addresses = vaults
+      .map(vault => vault?.overview?.asset?.address)
+      .filter(Boolean) as string[];
+    return [...new Set(addresses)];
+  }, [vaults]);
+
+  // Get asset data for all unique assets using the new useAssetsData hook
+  const assetsDataQuery = useAssetsData(uniqueAssetAddresses);
+
+  // Create a map of asset address to price data
+  const assetPriceMap = useMemo(() => {
+    const map = new Map();
+    if (assetsDataQuery.data) {
+      assetsDataQuery.data.forEach((assetData) => {
+        if (assetData) {
+          map.set(assetData.address.toLowerCase(), assetData.price || 0);
+        }
+      });
+    }
+    return map;
+  }, [assetsDataQuery.data]);
+
+  const loading = isLoadingVaults || isLoadingUserVaults || isLoadingUserData || assetsDataQuery.isLoading;
 
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
 
@@ -45,7 +71,8 @@ export const VaultsTopPanel = () => {
       !loading &&
       vaults?.reduce(
         (acc, vault, index) => {
-          const vaultTVLPrice = Number(vault?.overview?.sharePriceInUSD || 0);
+          const assetAddress = vault?.overview?.asset?.address?.toLowerCase();
+          const vaultTVLPrice = assetPriceMap.get(assetAddress) || 0;
           const vaultTVLValue =
             Number(
               formatUnits(
@@ -69,9 +96,8 @@ export const VaultsTopPanel = () => {
           userDeposits: valueToBigNumber(0),
         }
       ),
-    [vaults, userVaults, loading]
+    [vaults, userVaults, loading, assetPriceMap]
   );
-
 
   const valueTypographyVariant = downToSM ? 'main16' : 'main21';
   const symbolsVariant = downToSM ? 'secondary16' : 'secondary21';

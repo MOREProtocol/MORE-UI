@@ -4,17 +4,12 @@ import {
   Button,
   Divider,
   List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
   SvgIcon,
   Typography,
 } from '@mui/material';
 import React, { ReactNode } from 'react';
 import { PROD_ENV } from 'src/utils/marketsAndNetworksConfig';
 
-import { Link } from '../components/primitives/Link';
-import { moreNavigation } from '../ui-config/menu-items';
 import { DarkModeSwitcher } from './components/DarkModeSwitcher';
 import { DrawerWrapper } from './components/DrawerWrapper';
 import { MobileCloseButton } from './components/MobileCloseButton';
@@ -67,35 +62,6 @@ export const MobileMenu = ({ open, setOpen, headerHeight }: MobileMenuProps) => 
           <List>
             <DarkModeSwitcher />
             {PROD_ENV && <TestNetModeSwitcher />}
-          </List>
-        </MenuItemsWrapper>
-        <MenuItemsWrapper title={'Links'}>
-          <List>
-            <ListItem
-              sx={{ color: '#F1F1F3' }}
-              component={Link}
-              href={'/v3-migration'}
-              onClick={() => setOpen(false)}
-            >
-              <ListItemText>Migrate to More V3</ListItemText>
-            </ListItem>
-            {moreNavigation.length > 0 ? (
-              moreNavigation.map((item, index) => (
-                <ListItem
-                  component={Link}
-                  href={item.link}
-                  sx={{ color: '#F1F1F3' }}
-                  key={index}
-                  onClick={() => setOpen(false)}
-                >
-                  <ListItemIcon sx={{ minWidth: 'unset', mr: 3 }}>
-                    <SvgIcon sx={{ fontSize: '20px', color: '#F1F1F3' }}>{item.icon}</SvgIcon>
-                  </ListItemIcon>
-                </ListItem>
-              ))
-            ) : (
-              <></>
-            )}
           </List>
         </MenuItemsWrapper>
       </DrawerWrapper>

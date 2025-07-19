@@ -15,12 +15,12 @@ import React from 'react';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { useVault } from 'src/hooks/vault/useVault';
-import { useVaultData } from 'src/hooks/vault/useVaultData';
+import { useVaultAllocation } from 'src/hooks/vault/useVaultAllocation';
 
 // Define the column headers
 const listHeaders = [
   { title: 'Asset', key: 'assetName' },
-  { title: 'Market', key: 'market' },
+  { title: 'Category', key: 'category' },
   { title: 'Balance', key: 'balance' },
   { title: 'Price', key: 'price' },
   // { title: 'Change 24h', key: 'priceChangeLast24Hours' },
@@ -31,14 +31,27 @@ const listHeaders = [
 export const VaultAllocations: React.FC = () => {
   const theme = useTheme();
   const { selectedVaultId } = useVault();
-  const vaultData = useVaultData(selectedVaultId);
-  const vault = vaultData?.data;
-  const allocation = vault?.allocation;
-  const isLoading = vaultData?.isLoading;
-  const error = vaultData?.error;
+
+  // Fetch vault allocation data (LP tokens, staking assets, available tokens)
+  const vaultAllocationData = useVaultAllocation(selectedVaultId, {
+    enabled: !!selectedVaultId,
+  });
+
+  const allocation = vaultAllocationData?.data?.allocation;
+  const staking = vaultAllocationData?.data?.staked;
+  const available = vaultAllocationData?.data?.available;
+  const isLoading = vaultAllocationData?.isLoading;
+  const error = vaultAllocationData?.isError;
+
+  // Combine all assets for display
+  const allAssets = [
+    ...(allocation || []).map(asset => ({ ...asset, category: 'LP Tokens' })),
+    ...(staking || []).map(asset => ({ ...asset, balance: asset.stakedAmount, category: 'Staking' })),
+    ...(available || []).map(asset => ({ ...asset, category: 'Available' })),
+  ].sort((a, b) => (b.value || 0) - (a.value || 0)); // Sort by descending allocation value
 
   // Calculate total value for allocation percentages
-  const totalValue = allocation ? allocation.reduce((sum, asset) => sum + asset.value, 0) : 0;
+  const totalValue = allAssets.reduce((sum, asset) => sum + (asset.value || 0), 0);
 
   return (
     <Box sx={{ width: '100%', pt: 5 }}>
@@ -82,23 +95,25 @@ export const VaultAllocations: React.FC = () => {
                   align="center"
                   sx={{ border: 'none', py: 8 }}
                 >
-                  <Typography variant="main14" color="error">
-                    Error loading allocations: {error.message}
+                  <Typography variant="main14" color="text.secondary">
+                    Unable to load allocation data. This vault may not support allocation queries.
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : !allocation || allocation.length === 0 ? (
+            ) : !allAssets || allAssets.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={listHeaders.length}
                   align="center"
                   sx={{ border: 'none', py: 8 }}
                 >
-                  <Typography variant="main14">No allocations found</Typography>
+                  <Typography variant="main14" color="text.secondary">
+                    No assets found in this vault
+                  </Typography>
                 </TableCell>
               </TableRow>
             ) : (
-              allocation.map((asset, index) => {
+              allAssets.map((asset, index) => {
                 // Calculate allocation percentage
                 const allocationPercentage = asset.value / totalValue;
 
@@ -140,7 +155,7 @@ export const VaultAllocations: React.FC = () => {
                       }}
                     >
                       <Typography variant="main14" color="text">
-                        {asset.market}
+                        {asset.category}
                       </Typography>
                     </TableCell>
 

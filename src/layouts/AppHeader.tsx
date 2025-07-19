@@ -16,7 +16,7 @@ import { useEffect, useState } from 'react';
 import { ContentWithTooltip } from 'src/components/ContentWithTooltip';
 import { BatchTransactionsButton } from 'src/components/transactions/BatchTransactions/BatchTransactionsButton';
 import { VaultManagementBundleButton } from 'src/modules/vault-detail/VaultManagement/VaultManagementBundleButton';
-// import { useModalContext } from 'src/hooks/useModal';
+import NetworkSelector from 'src/components/NetworkSelector';
 import { useRootStore } from 'src/store/root';
 import { ENABLE_TESTNET, FORK_ENABLED } from 'src/utils/marketsAndNetworksConfig';
 
@@ -258,32 +258,8 @@ export function AppHeader() {
         </Box>
 
         <Box sx={{ flexGrow: 1 }} />
-        {/* <NoSsr>
-          <StyledBadge
-            invisible={visitedSwitch}
-            variant="dot"
-            badgeContent=""
-            color="secondary"
-            sx={{ mr: 2 }}
-          >
-            <Button
-              onClick={handleSwitchClick}
-              variant="surface"
-              sx={{ p: '7px 8px', minWidth: 'unset', gap: 2, alignItems: 'center' }}
-              aria-label="Switch tool"
-            >
-              {!md && (
-                <Typography component="span" typography="subheader1">
-                  Switch tokens
-                </Typography>
-              )}
-              <SvgIcon fontSize="small">
-                <SwitchHorizontalIcon />
-              </SvgIcon>
-            </Button>
-          </StyledBadge>
-        </NoSsr> */}
 
+        <NetworkSelector />
         <VaultManagementBundleButton />
         <BatchTransactionsButton open={batchTransactionsOpen} setOpen={setBatchTransactionsOpen} />
 

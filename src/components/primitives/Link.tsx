@@ -7,7 +7,7 @@ import { ExtendedMarket } from 'src/store/protocolDataSlice';
 
 interface NextLinkComposedProps
   extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>,
-    Omit<NextLinkProps, 'href' | 'as'> {
+  Omit<NextLinkProps, 'href' | 'as'> {
   to: NextLinkProps['href'];
   linkAs?: NextLinkProps['as'];
   href?: NextLinkProps['href'];
@@ -114,18 +114,20 @@ export const ROUTES = {
   dashboard: '/',
   markets: '/markets',
   vaults: '/vaults',
-  staking: '/staking',
-  governance: '/governance',
   faucet: '/faucet',
-  migrationTool: '/v3-migration',
-  marketMigrationTool: (marketName: ExtendedMarket) => `/v3-migration/?market=${marketName}`,
-  dynamicRenderedProposal: (proposalId: number) =>
-    `/governance/v3/proposal?proposalId=${proposalId}`,
   reserveOverview: (underlyingAsset: string, marketName: ExtendedMarket) =>
     `/reserve-overview/?underlyingAsset=${underlyingAsset}&marketName=${marketName}`,
   vaultDetail: (vaultId: string, selectedTab?: string) =>
     selectedTab
       ? `/vault-detail?vaultId=${vaultId}&selectedTab=${selectedTab}`
       : `/vault-detail?vaultId=${vaultId}`,
+  bridge: '/bridge',
+
+  migrationTool: '/v3-migration',
+  staking: '/staking',
   history: '/history',
+  marketMigrationTool: (marketName: ExtendedMarket) => `/v3-migration/?market=${marketName}`,
+  // governance: '/governance',
+  // dynamicRenderedProposal: (proposalId: number) =>
+  //   `/governance/v3/proposal?proposalId=${proposalId}`,
 };

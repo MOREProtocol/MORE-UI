@@ -300,6 +300,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
           sx={{
             p: connected ? '5px 8px' : undefined,
             minWidth: hideWalletAccountText ? 'unset' : undefined,
+            overflow: 'hidden' // Ensure button itself doesn't overflow
           }}
           endIcon={
             connected &&

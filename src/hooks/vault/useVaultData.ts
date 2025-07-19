@@ -18,6 +18,16 @@ import { fetchVaultData, fetchVaultHistoricalSnapshots, formatSnapshotsForChart 
 // Constants
 const POLLING_INTERVAL = 30000; // 30 seconds
 
+// Asset data interface for unified oracle/reserve usage
+export interface AssetData {
+  price: number;        // USD price 
+  decimals: number;     // Asset decimals
+  symbol: string;       // Asset symbol  
+  name: string;         // Asset name
+  address: string;      // Asset address
+  source: 'oracle' | 'reserve';  // Data source for debugging
+}
+
 // Query key factory for caching
 export const vaultQueryKeys = {
   vaultInList: (vaultId: string, chainId?: number) => ['allVaults', chainId, vaultId],
@@ -37,6 +47,7 @@ export const vaultQueryKeys = {
   userGlobalData: (userAddress: string, chainId?: number) => ['userGlobalData', userAddress, chainId],
   incentives: (chainId?: number) => ['incentives', chainId],
   userRewards: (userAddress: string, chainId?: number) => ['userRewards', userAddress, chainId],
+  assetData: (assetAddress: string, chainId?: number) => ['assetData', assetAddress, chainId],
 };
 
 // General hook options type
@@ -91,90 +102,7 @@ const useVaultQuery = <TData, TResult = TData>(
   });
 };
 
-const fetchAllocation = async (
-  vaultId: string,
-  chainId: number,
-  reserves: ComputedReserveDataWithMarket[]
-): Promise<VaultData['allocation']> => {
-  const networkConfig = networkConfigs[chainId];
-  const baseUrl = networkConfig.explorerLink;
 
-  // Guard clause to handle undefined or empty reserves
-  if (!reserves || !Array.isArray(reserves)) {
-    console.warn('Reserves array is not valid:', reserves);
-    return [];
-  }
-
-  try {
-    const response = await fetch(
-      `${baseUrl}/api/v2/addresses/${vaultId}/tokens?type=ERC-20%2CERC-721%2CERC-1155`,
-      {
-        headers: {
-          accept: 'application/json',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch allocations: ${response.statusText}`);
-    }
-
-    const data: {
-      items: Array<{
-        token: {
-          address: string;
-          circulating_market_cap: string | null;
-          decimals: string;
-          exchange_rate: string | null;
-          holders: string;
-          icon_url: string | null;
-          name: string;
-          symbol: string;
-          total_supply: string;
-          type: string;
-          volume_24h: string | null;
-        };
-        token_id: string | null;
-        token_instance: string | null;
-        value: string;
-      }>;
-      next_page_params: string | null;
-    } = await response.json();
-
-    // Guard clause to handle undefined or empty items
-    if (!data.items || !Array.isArray(data.items)) {
-      console.warn('API response does not contain valid items array:', data);
-      return [];
-    }
-
-    const processedData = data.items.map((item) => {
-      const reserve = reserves.find(
-        (reserve) =>
-          reserve.symbol === item.token.symbol ||
-          reserve.aTokenAddress === item.token.address ||
-          reserve.variableDebtTokenAddress === item.token.address
-      );
-      const price = Number(reserve?.formattedPriceInMarketReferenceCurrency || 0);
-      const value = Number(formatUnits(item.value, item.token.decimals)) * price;
-
-      return {
-        assetName: item.token.name,
-        assetSymbol: item.token.symbol,
-        assetAddress: item.token.address,
-        type: item.token.type,
-        market: 'Flow', // Default market since we're on Flow network
-        balance: Number(formatUnits(item.value, item.token.decimals)),
-        price,
-        value,
-      };
-    });
-
-    return processedData;
-  } catch (error) {
-    console.error('Error fetching allocations:', error);
-    throw error;
-  }
-};
 
 interface RewardItem {
   merkle_root: string;
@@ -313,6 +241,198 @@ export const useRewards = <TResult = RewardItem[]>(
       cacheTime: 5 * 60 * 1000, // 5 minutes
     }
   );
+};
+
+// Hook for unified asset data (oracle + fallback to reserve) - handles multiple assets
+export const useAssetsData = <TResult = AssetData[]>(
+  assetAddresses: string[],
+  opts?: VaultDataHookOpts<AssetData[], TResult>
+) => {
+  const { chainId } = useVault();
+  const provider = useVaultProvider(chainId);
+  const { reserves } = useAppDataContext();
+
+  const baseQueryIsEnabled = !!provider && (opts?.enabled !== false);
+  const reservesAreReady = reserves.length > 0;
+
+  // Create safe asset addresses array for mapping
+  const safeAssetAddresses = (!assetAddresses || !Array.isArray(assetAddresses)) ? [] : assetAddresses.filter(Boolean);
+
+  const assetDataQueries = useQueries({
+    queries: safeAssetAddresses.map(assetAddress => ({
+      queryKey: vaultQueryKeys.assetData(assetAddress, chainId),
+      queryFn: async (): Promise<AssetData> => {
+        if (!provider || !assetAddress) {
+          throw new Error('Missing required parameters for asset data');
+        }
+
+        // Get oracle address for this chain
+        const oracleAddress = vaultsConfig[chainId]?.addresses?.ORACLE;
+
+        let assetData: AssetData;
+
+        try {
+          // Try oracle + asset contract first (if oracle available)
+          if (oracleAddress) {
+            const [oracleContract, assetContract] = [
+              new ethers.Contract(
+                oracleAddress,
+                [{ "inputs": [{ "internalType": "address", "name": "asset", "type": "address" }], "name": "getAssetPrice", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }],
+                provider
+              ),
+              new ethers.Contract(
+                assetAddress,
+                [
+                  'function decimals() external view returns (uint8)',
+                  'function symbol() external view returns (string)',
+                  'function name() external view returns (string)',
+                ],
+                provider
+              )
+            ];
+
+            const [priceRaw, decimals, symbol, name] = await Promise.all([
+              oracleContract.getAssetPrice(assetAddress),
+              assetContract.decimals().catch(() => 18),
+              assetContract.symbol().catch(() => 'UNKNOWN'),
+              assetContract.name().catch(() => 'Unknown Token'),
+            ]);
+
+            // Oracle returns USD price with 8 decimals
+            const price = Number(formatUnits(priceRaw, 8));
+
+            assetData = {
+              price,
+              decimals,
+              symbol,
+              name,
+              address: assetAddress,
+              source: 'oracle',
+            };
+          } else {
+            throw new Error('No oracle available, falling back to reserve');
+          }
+        } catch (error) {
+          console.warn(`Oracle failed for asset ${assetAddress}, falling back to reserve:`, error);
+
+          // Fallback to reserve data
+          const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress.toLowerCase());
+          if (!reserve) {
+            console.warn(`No reserve data found for asset ${assetAddress}, using fallback values`);
+
+            // Try to get basic token info from contract as last resort
+            try {
+              const assetContract = new ethers.Contract(
+                assetAddress,
+                [
+                  'function decimals() external view returns (uint8)',
+                  'function symbol() external view returns (string)',
+                  'function name() external view returns (string)',
+                ],
+                provider
+              );
+
+              const [decimals, symbol, name] = await Promise.all([
+                assetContract.decimals().catch(() => 18),
+                assetContract.symbol().catch(() => 'UNKNOWN'),
+                assetContract.name().catch(() => 'Unknown Token'),
+              ]);
+
+              assetData = {
+                price: 0, // No price available
+                decimals,
+                symbol,
+                name,
+                address: assetAddress,
+                source: 'reserve',
+              };
+            } catch (contractError) {
+              console.warn(`Failed to fetch contract info for ${assetAddress}, using minimal fallback:`, contractError);
+
+              // Absolute fallback - return minimal data to prevent query failure
+              assetData = {
+                price: 0,
+                decimals: 18,
+                symbol: 'UNKNOWN',
+                name: 'Unknown Token',
+                address: assetAddress,
+                source: 'reserve',
+              };
+            }
+          } else {
+            assetData = {
+              price: Number(reserve.formattedPriceInMarketReferenceCurrency || 0),
+              decimals: reserve.decimals,
+              symbol: reserve.symbol,
+              name: reserve.name,
+              address: assetAddress,
+              source: 'reserve',
+            };
+          }
+        }
+
+        return assetData;
+      },
+      enabled: baseQueryIsEnabled && !!assetAddress && reservesAreReady,
+      // Cache asset data for 5 minutes
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      refetchInterval: POLLING_INTERVAL,
+    }))
+  });
+
+  // Return structure similar to other vault hooks
+  if (!safeAssetAddresses.length) {
+    return {
+      data: [] as TResult,
+      isLoading: false,
+      isError: false,
+      isSuccess: true,
+    };
+  }
+
+  if (baseQueryIsEnabled && !reservesAreReady) {
+    return {
+      data: undefined,
+      isLoading: true,
+      isError: false,
+      isSuccess: false,
+    };
+  }
+
+  const isLoading = assetDataQueries.some(query => query.isLoading);
+  const isError = assetDataQueries.some(query => query.isError);
+  const allSucceeded = assetDataQueries.every(query => query.isSuccess);
+
+  let data: TResult | undefined = undefined;
+  if (allSucceeded && !isLoading) {
+    const assetDataArray = assetDataQueries
+      .map(query => query.data)
+      .filter(Boolean) as AssetData[];
+    data = assetDataArray as TResult;
+  }
+
+  return {
+    data,
+    isLoading,
+    isError,
+    isSuccess: allSucceeded && !isLoading,
+  };
+};
+
+// Convenience hook for single asset data (backward compatibility)
+export const useAssetData = <TResult = AssetData>(
+  assetAddress: string,
+  opts?: VaultDataHookOpts<AssetData, TResult>
+) => {
+  const result = useAssetsData([assetAddress], {
+    enabled: opts?.enabled,
+  });
+
+  return {
+    ...result,
+    data: result.data?.[0] as TResult | undefined,
+  };
 };
 
 // Helper function to get incentives for a specific vault
@@ -483,15 +603,21 @@ export const useVaultsListData = <TResult = VaultData>(
           fetchVaultData(chainId, vaultId),
         ]);
         let assetDecimals = decimals;
+        let assetSymbol = 'UNKNOWN';
+
         if (assetAddress) {
           const assetContract = new ethers.Contract(
             assetAddress,
             [
               `function decimals() external view returns (uint8)`,
+              `function symbol() external view returns (string)`,
             ],
             provider
           );
-          assetDecimals = await assetContract.decimals().catch(() => 18)
+          [assetDecimals, assetSymbol] = await Promise.all([
+            assetContract.decimals().catch(() => 18),
+            assetContract.symbol().catch(() => 'UNKNOWN'),
+          ]);
         }
 
         const sharePriceInAsset = await vaultDiamondContract.convertToAssets(
@@ -510,12 +636,11 @@ export const useVaultsListData = <TResult = VaultData>(
             name,
             curatorLogo,
             asset: {
-              symbol: reserve?.symbol,
+              symbol: assetSymbol || reserve?.symbol || 'UNKNOWN',
               decimals: assetDecimals,
               address: assetAddress,
             },
             sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
-            sharePriceInUSD: Number(reserve?.formattedPriceInMarketReferenceCurrency || 0),
             apy: latestSnapshot?.apyCalculatedLast360Days ? parseFloat(latestSnapshot.apyCalculatedLast360Days) : undefined,
           },
           financials: {
@@ -724,7 +849,6 @@ export const useUserVaultsData = <
           vaultDiamondContract.asset().catch(() => undefined),
         ]);
 
-        const finalMaxWithdraw = maxWithdrawShares;
         let assetDecimals = decimals;
 
         if (assetAddress) {
@@ -744,7 +868,7 @@ export const useUserVaultsData = <
         }
 
         return {
-          maxWithdraw: finalMaxWithdraw,
+          maxWithdraw: maxWithdrawShares,
           decimals,
           assetDecimals,
         } as TResult;
@@ -804,6 +928,8 @@ export const useVaultData = <TResult = VaultData>(
     enabled: baseQueryIsEnabled,
   });
 
+  const canExecuteMainQuery = actualQueryExecutionIsEnabled;
+
   const queryApiResult = useVaultQuery<VaultData, TResult>(
     vaultQueryKeys.vaultDetailsWithSubgraph(vaultId, chainId),
     async () => {
@@ -837,7 +963,6 @@ export const useVaultData = <TResult = VaultData>(
       // Fetch contract data and subgraph data in parallel where possible
       const [
         contractData,
-        allocationData,
         activityData,
         vaultData,
         historicalSnapshots,
@@ -859,7 +984,6 @@ export const useVaultData = <TResult = VaultData>(
           vaultDiamondContract.getWithdrawalTimelock().catch(() => 0),
           vaultDiamondContract.fee().catch(() => 0),
         ]),
-        fetchAllocation(vaultId, chainId, reserves).catch(() => []),
         fetchActivity(vaultId, chainId, reserves).catch(() => []),
         fetchVaultData(chainId, vaultId),
         fetchVaultHistoricalSnapshots(chainId, vaultId),
@@ -882,16 +1006,25 @@ export const useVaultData = <TResult = VaultData>(
       ] = contractData;
 
       let assetDecimals = decimals;
+      let assetSymbol;
+      let assetName;
+
       if (assetAddress) {
         const assetContract = new ethers.Contract(
           assetAddress,
           [
             `function balanceOf(address user) external view returns (uint256)`,
             `function decimals() external view returns (uint8)`,
+            `function symbol() external view returns (string)`,
+            `function name() external view returns (string)`,
           ],
           provider
         );
-        assetDecimals = await assetContract.decimals().catch(() => 18)
+        [assetDecimals, assetSymbol, assetName] = await Promise.all([
+          assetContract.decimals().catch(() => 18),
+          assetContract.symbol().catch(() => 'UNKNOWN'),
+          assetContract.name().catch(() => 'Unknown Token'),
+        ]);
       }
 
       const name = VAULT_ID_TO_NAME[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
@@ -908,7 +1041,8 @@ export const useVaultData = <TResult = VaultData>(
           name,
           curatorLogo,
           asset: {
-            symbol: reserve?.symbol,
+            name: assetName || reserve?.name || 'UNKNOWN',
+            symbol: assetSymbol || reserve?.symbol || 'UNKNOWN',
             decimals: assetDecimals,
             address: assetAddress,
           },
@@ -936,12 +1070,11 @@ export const useVaultData = <TResult = VaultData>(
             depositCapacity: depositCapacity.toString(),
           },
         },
-        allocation: allocationData,
         activity: activityData,
         incentives: vaultIncentives,
       };
     },
-    actualQueryExecutionIsEnabled,
+    canExecuteMainQuery,
     opts
   );
 

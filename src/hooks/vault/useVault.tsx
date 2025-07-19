@@ -16,11 +16,9 @@ import {
   TransactionInput,
 } from 'src/modules/vault-detail/VaultManagement/facets/types';
 import { ChainIds } from 'src/utils/const';
-import { useWalletClient } from 'wagmi';
+import { useWalletClient, useChainId } from 'wagmi';
 
-import { CustomMarket } from '../../ui-config/marketsConfig';
 import { useVaultProvider } from './useVaultData';
-import { useRootStore } from 'src/store/root';
 
 // Define standardized types for monetary values
 export interface MonetaryValue {
@@ -54,7 +52,6 @@ export interface VaultData {
       address?: string;
     };
     sharePrice?: number;
-    sharePriceInUSD?: number;
     roles?: VaultRoles;
     apy?: number;
     historicalSnapshots?: {
@@ -79,17 +76,6 @@ export interface VaultData {
       depositCapacity?: string;
     };
   };
-  allocation?: {
-    assetName: string;
-    assetSymbol: string;
-    assetAddress: string;
-    type: string;
-    market: string;
-    balance: number;
-    price?: number;
-    priceChangeLast24Hours?: number;
-    value?: number;
-  }[];
   activity?: {
     timestamp: Date;
     market: string;
@@ -203,17 +189,10 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
 
   // Web3 setup
   const { data: walletClient } = useWalletClient();
-  const [chainId, setChainId] = useState<number>(ChainIds.flowEVMMainnet);
+  const wagmiChainId = useChainId();
 
-  useEffect(() => {
-    const getChainId = async () => {
-      if (walletClient) {
-        const walletChainId = await walletClient.getChainId();
-        setChainId(walletChainId);
-      }
-    };
-    getChainId();
-  }, [walletClient]);
+  // Use wagmi chainId (reacts to network changes) with fallback to Flow EVM Mainnet
+  const chainId = wagmiChainId || ChainIds.flowEVMMainnet;
 
   const provider = useVaultProvider(chainId);
   const signer = useMemo(() => {
@@ -232,17 +211,6 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     }
   }, [chainId]);
   const accountAddress = useMemo(() => walletClient?.account.address, [walletClient]);
-
-  const { currentMarket, setCurrentMarket } = useRootStore();
-  useEffect(() => {
-    if (walletClient) {
-      if (network === 'mainnet' && currentMarket !== CustomMarket.proto_flow_v3) {
-        setCurrentMarket(CustomMarket.proto_flow_v3);
-      } else if (network === 'testnet' && currentMarket !== CustomMarket.proto_testnet_v3) {
-        setCurrentMarket(CustomMarket.proto_testnet_v3);
-      }
-    }
-  }, [walletClient, network, setCurrentMarket, currentMarket]);
 
   // Use the useVaultAssetBalance hook to get a balance
   const getVaultAssetBalance = useCallback(

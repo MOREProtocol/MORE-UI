@@ -35,6 +35,7 @@ export type NetworkConfig = {
   // function returning a link to etherscan et al
   explorerLink: string;
   explorerLinkBuilder: (props: ExplorerLinkBuilderProps) => string;
+  explorerName: string;
   // set this to show faucets and similar
   isTestnet?: boolean;
   // get's automatically populated on fork networks
@@ -60,6 +61,7 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
     wrappedBaseAssetSymbol: 'WFLOW',
     baseAssetDecimals: 18,
     explorerLink: 'https://evm-testnet.flowscan.io',
+    explorerName: 'Flowscan',
     // usdMarket: true,
     isTestnet: true,
     networkLogoPath: '/icons/networks/flow.svg',
@@ -72,6 +74,29 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
     wrappedBaseAssetSymbol: 'WFLOW',
     baseAssetDecimals: 18,
     explorerLink: 'https://evm.flowscan.io',
+    explorerName: 'Flowscan',
     networkLogoPath: '/icons/networks/flow.svg',
   },
+  [ChainIds.ethereum]: {
+    name: 'Ethereum',
+    displayName: 'Ethereum',
+    get privateJsonRPCUrl() {
+      return typeof window !== 'undefined'
+        ? `${window.location.origin}/api/ethereum-rpc`
+        : 'https://app.more.markets/api/ethereum-rpc';
+    },
+    publicJsonRPCUrl: [
+      'https://eth.merkle.io',
+      'https://ethereum.publicnode.com',
+      'https://rpc.ankr.com/eth'
+    ],
+    baseUniswapAdapter: '0x0',
+    baseAssetSymbol: 'ETH',
+    wrappedBaseAssetSymbol: 'WETH',
+    baseAssetDecimals: 18,
+    explorerLink: 'https://etherscan.io',
+    explorerName: 'Etherscan',
+    networkLogoPath: 'https://assets.relay.link/icons/1/light.png',
+  },
+
 } as const;

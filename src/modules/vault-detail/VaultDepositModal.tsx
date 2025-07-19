@@ -6,14 +6,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { AssetInput } from 'src/components/transactions/AssetInput';
-import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useVault } from 'src/hooks/vault/useVault';
-import { useVaultData, useUserVaultsData } from 'src/hooks/vault/useVaultData';
+import { useVaultData, useUserVaultsData, useAssetData } from 'src/hooks/vault/useVaultData';
 import { useRootStore } from 'src/store/root';
-import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableToSupply';
 import { roundToTokenDecimals } from 'src/utils/utils';
-import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
+import { useBalance } from 'wagmi';
 
 interface VaultDepositModalProps {
   isOpen: boolean;
@@ -27,14 +25,19 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const selectedVault = vaultData?.data;
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
   const refreshUserVaultData = userVaultData?.[0]?.refetch;
-  const { reserves } = useAppDataContext();
-  const [minRemainingBaseTokenBalance, currentNetworkConfig, currentMarketData] = useRootStore((state) => [
-    state.poolComputed.minRemainingBaseTokenBalance,
+  const [currentNetworkConfig] = useRootStore((state) => [
     state.currentNetworkConfig,
-    state.currentMarketData,
   ]);
-  const { walletBalances } = useWalletBalances(currentMarketData);
   const { addERC20Token } = useWeb3Context();
+
+  // Use the new asset data hook instead of reserves lookup
+  const assetData = useAssetData(selectedVault?.overview?.asset?.address || '');
+
+  // Use wagmi's useBalance hook for wallet balance (network-agnostic)
+  const { data: walletBalanceData } = useBalance({
+    address: accountAddress as `0x${string}`,
+    token: selectedVault?.overview?.asset?.address as `0x${string}`,
+  });
 
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -44,14 +47,9 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const [txError, setTxError] = useState<string | null>(null);
   const [addTokenLoading, setAddTokenLoading] = useState(false);
   const [addTokenSuccess, setAddTokenSuccess] = useState(false);
-  const reserve = useMemo(() =>
-    reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === selectedVault?.overview?.asset?.address?.toLowerCase()),
-    [reserves, selectedVault]);
 
-  const amountInUsd = new BigNumber(amount).multipliedBy(
-    reserve?.formattedPriceInMarketReferenceCurrency
-  );
-  const walletBalance = walletBalances[reserve?.underlyingAsset?.toLowerCase()]?.amount || '0';
+  const amountInUsd = new BigNumber(amount).multipliedBy(assetData.data?.price || 0);
+  const walletBalance = walletBalanceData?.formatted || '0';
 
   // Check if user has vault tokens
   const userVaultBalance = userVaultData?.[0]?.data?.maxWithdraw?.toString() || '0';
@@ -103,7 +101,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
 
   // Calculate max amount considering both wallet balance and whitelist limits
   const maxAmountToSupply = useMemo(() => {
-    if (!reserve?.decimals) return '0';
+    if (!assetData.data?.decimals) return '0';
 
     // Start with wallet balance
     let effectiveMaxAmount = walletBalance;
@@ -113,9 +111,9 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       // Convert whitelist amount from wei to readable format
       const whitelistAmountFormatted = roundToTokenDecimals(
         new BigNumber(whitelistAmount)
-          .dividedBy(new BigNumber(10).pow(reserve.decimals))
+          .dividedBy(new BigNumber(10).pow(assetData.data.decimals))
           .toString(),
-        reserve.decimals
+        assetData.data.decimals
       );
 
       // Take the minimum between wallet balance and whitelist amount
@@ -124,27 +122,13 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
         : whitelistAmountFormatted;
     }
 
-    // Apply protocol limits (supply cap, etc.) to the effective max amount
-    const finalMaxAmount = getMaxAmountAvailableToSupply(
-      effectiveMaxAmount,
-      {
-        supplyCap: reserve.supplyCap,
-        totalLiquidity: reserve.totalLiquidity,
-        isFrozen: reserve.isFrozen,
-        decimals: reserve.decimals,
-        debtCeiling: reserve.debtCeiling,
-        isolationModeTotalDebt: reserve.isolationModeTotalDebt,
-      },
-      reserve.underlyingAsset,
-      minRemainingBaseTokenBalance
-    );
-
-    return finalMaxAmount || '0';
-  }, [walletBalance, whitelistAmount, reserve, minRemainingBaseTokenBalance]);
+    // Return effective max amount (protocol limits don't apply to non-Flow networks)
+    return effectiveMaxAmount || '0';
+  }, [walletBalance, whitelistAmount, assetData.data]);
 
   // Determine which balance and text to show in AssetInput
   const assetInputConfig = useMemo(() => {
-    if (!reserve?.decimals || !whitelistAmount || whitelistAmount === '0') {
+    if (!assetData.data?.decimals || !whitelistAmount || whitelistAmount === '0') {
       return {
         balance: walletBalance,
         balanceText: 'Wallet balance'
@@ -152,7 +136,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     }
 
     const whitelistAmountFormatted = new BigNumber(whitelistAmount)
-      .dividedBy(new BigNumber(10).pow(reserve.decimals))
+      .dividedBy(new BigNumber(10).pow(assetData.data.decimals))
       .toString();
 
     const isWalletLimiting = new BigNumber(walletBalance).isLessThan(whitelistAmountFormatted);
@@ -161,7 +145,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       balance: isWalletLimiting ? walletBalance : whitelistAmountFormatted,
       balanceText: isWalletLimiting ? 'Wallet balance' : 'Max whitelist allowance'
     };
-  }, [walletBalance, whitelistAmount, reserve?.decimals]);
+  }, [walletBalance, whitelistAmount, assetData.data?.decimals]);
 
   // Effect to reset state when modal is closed
   useEffect(() => {
@@ -183,9 +167,9 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
         setTxAction(null);
         return;
       }
-      if (amount && amount !== '0' && reserve?.decimals != null && typeof depositInVault === 'function') {
+      if (amount && amount !== '0' && assetData.data?.decimals != null && typeof depositInVault === 'function') {
         try {
-          const { action } = await depositInVault(parseUnits(amount, reserve.decimals).toString());
+          const { action } = await depositInVault(parseUnits(amount, assetData.data.decimals).toString());
           setTxAction(action);
         } catch (error) {
           console.error("Error updating button action state:", error);
@@ -196,7 +180,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       }
     };
     updateButtonActionState();
-  }, [amount, reserve?.decimals, txHash, depositInVault]);
+  }, [amount, assetData.data?.decimals, txHash, depositInVault]);
 
   const handleChange = (value: string) => {
     // Clear any previous errors when user changes amount
@@ -207,7 +191,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     if (value === '-1') {
       setAmount(maxAmountToSupply);
     } else {
-      const decimalTruncatedValue = roundToTokenDecimals(value, reserve.decimals);
+      const decimalTruncatedValue = roundToTokenDecimals(value, assetData.data?.decimals || 18);
       setAmount(decimalTruncatedValue);
     }
   };
@@ -218,10 +202,10 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       return;
     }
 
-    if (!amount || amount === '0' || !reserve || reserve.decimals == null || !signer || typeof depositInVault !== 'function' || !txAction) {
+    if (!amount || amount === '0' || !assetData.data || assetData.data.decimals == null || !signer || typeof depositInVault !== 'function' || !txAction) {
       console.warn('Deposit/Approval prerequisites not met or action not determined:', {
         amount,
-        reserveExists: !!reserve,
+        assetDataExists: !!assetData.data,
         signerExists: !!signer,
         depositInVaultFn: typeof depositInVault,
         currentTxAction: txAction,
@@ -233,7 +217,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     setTxError(null); // Clear any previous errors
 
     try {
-      const parsedAmount = parseUnits(amount, reserve.decimals).toString();
+      const parsedAmount = parseUnits(amount, assetData.data.decimals).toString();
       const { tx: transactionDataForCurrentAction, action: determinedAction } = await depositInVault(parsedAmount);
 
       if (txAction !== determinedAction) {
@@ -275,9 +259,9 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during the transaction.';
       setTxError(errorMessage);
 
-      if (amount && amount !== '0' && reserve?.decimals != null && typeof depositInVault === 'function') {
+      if (amount && amount !== '0' && assetData.data?.decimals != null && typeof depositInVault === 'function') {
         try {
-          const { action: currentActionState } = await depositInVault(parseUnits(amount, reserve.decimals).toString());
+          const { action: currentActionState } = await depositInVault(parseUnits(amount, assetData.data.decimals).toString());
           setTxAction(currentActionState);
         } catch (recoveryError) {
           console.error("Error trying to recover button state:", recoveryError);
@@ -293,7 +277,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
 
   const buttonContent = useMemo(() => {
     if (txHash) {
-      return 'See transaction on Flowscan';
+      return `See transaction on ${currentNetworkConfig.explorerName}`;
     }
 
     if (isLoading) {
@@ -304,7 +288,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
 
     if (!amount || amount === '0') return 'Enter an amount';
 
-    if (!reserve || txAction === null) {
+    if (!assetData.data || txAction === null) {
       return 'Checking availability...';
     }
 
@@ -316,7 +300,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     }
 
     return 'Deposit into the vault';
-  }, [amount, reserve, txHash, txAction, isLoading]);
+  }, [amount, assetData.data, txHash, txAction, isLoading, currentNetworkConfig.explorerName]);
 
   return (
     <BasicModal open={isOpen} setOpen={setIsOpen}>
@@ -429,8 +413,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
                 <Box>
                   <Typography variant="main16">{selectedVault?.overview?.name}</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <TokenIcon symbol={reserve?.symbol || ''} sx={{ fontSize: '16px' }} />
-                    <Typography variant="secondary12">{reserve?.symbol}</Typography>
+                    <TokenIcon symbol={assetData.data?.symbol || ''} sx={{ fontSize: '16px' }} />
+                    <Typography variant="secondary12">{assetData.data?.symbol}</Typography>
                   </Box>
                 </Box>
               </Box>
@@ -439,12 +423,12 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
               value={amount}
               onChange={handleChange}
               usdValue={amountInUsd.toString(10)}
-              symbol={reserve?.symbol || ''}
+              symbol={assetData.data?.symbol || ''}
               assets={[
                 {
                   balance: assetInputConfig.balance,
-                  symbol: reserve?.symbol,
-                  iconSymbol: reserve?.iconSymbol,
+                  symbol: assetData.data?.symbol,
+                  iconSymbol: assetData.data?.symbol,
                 },
               ]}
               isMaxSelected={amount === maxAmountToSupply}
@@ -489,7 +473,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
                 isDisabled={!amount || amount === '0'}
                 vaultAddress={selectedVault?.id}
                 operation="deposit"
-                amount={amount ? parseUnits(amount, reserve.decimals).toString() : '0'}
+                amount={amount ? parseUnits(amount, assetData.data.decimals).toString() : '0'}
               /> */}
             </Box>
           </Box>
