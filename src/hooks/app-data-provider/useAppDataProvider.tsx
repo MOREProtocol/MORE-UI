@@ -97,7 +97,7 @@ export const AppDataProvider: React.FC<IProps> = ({ children }) => {
       )
       .flat();
 
-  const baseCurrencyData = !reservesDataLoading && poolsReservesHumanized[0]?.data.baseCurrencyData;
+  const baseCurrencyData = !reservesDataLoading && poolsReservesHumanized[0]?.data?.baseCurrencyData;
   // user hooks
 
   const eModes = reservesData ? formatEmodes(reservesData) : {};

@@ -78,9 +78,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
       const day = date.getDate().toString().padStart(2, '0');
       const monthName = date.toLocaleString(undefined, { month: 'short' });
       const year = date.getFullYear().toString().slice(-2);
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-      return `${day} ${monthName} ${year} ${hours}:${minutes}`;
+      return `${day} ${monthName} ${year}`;
     };
 
     // Price formatter for Y-axis
@@ -193,7 +191,14 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
 
     // Set data
     if (seriesRef.current && data.length > 0) {
-      const sortedData = [...data].sort((a, b) => (a.time as number) - (b.time as number));
+      // Sort data by time and remove duplicates
+      const sortedData = [...data]
+        .sort((a, b) => (a.time as number) - (b.time as number))
+        .filter((item, index, array) => {
+          // Keep first occurrence of each timestamp
+          if (index === 0) return true;
+          return (item.time as number) !== (array[index - 1].time as number);
+        });
       seriesRef.current.setData(sortedData as LineData<Time>[]);
 
       // Reset and fit content to show all data

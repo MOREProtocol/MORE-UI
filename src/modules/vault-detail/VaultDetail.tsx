@@ -518,6 +518,28 @@ export const VaultDetail = () => {
                 }
               </Box>
             </Box>
+            <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
+              <Typography variant="secondary14" color="text.secondary">Share Price</Typography>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  gap: 1,
+                  padding: '2.5px 0px',
+                  width: 'fit-content',
+                }}>
+                {isLoading ? <Skeleton width={60} height={24} /> : <>
+                  <FormattedNumber
+                    value={vaultData.data.overview.sharePrice.toString() || '0'}
+                    symbol={'USD'}
+                    variant="main16"
+                    sx={{ fontWeight: 800 }}
+                  />
+                </>
+                }
+              </Box>
+            </Box>
           </Box>
           {isLoading ? (
             <Skeleton variant="rectangular" width="100%" height={300} />

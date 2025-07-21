@@ -101,13 +101,13 @@ export const fetchVaultData = async (
 // New query for historical data
 const GET_VAULT_HISTORICAL_SNAPSHOTS_QUERY = `
   query GetVaultHistoricalSnapshots($vaultId: String!) {
-    vaultHourlySnapshots(
+    vaultDailySnapshots(
       where: { vault: $vaultId }
-      orderBy: hourTimestamp
+      orderBy: timestamp
       orderDirection: desc 
       first: 1000
     ) {
-      hourTimestamp
+      timestamp
       totalSupply
       apy
     }
@@ -115,13 +115,13 @@ const GET_VAULT_HISTORICAL_SNAPSHOTS_QUERY = `
 `;
 
 interface HistoricalSnapshotEntry {
-  hourTimestamp: string;
+  timestamp: string;
   apy: string;
   totalSupply: string;
 }
 
 interface HistoricalSnapshotsQueryResponse {
-  vaultHourlySnapshots: HistoricalSnapshotEntry[];
+  vaultDailySnapshots: HistoricalSnapshotEntry[];
 }
 
 /**
@@ -139,7 +139,7 @@ export const fetchVaultHistoricalSnapshots = async (
     { vaultId: vaultId.toLowerCase() }
   );
   // Ensure data and data.vaultSnapshots are not null before returning
-  return data?.vaultHourlySnapshots || null;
+  return data?.vaultDailySnapshots || null;
 };
 
 /**
@@ -157,15 +157,14 @@ export const formatSnapshotsForChart = (
   }
 
   return snapshots.map((snapshot) => {
-    const date = new Date(parseInt(snapshot.hourTimestamp, 10) * 1000);
+    const date = new Date(parseInt(snapshot.timestamp, 10) * 1000);
 
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
 
-    const timeString = `${year}-${month}-${day} ${hours}:${minutes}`;
+    // const timeString = `${year}-${month}-${day} ${hours}:${minutes}`;
+    const timeString = `${year}-${month}-${day}`;
 
     const rawValue = snapshot[dataKey];
     // Handle potential GQL scientific notation for large numbers if APY can be very small or totalSupply very large
