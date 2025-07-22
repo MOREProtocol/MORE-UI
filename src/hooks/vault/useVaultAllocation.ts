@@ -231,17 +231,40 @@ const fetchVaultStakingAddresses = async (
 
             const stakingContract = new ethers.Contract(
               stakingContractAddress,
-              ['function stakingToken() external view returns (address)'],
+              [
+                'function stakingToken() external view returns (address)',
+                'function lp_token() external view returns (address)'
+
+              ],
               provider
             );
 
-            const stakingTokenAddress = await Promise.race([
-              stakingContract.stakingToken(),
-              new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Timeout')), 10000)
-              )
-            ]) as string;
-
+            let stakingTokenAddress: string | undefined = undefined;
+            try {
+              stakingTokenAddress = await Promise.race([
+                stakingContract.stakingToken(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+              ]) as string;
+              if (!stakingTokenAddress || !ethers.utils.isAddress(stakingTokenAddress)) {
+                stakingTokenAddress = undefined;
+              }
+            } catch (error) {
+              stakingTokenAddress = undefined;
+            }
+            // If stakingToken() failed or returned invalid, try lp_token()
+            if (!stakingTokenAddress) {
+              try {
+                stakingTokenAddress = await Promise.race([
+                  stakingContract.lp_token(),
+                  new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+                ]) as string;
+                if (!stakingTokenAddress || !ethers.utils.isAddress(stakingTokenAddress)) {
+                  stakingTokenAddress = undefined;
+                }
+              } catch (error) {
+                stakingTokenAddress = undefined;
+              }
+            }
             if (stakingTokenAddress && ethers.utils.isAddress(stakingTokenAddress)) {
               stakingTokenAddresses.push(stakingTokenAddress);
             }
