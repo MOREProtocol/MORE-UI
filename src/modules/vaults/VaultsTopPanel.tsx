@@ -27,7 +27,7 @@ export const VaultsTopPanel = () => {
   const vaults = vaultsQuery?.data;
 
   const userVaultsQuery = useUserVaultsData(accountAddress, vaultIds);
-  const userVaults = userVaultsQuery?.map(vault => vault.data);
+  const userVaults = userVaultsQuery?.map(vault => vault.data) || [];
   const isLoadingUserVaults = userVaultsQuery?.some(vault => vault.isLoading);
 
   const userDataQuery = useUserData(accountAddress);
@@ -69,7 +69,8 @@ export const VaultsTopPanel = () => {
   const aggregatedStats = useMemo(
     () =>
       !loading &&
-      vaults?.reduce(
+      vaults?.length > 0 &&
+      vaults.reduce(
         (acc, vault, index) => {
           const assetAddress = vault?.overview?.asset?.address?.toLowerCase();
           const vaultTVLPrice = assetPriceMap.get(assetAddress) || 0;
@@ -81,7 +82,7 @@ export const VaultsTopPanel = () => {
               )
             ) * vaultTVLPrice;
 
-          const userVault = userVaults[index];
+          const userVault = userVaults && userVaults[index];
           const userVaultDepositsValue =
             Number(
               formatUnits(userVault?.maxWithdraw || 0, vault?.overview?.asset?.decimals)
@@ -102,7 +103,7 @@ export const VaultsTopPanel = () => {
   const valueTypographyVariant = downToSM ? 'main16' : 'main21';
   const symbolsVariant = downToSM ? 'secondary16' : 'secondary21';
 
-  const claimableRewardsUsd = useMemo(() => userData?.userRewards.reduce((acc, reward) => acc + reward.rewardAmountToClaimInUSD, 0), [userData]);
+  const claimableRewardsUsd = useMemo(() => userData?.userRewards?.reduce((acc, reward) => acc + reward.rewardAmountToClaimInUSD, 0) || 0, [userData]);
   const handleOpenRewardModal = () => {
     if (accountAddress) {
       setIsRewardModalOpen(true);

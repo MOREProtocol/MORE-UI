@@ -6,9 +6,10 @@ import CloseIcon from '@mui/icons-material/Close';
 import LaunchIcon from '@mui/icons-material/Launch';
 import { ethers, Signer } from 'ethers';
 import { formatUnits } from 'ethers/lib/utils';
-import { useWalletClient, useChainId } from 'wagmi';
+import { useWalletClient, useChainId, useSwitchChain } from 'wagmi';
 import { useEffect, useState } from 'react';
 import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
+import { ChainIds } from 'src/utils/const';
 
 interface ClaimRewardsModalProps {
   open: boolean;
@@ -21,11 +22,16 @@ interface ClaimRewardsModalProps {
 export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onClaimSuccess }: ClaimRewardsModalProps) => {
   const { data: walletClient } = useWalletClient();
   const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
   const [signer, setSigner] = useState<Signer | null>(null);
   const [loadingClaims, setLoadingClaims] = useState<Record<string, boolean>>({});
   const [claimErrors, setClaimErrors] = useState<Record<string, string>>({});
   const [claimedRewards, setClaimedRewards] = useState<Set<string>>(new Set());
   const [transactionHashes, setTransactionHashes] = useState<Record<string, string>>({});
+
+  // Check if user is on a supported Flow network
+  const isOnSupportedNetwork = chainId === ChainIds.flowEVMMainnet || chainId === ChainIds.flowEVMTestnet;
+  const shouldShowNetworkWarning = userAddress && !isOnSupportedNetwork;
 
   useEffect(() => {
     const getSigner = async () => {
@@ -49,6 +55,15 @@ export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onC
 
   const handleViewTransaction = (txHash: string) => {
     window.open(getExplorerUrl(txHash), '_blank', 'noopener,noreferrer');
+  };
+
+  const handleSwitchToFlowNetwork = async () => {
+    try {
+      // Default to Flow EVM Mainnet, but could be made configurable
+      await switchChain?.({ chainId: ChainIds.flowEVMMainnet });
+    } catch (error) {
+      console.error('Failed to switch network:', error);
+    }
   };
 
   const handleClaim = async (reward: RewardItemEnriched) => {
@@ -118,6 +133,38 @@ export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onC
             <CloseIcon />
           </IconButton>
         </Box>
+
+        {/* Network Status Check */}
+        {shouldShowNetworkWarning && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            <Typography variant="main14">
+              Wrong Network:{' '}
+              <Typography
+                component="span"
+                variant="main14"
+                onClick={handleSwitchToFlowNetwork}
+                sx={{
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    color: 'primary.dark',
+                  },
+                }}
+              >
+                Please switch to Flow EVM
+              </Typography>
+              {' '}to claim rewards
+            </Typography>
+          </Alert>
+        )}
+
+        {!userAddress && (
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <Typography variant="main14">
+              Please connect your wallet to claim rewards
+            </Typography>
+          </Alert>
+        )}
 
         {!rewards && (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
@@ -204,7 +251,7 @@ export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onC
                       <Button
                         variant="gradient"
                         onClick={() => handleClaim(reward)}
-                        disabled={loadingClaims[reward.reward_token_address]}
+                        disabled={loadingClaims[reward.reward_token_address] || shouldShowNetworkWarning}
                         sx={{
                           minWidth: 72,
                           height: 36,

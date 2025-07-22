@@ -719,21 +719,28 @@ export const useUserData = <TResult = { userRewards: RewardItemEnriched[] }>(
   const areCoreDependenciesReady = !!provider && !!userAddress;
   const reservesAreReady = reserves.length > 0;
 
-  const canPotentiallyFetch = isHookGloballyEnabledByOpts && areCoreDependenciesReady;
+  // Only works on Flow network - disable fetching for other networks
+  const isFlowNetwork = chainId === ChainIds.flowEVMMainnet;
+  const canPotentiallyFetch = isHookGloballyEnabledByOpts && areCoreDependenciesReady && isFlowNetwork;
 
-  // Fetch rewards independently to avoid blocking user data query
+  // Fetch rewards independently to avoid blocking user data query  
   const { data: rewardsData, isLoading: rewardsLoading, isSuccess: rewardsSuccess } = useRewards(userAddress, {
     enabled: canPotentiallyFetch,
   });
 
-  // Wait for both reserves and rewards to be ready
-  const allowQueryExecution = canPotentiallyFetch && reservesAreReady && rewardsSuccess;
+  // Wait for both reserves and rewards to be ready (or allow execution for non-Flow networks)
+  const allowQueryExecution = (canPotentiallyFetch && reservesAreReady && rewardsSuccess) || (!isFlowNetwork && isHookGloballyEnabledByOpts && areCoreDependenciesReady);
 
   const queryApiResult = useVaultQuery<{
     userRewards: RewardItemEnriched[];
   }, TResult>(
     vaultQueryKeys.userGlobalData(userAddress, chainId),
     async () => {
+      // Return empty data for non-Flow networks
+      if (!isFlowNetwork) {
+        return { userRewards: [] };
+      }
+
       if (!provider || !userAddress || !rewardsData) {
         throw new Error('useUserData: Missing provider, userAddress, or rewards data');
       }
