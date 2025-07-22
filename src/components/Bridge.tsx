@@ -297,7 +297,7 @@ export const BridgeContent: React.FC = () => {
       maxWidth: 600,
       minWidth: 400,
       mx: 'auto',
-      backgroundColor: 'white',
+      backgroundColor: 'background.surface',
       borderRadius: '4px',
       padding: '24px',
       boxShadow: '0px 2px 1px rgba(0, 0, 0, 0.05),0px 0px 1px rgba(0, 0, 0, 0.25)',

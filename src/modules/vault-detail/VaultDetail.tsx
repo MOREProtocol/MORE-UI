@@ -558,7 +558,7 @@ export const VaultDetail = () => {
       </Box>
 
       {/* BOTTOM TABS */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', px: xPadding }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', px: xPadding, pb: 10 }}>
         <Tabs
           value={isLoading ? false : selectedTab}
           onChange={handleTabChange}

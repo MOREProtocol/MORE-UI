@@ -1,7 +1,9 @@
 import {
+  Avatar,
   Box,
   CircularProgress,
   Paper,
+  SvgIcon,
   Table,
   TableBody,
   TableCell,
@@ -12,7 +14,8 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import { Address } from 'src/components/Address';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { useVault } from 'src/hooks/vault/useVault';
@@ -27,16 +30,17 @@ const listHeaders = [
   { title: 'Amount', key: 'amount' },
   { title: 'Type', key: 'type' },
   { title: 'Transaction Hash', key: 'transactionHash' },
-  { title: 'User', key: 'user' },
 ];
 
 export const VaultActivity: React.FC = () => {
   const theme = useTheme();
-  const { selectedVaultId, chainId } = useVault();
+  const { selectedVaultId, chainId, accountAddress } = useVault();
   const vaultData = useVaultData(selectedVaultId);
 
+  const [userActivityOnly, setUserActivityOnly] = useState(false);
+
   const vault = vaultData?.data;
-  const activity = vault?.activity;
+  const activity = userActivityOnly ? vault?.activity.filter((activity) => activity?.user?.toLowerCase() === accountAddress?.toLowerCase()) : vault?.activity;
   const isLoading = vaultData?.isLoading;
   const error = vaultData?.error;
 
@@ -65,6 +69,49 @@ export const VaultActivity: React.FC = () => {
                   {header.title}
                 </TableCell>
               ))}
+              <TableCell
+                key="user"
+                align="center"
+                sx={{
+                  color: theme.palette.text.secondary,
+                  borderBottom: `1px solid ${theme.palette.divider}`,
+                  padding: '16px',
+                  fontSize: '14px',
+                }}
+              >
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 2,
+                  cursor: 'pointer',
+                }} onClick={() => setUserActivityOnly(!userActivityOnly)}>
+                  <Tooltip title={userActivityOnly ? 'Show all activities' : 'Show only my activities'} arrow placement="top">
+                    <Box sx={{ position: 'relative', display: 'inline-block', '&:hover': { opacity: 0.8 } }}>
+                      <SvgIcon sx={{
+                        fontSize: '18px',
+                        color: userActivityOnly ? 'primary.main' : 'text.muted',
+                      }}>
+                        <FilterAltIcon />
+                      </SvgIcon>
+                      <Avatar sx={{
+                        position: 'absolute',
+                        bottom: 5,
+                        right: -4.5,
+                        bgcolor: userActivityOnly ? 'primary.main' : 'text.muted',
+                        color: userActivityOnly ? 'text.dark' : 'text.light',
+                        width: 12,
+                        height: 12,
+                        fontSize: '8px',
+                      }}
+                      />
+                    </Box>
+                  </Tooltip>
+                  <Typography variant="main14" color="text">
+                    User
+                  </Typography>
+                </Box>
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -197,7 +244,7 @@ export const VaultActivity: React.FC = () => {
                           variant="secondary14"
                           address={activity.user}
                           link={`${baseUrl}/address`}
-                          isUser
+                          isUser={activity.user === accountAddress}
                         />
                       </Box>
                     </TableCell>
