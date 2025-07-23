@@ -1,4 +1,4 @@
-import { Box, Button, Paper, Typography, useTheme } from '@mui/material';
+import { Button, Paper, Typography, useTheme } from '@mui/material';
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { ContentContainer } from 'src/components/ContentContainer';
@@ -31,9 +31,6 @@ export default function More404Page() {
             backgroundColor: theme.palette.mode === 'dark' ? 'transparent' : '',
           }}
         >
-          <Box sx={{ maxWidth: 444, m: '0 auto' }}>
-            <img width="100%" height="auto" src="/404/404.svg" alt="404 - Page not found" />
-          </Box>
           <Typography variant="display1" sx={{ mt: 2 }}>
             Page not found
           </Typography>
