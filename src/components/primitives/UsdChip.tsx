@@ -4,7 +4,7 @@ import { FormattedNumber } from './FormattedNumber';
 interface UsdChipProps extends Omit<ChipProps, 'label'> {
   value: string | number;
   compact?: boolean;
-  textVariant?: 'secondary12' | 'secondary14' | 'main12' | 'main14';
+  textVariant?: 'caption' | 'secondary12' | 'secondary14' | 'main12' | 'main14';
 }
 
 export const UsdChip = ({

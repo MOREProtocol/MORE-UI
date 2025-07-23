@@ -172,10 +172,12 @@ export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onC
           </Box>
         )}
 
-        {!rewardsToDisplay && (
-          <Typography color="error" sx={{ my: 2 }}>
-            You have no rewards available to claim.
-          </Typography>
+        {!rewardsToDisplay || rewardsToDisplay.length === 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+            <Typography color="error" sx={{ my: 2 }}>
+              You have no rewards available to claim.
+            </Typography>
+          </Box>
         )}
 
         {rewardsToDisplay && rewardsToDisplay.length > 0 && (

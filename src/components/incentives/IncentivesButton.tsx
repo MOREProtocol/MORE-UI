@@ -22,6 +22,7 @@ interface IncentivesButtonProps {
 interface RewardsButtonProps {
   rewards?: PoolReservesRewardsHumanized[];
   displayBlank?: boolean;
+  rounded?: boolean;
 }
 
 const BlankIncentives = () => {
@@ -87,7 +88,7 @@ export const IncentivesButton = ({ incentives, symbol, displayBlank }: Incentive
   );
 };
 
-export const RewardsButton = ({ rewards, displayBlank }: RewardsButtonProps) => {
+export const RewardsButton = ({ rewards, displayBlank, rounded }: RewardsButtonProps) => {
   const [open, setOpen] = useState(false);
 
   if (!(rewards && rewards.length > 0)) {
@@ -135,6 +136,7 @@ export const RewardsButton = ({ rewards, displayBlank }: RewardsButtonProps) => 
         }) : []}
         incentivesNetAPR={apy}
         displayBlank={displayBlank}
+        rounded={rounded}
       />
     </ContentWithTooltip>
   );
@@ -145,11 +147,13 @@ const Content = ({
   incentivesNetAPR,
   displayBlank,
   plus,
+  rounded,
 }: {
   incentives: ReserveIncentiveResponse[];
   incentivesNetAPR: number | 'Infinity';
   displayBlank?: boolean;
   plus?: boolean;
+  rounded?: boolean;
 }) => {
   const [open, setOpen] = useState(false);
   const trackEvent = useRootStore((store) => store.trackEvent);
@@ -204,9 +208,9 @@ const Content = ({
   return (
     <Box
       sx={(theme) => ({
-        p: { xs: '0 4px', xsm: '2px 4px' },
+        p: { xs: '0 4px', xsm: '1px 6px' },
         border: `1px solid ${open ? theme.palette.action.disabled : theme.palette.divider}`,
-        borderRadius: '4px',
+        borderRadius: rounded ? '20px' : '4px',
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',

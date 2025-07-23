@@ -12,7 +12,7 @@ import { networkConfigs } from 'src/ui-config/networksConfig';
 import { ChainIds } from 'src/utils/const';
 import { useWalletClient } from 'wagmi';
 
-import { VAULT_ID_TO_CURATOR_LOGO, VAULT_ID_TO_NAME } from './constants';
+import { VAULT_ID_TO_CURATOR_INFO, VAULT_ID_TO_NAME } from './constants';
 import { useVault, VaultData } from './useVault';
 import { fetchVaultData, fetchVaultHistoricalSnapshots, formatSnapshotsForChart } from './vaultSubgraph';
 // Constants
@@ -587,6 +587,7 @@ export const useVaultsListData = <TResult = VaultData>(
         const vaultDiamondContract = new ethers.Contract(
           vaultId,
           [
+            `function totalSupply() external view override returns (uint256)`,
             `function totalAssets() external view override returns (uint256)`,
             `function asset() external view override returns (address)`,
             `function decimals() external view returns (uint8)`,
@@ -595,7 +596,8 @@ export const useVaultsListData = <TResult = VaultData>(
           ],
           provider
         );
-        const [totalAssets, assetAddress, decimals, nameFromContract, latestSnapshot] = await Promise.all([
+        const [totalSupply, totalAssets, assetAddress, decimals, nameFromContract, latestSnapshot] = await Promise.all([
+          vaultDiamondContract.totalSupply().catch(() => 0),
           vaultDiamondContract.totalAssets().catch(() => 0),
           vaultDiamondContract.asset().catch(() => undefined),
           vaultDiamondContract.decimals().catch(() => 18),
@@ -604,6 +606,7 @@ export const useVaultsListData = <TResult = VaultData>(
         ]);
         let assetDecimals = decimals;
         let assetSymbol = 'UNKNOWN';
+        const vaultDecimals = decimals;
 
         if (assetAddress) {
           const assetContract = new ethers.Contract(
@@ -625,7 +628,7 @@ export const useVaultsListData = <TResult = VaultData>(
         );
 
         const name = VAULT_ID_TO_NAME[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
-        const curatorLogo = VAULT_ID_TO_CURATOR_LOGO[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_CURATOR_LOGO] || undefined;
+        const curatorInfo = VAULT_ID_TO_CURATOR_INFO[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_CURATOR_INFO] || undefined;
 
         const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
         // Get incentives for this vault
@@ -634,17 +637,20 @@ export const useVaultsListData = <TResult = VaultData>(
           id: vaultId,
           overview: {
             name,
-            curatorLogo,
+            curatorLogo: curatorInfo?.logo,
+            curatorName: curatorInfo?.name || 'Unknown',
             asset: {
               symbol: assetSymbol || reserve?.symbol || 'UNKNOWN',
               decimals: assetDecimals,
               address: assetAddress,
             },
             sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
+            decimals: vaultDecimals,
             apy: latestSnapshot?.apyCalculatedLast360Days ? parseFloat(latestSnapshot.apyCalculatedLast360Days) : undefined,
           },
           financials: {
             liquidity: {
+              totalSupply: totalSupply.toString(),
               totalAssets: totalAssets.toString(),
             },
           },
@@ -719,8 +725,8 @@ export const useUserData = <TResult = { userRewards: RewardItemEnriched[] }>(
   const areCoreDependenciesReady = !!provider && !!userAddress;
   const reservesAreReady = reserves.length > 0;
 
-  // Only works on Flow network - disable fetching for other networks
-  const isFlowNetwork = chainId === ChainIds.flowEVMMainnet;
+  // Only works on Flow networks - disable fetching for other networks
+  const isFlowNetwork = chainId === ChainIds.flowEVMMainnet || chainId === ChainIds.flowEVMTestnet;
   const canPotentiallyFetch = isHookGloballyEnabledByOpts && areCoreDependenciesReady && isFlowNetwork;
 
   // Fetch rewards independently to avoid blocking user data query  
@@ -1035,7 +1041,7 @@ export const useVaultData = <TResult = VaultData>(
       }
 
       const name = VAULT_ID_TO_NAME[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
-      const curatorLogo = VAULT_ID_TO_CURATOR_LOGO[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_CURATOR_LOGO] || undefined;
+      const curatorInfo = VAULT_ID_TO_CURATOR_INFO[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_CURATOR_INFO] || undefined;
 
       const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
 
@@ -1046,7 +1052,8 @@ export const useVaultData = <TResult = VaultData>(
         id: vaultId,
         overview: {
           name,
-          curatorLogo,
+          curatorLogo: curatorInfo?.logo,
+          curatorName: curatorInfo?.name || 'Unknown',
           asset: {
             name: assetName || reserve?.name || 'UNKNOWN',
             symbol: assetSymbol || reserve?.symbol || 'UNKNOWN',

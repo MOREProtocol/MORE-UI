@@ -46,6 +46,7 @@ export interface VaultData {
     name?: string;
     description?: string;
     curatorLogo?: string;
+    curatorName?: string;
     asset?: {
       symbol?: string;
       decimals?: number;

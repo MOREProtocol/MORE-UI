@@ -1,8 +1,7 @@
-import { Box, Container } from '@mui/material';
+import { Container } from '@mui/material';
 import { ReactNode, useEffect } from 'react';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { VaultAssetsListContainer } from 'src/modules/vaults/VaultAssetsListContainer';
-import { VaultsTopPanel } from 'src/modules/vaults/VaultsTopPanel';
 import { useRootStore } from 'src/store/root';
 
 interface VaultContainerProps {
@@ -46,22 +45,7 @@ export default function Vaults() {
     });
   }, [trackEvent]);
   return (
-    <>
-      <VaultsTopPanel />
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          flex: 1,
-          mt: { xs: '-32px', lg: '-46px', xl: '-44px', xxl: '-48px' },
-        }}
-      >
-        <VaultContainer>
-          <VaultAssetsListContainer />
-        </VaultContainer>
-      </Box>
-    </>
+    <VaultAssetsListContainer />
   );
 }
 

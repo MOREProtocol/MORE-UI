@@ -12,7 +12,7 @@ interface VaultsRewardModalProps {
 export const VaultsRewardModal = ({ open, handleClose, userAddress }: VaultsRewardModalProps) => {
   const queryClient = useQueryClient();
   const { chainId } = useVault();
-  const { data: userData, isLoading, isError, refetch } = useUserData(userAddress);
+  const { data: userData, refetch } = useUserData(userAddress);
 
   const handleClaimSuccess = async (claimedRewardAddresses: string[]) => {
     console.log('Rewards claimed successfully!', {
@@ -40,16 +40,14 @@ export const VaultsRewardModal = ({ open, handleClose, userAddress }: VaultsRewa
     }
   };
 
-  if (!userData || isLoading || isError) {
-    return null;
-  }
+  const rewards = userData?.userRewards || [];
 
   return (
     <ClaimRewardsModal
       open={open}
       handleClose={handleClose}
       userAddress={userAddress}
-      rewards={userData?.userRewards}
+      rewards={rewards}
       onClaimSuccess={handleClaimSuccess}
     />
   )
