@@ -171,7 +171,7 @@ const VaultContext = createContext<VaultContextData | undefined>(undefined);
 // Create the provider component
 export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const router = useRouter();
-  const { vaultId: selectedVaultIdFromUrl } = router.query;
+  const { vaultId: selectedVaultIdFromUrl, portfolioId: selectedPortfolioIdFromUrl } = router.query;
 
   // Info reading state
   const [selectedVaultId, setSelectedVaultId] = useState<string | null>(null);
@@ -183,10 +183,12 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   const [operationsLoading, setOperationsLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    if (selectedVaultIdFromUrl) {
-      setSelectedVaultId(selectedVaultIdFromUrl as string);
+    // Support both vaultId and portfolioId query parameters
+    const idFromUrl = selectedVaultIdFromUrl || selectedPortfolioIdFromUrl;
+    if (idFromUrl) {
+      setSelectedVaultId(idFromUrl as string);
     }
-  }, [selectedVaultIdFromUrl]);
+  }, [selectedVaultIdFromUrl, selectedPortfolioIdFromUrl]);
 
   // Web3 setup
   const { data: walletClient } = useWalletClient();

@@ -43,6 +43,20 @@ module.exports = withBundleAnalyzer({
   // assetPrefix: "./",
   trailingSlash: true,
   pageExtensions,
+  async redirects() {
+    return [
+      {
+        source: '/vaults',
+        destination: '/portfolios',
+        permanent: true,
+      },
+      {
+        source: '/vault-detail',
+        destination: '/portfolio-detail',
+        permanent: true,
+      },
+    ];
+  },
   // For local safe testing
   // async headers() {
   //   return [
