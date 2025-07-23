@@ -185,7 +185,7 @@ export const VaultAssetsList = () => {
 
   const handleVaultClick = (row: VaultGridRow) => {
     setSelectedVaultId(row.id);
-    router.push(ROUTES.vaultDetail(row.id));
+    router.push(ROUTES.portfolioDetail(row.id));
   };
 
   // Column configurations

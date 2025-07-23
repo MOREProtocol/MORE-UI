@@ -127,7 +127,7 @@ export const VaultDetail = () => {
         px: xPadding,
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <SvgIcon sx={{ fontSize: '20px', cursor: 'pointer', color: '#F1F1F3', '&:hover': { color: '#A5A8B6' } }} onClick={() => router.push('/vaults')}>
+          <SvgIcon sx={{ fontSize: '20px', cursor: 'pointer', color: '#F1F1F3', '&:hover': { color: '#A5A8B6' } }} onClick={() => router.push('/portfolios')}>
             <ArrowBackRoundedIcon />
           </SvgIcon>
           {isLoading ? (

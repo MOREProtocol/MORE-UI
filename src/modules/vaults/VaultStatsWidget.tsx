@@ -157,7 +157,7 @@ export const VaultStatsWidget = () => {
       )}
 
       {/* User Rewards Button */}
-      {accountAddress && userData && userData.userRewards && userData.userRewards.length > 0 && (
+      {accountAddress && userData && userData.userRewards && userData.userRewards.length > 0 && claimableRewardsUsd > 0 && (
         <Box>
           <Box
             sx={{

@@ -56,7 +56,7 @@ export const VaultTopDetailsWrapper = () => {
                 // https://github.com/vercel/next.js/discussions/34980
                 // if (history.state.idx !== 0) router.back();
                 // else router.push('/vaults');
-                router.push('/vaults');
+                router.push('/portfolios');
               }}
               sx={{ mr: 3, mb: downToSM ? '24px' : '0' }}
             >

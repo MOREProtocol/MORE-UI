@@ -38,10 +38,10 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
       dataCy: 'menuMarkets',
     },
     {
-      link: ROUTES.vaults,
-      title: 'Vaults',
-      visibleTitle: 'Vaults',
-      dataCy: 'menuVaults',
+      link: ROUTES.portfolios,
+      title: 'Portfolios',
+      visibleTitle: 'Portfolios',
+      dataCy: 'menuPortfolios',
       isVisible: () => process.env.NEXT_PUBLIC_VAULTS_ENABLED === 'true',
     },
     {
