@@ -42,6 +42,7 @@ export interface VaultRoles {
 // Define the complete vault data structure
 export interface VaultData {
   id: string;
+  chainId?: number; // Network where the vault actually exists
   overview: {
     name?: string;
     description?: string;

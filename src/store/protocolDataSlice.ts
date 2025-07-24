@@ -77,14 +77,14 @@ export const createProtocolDataSlice: StateCreator<
       // enable permit for all v3 test network assets (except WrappedBaseAssets) or v3 production assets included in permitConfig)
       const testnetPermitEnabled = Boolean(
         currentMarketData.v3 &&
-          currentNetworkConfig.isTestnet &&
-          !currentMarketData.permitDisabled &&
-          !isWrappedBaseAsset
+        currentNetworkConfig.isTestnet &&
+        !currentMarketData.permitDisabled &&
+        !isWrappedBaseAsset
       );
       const productionPermitEnabled = Boolean(
         currentMarketData.v3 &&
-          underlyingChainId &&
-          permitByChainAndToken[underlyingChainId]?.[utils.getAddress(reserveAddress).toLowerCase()]
+        underlyingChainId &&
+        permitByChainAndToken[underlyingChainId]?.[utils.getAddress(reserveAddress).toLowerCase()]
       );
       return testnetPermitEnabled || productionPermitEnabled;
     },

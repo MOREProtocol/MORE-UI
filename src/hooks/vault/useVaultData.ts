@@ -445,6 +445,37 @@ const getVaultIncentives = (incentives: IncentiveItem[], vaultId: string): Incen
     }));
 };
 
+// Helper function to detect which network a vault exists on
+const detectVaultNetwork = async (vaultId: string): Promise<number | null> => {
+  const supportedChainIds = Object.keys(vaultsConfig).map(Number);
+
+  for (const chainId of supportedChainIds) {
+    try {
+      const networkConfig = networkConfigs[chainId];
+      if (!networkConfig) continue;
+
+      const rpcUrl = networkConfig.privateJsonRPCUrl || networkConfig.publicJsonRPCUrl[0];
+      if (!rpcUrl) continue;
+
+      const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+      const vaultContract = new ethers.Contract(
+        vaultId,
+        ['function name() external view returns (string)'],
+        provider
+      );
+
+      // Try to call a simple method to see if the contract exists
+      await vaultContract.name();
+      return chainId; // If successful, vault exists on this network
+    } catch (error) {
+      // Contract doesn't exist on this network, continue to next
+      continue;
+    }
+  }
+
+  return null; // Vault not found on any supported network
+};
+
 const fetchActivity = async (
   vaultId: string,
   chainId: number,
@@ -946,10 +977,22 @@ export const useVaultData = <TResult = VaultData>(
   const queryApiResult = useVaultQuery<VaultData, TResult>(
     vaultQueryKeys.vaultDetailsWithSubgraph(vaultId, chainId),
     async () => {
-      if (!provider || !vaultId) {
-        throw new Error('Missing required parameters');
+      if (!vaultId) {
+        throw new Error('Missing vaultId');
       }
-      if (!Object.values(ChainIds).includes(chainId)) {
+
+      // First, detect which network the vault actually exists on
+      const vaultActualChainId = await detectVaultNetwork(vaultId);
+      if (!vaultActualChainId) {
+        throw new Error(`Vault ${vaultId} not found on any supported network`);
+      }
+
+      // Use the correct network's provider for fetching vault data
+      const actualNetworkConfig = networkConfigs[vaultActualChainId];
+      const actualRpcUrl = actualNetworkConfig.privateJsonRPCUrl || actualNetworkConfig.publicJsonRPCUrl[0];
+      const actualProvider = new ethers.providers.JsonRpcProvider(actualRpcUrl);
+
+      if (!Object.values(ChainIds).includes(vaultActualChainId)) {
         throw new Error('Invalid chainId');
       }
 
@@ -970,7 +1013,7 @@ export const useVaultData = <TResult = VaultData>(
           `function getWithdrawalTimelock() external view returns (uint256)`,
           `function fee() external view returns (uint256)`,
         ],
-        provider
+        actualProvider
       );
 
       // Fetch contract data and subgraph data in parallel where possible
@@ -997,9 +1040,9 @@ export const useVaultData = <TResult = VaultData>(
           vaultDiamondContract.getWithdrawalTimelock().catch(() => 0),
           vaultDiamondContract.fee().catch(() => 0),
         ]),
-        fetchActivity(vaultId, chainId, reserves).catch(() => []),
-        fetchVaultData(chainId, vaultId),
-        fetchVaultHistoricalSnapshots(chainId, vaultId),
+        fetchActivity(vaultId, vaultActualChainId, reserves).catch(() => []),
+        fetchVaultData(vaultActualChainId, vaultId),
+        fetchVaultHistoricalSnapshots(vaultActualChainId, vaultId),
       ]);
 
       const [
@@ -1031,7 +1074,7 @@ export const useVaultData = <TResult = VaultData>(
             `function symbol() external view returns (string)`,
             `function name() external view returns (string)`,
           ],
-          provider
+          actualProvider
         );
         [assetDecimals, assetSymbol, assetName] = await Promise.all([
           assetContract.decimals().catch(() => 18),
@@ -1050,6 +1093,7 @@ export const useVaultData = <TResult = VaultData>(
 
       return {
         id: vaultId,
+        chainId: vaultActualChainId, // Network where the vault actually exists
         overview: {
           name,
           curatorLogo: curatorInfo?.logo,

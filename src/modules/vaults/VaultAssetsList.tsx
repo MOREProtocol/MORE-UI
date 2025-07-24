@@ -266,7 +266,7 @@ export const VaultAssetsList = () => {
                 textAlign: isMobile ? 'center' : 'left'
               }}
             >
-              My Deposits
+              My Portfolio
             </Typography>
             <Box
               sx={{

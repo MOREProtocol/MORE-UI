@@ -16,7 +16,7 @@ const ContentContainer = ({ children }: ContentContainerProps) => {
         display: 'flex',
         flexDirection: 'column',
         flex: 1,
-        background: theme.palette.background.paper,
+        background: theme.palette.background.default,
       }}
     >
       {children}

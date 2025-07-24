@@ -53,6 +53,7 @@ export const CollateralChangeActions = ({
       }
       actionInProgressText={'Pending...'}
       handleAction={action}
+      symbol={symbol}
     />
   );
 };

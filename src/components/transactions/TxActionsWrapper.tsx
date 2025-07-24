@@ -96,7 +96,7 @@ export const TxActionsWrapper = ({
     )
       return null;
     if (approvalTxState?.loading)
-      return { loading: true, disabled: true, content: `Approving ${symbol}...` };
+      return { loading: true, disabled: true, content: `Approving ${symbol || 'asset'}...` };
     if (approvalTxState?.success)
       return {
         disabled: true,
@@ -117,7 +117,7 @@ export const TxActionsWrapper = ({
           iconSize={20}
           iconMargin={2}
           color="white"
-          text={`Approve ${symbol} to continue`}
+          text={`Approve ${symbol || 'asset'} to continue`}
         />
       ),
       handleClick: handleApproval,

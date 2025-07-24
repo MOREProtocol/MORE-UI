@@ -34,6 +34,7 @@ export const FaucetActions = ({ poolReserve, isWrongNetwork, blocked }: FaucetAc
       actionInProgressText={'Pending...'}
       mainTxState={mainTxState}
       isWrongNetwork={isWrongNetwork}
+      symbol={poolReserve.symbol}
     />
   );
 };

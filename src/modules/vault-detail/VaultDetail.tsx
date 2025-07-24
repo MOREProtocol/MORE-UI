@@ -1,4 +1,4 @@
-import { Avatar, Box, Button, Skeleton, SvgIcon, Tab, Tabs, Typography, useMediaQuery, useTheme, Tooltip } from '@mui/material';
+import { Avatar, Box, Button, Skeleton, SvgIcon, Tab, Tabs, Typography, useMediaQuery, useTheme, Tooltip, IconButton, Alert } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import InfoIcon from '@mui/icons-material/InfoOutlined';
@@ -25,10 +25,17 @@ import { VaultActivity } from './VaultActivity';
 import { VaultAllocations } from './VaultAllocations';
 import { VaultManagement } from './VaultManagement/VaultManagement';
 import { RewardsButton } from 'src/components/incentives/IncentivesButton';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import { useAccount, useChainId, useSwitchChain } from 'wagmi';
+import { ChainIds } from 'src/utils/const';
 
 export const VaultDetail = () => {
   const router = useRouter();
   const { selectedVaultId, accountAddress, chainId } = useVault();
+  const { address } = useAccount();
+  const wagmiChainId = useChainId();
+  const { switchChain } = useSwitchChain();
+
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId], { enabled: !!selectedVaultId && !!accountAddress });
   const vaultData = useVaultData(selectedVaultId);
   const theme = useTheme();
@@ -48,8 +55,14 @@ export const VaultDetail = () => {
   const { isWhitelisted, whitelistAmount, isWhitelistEnabled } = useDepositWhitelist();
 
   const selectedVault = vaultData?.data;
-  const isLoading = vaultData?.isLoading;
-  const isUserVaultDataLoading = userVaultData?.[0]?.isLoading;
+
+  // Check if user is on the correct network for this specific vault
+  const vaultNetwork = selectedVault?.chainId;
+  const isOnCorrectNetwork = wagmiChainId === vaultNetwork;
+  const shouldShowNetworkBanner = address && vaultNetwork && !isOnCorrectNetwork;
+  // Keep loading state active when on wrong network
+  const isLoading = vaultData?.isLoading || shouldShowNetworkBanner;
+  const isUserVaultDataLoading = userVaultData?.[0]?.isLoading || shouldShowNetworkBanner;
 
   // Get asset data using oracle + fallback to reserve
   const assetData = useAssetData(selectedVault?.overview?.asset?.address || '', {
@@ -114,24 +127,48 @@ export const VaultDetail = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5, pt: 7, pb: 7, px: xPadding }}>
+
+      {/* Network Status Check */}
+      {shouldShowNetworkBanner && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          <Typography variant="main14">
+            Wrong Network:{' '}
+            <Typography
+              component="span"
+              variant="main14"
+              onClick={() => switchChain?.({ chainId: vaultNetwork || ChainIds.flowEVMMainnet })}
+              sx={{
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                '&:hover': {
+                  color: 'primary.dark',
+                },
+              }}
+            >
+              Please switch to {networkConfigs[vaultNetwork || ChainIds.flowEVMMainnet]?.name || 'the correct network'}
+            </Typography>
+            {' '}to view vault details
+          </Typography>
+        </Alert>
+      )}
+
       {/* TOP DETAILS */}
       <Box sx={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 2,
-        backgroundColor: theme.palette.background.header,
-        pt: 7,
-        pb: 7,
-        px: xPadding,
+        backgroundColor: 'background.surface',
+        p: 3,
+        borderRadius: 2,
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <SvgIcon sx={{ fontSize: '20px', cursor: 'pointer', color: '#F1F1F3', '&:hover': { color: '#A5A8B6' } }} onClick={() => router.push('/portfolios')}>
+          <SvgIcon sx={{ fontSize: '20px', cursor: 'pointer', color: 'primary.main', '&:hover': { color: 'primary.light' } }} onClick={() => router.push('/portfolios')}>
             <ArrowBackRoundedIcon />
           </SvgIcon>
           {isLoading ? (
-            <Skeleton width={150} height={40} sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', my: 2 }} />
+            <Skeleton width={150} height={40} sx={{ my: 2 }} />
           ) : (
             <>
               {selectedVault?.overview?.curatorLogo && (
@@ -140,16 +177,28 @@ export const VaultDetail = () => {
                   sx={{ width: 35, height: 35 }}
                 />
               )}
-              <Typography variant="main21" sx={{ color: '#F1F1F3' }}>{selectedVault?.overview?.name}</Typography>
+              <Typography variant="main21" sx={{ color: 'primary.main' }}>{selectedVault?.overview?.name}</Typography>
+              <IconButton
+                size="small"
+                onClick={() => {
+                  if (baseUrl && selectedVaultId) {
+                    window.open(`${baseUrl}/address/${selectedVaultId}`, '_blank');
+                  }
+                }}
+                aria-label="open in explorer"
+                sx={{ padding: '2px' }}
+              >
+                <OpenInNewIcon sx={{ fontSize: '0.875rem' }} />
+              </IconButton>
             </>
           )}
         </Box>
         <Box sx={{ display: downToMd ? 'none' : 'flex', alignItems: 'left', flexDirection: 'row', gap: 5 }}>
           {isLoading ? (
-            <Skeleton width={150} height={20} sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
+            <Skeleton width={150} height={20} />
           ) : selectedVault?.overview?.roles?.owner && (
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
-              <Typography variant="secondary14" sx={{ py: 2, color: '#A5A8B6' }}>
+              <Typography variant="secondary14" sx={{ py: 2, color: 'primary.main' }}>
                 Owner
               </Typography>
               <Address
@@ -159,15 +208,15 @@ export const VaultDetail = () => {
                 isUser
                 variant="secondary12"
                 compactMode={CompactMode.SM}
-                sx={{ color: '#F1F1F3' }}
+                sx={{ color: 'primary.main' }}
               />
             </Box>
           )}
           {isLoading ? (
-            <Skeleton width={150} height={20} sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
+            <Skeleton width={150} height={20} />
           ) : selectedVault?.overview?.roles?.curator && (
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
-              <Typography variant="secondary14" sx={{ py: 2, color: '#A5A8B6' }}>
+              <Typography variant="secondary14" sx={{ py: 2, color: 'primary.main' }}>
                 Strategist
               </Typography>
               <Address
@@ -177,15 +226,15 @@ export const VaultDetail = () => {
                 isUser
                 variant="secondary12"
                 compactMode={CompactMode.SM}
-                sx={{ color: '#F1F1F3' }}
+                sx={{ color: 'primary.main' }}
               />
             </Box>
           )}
           {isLoading ? (
-            <Skeleton width={150} height={20} sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
+            <Skeleton width={150} height={20} />
           ) : selectedVault?.overview?.roles?.guardian && (
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
-              <Typography variant="secondary14" sx={{ py: 2, color: '#A5A8B6' }}>
+              <Typography variant="secondary14" sx={{ py: 2, color: 'primary.main' }}>
                 Guardian
               </Typography>
               <Address
@@ -195,7 +244,7 @@ export const VaultDetail = () => {
                 isUser
                 variant="secondary12"
                 compactMode={CompactMode.SM}
-                sx={{ color: '#F1F1F3' }}
+                sx={{ color: 'primary.main' }}
               />
             </Box>
           )}
@@ -203,7 +252,7 @@ export const VaultDetail = () => {
         <Box sx={{
           display: 'flex',
           alignItems: 'left',
-          flexDirection: downToMdLg && !downToMd ? 'column' : 'row',
+          flexDirection: downToMdLg ? 'column' : 'row',
           gap: 2,
         }}>
           <Button variant="gradient" color="primary" onClick={handleDepositClick} disabled={isLoading}>
@@ -227,9 +276,8 @@ export const VaultDetail = () => {
         display: 'flex',
         alignItems: 'left',
         flexDirection: { xs: 'column', md: 'row' },
-        gap: 2,
+        gap: { xs: 2, md: 5 },
         mt: 4,
-        px: xPadding,
       }}>
         {/* LEFT SIDE KPIS */}
         <Box sx={{ display: 'flex', flexDirection: 'column', flex: 2 }}>
@@ -238,7 +286,9 @@ export const VaultDetail = () => {
             gridTemplateColumns: { xs: '1fr', xsm: '1fr 1fr' },
             height: '100%',
             gap: 3,
-            p: 3,
+            p: { xs: 4, md: 6 },
+            backgroundColor: 'background.paper',
+            borderRadius: 2,
           }}>
             {/* Row 1 - My deposits */}
             <Box>
@@ -438,8 +488,23 @@ export const VaultDetail = () => {
           </Box>
         </Box>
         {/* RIGHT SIDE CHART */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', flex: 3, pt: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'row', gap: 5 }}>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 3,
+          backgroundColor: 'background.paper',
+          borderRadius: 2
+        }}>
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'left',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: { xs: 3, sm: 5 },
+            backgroundColor: 'background.surface',
+            borderRadius: '8px 8px 0px 0px',
+            p: { xs: 4, md: 6 },
+          }}>
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
               <Typography variant="secondary14" color="text.secondary">Annualized APY</Typography>
               <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'row', gap: 1 }}>
@@ -455,8 +520,9 @@ export const VaultDetail = () => {
                     borderRadius: '6px',
                     padding: '2px 6px',
                     width: 'fit-content',
+                    backgroundColor: selectedChartDataKey === 'apy' ? 'background.paper' : 'background.surface',
                     '&:hover': {
-                      backgroundColor: theme.palette.background.default,
+                      backgroundColor: theme.palette.background.paper,
                       border: `1.5px solid ${theme.palette.text.muted}`,
                     },
                   }}>
@@ -501,8 +567,9 @@ export const VaultDetail = () => {
                   borderRadius: '6px',
                   padding: '2px 6px',
                   width: 'fit-content',
+                  backgroundColor: selectedChartDataKey === 'totalSupply' ? 'background.paper' : 'background.surface',
                   '&:hover': {
-                    backgroundColor: theme.palette.background.default,
+                    backgroundColor: theme.palette.background.paper,
                     border: `1.5px solid ${theme.palette.text.muted}`,
                   },
                 }}>
@@ -547,24 +614,33 @@ export const VaultDetail = () => {
               </Box>
             </Box>
           </Box>
-          {isLoading ? (
-            <Skeleton variant="rectangular" width="100%" height={300} />
-          ) : currentChartData && currentChartData.length > 0 ? (
-            <LightweightLineChart
-              height={300}
-              data={currentChartData}
-              yAxisFormat={selectedChartDataKey === 'apy' ? '%' : vaultData?.data?.overview?.asset?.symbol}
-            />
-          ) : (
-            <Typography sx={{ textAlign: 'center', pt: 5 }}>
-              No historical data available for {currentChartLabel}.
-            </Typography>
-          )}
+          <Box sx={{
+            backgroundColor: 'background.paper',
+            p: { xs: 2, md: 6 },
+            borderRadius: 2,
+          }}>
+            {isLoading ? (
+              <Skeleton variant="rectangular" width="100%" height={300} />
+            ) : currentChartData && currentChartData.length > 0 ? (
+              <LightweightLineChart
+                height={250}
+                data={currentChartData}
+                yAxisFormat={selectedChartDataKey === 'apy' ? '%' : vaultData?.data?.overview?.asset?.symbol}
+              />
+            ) : (
+              <Typography sx={{ textAlign: 'center', pt: 5 }}>
+                No historical data available for {currentChartLabel}.
+              </Typography>
+            )}
+          </Box>
         </Box>
       </Box>
 
       {/* BOTTOM TABS */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', px: xPadding, pb: 10 }}>
+      <Box sx={{
+        display: 'flex', flexDirection: 'column',
+        pb: 10
+      }}>
         <Tabs
           value={isLoading ? false : selectedTab}
           onChange={handleTabChange}

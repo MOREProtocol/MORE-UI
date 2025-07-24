@@ -20,6 +20,7 @@ export interface ColumnDefinition<T> {
   sortable: boolean;
   render: (row: T) => React.ReactNode;
   skeletonRender?: () => React.ReactNode;
+  headerRender?: () => React.ReactNode;
 }
 
 interface BaseDataGridProps<T> {
@@ -120,16 +121,16 @@ export function BaseDataGrid<T>({
         <Table>
           <TableHead>
             <TableRow sx={{ bgcolor: alpha(theme.palette.background.paper, 0.6) }}>
-              {columns.map((column) => (
+              {columns.map((column, columnIndex) => (
                 <TableCell
-                  key={String(column.key)}
+                  key={`header-${columnIndex}`}
                   sx={{
                     fontWeight: 600,
                     fontSize: isMobile ? '0.75rem' : '0.875rem',
                     padding: isMobile ? '8px 4px' : '14px'
                   }}
                 >
-                  {column.label}
+                  {column.headerRender ? column.headerRender() : column.label}
                 </TableCell>
               ))}
               {actionColumn && (
@@ -149,9 +150,9 @@ export function BaseDataGrid<T>({
           <TableBody>
             {[1, 2, 3].map((index) => (
               <TableRow key={index}>
-                {columns.map((column) => (
+                {columns.map((column, columnIndex) => (
                   <TableCell
-                    key={String(column.key)}
+                    key={`skeleton-${index}-${columnIndex}`}
                     sx={{
                       padding: isMobile ? '8px 4px' : '16px'
                     }}
@@ -202,9 +203,11 @@ export function BaseDataGrid<T>({
       <Table>
         <TableHead>
           <TableRow sx={{ bgcolor: 'background.surface' }}>
-            {columns.map((column) => (
-              <TableCell key={String(column.key)}>
-                {column.sortable ? (
+            {columns.map((column, columnIndex) => (
+              <TableCell key={`header-main-${columnIndex}`}>
+                {column.headerRender ? (
+                  column.headerRender()
+                ) : column.sortable ? (
                   <TableSortLabel
                     active={orderBy === column.key}
                     direction={orderBy === column.key ? order : 'asc'}
@@ -268,8 +271,8 @@ export function BaseDataGrid<T>({
                   },
                 }}
               >
-                {columns.map((column) => (
-                  <TableCell key={String(column.key)}>
+                {columns.map((column, columnIndex) => (
+                  <TableCell key={`row-${rowId}-${columnIndex}`}>
                     {column.render(row)}
                   </TableCell>
                 ))}

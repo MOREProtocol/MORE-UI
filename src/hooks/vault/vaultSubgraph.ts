@@ -145,7 +145,7 @@ export const fetchVaultHistoricalSnapshots = async (
 /**
  * Formats an array of historical vault snapshots for use in charts.
  * @param snapshots Array of historical snapshot data.
- * @param dataKey The key to extract for the 'value' field (e.g., 'apy' or 'totalSupply').
+ * @param dataKey The key to extract for the 'value' field (e.g., 'apy', 'totalSupply').
  * @returns An array of objects with 'time' and 'value' properties.
  */
 export const formatSnapshotsForChart = (
@@ -156,30 +156,62 @@ export const formatSnapshotsForChart = (
     return [];
   }
 
-  return snapshots.map((snapshot) => {
-    const date = new Date(parseInt(snapshot.timestamp, 10) * 1000);
+  const processedData = snapshots
+    .map((snapshot) => {
+      // Check if the required dataKey exists in this snapshot
+      if (!(dataKey in snapshot) || snapshot[dataKey] === undefined || snapshot[dataKey] === null) {
+        console.warn(`Missing or null ${dataKey} in snapshot:`, snapshot);
+        return null;
+      }
 
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
+      // Use the original timestamp to preserve precision
+      const timestamp = parseInt(snapshot.timestamp, 10);
 
-    // const timeString = `${year}-${month}-${day} ${hours}:${minutes}`;
-    const timeString = `${year}-${month}-${day}`;
+      // Validate the timestamp
+      if (isNaN(timestamp)) {
+        console.warn(`Invalid timestamp in snapshot:`, snapshot.timestamp);
+        return null;
+      }
 
-    const rawValue = snapshot[dataKey];
-    // Handle potential GQL scientific notation for large numbers if APY can be very small or totalSupply very large
-    let numericValue = parseFloat(rawValue);
+      // Convert to ISO string for consistent parsing in the chart component
+      const date = new Date(timestamp * 1000);
+      if (isNaN(date.getTime())) {
+        console.warn(`Invalid date from timestamp:`, timestamp);
+        return null;
+      }
 
-    // If APY is a percentage decimal (0.05 for 5%), multiply by 100 to get percentage
-    if (dataKey === 'apy') {
-      numericValue = numericValue * 100;
-    }
-    // If total supply comes in as base units (e.g. wei for ETH), it might need formatting
-    // For total supply, we keep the raw numeric value for now
+      // Use ISO string to preserve exact timestamp
+      const timeString = date.toISOString();
 
-    return {
-      time: timeString,
-      value: isNaN(numericValue) ? 0 : numericValue, // Default to 0 if parsing fails
-    };
-  }).sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()); // Ensure sorted by time
+      const rawValue = snapshot[dataKey];
+      let numericValue = parseFloat(rawValue as string);
+
+      // Handle NaN values
+      if (isNaN(numericValue)) {
+        console.warn(`Invalid numeric value for ${dataKey}:`, rawValue);
+        return null;
+      }
+
+      // Apply transformations based on data type
+      if (dataKey === 'apy') {
+        // If APY/APR is a percentage decimal (0.05 for 5%), multiply by 100 to get percentage
+        numericValue = numericValue * 100;
+      }
+      // For totalSupply and sharePrice, keep the raw numeric value
+
+      return {
+        time: timeString,
+        value: numericValue,
+      };
+    })
+    .filter(Boolean) // Remove null entries
+    .sort((a, b) => new Date(a!.time).getTime() - new Date(b!.time).getTime()); // Ensure sorted by time
+
+  // Only filter the latest data point for APY and APR (incomplete daily calculations)
+  // Keep all data points for totalSupply and sharePrice (always accurate)
+  if ((dataKey === 'apy') && processedData.length > 1) {
+    processedData.pop();
+  }
+
+  return processedData;
 };

@@ -238,6 +238,7 @@ export const BorrowActions = React.memo(
         handleApproval={() => approval()}
         requiresApproval={requiresApproval}
         preparingTransactions={loadingTxns}
+        symbol={symbol}
         sx={sx}
       />
     );

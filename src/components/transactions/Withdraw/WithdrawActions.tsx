@@ -73,6 +73,7 @@ export const WithdrawActions = ({
       handleAction={action}
       handleAddToBatch={handleAddToBatch}
       handleApproval={() => approval([{ amount: amountToWithdraw, underlyingAsset: poolAddress }])}
+      symbol={symbol}
       requiresApproval={requiresApproval}
       sx={sx}
     />
