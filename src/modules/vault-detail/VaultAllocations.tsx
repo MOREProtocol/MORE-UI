@@ -48,7 +48,9 @@ export const VaultAllocations: React.FC = () => {
     ...(allocation || []).map(asset => ({ ...asset, category: 'LP Tokens' })),
     ...(staking || []).map(asset => ({ ...asset, balance: asset.stakedAmount, category: 'Staking' })),
     ...(available || []).map(asset => ({ ...asset, category: 'Available' })),
-  ].sort((a, b) => (b.value || 0) - (a.value || 0)); // Sort by descending allocation value
+  ]
+    .filter(asset => (asset.balance || 0) > 0) // Hide allocations with zero balance
+    .sort((a, b) => (b.value || 0) - (a.value || 0)); // Sort by descending allocation value
 
   // Calculate total value for allocation percentages
   const totalValue = allAssets.reduce((sum, asset) => sum + (asset.value || 0), 0);

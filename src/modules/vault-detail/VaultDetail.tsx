@@ -168,7 +168,7 @@ export const VaultDetail = () => {
           ) : selectedVault?.overview?.roles?.curator && (
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
               <Typography variant="secondary14" sx={{ py: 2, color: '#A5A8B6' }}>
-                Curator
+                Strategist
               </Typography>
               <Address
                 address={selectedVault?.overview?.roles.curator}
@@ -247,17 +247,23 @@ export const VaultDetail = () => {
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {isLoading || isUserVaultDataLoading ? <Skeleton width={80} height={24} /> : <FormattedNumber
-                    value={formatUnits(
-                      maxWithdraw?.toBigInt() || BigInt(0),
-                      vaultData?.data?.overview?.asset?.decimals || 18
-                    ) || ''}
-                    symbol={vaultData?.data?.overview?.asset?.symbol || ''}
-                    variant="main16"
-                    compact
-                  />}
+                  {!accountAddress ? (
+                    <Typography variant="main16">–</Typography>
+                  ) : isLoading || isUserVaultDataLoading ? (
+                    <Skeleton width={80} height={24} />
+                  ) : (
+                    <FormattedNumber
+                      value={formatUnits(
+                        maxWithdraw?.toBigInt() || BigInt(0),
+                        vaultData?.data?.overview?.asset?.decimals || 18
+                      ) || ''}
+                      symbol={vaultData?.data?.overview?.asset?.symbol || ''}
+                      variant="main16"
+                      compact
+                    />
+                  )}
                 </Box>
-                {!isLoading && !isUserVaultDataLoading && (
+                {accountAddress && !isLoading && !isUserVaultDataLoading && (
                   <UsdChip
                     value={new BigNumber(formatUnits(
                       maxWithdraw?.toBigInt() || BigInt(0),
