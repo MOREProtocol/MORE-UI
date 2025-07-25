@@ -349,7 +349,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     <BasicModal open={isOpen} setOpen={setIsOpen}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Typography variant="h2">Withdraw from the portfolio</Typography>
+          <Typography variant="h2">Withdraw from the vault</Typography>
           {chainId === ChainIds.flowEVMTestnet && (
             <Box sx={{ display: 'flex' }}>
               <Button

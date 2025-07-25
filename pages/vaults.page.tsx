@@ -3,12 +3,12 @@ import { MainLayout } from 'src/layouts/MainLayout';
 import { VaultAssetsListContainer } from 'src/modules/vaults/VaultAssetsListContainer';
 import { useRootStore } from 'src/store/root';
 
-export default function Portfolios() {
+export default function Vaults() {
   const trackEvent = useRootStore((store) => store.trackEvent);
 
   useEffect(() => {
     trackEvent('Page Viewed', {
-      'Page Name': 'Portfolios',
+      'Page Name': 'Vaults',
     });
   }, [trackEvent]);
   return (
@@ -16,6 +16,6 @@ export default function Portfolios() {
   );
 }
 
-Portfolios.getLayout = function getLayout(page: React.ReactElement) {
+Vaults.getLayout = function getLayout(page: React.ReactElement) {
   return <MainLayout>{page}</MainLayout>;
 };

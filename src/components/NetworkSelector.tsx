@@ -76,7 +76,7 @@ export default function NetworkSelector() {
   const handleNetworkSwitch = async (network: typeof availableNetworks[0]) => {
     try {
       // Check if we're currently on a vault detail page
-      const isOnVaultPage = router.pathname === '/portfolio-detail';
+      const isOnVaultPage = router.pathname === '/vault-detail';
 
       // Switch chain via wagmi first
       await switchChain?.({ chainId: network.marketData.chainId });
@@ -93,7 +93,7 @@ export default function NetworkSelector() {
       // If user manually switches network while on vault page, redirect to vaults list
       if (isOnVaultPage) {
         console.log('Manual network switch detected on vault page, redirecting to vaults list');
-        router.push(ROUTES.portfolios);
+        router.push(ROUTES.vaults);
       }
 
       handleClose();

@@ -46,13 +46,13 @@ module.exports = withBundleAnalyzer({
   async redirects() {
     return [
       {
-        source: '/vaults',
-        destination: '/portfolios',
+        source: '/portfolios',
+        destination: '/vaults',
         permanent: true,
       },
       {
-        source: '/vault-detail',
-        destination: '/portfolio-detail',
+        source: '/portfolio-detail',
+        destination: '/vault-detail',
         permanent: true,
       },
     ];

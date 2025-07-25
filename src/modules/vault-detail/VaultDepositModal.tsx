@@ -306,14 +306,14 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     <BasicModal open={isOpen} setOpen={setIsOpen}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Typography variant="h2">Deposit into the portfolio</Typography>
+          <Typography variant="h2">Deposit into the vault</Typography>
         </Box>
         {/* Risk Disclosure Section */}
         <Collapse in={!riskAccepted}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <Box sx={{ mb: 2, p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
-                I understand that depositing into this portfolio involves a risk of loss. The protocol provides only the underlying infrastructure. The portfolio&apos;s owner and curator are solely responsible for managing its strategy and allocations, and assume full responsibility for its performance.
+                I understand that depositing into this vault involves a risk of loss. The protocol provides only the underlying infrastructure. The vault&apos;s owner and curator are solely responsible for managing its strategy and allocations, and assume full responsibility for its performance.
               </Typography>
             </Box>
             <FormControlLabel

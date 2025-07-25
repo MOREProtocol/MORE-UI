@@ -72,7 +72,7 @@ const transformVaultsToGridRows = (
 
     return {
       id: vault.id,
-      portfolioName: vault.overview?.name || 'Unnamed Vault',
+      vaultName: vault.overview?.name || 'Unnamed Vault',
       curatorLogo: vault.overview?.curatorLogo,
       curatorName: vault.overview?.curatorName,
       myDeposit: userDepositFormatted,
@@ -185,7 +185,7 @@ export const VaultAssetsList = () => {
 
   const handleVaultClick = (row: VaultGridRow) => {
     setSelectedVaultId(row.id);
-    router.push(ROUTES.portfolioDetail(row.id));
+    router.push(ROUTES.vaultDetail(row.id));
   };
 
   // Column configurations
@@ -266,7 +266,7 @@ export const VaultAssetsList = () => {
                 textAlign: isMobile ? 'center' : 'left'
               }}
             >
-              My Portfolio
+              My Vaults
             </Typography>
             <Box
               sx={{
@@ -300,7 +300,7 @@ export const VaultAssetsList = () => {
                   textAlign: isMobile ? 'center' : 'left'
                 }}
               >
-                All Portfolios
+                All Vaults
               </Typography>
               <Box
                 sx={{
@@ -335,7 +335,7 @@ export const VaultAssetsList = () => {
               textAlign: isMobile ? 'center' : 'left'
             }}
           >
-            All Portfolios
+            All Vaults
           </Typography>
           <Box
             sx={{

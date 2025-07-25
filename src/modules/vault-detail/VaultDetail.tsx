@@ -164,7 +164,7 @@ export const VaultDetail = () => {
         borderRadius: 2,
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <SvgIcon sx={{ fontSize: '20px', cursor: 'pointer', color: 'primary.main', '&:hover': { color: 'primary.light' } }} onClick={() => router.push('/portfolios')}>
+          <SvgIcon sx={{ fontSize: '20px', cursor: 'pointer', color: 'primary.main', '&:hover': { color: 'primary.light' } }} onClick={() => router.push('/vaults')}>
             <ArrowBackRoundedIcon />
           </SvgIcon>
           {isLoading ? (
@@ -198,7 +198,7 @@ export const VaultDetail = () => {
             <Skeleton width={150} height={20} />
           ) : selectedVault?.overview?.roles?.owner && (
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
-              <Typography variant="secondary14" sx={{ py: 2, color: 'primary.main' }}>
+              <Typography variant="secondary14" sx={{ pb: 2, color: 'primary.main' }}>
                 Owner
               </Typography>
               <Address
@@ -216,7 +216,7 @@ export const VaultDetail = () => {
             <Skeleton width={150} height={20} />
           ) : selectedVault?.overview?.roles?.curator && (
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
-              <Typography variant="secondary14" sx={{ py: 2, color: 'primary.main' }}>
+              <Typography variant="secondary14" sx={{ pb: 2, color: 'primary.main' }}>
                 Strategist
               </Typography>
               <Address
@@ -234,7 +234,7 @@ export const VaultDetail = () => {
             <Skeleton width={150} height={20} />
           ) : selectedVault?.overview?.roles?.guardian && (
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
-              <Typography variant="secondary14" sx={{ py: 2, color: 'primary.main' }}>
+              <Typography variant="secondary14" sx={{ pb: 2, color: 'primary.main' }}>
                 Guardian
               </Typography>
               <Address
@@ -620,7 +620,7 @@ export const VaultDetail = () => {
             borderRadius: 2,
           }}>
             {isLoading ? (
-              <Skeleton variant="rectangular" width="100%" height={300} />
+              <Skeleton variant="rectangular" width="100%" height={250} />
             ) : currentChartData && currentChartData.length > 0 ? (
               <LightweightLineChart
                 height={250}

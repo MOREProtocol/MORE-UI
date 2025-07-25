@@ -76,7 +76,7 @@ export const VaultWhitelistModal: React.FC<VaultWhitelistModalProps> = ({
               sx={{ color: 'text.secondary', pl: 1 }}
             />
             <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
-              is not currently whitelisted for deposits into this portfolio. You may request access by validating this pop-up. To receive a notification when the curator approves your request, you can optionally include your Telegram handle or email address.
+              is not currently whitelisted for deposits into this vault. You may request access by validating this pop-up. To receive a notification when the curator approves your request, you can optionally include your Telegram handle or email address.
             </Typography>
           </Box>
         </Box>

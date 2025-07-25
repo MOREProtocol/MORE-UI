@@ -18,7 +18,7 @@ import { UsdChip } from 'src/components/primitives/UsdChip';
 import { PoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 
 // Cell Components
-export const PortfolioCell: React.FC<{ name: string }> = ({ name }) => {
+export const VaultCell: React.FC<{ name: string }> = ({ name }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -407,7 +407,7 @@ export const ManageActionCell: React.FC<{ onManage: () => void }> = ({ onManage 
 // Vault-specific row interface
 export interface VaultGridRow {
   id: string;
-  portfolioName: string;
+  vaultName: string;
   curatorLogo?: string;
   curatorName: string;
   myDeposit?: string;
@@ -426,10 +426,10 @@ export interface VaultGridRow {
 // Column Definitions
 export const getStandardVaultColumns = (isMobile = false): ColumnDefinition<VaultGridRow>[] => [
   {
-    key: 'portfolioName',
-    label: 'Portfolio Name',
+    key: 'vaultName',
+    label: 'Vault Name',
     sortable: true,
-    render: (row) => <PortfolioCell name={row.portfolioName} />,
+    render: (row) => <VaultCell name={row.vaultName} />,
     skeletonRender: () => (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Skeleton variant="text" width={120} height={20} />
@@ -497,10 +497,10 @@ export const getStandardVaultColumns = (isMobile = false): ColumnDefinition<Vaul
 
 export const getUserVaultColumns = (isMobile = false): ColumnDefinition<VaultGridRow>[] => [
   {
-    key: 'portfolioName',
-    label: 'Portfolio Name',
+    key: 'vaultName',
+    label: 'Vault Name',
     sortable: true,
-    render: (row) => <PortfolioCell name={row.portfolioName} />,
+    render: (row) => <VaultCell name={row.vaultName} />,
     skeletonRender: () => (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Skeleton variant="text" width={120} height={20} />

@@ -113,11 +113,9 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(function Link
 export const ROUTES = {
   dashboard: '/',
   markets: '/markets',
-  portfolios: '/portfolios',
-  portfolioDetail: (portfolioId: string, selectedTab?: string) =>
-    selectedTab
-      ? `/portfolio-detail?portfolioId=${portfolioId}&selectedTab=${selectedTab}`
-      : `/portfolio-detail?portfolioId=${portfolioId}`,
+  vaults: '/vaults',
+  vaultDetail: (vaultId: string) =>
+    `/vault-detail?vaultId=${vaultId}`,
   faucet: '/faucet',
   reserveOverview: (underlyingAsset: string, marketName: ExtendedMarket) =>
     `/reserve-overview/?underlyingAsset=${underlyingAsset}&marketName=${marketName}`,

@@ -24,7 +24,7 @@ const ContentContainer = ({ children }: ContentContainerProps) => {
   );
 };
 
-export default function PortfolioDetailPage() {
+export default function VaultDetailPage() {
   return (
     <ContentContainer>
       <VaultDetail />
@@ -32,6 +32,6 @@ export default function PortfolioDetailPage() {
   );
 }
 
-PortfolioDetailPage.getLayout = function getLayout(page: React.ReactElement) {
+VaultDetailPage.getLayout = function getLayout(page: React.ReactElement) {
   return <MainLayout>{page}</MainLayout>;
 };
