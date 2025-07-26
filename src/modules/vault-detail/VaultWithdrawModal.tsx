@@ -28,7 +28,8 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     getWithdrawalTimelock,
     convertToAssets,
     accountAddress,
-    chainId
+    chainId,
+    enhanceTransactionWithGas
   } = useVault();
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
   const refreshUserVaultData = userVaultData?.[0]?.refetch;
@@ -205,7 +206,8 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     try {
       if (txAction === 'request') {
         const { tx } = await requestWithdraw(parseUnits(amount, assetData.data.decimals).toString());
-        const response = await signer.sendTransaction(tx);
+        const enhancedTx = await enhanceTransactionWithGas(tx);
+        const response = await signer.sendTransaction(enhancedTx);
         const receipt = await response.wait();
 
         if (receipt && receipt.status === 1) {
@@ -267,7 +269,8 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
           : amount;
 
         const { tx } = await withdrawFromVault(parseUnits(amountToWithdraw, assetData.data.decimals).toString());
-        const response = await signer.sendTransaction(tx);
+        const enhancedTx = await enhanceTransactionWithGas(tx);
+        const response = await signer.sendTransaction(enhancedTx);
         const receipt = await response.wait();
 
         if (receipt && receipt.status === 1) {

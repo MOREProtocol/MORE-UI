@@ -20,7 +20,7 @@ interface VaultDepositModalProps {
 }
 
 export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, setIsOpen, whitelistAmount }) => {
-  const { signer, selectedVaultId, depositInVault, accountAddress } = useVault();
+  const { signer, selectedVaultId, depositInVault, accountAddress, enhanceTransactionWithGas } = useVault();
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
@@ -228,7 +228,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       }
 
       if (txAction === 'approve') {
-        const approveResponse = await signer.sendTransaction(transactionDataForCurrentAction);
+        const enhancedTx = await enhanceTransactionWithGas(transactionDataForCurrentAction);
+        const approveResponse = await signer.sendTransaction(enhancedTx);
         const approveReceipt = await approveResponse.wait();
 
         if (approveReceipt && approveReceipt.status === 1) {
@@ -239,7 +240,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
           setTxError('Approval transaction failed or was rejected.');
         }
       } else if (txAction === 'deposit') {
-        const depositResponse = await signer.sendTransaction(transactionDataForCurrentAction);
+        const enhancedTx = await enhanceTransactionWithGas(transactionDataForCurrentAction);
+        const depositResponse = await signer.sendTransaction(enhancedTx);
         const depositReceipt = await depositResponse.wait();
 
         if (depositReceipt && depositReceipt.status === 1) {

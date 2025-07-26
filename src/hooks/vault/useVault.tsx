@@ -151,6 +151,7 @@ export interface VaultContextData {
   convertToAssets: (shares: string) => Promise<string>;
   getDepositWhitelist: (depositorAddress?: string) => Promise<string>;
   isDepositWhitelistEnabled: () => Promise<boolean>;
+  enhanceTransactionWithGas: (tx: ethers.providers.TransactionRequest) => Promise<ethers.providers.TransactionRequest>;
   addTransaction: ({
     action,
     facet,
@@ -543,6 +544,40 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     [selectedVaultId, provider]
   );
 
+  const enhanceTransactionWithGas = useCallback(
+    async (tx: ethers.providers.TransactionRequest): Promise<ethers.providers.TransactionRequest> => {
+      if (!signer) {
+        throw new Error('No signer available');
+      }
+
+      try {
+        const [gasLimit, feeData] = await Promise.all([
+          signer.estimateGas(tx),
+          signer.getFeeData()
+        ]);
+
+        const enhancedTx = {
+          ...tx,
+          gasLimit: gasLimit.mul(115).div(100), // Add 15% buffer
+        };
+
+        // Add EIP-1559 fields if available
+        if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
+          enhancedTx.maxFeePerGas = feeData.maxFeePerGas;
+          enhancedTx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas;
+        } else if (feeData.gasPrice) {
+          enhancedTx.gasPrice = feeData.gasPrice;
+        }
+
+        return enhancedTx;
+      } catch (gasError) {
+        console.warn('Gas estimation failed, proceeding with original transaction:', gasError);
+        return tx; // Fallback to original transaction
+      }
+    },
+    [signer]
+  );
+
   const addTransaction = useCallback(
     ({
       action,
@@ -716,6 +751,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     convertToAssets,
     getDepositWhitelist,
     isDepositWhitelistEnabled,
+    enhanceTransactionWithGas,
     addTransaction,
     removeTransaction,
     clearTransactions,
