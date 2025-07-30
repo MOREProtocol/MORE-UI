@@ -64,6 +64,7 @@ export interface VaultData {
     fee?: string;
     creationTimestamp?: string;
     decimals?: number;
+    symbol?: string;
   };
   financials?: {
     fees?: {
@@ -149,6 +150,13 @@ export interface VaultContextData {
   }>;
   getWithdrawalTimelock: () => Promise<string>;
   convertToAssets: (shares: string) => Promise<string>;
+  maxRedeem: (ownerAddress?: string) => Promise<string>;
+  requestRedeem: (sharesInWei: string) => Promise<{
+    tx: ethers.providers.TransactionRequest;
+  }>;
+  redeemFromVault: (sharesInWei: string, accountAddress?: string) => Promise<{
+    tx: ethers.providers.TransactionRequest;
+  }>;
   getDepositWhitelist: (depositorAddress?: string) => Promise<string>;
   isDepositWhitelistEnabled: () => Promise<boolean>;
   enhanceTransactionWithGas: (tx: ethers.providers.TransactionRequest) => Promise<ethers.providers.TransactionRequest>;
@@ -485,6 +493,122 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     [selectedVaultId, provider]
   );
 
+  const maxRedeem = useCallback(
+    async (ownerAddress = accountAddress): Promise<string> => {
+      if (!selectedVaultId) {
+        throw new Error('No vault selected');
+      }
+      if (!provider) {
+        throw new Error('Provider not available');
+      }
+      if (!ownerAddress) {
+        throw new Error('No owner address provided');
+      }
+
+      const vaultContract = new ethers.Contract(
+        selectedVaultId,
+        [
+          `function maxRedeem(address owner) external view returns (uint256)`,
+        ],
+        provider
+      );
+
+      try {
+        const maxShares = await vaultContract.maxRedeem(ownerAddress);
+        return maxShares.toString();
+      } catch (error) {
+        console.error('Max redeem failed:', error);
+        throw error;
+      }
+    },
+    [selectedVaultId, provider, accountAddress]
+  );
+
+  const requestRedeem = useCallback(
+    async (sharesInWei: string): Promise<{
+      tx: ethers.providers.TransactionRequest;
+    }> => {
+      if (!selectedVaultId) {
+        throw new Error('No vault selected');
+      }
+      if (!signer) {
+        throw new Error('No signer available');
+      }
+
+      const vaultContract = new ethers.Contract(
+        selectedVaultId,
+        [
+          `function paused() external view returns (bool)`,
+          `function requestRedeem(uint256 _shares) external`,
+        ],
+        signer
+      );
+
+      // Check if vault is paused
+      const isPaused = await vaultContract.paused();
+      if (isPaused) {
+        throw new Error('Vault is paused');
+      }
+
+      try {
+        const tx = await vaultContract.populateTransaction.requestRedeem(sharesInWei);
+        return { tx };
+      } catch (error) {
+        console.error('Request redeem failed:', error);
+        throw error;
+      }
+    },
+    [selectedVaultId, signer]
+  );
+
+  const redeemFromVault = useCallback(
+    async (sharesInWei: string, localAccountAddress = accountAddress): Promise<{
+      tx: ethers.providers.TransactionRequest;
+    }> => {
+      if (!selectedVaultId) {
+        throw new Error('No vault selected');
+      }
+      if (!localAccountAddress) {
+        throw new Error('No account connected');
+      }
+      if (!signer) {
+        throw new Error('No signer available');
+      }
+
+      const vaultContract = new ethers.Contract(
+        selectedVaultId,
+        [
+          `function paused() external view returns (bool)`,
+          `function redeem(
+            uint256 shares,
+            address receiver,
+            address owner
+          ) external returns (uint256 assets)`,
+        ],
+        signer
+      );
+
+      // Check if vault is paused
+      const isPaused = await vaultContract.paused();
+      if (isPaused) {
+        throw new Error('Vault is paused');
+      }
+
+      try {
+        const tx = await vaultContract.populateTransaction.redeem(
+          sharesInWei,
+          localAccountAddress,
+          localAccountAddress
+        );
+        return { tx };
+      } catch (error) {
+        console.error('Redeem failed:', error);
+        throw error;
+      }
+    },
+    [selectedVaultId, signer, accountAddress]
+  );
+
   const getDepositWhitelist = useCallback(
     async (depositorAddress = accountAddress): Promise<string> => {
       if (!selectedVaultId) {
@@ -749,6 +873,9 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     getWithdrawalRequest,
     getWithdrawalTimelock,
     convertToAssets,
+    maxRedeem,
+    requestRedeem,
+    redeemFromVault,
     getDepositWhitelist,
     isDepositWhitelistEnabled,
     enhanceTransactionWithGas,

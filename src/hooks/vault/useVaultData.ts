@@ -1004,6 +1004,7 @@ export const useVaultData = <TResult = VaultData>(
           `function asset() external view override returns (address)`,
           `function name() external view override returns (string)`,
           `function decimals() external view returns (uint8)`,
+          `function symbol() external view returns (string)`,
           `function guardian() external view returns (address)`,
           `function curator() external view returns (address)`,
           `function owner() external view returns (address)`,
@@ -1029,6 +1030,7 @@ export const useVaultData = <TResult = VaultData>(
           vaultDiamondContract.asset().catch(() => undefined),
           vaultDiamondContract.name().catch(() => 'Unnamed Vault'),
           vaultDiamondContract.decimals().catch(() => 18),
+          vaultDiamondContract.symbol().catch(() => 'UNKNOWN'),
           vaultDiamondContract.guardian().catch(() => undefined),
           vaultDiamondContract.curator().catch(() => undefined),
           vaultDiamondContract.owner().catch(() => undefined),
@@ -1051,6 +1053,7 @@ export const useVaultData = <TResult = VaultData>(
         assetAddress,
         nameFromContract,
         decimals,
+        symbol,
         guardian,
         curator,
         owner,
@@ -1106,6 +1109,7 @@ export const useVaultData = <TResult = VaultData>(
           },
           sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
           decimals: decimals, // vault decimals
+          symbol,
           roles: {
             guardian,
             curator,

@@ -11,7 +11,7 @@ import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
 import { useDepositWhitelist } from 'src/hooks/vault/useDepositWhitelist';
 import { VaultWhitelistModal } from './VaultWhitelistModal';
 import { VaultDepositModal } from './VaultDepositModal';
-import { VaultWithdrawModal } from './VaultWithdrawModal';
+import { VaultRedeemModal } from './VaultRedeemModal';
 import { LightweightLineChart } from '../vaults/LightweightLineChart';
 import { MarketLogo } from 'src/components/MarketSwitcher';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
@@ -47,7 +47,7 @@ export const VaultDetail = () => {
 
   const [selectedTab, setSelectedTab] = useState<VaultTab>('allocations');
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
-  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [isWhitelistModalOpen, setIsWhitelistModalOpen] = useState(false);
   const [selectedChartDataKey, setSelectedChartDataKey] = useState<'apy' | 'totalSupply'>('apy');
 
@@ -255,14 +255,16 @@ export const VaultDetail = () => {
           flexDirection: downToMdLg ? 'column' : 'row',
           gap: 2,
         }}>
-          <Button variant="gradient" color="primary" onClick={handleDepositClick} disabled={isLoading}>
-            Deposit
-          </Button>
+          {!isLoading && !(vaultData?.data?.financials?.liquidity?.maxDeposit === '0') && (
+            <Button variant="gradient" color="primary" onClick={handleDepositClick} disabled={isLoading}>
+              Deposit
+            </Button>
+          )}
           {!isLoading && !isUserVaultDataLoading && (maxWithdraw && maxWithdraw.gt(0)) && accountAddress &&
             <Button
               variant="gradient"
               size="medium"
-              onClick={() => setIsWithdrawModalOpen(true)}
+              onClick={() => setIsRedeemModalOpen(true)}
               disabled={isLoading || isUserVaultDataLoading}
             >
               Withdraw
@@ -681,7 +683,10 @@ export const VaultDetail = () => {
         setIsOpen={setIsDepositModalOpen}
         whitelistAmount={whitelistAmount}
       />
-      <VaultWithdrawModal isOpen={isWithdrawModalOpen} setIsOpen={setIsWithdrawModalOpen} />
+      <VaultRedeemModal
+        isOpen={isRedeemModalOpen}
+        setIsOpen={setIsRedeemModalOpen}
+      />
       <VaultWhitelistModal isOpen={isWhitelistModalOpen} setIsOpen={setIsWhitelistModalOpen} />
     </Box>
   );

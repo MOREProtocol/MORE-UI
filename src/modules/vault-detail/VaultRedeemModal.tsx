@@ -12,21 +12,26 @@ import { roundToTokenDecimals } from 'src/utils/utils';
 import { ChainIds } from 'src/utils/const';
 import { useRootStore } from 'src/store/root';
 import { formatTimeRemaining } from 'src/helpers/timeHelper';
+import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 
-interface VaultWithdrawModalProps {
+interface VaultRedeemModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
 }
 
-export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, setIsOpen }) => {
+export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
+  isOpen,
+  setIsOpen,
+}) => {
   const {
     signer,
     selectedVaultId,
-    withdrawFromVault,
-    requestWithdraw,
+    redeemFromVault,
+    requestRedeem,
     getWithdrawalRequest,
     getWithdrawalTimelock,
     convertToAssets,
+    maxRedeem,
     accountAddress,
     chainId,
     enhanceTransactionWithGas
@@ -37,14 +42,6 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     state.currentNetworkConfig,
   ]);
 
-  // Calculate max amount to withdraw from user vault data
-  const maxAmountToWithdraw = userVaultData?.[0]?.data?.maxWithdraw
-    ? formatUnits(
-      userVaultData?.[0]?.data?.maxWithdraw?.toString(),
-      userVaultData?.[0]?.data?.assetDecimals
-    )
-    : new BigNumber(0);
-
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
 
@@ -52,6 +49,8 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
   const assetData = useAssetData(selectedVault?.overview?.asset?.address || '');
 
   const [amount, setAmount] = useState('');
+  const [maxAmountToRedeem, setMaxAmountToRedeem] = useState<BigNumber>(new BigNumber(0));
+  const [convertedAssets, setConvertedAssets] = useState<string>('0');
   const [isLoading, setIsLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txAction, setTxAction] = useState<string | null>(null);
@@ -59,7 +58,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     shares: string;
     timeLockEndsAt: string;
   } | null>(null);
-  const [withdrawalAssets, setWithdrawalAssets] = useState<string>('0');
+
   const [timelock, setTimelock] = useState<string>('0');
   const [currentTime, setCurrentTime] = useState<number>(Date.now() / 1000);
   const [txError, setTxError] = useState<string | null>(null);
@@ -71,10 +70,28 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
       setTxAction(null);
       setIsLoading(false);
       setWithdrawalRequest(null);
-      setWithdrawalAssets('0');
       setTxError(null);
+      setConvertedAssets('0');
     }
   }, [isOpen]);
+
+  // Load max redeem amount when modal opens
+  useEffect(() => {
+    const loadMaxRedeem = async () => {
+      if (isOpen && accountAddress && selectedVaultId) {
+        try {
+          const maxShares = await maxRedeem(accountAddress);
+          const maxSharesFormatted = formatUnits(maxShares, selectedVault?.overview?.decimals || 18);
+          setMaxAmountToRedeem(new BigNumber(maxSharesFormatted));
+        } catch (error) {
+          console.error('Error loading max redeem:', error);
+          setMaxAmountToRedeem(new BigNumber(0));
+        }
+      }
+    };
+
+    loadMaxRedeem();
+  }, [isOpen, accountAddress, selectedVaultId, maxRedeem, selectedVault?.overview?.decimals]);
 
   // Load withdrawal request data when modal opens
   useEffect(() => {
@@ -89,25 +106,40 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
           // Only set withdrawal request if shares > 0
           if (request.shares !== '0') {
             setWithdrawalRequest(request);
-            // Convert shares to assets
-            const assets = await convertToAssets(request.shares);
-            setWithdrawalAssets(assets);
           } else {
             setWithdrawalRequest(null);
-            setWithdrawalAssets('0');
           }
           setTimelock(timelockDuration);
         } catch (error) {
           console.error('Error loading withdrawal data:', error);
           // Reset withdrawal request if there's an error (likely no request exists)
           setWithdrawalRequest(null);
-          setWithdrawalAssets('0');
         }
       }
     };
 
     loadWithdrawalData();
   }, [isOpen, accountAddress, selectedVaultId, getWithdrawalRequest, getWithdrawalTimelock, convertToAssets]);
+
+  // Convert shares to assets when amount changes
+  useEffect(() => {
+    const convertShares = async () => {
+      if (amount && parseFloat(amount) > 0 && selectedVault?.overview?.decimals) {
+        try {
+          const sharesInWei = parseUnits(amount, selectedVault.overview.decimals);
+          const assets = await convertToAssets(sharesInWei.toString());
+          setConvertedAssets(assets);
+        } catch (error) {
+          console.error('Error converting shares to assets:', error);
+          setConvertedAssets('0');
+        }
+      } else {
+        setConvertedAssets('0');
+      }
+    };
+
+    convertShares();
+  }, [amount, selectedVault?.overview?.decimals, convertToAssets]);
 
   // Update current time every second
   useEffect(() => {
@@ -128,24 +160,19 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     }
   }, [withdrawalRequest, txHash, currentTime]);
 
-  const vaultShareCurrency = useMemo(
-    () => selectedVault?.overview?.asset?.symbol,
-    [selectedVault]
-  );
-
-  // Pre-fill amount when withdrawal request is loaded and asset data is available
+  // Pre-fill amount when withdrawal request is loaded
   useEffect(() => {
-    if (withdrawalRequest && assetData.data && withdrawalAssets !== '0') {
-      const formattedAmount = formatUnits(withdrawalAssets, assetData.data.decimals);
+    if (withdrawalRequest && selectedVault?.overview?.decimals) {
+      const formattedAmount = formatUnits(withdrawalRequest.shares, selectedVault.overview.decimals);
       setAmount(formattedAmount);
     }
-  }, [withdrawalRequest, assetData.data, withdrawalAssets]);
+  }, [withdrawalRequest, selectedVault?.overview?.decimals]);
 
   useEffect(() => {
-    if (withdrawalRequest && assetData.data) {
+    if (withdrawalRequest && selectedVault?.overview?.decimals) {
       const timeLockEndsAt = parseInt(withdrawalRequest.timeLockEndsAt);
       const canWithdraw = currentTime >= timeLockEndsAt;
-      const requestedAmount = formatUnits(withdrawalAssets, assetData.data.decimals);
+      const requestedAmount = formatUnits(withdrawalRequest.shares, selectedVault.overview.decimals);
 
       // Check if amount is effectively zero (handles '0', '0.0', '0.00', etc.)
       const isAmountZero = !amount || parseFloat(amount) === 0;
@@ -154,7 +181,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
       const hasAmountGreaterThanRequested = !isAmountZero && enteredAmount > requestedAmountNum;
 
       if (canWithdraw && (isAmountZero || enteredAmount <= requestedAmountNum)) {
-        setTxAction('withdraw');
+        setTxAction('redeem');
       } else if (hasAmountGreaterThanRequested) {
         // Allow new request if user entered a larger amount than requested
         setTxAction('request');
@@ -163,7 +190,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
           setTxHash(null);
         }
       } else if (canWithdraw) {
-        setTxAction('withdraw');
+        setTxAction('redeem');
       } else {
         setTxAction('waiting');
       }
@@ -172,9 +199,12 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     } else {
       setTxAction(null);
     }
-  }, [amount, withdrawalRequest, withdrawalAssets, currentTime, assetData.data]);
+  }, [amount, withdrawalRequest, currentTime, selectedVault?.overview?.decimals]);
 
-  const amountInUsd = new BigNumber(amount).multipliedBy(assetData.data?.price || 0);
+  // Calculate converted assets in USD
+  const convertedAssetsFormatted = assetData.data ?
+    formatUnits(convertedAssets, assetData.data.decimals) : '0';
+  const convertedAssetsInUsd = new BigNumber(convertedAssetsFormatted).multipliedBy(assetData.data?.price || 0);
 
   const handleChange = (value: string) => {
     // Clear any previous errors when user changes amount
@@ -183,9 +213,9 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     }
 
     if (value === '-1') {
-      setAmount(maxAmountToWithdraw.toString());
+      setAmount(maxAmountToRedeem.toString());
     } else {
-      const decimalTruncatedValue = roundToTokenDecimals(value, assetData.data?.decimals || 18);
+      const decimalTruncatedValue = roundToTokenDecimals(value, selectedVault?.overview?.decimals || 18);
       setAmount(decimalTruncatedValue);
     }
   };
@@ -199,7 +229,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
       return;
     }
 
-    if (!txAction || !assetData.data || !signer) {
+    if (!txAction || !selectedVault?.overview?.decimals || !signer) {
       return;
     }
 
@@ -207,7 +237,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     setTxError(null); // Clear any previous errors
     try {
       if (txAction === 'request') {
-        const { tx } = await requestWithdraw(parseUnits(amount, assetData.data.decimals).toString());
+        const { tx } = await requestRedeem(parseUnits(amount, selectedVault.overview.decimals).toString());
         const enhancedTx = await enhanceTransactionWithGas(tx);
         const response = await signer.sendTransaction(enhancedTx);
         const receipt = await response.wait();
@@ -222,18 +252,15 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
 
             if (request.shares !== '0') {
               setWithdrawalRequest(request);
-              // Convert shares to assets
-              const assets = await convertToAssets(request.shares);
-              setWithdrawalAssets(assets);
 
               // Check if timelock is zero or if we can withdraw immediately
               const timeLockEndsAt = parseInt(request.timeLockEndsAt);
               const currentTimestamp = Date.now() / 1000;
 
               if (parseInt(timelockDuration) === 0 || currentTimestamp >= timeLockEndsAt) {
-                // No timelock or timelock finished - don't show transaction link, go straight to withdraw
+                // No timelock or timelock finished - don't show transaction link, go straight to redeem
                 setTxHash(null);
-                setTxAction('withdraw');
+                setTxAction('redeem');
               } else {
                 // Show transaction link and set waiting state
                 setTxHash(receipt.transactionHash);
@@ -241,7 +268,6 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
               }
             } else {
               setWithdrawalRequest(null);
-              setWithdrawalAssets('0');
               setTxHash(receipt.transactionHash);
               setTxAction(null);
             }
@@ -261,16 +287,16 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
             }
           }
         } else {
-          console.error('Request withdrawal transaction failed or was rejected.');
-          setTxError('Request withdrawal transaction failed or was rejected.');
+          console.error('Request redeem transaction failed or was rejected.');
+          setTxError('Request redeem transaction failed or was rejected.');
         }
-      } else if (txAction === 'withdraw') {
-        // For withdraw, use the converted assets amount
-        const amountToWithdraw = withdrawalRequest
-          ? formatUnits(withdrawalAssets, assetData.data.decimals)
-          : amount;
+      } else if (txAction === 'redeem') {
+        // For redeem, use the shares amount from withdrawal request or input amount
+        const sharesToRedeem = withdrawalRequest
+          ? withdrawalRequest.shares
+          : parseUnits(amount, selectedVault.overview.decimals).toString();
 
-        const { tx } = await withdrawFromVault(parseUnits(amountToWithdraw, assetData.data.decimals).toString());
+        const { tx } = await redeemFromVault(sharesToRedeem);
         const enhancedTx = await enhanceTransactionWithGas(tx);
         const response = await signer.sendTransaction(enhancedTx);
         const receipt = await response.wait();
@@ -278,20 +304,19 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
         if (receipt && receipt.status === 1) {
           setTxHash(receipt.transactionHash);
           setTxAction(null);
-          setWithdrawalRequest(null); // Clear the withdrawal request after successful withdrawal
-          setWithdrawalAssets('0'); // Clear the assets amount
+          setWithdrawalRequest(null); // Clear the withdrawal request after successful redemption
 
-          // Refresh user vault data after successful withdrawal
+          // Refresh user vault data after successful redemption
           if (refreshUserVaultData) {
             refreshUserVaultData();
           }
         } else {
-          console.error('Withdrawal transaction failed or was rejected.');
-          setTxError('Withdrawal transaction failed or was rejected.');
+          console.error('Redeem transaction failed or was rejected.');
+          setTxError('Redeem transaction failed or was rejected.');
         }
       }
     } catch (error) {
-      console.error('Error during withdrawal process:', error);
+      console.error('Error during redeem process:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during the transaction.';
       setTxError(errorMessage);
     } finally {
@@ -303,18 +328,19 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     if (isLoading) {
       if (txAction === 'request') {
         return 'Requesting withdrawal...';
-      } else if (txAction === 'withdraw') {
+      } else if (txAction === 'redeem') {
         return 'Withdrawing...';
       }
     }
-    if (!assetData.data) {
+    if (!selectedVault?.overview?.decimals) {
       return 'Loading...';
     }
 
     if (withdrawalRequest) {
       const timeLockEndsAt = parseInt(withdrawalRequest.timeLockEndsAt);
       const canWithdraw = currentTime >= timeLockEndsAt;
-      const requestedAmount = assetData.data ? formatUnits(withdrawalAssets, assetData.data.decimals) : '0';
+      const requestedAmount = selectedVault?.overview?.decimals ?
+        formatUnits(withdrawalRequest.shares, selectedVault.overview.decimals) : '0';
       const enteredAmount = parseFloat(amount || '0');
       const requestedAmountNum = parseFloat(requestedAmount);
       const hasAmountGreaterThanRequested = enteredAmount > requestedAmountNum;
@@ -350,7 +376,7 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
     }
 
     return 'Enter an amount';
-  }, [amount, assetData.data, txHash, isLoading, txAction, withdrawalRequest, withdrawalAssets, currentTime, currentNetworkConfig?.explorerName]);
+  }, [amount, selectedVault?.overview?.decimals, txHash, isLoading, txAction, withdrawalRequest, currentTime, currentNetworkConfig?.explorerName]);
 
   return (
     <BasicModal open={isOpen} setOpen={setIsOpen}>
@@ -374,13 +400,46 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
             </Box>
           )}
         </Box>
+
+        {/* Blue banner with link to old withdraw modal */}
+        {/* <Alert
+          severity="info"
+          sx={{
+            alignItems: 'center',
+            '& .MuiAlert-message': {
+              width: '100%'
+            }
+          }}
+        >
+          <Typography variant="main14">
+            Looking for asset-based{' '}
+            <Link
+              component="button"
+              variant="main14"
+              onClick={() => {
+                setIsOpen(false);
+                onOpenWithdrawModal?.();
+              }}
+              sx={{
+                textDecoration: 'underline',
+                pb: 0.5,
+                cursor: 'pointer',
+                '&:hover': {
+                  color: 'primary.dark',
+                },
+              }}
+            >
+              withdrawal
+            </Link>
+            ?
+          </Typography>
+        </Alert> */}
+
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            // borderBottom: 1,
-            pb: 3,
             borderColor: 'divider',
           }}
         >
@@ -394,24 +453,22 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
             />
             <Box>
               <Typography variant="main16">{selectedVault?.overview?.name}</Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <TokenIcon symbol={vaultShareCurrency || ''} sx={{ fontSize: '16px' }} />
-                <Typography variant="secondary12">{vaultShareCurrency}</Typography>
-              </Box>
             </Box>
           </Box>
         </Box>
+
         {withdrawalRequest && (
           <Box sx={{ mb: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
             <Typography variant="subheader1" sx={{ mb: 1 }}>
               Current Withdrawal Request
             </Typography>
             <Typography variant="secondary14" sx={{ mb: 1 }}>
-              Requested amount: {formatUnits(withdrawalAssets, assetData.data?.decimals || 18)} {vaultShareCurrency}
+              Requested shares: {selectedVault?.overview?.decimals ?
+                formatUnits(withdrawalRequest.shares, selectedVault.overview.decimals) : '0'} {selectedVault?.overview?.symbol}
             </Typography>
             <Typography variant="secondary14">
               {currentTime >= parseInt(withdrawalRequest.timeLockEndsAt)
-                ? 'Timelock completed - you can now withdraw'
+                ? 'Timelock completed - you can now redeem'
                 : `Timelock ends in ${formatTimeRemaining(parseInt(withdrawalRequest.timeLockEndsAt) - currentTime)} (${new Date(parseInt(withdrawalRequest.timeLockEndsAt) * 1000).toLocaleString()})`
               }
             </Typography>
@@ -421,25 +478,48 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
         <AssetInput
           value={amount}
           onChange={handleChange}
-          usdValue={amountInUsd.toString(10)}
-          symbol={vaultShareCurrency || ''}
+          usdValue={convertedAssetsInUsd.toString(10)}
+          symbol={selectedVault?.overview?.symbol}
           assets={[
             {
-              balance: maxAmountToWithdraw?.toString(),
-              symbol: assetData.data?.symbol,
-              iconSymbol: assetData.data?.symbol,
+              balance: maxAmountToRedeem?.toString(),
+              symbol: selectedVault?.overview?.symbol,
+              iconSymbol: selectedVault?.overview?.curatorLogo?.split('/').pop()?.replace(/\.[^/.]+$/, ''),
             },
           ]}
-          isMaxSelected={amount === maxAmountToWithdraw?.toString()}
-          maxValue={maxAmountToWithdraw?.toString()}
-          balanceText={withdrawalRequest ? 'Request new withdrawal amount' : 'Available to withdraw'}
+          isMaxSelected={amount === maxAmountToRedeem?.toString()}
+          maxValue={maxAmountToRedeem?.toString()}
+          balanceText={withdrawalRequest ? 'Request new redemption amount' : 'Available to redeem'}
         />
+
+        {/* Show asset conversion */}
+        {amount && parseFloat(amount) > 0 && assetData.data && (
+          <Box sx={{ p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="secondary14" sx={{ color: 'text.secondary', mb: 1 }}>
+              <strong>You will receive approximately:</strong>
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <TokenIcon symbol={selectedVault?.overview?.asset?.symbol || ''} sx={{ fontSize: '16px' }} />
+              <FormattedNumber
+                value={convertedAssetsFormatted}
+                symbol={assetData.data.symbol}
+                variant="main16"
+                compact
+              />
+              <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
+                (${convertedAssetsInUsd.toFixed(2)})
+              </Typography>
+            </Box>
+          </Box>
+        )}
 
         <Box sx={{ mb: 2, p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
-            <strong>Withdrawal process:</strong> First request a withdrawal, then wait for the timelock period to complete before you can withdraw your funds.
-            {withdrawalRequest && (
-              <span> You can request a new withdrawal amount which will replace your current request and reset the timelock.</span>
+            <strong>Withdrawal process:</strong>
+            {withdrawalRequest ? (
+              <span> The value of your shares in the base asset may have changed since you requested your withdrawal. This difference is due to vault rebalancing that occurs during the timelock period.</span>
+            ) : (
+              <span> To protect other depositors, withdrawals are timelocked. The vault may reallocate assets during this period and may impact the value of your redemption.</span>
             )}
           </Typography>
 
@@ -492,4 +572,4 @@ export const VaultWithdrawModal: React.FC<VaultWithdrawModalProps> = ({ isOpen, 
       </Box>
     </BasicModal>
   );
-};
+}; 
