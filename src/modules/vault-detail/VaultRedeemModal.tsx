@@ -222,7 +222,7 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
 
   const handleClick = async () => {
     // Only open transaction link when specifically in waiting state or when showing transaction link
-    if (txHash && (txAction === 'waiting' || (!withdrawalRequest && txAction === null))) {
+    if (txHash && (txAction === 'waiting' || !withdrawalRequest)) {
       const explorerLink = currentNetworkConfig?.explorerLinkBuilder?.({ tx: txHash })
         || `${networkConfigs[chainId].explorerLink}/tx/${txHash}`;
       window.open(explorerLink, '_blank');
