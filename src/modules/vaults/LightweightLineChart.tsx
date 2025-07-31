@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { Typography, Box } from '@mui/material';
 import { compactNumber } from 'src/components/primitives/FormattedNumber';
 
+
 interface ChartDataPoint {
   time: Time;
   value: number;
@@ -85,15 +86,52 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
     const priceFormatter = (price: number): string => {
       if (!yAxisFormat) return price.toString();
 
-      const formattedNumber = price.toFixed(0);
-      const { prefix, postfix } = compactNumber({ value: price, visibleDecimals: 1, roundDown: true });
-
       if (yAxisFormat === '%') {
-        return `${formattedNumber}%`;
-      } else if (yAxisFormat === 'USD' || yAxisFormat === '$') {
-        return `$${prefix}${postfix}`;
+        // Special handling for percentages
+        if (price === 0) {
+          return '0%';
+        } else if (Math.abs(price) >= 100) {
+          // For values like 200.0%, show as 200%
+          return `${Math.round(price)}%`;
+        } else if (Math.abs(price) >= 10) {
+          // For values like 12.3%, show 1 decimal
+          return `${price.toFixed(1).replace(/\.0$/, '')}%`;
+        } else {
+          // For values like 1.23%, show 2 decimals but remove trailing zeros
+          return `${price.toFixed(2).replace(/\.?0+$/, '')}%`;
+        }
+      }
+
+      // For non-percentage values
+      if (Math.abs(price) >= 1000) {
+        // Use compact notation for large numbers (1K, 1M, etc.)
+        const { prefix, postfix } = compactNumber({ value: price, visibleDecimals: 1, roundDown: true });
+        if (yAxisFormat === 'USD' || yAxisFormat === '$') {
+          return `$${prefix}${postfix}`;
+        } else {
+          return `${prefix}${postfix} ${yAxisFormat}`;
+        }
       } else {
-        return `${prefix}${postfix} ${yAxisFormat}`;
+        // Use clean decimal formatting for smaller numbers
+        let decimals = 0;
+        if (Math.abs(price) < 1) {
+          decimals = 4; // For values like 0.0123
+        } else if (Math.abs(price) < 10) {
+          decimals = 2; // For values like 1.01
+        } else if (Math.abs(price) < 100) {
+          decimals = 2; // For values like 12.34
+        } else {
+          decimals = 1; // For values like 123.4
+        }
+
+        // Format with appropriate decimals and remove trailing zeros
+        const formattedNumber = price.toFixed(decimals).replace(/\.?0+$/, '');
+
+        if (yAxisFormat === 'USD' || yAxisFormat === '$') {
+          return `$${formattedNumber}`;
+        } else {
+          return `${formattedNumber} ${yAxisFormat}`;
+        }
       }
     };
 

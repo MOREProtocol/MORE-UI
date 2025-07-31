@@ -109,6 +109,7 @@ const GET_VAULT_HISTORICAL_SNAPSHOTS_QUERY = `
     ) {
       timestamp
       totalSupply
+      sharePrice
       apy
     }
   }
@@ -118,6 +119,7 @@ interface HistoricalSnapshotEntry {
   timestamp: string;
   apy: string;
   totalSupply: string;
+  sharePrice: string;
 }
 
 interface HistoricalSnapshotsQueryResponse {
@@ -150,7 +152,7 @@ export const fetchVaultHistoricalSnapshots = async (
  */
 export const formatSnapshotsForChart = (
   snapshots: HistoricalSnapshotEntry[] | null,
-  dataKey: 'apy' | 'totalSupply'
+  dataKey: 'apy' | 'totalSupply' | 'sharePrice'
 ): Array<{ time: string; value: number }> => {
   if (!snapshots) {
     return [];

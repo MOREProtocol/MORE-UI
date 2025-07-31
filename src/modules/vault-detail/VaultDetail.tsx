@@ -49,7 +49,7 @@ export const VaultDetail = () => {
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [isWhitelistModalOpen, setIsWhitelistModalOpen] = useState(false);
-  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'apy' | 'totalSupply'>('apy');
+  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'apy' | 'totalSupply' | 'sharePrice'>('apy');
 
   // Get whitelist data from smart contract
   const { isWhitelisted, whitelistAmount, isWhitelistEnabled } = useDepositWhitelist();
@@ -103,6 +103,10 @@ export const VaultDetail = () => {
     totalSupply: {
       label: 'Total Supply',
       data: selectedVault?.overview?.historicalSnapshots?.totalSupply || [],
+    },
+    sharePrice: {
+      label: 'Share Price',
+      data: selectedVault?.overview?.historicalSnapshots?.sharePrice || [],
     },
   };
 
@@ -596,13 +600,22 @@ export const VaultDetail = () => {
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
               <Typography variant="secondary14" color="text.secondary">Share Price</Typography>
               <Box
+                onClick={() => setSelectedChartDataKey('sharePrice')}
                 sx={{
+                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   flexDirection: 'row',
                   gap: 1,
-                  padding: '2.5px 0px',
+                  border: isLoading ? 'none' : selectedChartDataKey === 'sharePrice' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
+                  borderRadius: '6px',
+                  padding: '2px 6px',
                   width: 'fit-content',
+                  backgroundColor: selectedChartDataKey === 'sharePrice' ? 'background.paper' : 'background.surface',
+                  '&:hover': {
+                    backgroundColor: theme.palette.background.paper,
+                    border: `1.5px solid ${theme.palette.text.muted}`,
+                  },
                 }}>
                 {isLoading ? <Skeleton width={60} height={24} /> : <>
                   <FormattedNumber
@@ -611,6 +624,13 @@ export const VaultDetail = () => {
                     variant="main16"
                     sx={{ fontWeight: 800 }}
                   />
+                  <SvgIcon sx={{
+                    fontSize: '20px',
+                    color: selectedChartDataKey === 'sharePrice' ? "#FF9900" : theme.palette.text.muted,
+                  }}
+                  >
+                    <ShowChartIcon />
+                  </SvgIcon>
                 </>
                 }
               </Box>

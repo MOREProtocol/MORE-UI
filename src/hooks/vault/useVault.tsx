@@ -59,6 +59,7 @@ export interface VaultData {
     historicalSnapshots?: {
       apy: { time: string; value: number }[];
       totalSupply: { time: string; value: number }[];
+      sharePrice: { time: string; value: number }[];
     };
     withdrawalTimelock?: string;
     fee?: string;

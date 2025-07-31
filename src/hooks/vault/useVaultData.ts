@@ -1119,6 +1119,7 @@ export const useVaultData = <TResult = VaultData>(
           historicalSnapshots: {
             apy: formatSnapshotsForChart(historicalSnapshots, 'apy'),
             totalSupply: formatSnapshotsForChart(historicalSnapshots, 'totalSupply'),
+            sharePrice: formatSnapshotsForChart(historicalSnapshots, 'sharePrice'),
           },
           withdrawalTimelock: withdrawalTimelock.toString(),
           fee: fee.toString(),
