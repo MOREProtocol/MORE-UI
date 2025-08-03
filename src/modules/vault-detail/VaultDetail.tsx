@@ -49,7 +49,7 @@ export const VaultDetail = () => {
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [isWhitelistModalOpen, setIsWhitelistModalOpen] = useState(false);
-  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'apy' | 'totalSupply' | 'sharePrice'>('apy');
+  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'sharePrice' | 'apy' | 'totalSupply'>('sharePrice');
 
   // Get whitelist data from smart contract
   const { isWhitelisted, whitelistAmount, isWhitelistEnabled } = useDepositWhitelist();
@@ -110,7 +110,7 @@ export const VaultDetail = () => {
     },
   };
 
-  const currentChartLabel = chartDataOptions[selectedChartDataKey]?.label || 'Share price';
+  const currentChartLabel = chartDataOptions[selectedChartDataKey]?.label || '';
   const currentChartData = chartDataOptions[selectedChartDataKey]?.data;
 
   const handleDepositClick = () => {
@@ -512,6 +512,44 @@ export const VaultDetail = () => {
             p: { xs: 4, md: 6 },
           }}>
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
+              <Typography variant="secondary14" color="text.secondary">Share Price</Typography>
+              <Box
+                onClick={() => setSelectedChartDataKey('sharePrice')}
+                sx={{
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  gap: 1,
+                  border: isLoading ? 'none' : selectedChartDataKey === 'sharePrice' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
+                  borderRadius: '6px',
+                  padding: '2px 6px',
+                  width: 'fit-content',
+                  backgroundColor: selectedChartDataKey === 'sharePrice' ? 'background.paper' : 'background.surface',
+                  '&:hover': {
+                    backgroundColor: theme.palette.background.paper,
+                    border: `1.5px solid ${theme.palette.text.muted}`,
+                  },
+                }}>
+                {isLoading ? <Skeleton width={60} height={24} /> : <>
+                  <FormattedNumber
+                    value={vaultData.data.overview.sharePrice.toString() || '0'}
+                    symbol={vaultData?.data?.overview?.asset?.symbol || ''}
+                    variant="main16"
+                    sx={{ fontWeight: 800 }}
+                  />
+                  <SvgIcon sx={{
+                    fontSize: '20px',
+                    color: selectedChartDataKey === 'sharePrice' ? "#FF9900" : theme.palette.text.muted,
+                  }}
+                  >
+                    <ShowChartIcon />
+                  </SvgIcon>
+                </>
+                }
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
               <Typography variant="secondary14" color="text.secondary">Annualized APY</Typography>
               <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'row', gap: 1 }}>
                 <Box
@@ -589,44 +627,6 @@ export const VaultDetail = () => {
                   <SvgIcon sx={{
                     fontSize: '20px',
                     color: selectedChartDataKey === 'totalSupply' ? "#FF9900" : theme.palette.text.muted,
-                  }}
-                  >
-                    <ShowChartIcon />
-                  </SvgIcon>
-                </>
-                }
-              </Box>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
-              <Typography variant="secondary14" color="text.secondary">Share Price</Typography>
-              <Box
-                onClick={() => setSelectedChartDataKey('sharePrice')}
-                sx={{
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  flexDirection: 'row',
-                  gap: 1,
-                  border: isLoading ? 'none' : selectedChartDataKey === 'sharePrice' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
-                  borderRadius: '6px',
-                  padding: '2px 6px',
-                  width: 'fit-content',
-                  backgroundColor: selectedChartDataKey === 'sharePrice' ? 'background.paper' : 'background.surface',
-                  '&:hover': {
-                    backgroundColor: theme.palette.background.paper,
-                    border: `1.5px solid ${theme.palette.text.muted}`,
-                  },
-                }}>
-                {isLoading ? <Skeleton width={60} height={24} /> : <>
-                  <FormattedNumber
-                    value={vaultData.data.overview.sharePrice.toString() || '0'}
-                    symbol={vaultData?.data?.overview?.asset?.symbol || ''}
-                    variant="main16"
-                    sx={{ fontWeight: 800 }}
-                  />
-                  <SvgIcon sx={{
-                    fontSize: '20px',
-                    color: selectedChartDataKey === 'sharePrice' ? "#FF9900" : theme.palette.text.muted,
                   }}
                   >
                     <ShowChartIcon />

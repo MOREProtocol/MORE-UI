@@ -242,8 +242,20 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
       // Reset and fit content to show all data
       if (chartRef.current) {
         setTimeout(() => {
+          // Reset both time scale (X-axis) and price scale (Y-axis)
           chartRef.current?.timeScale().resetTimeScale();
           chartRef.current?.timeScale().fitContent();
+
+          // Reset price scale to auto-scale and fit all data
+          chartRef.current?.priceScale('right').applyOptions({
+            autoScale: true,
+          });
+
+          // Force a complete reset by setting visible range to show all data
+          chartRef.current?.timeScale().setVisibleLogicalRange({
+            from: 0,
+            to: sortedData.length - 1,
+          });
         }, 10);
       }
     } else if (seriesRef.current) {
