@@ -446,10 +446,15 @@ const getVaultIncentives = (incentives: IncentiveItem[], vaultId: string): Incen
 };
 
 // Helper function to detect which network a vault exists on
-const detectVaultNetwork = async (vaultId: string): Promise<number | null> => {
+const detectVaultNetwork = async (vaultId: string, currentChainId?: number): Promise<number | null> => {
   const supportedChainIds = Object.keys(vaultsConfig).map(Number);
 
-  for (const chainId of supportedChainIds) {
+  // Prioritize current wallet network if provided
+  const orderedChainIds = currentChainId && supportedChainIds.includes(currentChainId)
+    ? [currentChainId, ...supportedChainIds.filter(id => id !== currentChainId)]
+    : supportedChainIds;
+
+  for (const chainId of orderedChainIds) {
     try {
       const networkConfig = networkConfigs[chainId];
       if (!networkConfig) continue;
@@ -982,7 +987,8 @@ export const useVaultData = <TResult = VaultData>(
       }
 
       // First, detect which network the vault actually exists on
-      const vaultActualChainId = await detectVaultNetwork(vaultId);
+      // Pass current chainId to prioritize current wallet network
+      const vaultActualChainId = await detectVaultNetwork(vaultId, chainId);
       if (!vaultActualChainId) {
         throw new Error(`Vault ${vaultId} not found on any supported network`);
       }
