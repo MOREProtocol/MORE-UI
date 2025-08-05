@@ -5,7 +5,7 @@ export const VariableAPYTooltip = ({ ...rest }: TextWithTooltipProps) => {
     <TextWithTooltip {...rest}>
       <>
         {
-          'Variable interest rate will <b>fluctuate</b> based on the market conditions. Recommended for short-term positions.'
+          'Variable interest rate will fluctuate based on the market conditions. Recommended for short-term positions.'
         }
       </>
     </TextWithTooltip>
