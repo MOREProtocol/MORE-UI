@@ -476,7 +476,7 @@ export const VaultDetail = () => {
                 Fee
               </Typography>
               {isLoading ? <Skeleton width={60} height={24} /> : <FormattedNumber
-                value={vaultData?.data?.overview?.fee || '0'}
+                value={Number(vaultData?.data?.overview?.fee || '0') / 10000}
                 percent
                 variant="main16"
               />}
