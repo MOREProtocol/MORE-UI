@@ -486,7 +486,6 @@ export const VaultAssetsList = () => {
                       borderRadius: '6px',
                       padding: '2px 6px',
                       width: 'fit-content',
-                      backgroundColor: 'rgba(255, 255, 255, 0.5)',
                       backdropFilter: 'blur(2px)',
                       '&:hover': {
                         backgroundColor: theme.palette.background.surface,
@@ -526,7 +525,6 @@ export const VaultAssetsList = () => {
                         borderRadius: '6px',
                         padding: '2px 6px',
                         width: 'fit-content',
-                        backgroundColor: 'rgba(255, 255, 255, 0.5)',
                         backdropFilter: 'blur(2px)',
                         '&:hover': {
                           backgroundColor: theme.palette.background.surface,

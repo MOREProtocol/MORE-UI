@@ -866,7 +866,7 @@ export const VaultDetail = () => {
             },
           }}
         >
-          {hasNotes && <Tab label="Notes" value="notes" />}
+          {hasNotes && <Tab label="Vault Info" value="notes" />}
           <Tab label="Allocations" value="allocations" />
           <Tab label="Activity" value="activity" />
           {canManageVault && <Tab label="Manage" value="manage" />}
