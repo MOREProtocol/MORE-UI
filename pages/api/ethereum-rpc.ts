@@ -4,7 +4,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_REQUESTS = 100;
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute in milliseconds
-const ALLOWED_ORIGINS = ['http://localhost:3000', 'https://localhost:3000', 'https://app.more.markets'];
+const ALLOWED_ORIGINS = ['http://localhost:3000', 'https://localhost:3000', 'https://app.more.markets', 'https://testnet.more.markets'];
 
 function getRateLimitKey(req: NextApiRequest): string {
   // Get IP address, handling proxies
