@@ -3,7 +3,7 @@ import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import InfoIcon from '@mui/icons-material/InfoOutlined';
 import { useVault, VaultTab } from 'src/hooks/vault/useVault';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useUserVaultsData, useVaultData, useAssetData, useUserVaultBalances, useUserPortfolioMetrics } from 'src/hooks/vault/useVaultData';
 import { CompactMode } from 'src/components/CompactableTypography';
 import { Address } from 'src/components/Address';
@@ -148,11 +148,11 @@ export const VaultDetail = () => {
     setSelectedTab(newValue as VaultTab);
   };
 
-  // useEffect(() => {
-  //   if (hasNotes && selectedTab !== 'notes') {
-  //     setSelectedTab('notes');
-  //   }
-  // }, [hasNotes]);
+  useEffect(() => {
+    if (hasNotes && selectedTab !== 'notes') {
+      setSelectedTab('notes');
+    }
+  }, [hasNotes]);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5, pt: 7, pb: 7, px: xPadding }}>
