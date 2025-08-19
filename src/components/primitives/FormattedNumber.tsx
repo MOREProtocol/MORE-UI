@@ -1,5 +1,6 @@
 import { normalizeBN, valueToBigNumber } from '@aave/math-utils';
 import { Typography } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { Variant } from '@mui/material/styles/createTypography';
 import type {
   TypographyProps,
@@ -90,6 +91,7 @@ export function FormattedNumber({
   compactThreshold,
   ...rest
 }: FormattedNumberProps) {
+  const theme = useTheme();
   const number = percent || coloredPercent ? Number(value) * 100 : Number(value);
 
   let decimals: number = visibleDecimals ?? 0;
@@ -107,7 +109,11 @@ export function FormattedNumber({
   const isSmallerThanMin = number !== 0 && Math.abs(number) < Math.abs(minValue);
   let formattedNumber = isSmallerThanMin ? minValue : number;
   const forceCompact = compact !== false && (compact || number > 99_999);
-  const percentColor = coloredPercent ? (number > 0 ? '#10b981' : '#ef4444') : undefined;
+  const percentColor = coloredPercent
+    ? number > 0
+      ? theme.palette.success.main
+      : theme.palette.error.main
+    : undefined;
 
   // rounding occurs inside of CompactNumber as the prefix, not base number is rounded
   if (roundDown && !forceCompact) {

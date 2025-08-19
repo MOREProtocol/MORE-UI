@@ -46,6 +46,7 @@ export interface VaultData {
   overview: {
     name?: string;
     description?: string;
+    descriptionMarkdown?: string;
     curatorLogo?: string;
     curatorName?: string;
     asset?: {
@@ -56,10 +57,14 @@ export interface VaultData {
     sharePrice?: number;
     roles?: VaultRoles;
     apy?: number;
+    apy1Day?: number;
+    apy7Days?: number;
+    apy30Days?: number;
     historicalSnapshots?: {
-      apy: { time: string; value: number }[];
+      apyWeeklyReturnTrailing: { time: string; value: number }[];
       totalSupply: { time: string; value: number }[];
       sharePrice: { time: string; value: number }[];
+      totalAssets: { time: string; value: number }[];
     };
     withdrawalTimelock?: string;
     fee?: string;
@@ -108,7 +113,7 @@ export interface VaultData {
 }
 
 // Define the tabs for your vault page
-export type VaultTab = 'overview' | 'financials' | 'allocations' | 'activity' | 'manage';
+export type VaultTab = 'notes' | 'allocations' | 'activity' | 'manage';
 
 interface VaultBatchTransaction {
   id: string;
@@ -304,7 +309,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
       if (allowance.lt(amountInWei)) {
         const approveTx = await tokenContract.populateTransaction.approve(
           selectedVaultId,
-          ethers.constants.MaxUint256
+          amountInWei
         );
         return { tx: approveTx, action: 'approve' };
       }

@@ -4,7 +4,7 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import InfoIcon from '@mui/icons-material/InfoOutlined';
 import { useVault, VaultTab } from 'src/hooks/vault/useVault';
 import { useMemo, useState } from 'react';
-import { useUserVaultsData, useVaultData, useAssetData } from 'src/hooks/vault/useVaultData';
+import { useUserVaultsData, useVaultData, useAssetData, useUserVaultBalances, useUserPortfolioMetrics } from 'src/hooks/vault/useVaultData';
 import { CompactMode } from 'src/components/CompactableTypography';
 import { Address } from 'src/components/Address';
 import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
@@ -12,20 +12,22 @@ import { useDepositWhitelist } from 'src/hooks/vault/useDepositWhitelist';
 import { VaultWhitelistModal } from './VaultWhitelistModal';
 import { VaultDepositModal } from './VaultDepositModal';
 import { VaultRedeemModal } from './VaultRedeemModal';
-import { LightweightLineChart } from '../vaults/LightweightLineChart';
+import { LineChart } from '../charts/LineChart';
 import { MarketLogo } from 'src/components/MarketSwitcher';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { UsdChip } from 'src/components/primitives/UsdChip';
 import { formatUnits } from 'viem';
-import { formattedTime, formatTimeRemaining, timeText } from 'src/helpers/timeHelper';
+import { formatTimeRemaining } from 'src/helpers/timeHelper';
 import { useRouter } from 'next/router';
 import BigNumber from 'bignumber.js';
 import { VaultActivity } from './VaultActivity';
 import { VaultAllocations } from './VaultAllocations';
 import { VaultManagement } from './VaultManagement/VaultManagement';
+import { VaultNotes } from './VaultNotes';
 import { RewardsButton } from 'src/components/incentives/IncentivesButton';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { ChainIds } from 'src/utils/const';
 
@@ -38,6 +40,7 @@ export const VaultDetail = () => {
 
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId], { enabled: !!selectedVaultId && !!accountAddress });
   const vaultData = useVaultData(selectedVaultId);
+  const userVaultBalances = useUserVaultBalances(accountAddress, { enabled: !!accountAddress });
   const theme = useTheme();
   const downToMd = useMediaQuery(theme.breakpoints.down('md'));
   const downToMdLg = useMediaQuery(theme.breakpoints.down('mdlg'));
@@ -45,16 +48,16 @@ export const VaultDetail = () => {
 
   const baseUrl = useMemo(() => chainId && networkConfigs[chainId] && networkConfigs[chainId].explorerLink, [chainId]);
 
-  const [selectedTab, setSelectedTab] = useState<VaultTab>('allocations');
+  const selectedVault = vaultData?.data;
+  const hasNotes = !!selectedVault?.overview?.descriptionMarkdown;
+  const [selectedTab, setSelectedTab] = useState<VaultTab>(hasNotes ? 'notes' : 'allocations');
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [isWhitelistModalOpen, setIsWhitelistModalOpen] = useState(false);
-  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'sharePrice' | 'apy' | 'totalSupply'>('sharePrice');
+  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'sharePrice' | 'apy' | 'totalSupply' | 'totalAssets'>('sharePrice');
 
   // Get whitelist data from smart contract
   const { isWhitelisted, whitelistAmount, isWhitelistEnabled } = useDepositWhitelist();
-
-  const selectedVault = vaultData?.data;
 
   // Check if user is on the correct network for this specific vault
   const vaultNetwork = selectedVault?.chainId;
@@ -63,6 +66,7 @@ export const VaultDetail = () => {
   // Keep loading state active when on wrong network
   const isLoading = vaultData?.isLoading || shouldShowNetworkBanner;
   const isUserVaultDataLoading = userVaultData?.[0]?.isLoading || shouldShowNetworkBanner;
+  const isUserVaultBalancesLoading = userVaultBalances?.isLoading;
 
   // Get asset data using oracle + fallback to reserve
   const assetData = useAssetData(selectedVault?.overview?.asset?.address || '', {
@@ -88,17 +92,27 @@ export const VaultDetail = () => {
   );
   const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
 
-  const secondsSinceInception = Number(new Date().getTime() / 1000) - Number(selectedVault?.overview?.creationTimestamp);
-  const lifetime = selectedVault?.overview?.creationTimestamp
-    ? `${Math.round(formattedTime(secondsSinceInception))} ${timeText(secondsSinceInception)}`
-    : 'N/A';
+  // const secondsSinceInception = Number(new Date().getTime() / 1000) - Number(selectedVault?.overview?.creationTimestamp);
 
   const canManageVault = vaultData?.data?.overview?.roles?.curator === accountAddress;
+
+  // Calculate user's P&L for this specific vault using live recomputed metrics
+  const portfolioMetricsQuery = useUserPortfolioMetrics(accountAddress || '', '3m', { enabled: !!accountAddress });
+  const perVaultMetrics = portfolioMetricsQuery.data?.perVaultMetrics || [];
+  const perVault = perVaultMetrics.find(m => m.vaultId.toLowerCase() === (selectedVaultId || '').toLowerCase());
+  const totalPnLUSD = perVault ? (perVault.realizedPnLUSD + perVault.unrealizedPnLUSD) : 0;
+  const totalInvestedUSD = perVault ? (perVault.totalDepositedUSD - perVault.totalWithdrawnUSD) : 0;
+  const pnlPercentage = totalInvestedUSD > 0 ? (totalPnLUSD / totalInvestedUSD) : 0;
+
+  // Convert P&L to asset denomination using current asset price
+  const assetPrice = assetData.data?.price || 0;
+  const totalPnLInAsset = assetPrice > 0 ? totalPnLUSD / assetPrice : 0;
+  const totalPnLInUsd = new BigNumber(totalPnLInAsset).multipliedBy(assetData.data?.price || 0);
 
   const chartDataOptions = {
     apy: {
       label: 'APY',
-      data: selectedVault?.overview?.historicalSnapshots?.apy || [],
+      data: selectedVault?.overview?.historicalSnapshots?.apyWeeklyReturnTrailing || [],
     },
     totalSupply: {
       label: 'Total Supply',
@@ -107,6 +121,10 @@ export const VaultDetail = () => {
     sharePrice: {
       label: 'Share Price',
       data: selectedVault?.overview?.historicalSnapshots?.sharePrice || [],
+    },
+    totalAssets: {
+      label: 'Total Assets',
+      data: selectedVault?.overview?.historicalSnapshots?.totalAssets || [],
     },
   };
 
@@ -129,6 +147,12 @@ export const VaultDetail = () => {
   const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
     setSelectedTab(newValue as VaultTab);
   };
+
+  // useEffect(() => {
+  //   if (hasNotes && selectedTab !== 'notes') {
+  //     setSelectedTab('notes');
+  //   }
+  // }, [hasNotes]);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5, pt: 7, pb: 7, px: xPadding }}>
@@ -332,7 +356,84 @@ export const VaultDetail = () => {
               </Box>
             </Box>
 
-            {/* Row 1 - Deposit Tokens */}
+            {/* Row 1 - My Gains / Losses */}
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="secondary14" color="text.secondary">
+                  My Gains / Losses
+                </Typography>
+                <Tooltip
+                  title={
+                    <Box>
+                      <Typography variant="main12" sx={{ fontWeight: 600 }}>
+                        Unrealized PnL
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <FormattedNumber
+                          value={pnlPercentage}
+                          percent
+                          variant="secondary12"
+                          compact
+                          symbolsColor="#F1F1F3"
+                        />
+                      </Box>
+                    </Box>
+                  }
+                  arrow
+                  placement="top"
+                >
+                  <InfoIcon sx={{ fontSize: '14px', color: 'text.secondary' }} />
+                </Tooltip>
+                {accountAddress && perVault && (
+                  <Tooltip title="Share on X" arrow placement="top">
+                    <IconButton
+                      size="small"
+                      aria-label="share PnL on X"
+                      sx={{ padding: '1px' }}
+                      onClick={() => {
+                        const rawPnL = totalPnLUSD || 0;
+                        const absPnL = Math.abs(rawPnL);
+                        const valueString = new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                          maximumFractionDigits: 2,
+                        }).format(absPnL);
+                        const direction = rawPnL > 0 ? 'gain' : rawPnL < 0 ? 'loss' : 'break-even';
+                        const vaultName = selectedVault?.overview?.name || 'this vault';
+                        const text = `My PnL shows a ${valueString} ${direction} on my LP to ${vaultName} on @MORE_DeFi.`;
+                        const url = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
+                        window.open(url, '_blank');
+                      }}
+                    >
+                      <ShareOutlinedIcon sx={{ fontSize: '14px', color: 'text.secondary' }} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                {isLoading || isUserVaultBalancesLoading || isUserVaultDataLoading || assetData.isLoading ? (
+                  <Skeleton width={80} height={24} />
+                ) : !accountAddress || !perVault ? (
+                  <Typography variant="main16" fontWeight={600}>
+                    –
+                  </Typography>
+                ) : (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <FormattedNumber
+                      value={totalPnLInAsset}
+                      symbol={selectedVault?.overview?.asset?.symbol || ''}
+                      variant="main16"
+                      compact
+                    />
+                    <UsdChip
+                      value={totalPnLInUsd.toString() || '0'}
+                    />
+                  </Box>
+                )}
+              </Box>
+            </Box>
+
+            {/* Row 2 - Deposit Tokens */}
             <Box>
               <Typography variant="secondary14" color="text.secondary">
                 Deposit Tokens
@@ -348,7 +449,25 @@ export const VaultDetail = () => {
               </Box>
             </Box>
 
-            {/* Row 2 - Deposit Cap */}
+            {/* Row 2 - Networks */}
+            <Box>
+              <Typography variant="secondary14" color="text.secondary">
+                Network
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                {isLoading ? <Skeleton width={80} height={24} /> :
+                  <>
+                    <MarketLogo
+                      size={24}
+                      logo={networkConfigs[chainId]?.networkLogoPath}
+                    />
+                    <Typography variant="main16">{networkConfigs[chainId]?.name || 'Unknown Network'}</Typography>
+                  </>
+                }
+              </Box>
+            </Box>
+
+            {/* Row 3 - Remaining Capacity */}
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="secondary14" color="text.secondary">
@@ -413,45 +532,74 @@ export const VaultDetail = () => {
               </Box>
             </Box>
 
-            {/* Row 2 - Networks */}
-            <Box>
-              <Typography variant="secondary14" color="text.secondary">
-                Network
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-                {isLoading ? <Skeleton width={80} height={24} /> :
-                  <>
-                    <MarketLogo
-                      size={24}
-                      logo={networkConfigs[chainId]?.networkLogoPath}
-                    />
-                    <Typography variant="main16">{networkConfigs[chainId]?.name || 'Unknown Network'}</Typography>
-                  </>
-                }
-              </Box>
-            </Box>
-
             {/* Row 3 - Available Liquidity */}
             <Box>
-              <Typography variant="secondary14" color="text.secondary">
-                Net Asset Value
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="secondary14" color="text.secondary">
+                  APY
+                </Typography>
+                <Tooltip
+                  title={
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Typography variant="main12" sx={{ fontWeight: 600 }}>
+                        APY Details
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 3 }}>
+                          <Typography variant="secondary12">1 Day:</Typography>
+                          <FormattedNumber
+                            value={vaultData?.data?.overview?.apy1Day || ''}
+                            percent
+                            variant="secondary12"
+                            compact
+                            symbolsColor="#F1F1F3"
+                          />
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 3 }}>
+                          <Typography variant="secondary12">7 Days:</Typography>
+                          <FormattedNumber
+                            value={vaultData?.data?.overview?.apy7Days || ''}
+                            percent
+                            variant="secondary12"
+                            compact
+                            symbolsColor="#F1F1F3"
+                          />
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 3 }}>
+                          <Typography variant="secondary12">30 Days:</Typography>
+                          <FormattedNumber
+                            value={vaultData?.data?.overview?.apy30Days || ''}
+                            percent
+                            variant="secondary12"
+                            compact
+                            symbolsColor="#F1F1F3"
+                          />
+                        </Box>
+                      </Box>
+                    </Box>
+                  }
+                  arrow
+                  placement="top"
+                >
+                  <InfoIcon sx={{ fontSize: '14px', color: 'text.secondary' }} />
+                </Tooltip>
+              </Box>
               <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   {isLoading ? <Skeleton width={80} height={24} /> : <FormattedNumber
-                    value={formatUnits(
-                      BigInt(aum || '0'),
-                      vaultData?.data?.overview?.asset?.decimals || 18
-                    ) || ''}
-                    symbol={vaultData?.data?.overview?.asset?.symbol || ''}
+                    value={vaultData?.data?.overview?.apy || ''}
+                    percent
                     variant="main16"
                     compact
                   />}
                 </Box>
-                {!isLoading && (
-                  <UsdChip
-                    value={aumInUsd.toString() || '0'}
-                  />
+                {selectedVault?.incentives && selectedVault?.incentives.length > 0 && (
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="main14" color="text.secondary" sx={{ ml: 1, mr: 1 }}>
+                      +
+                    </Typography>
+                    <RewardsButton rewards={selectedVault?.incentives} />
+                  </Box>
                 )}
               </Box>
             </Box>
@@ -481,35 +629,30 @@ export const VaultDetail = () => {
                 variant="main16"
               />}
             </Box>
-
-            {/* Row 4 - Lifetime */}
-            <Box>
-              <Typography variant="secondary14" color="text.secondary">
-                Lifetime
-              </Typography>
-              <Typography variant="main16" fontWeight={600}>
-                {isLoading ? <Skeleton width={60} /> : lifetime}
-              </Typography>
-            </Box>
           </Box>
         </Box>
+
         {/* RIGHT SIDE CHART */}
         <Box sx={{
           display: 'flex',
           flexDirection: 'column',
           flex: 3,
           backgroundColor: 'background.paper',
-          borderRadius: 2
+          borderRadius: 2,
+          position: 'relative'
         }}>
           <Box sx={{
+            position: 'absolute',
+            top: { xs: 8, md: 12 },
+            left: { xs: 8, md: 12 },
+            zIndex: 10,
             display: 'flex',
             alignItems: 'left',
             flexDirection: 'row',
             flexWrap: 'wrap',
-            gap: { xs: 3, sm: 5 },
-            backgroundColor: 'background.surface',
-            borderRadius: '8px 8px 0px 0px',
-            p: { xs: 4, md: 6 },
+            gap: { xs: 2, sm: 3 },
+            px: { xs: 2, md: 3 },
+            py: { xs: 1, md: 2 },
           }}>
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
               <Typography variant="secondary14" color="text.secondary">Share Price</Typography>
@@ -525,9 +668,9 @@ export const VaultDetail = () => {
                   borderRadius: '6px',
                   padding: '2px 6px',
                   width: 'fit-content',
-                  backgroundColor: selectedChartDataKey === 'sharePrice' ? 'background.paper' : 'background.surface',
+                  backdropFilter: 'blur(2px)',
                   '&:hover': {
-                    backgroundColor: theme.palette.background.paper,
+                    backgroundColor: theme.palette.background.surface,
                     border: `1.5px solid ${theme.palette.text.muted}`,
                   },
                 }}>
@@ -549,7 +692,7 @@ export const VaultDetail = () => {
                 }
               </Box>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
+            {/* <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
               <Typography variant="secondary14" color="text.secondary">Annualized APY</Typography>
               <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'row', gap: 1 }}>
                 <Box
@@ -564,9 +707,9 @@ export const VaultDetail = () => {
                     borderRadius: '6px',
                     padding: '2px 6px',
                     width: 'fit-content',
-                    backgroundColor: selectedChartDataKey === 'apy' ? 'background.paper' : 'background.surface',
+                    backgroundColor: 'background.paper',
                     '&:hover': {
-                      backgroundColor: theme.palette.background.paper,
+                      backgroundColor: theme.palette.background.surface,
                       border: `1.5px solid ${theme.palette.text.muted}`,
                     },
                   }}>
@@ -596,7 +739,7 @@ export const VaultDetail = () => {
                   </Box>
                 )}
               </Box>
-            </Box>
+            </Box> */}
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
               <Typography variant="secondary14" color="text.secondary">Total Supply</Typography>
               <Box
@@ -611,9 +754,9 @@ export const VaultDetail = () => {
                   borderRadius: '6px',
                   padding: '2px 6px',
                   width: 'fit-content',
-                  backgroundColor: selectedChartDataKey === 'totalSupply' ? 'background.paper' : 'background.surface',
+                  backdropFilter: 'blur(2px)',
                   '&:hover': {
-                    backgroundColor: theme.palette.background.paper,
+                    backgroundColor: theme.palette.background.surface,
                     border: `1.5px solid ${theme.palette.text.muted}`,
                   },
                 }}>
@@ -635,22 +778,62 @@ export const VaultDetail = () => {
                 }
               </Box>
             </Box>
+            <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
+              <Typography variant="secondary14" color="text.secondary">Net Asset Value</Typography>
+              <Box
+                onClick={() => setSelectedChartDataKey('totalAssets')}
+                sx={{
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  gap: 1,
+                  border: isLoading ? 'none' : selectedChartDataKey === 'totalAssets' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
+                  borderRadius: '6px',
+                  padding: '2px 6px',
+                  width: 'fit-content',
+                  backdropFilter: 'blur(2px)',
+                  '&:hover': {
+                    backgroundColor: theme.palette.background.surface,
+                    border: `1.5px solid ${theme.palette.text.muted}`,
+                  },
+                }}>
+                {isLoading ? <Skeleton width={60} height={24} /> : <>
+                  <FormattedNumber
+                    value={aumInUsd.toString() || '0'}
+                    symbol={'USD'}
+                    variant="main16"
+                    sx={{ fontWeight: 800 }}
+                  />
+                  <SvgIcon sx={{
+                    fontSize: '20px',
+                    color: selectedChartDataKey === 'totalAssets' ? "#FF9900" : theme.palette.text.muted,
+                  }}
+                  >
+                    <ShowChartIcon />
+                  </SvgIcon>
+                </>
+                }
+              </Box>
+            </Box>
           </Box>
           <Box sx={{
             backgroundColor: 'background.paper',
-            p: { xs: 2, md: 6 },
+            py: { xs: 2, md: 6 },
+            pl: { xs: 2, md: 6 },
             borderRadius: 2,
           }}>
             {isLoading ? (
-              <Skeleton variant="rectangular" width="100%" height={250} />
+              <Box sx={{ width: '100%', height: 300, backgroundColor: 'transparent' }} />
             ) : currentChartData && currentChartData.length > 0 ? (
-              <LightweightLineChart
-                height={250}
+              <LineChart
+                height={300}
                 data={currentChartData}
                 yAxisFormat={selectedChartDataKey === 'apy' ? '%' : vaultData?.data?.overview?.asset?.symbol}
+                showTimePeriodSelector={true}
               />
             ) : (
-              <Typography sx={{ textAlign: 'center', pt: 5 }}>
+              <Typography sx={{ textAlign: 'center', pt: 30 }}>
                 No historical data available for {currentChartLabel}.
               </Typography>
             )}
@@ -683,6 +866,7 @@ export const VaultDetail = () => {
             },
           }}
         >
+          {hasNotes && <Tab label="Notes" value="notes" />}
           <Tab label="Allocations" value="allocations" />
           <Tab label="Activity" value="activity" />
           {canManageVault && <Tab label="Manage" value="manage" />}
@@ -690,6 +874,7 @@ export const VaultDetail = () => {
 
         <Box sx={{ height: '100%' }}>
           <div className="vault-tab-content">
+            {selectedTab === 'notes' && hasNotes && <VaultNotes />}
             {selectedTab === 'allocations' && <VaultAllocations />}
             {selectedTab === 'activity' && <VaultActivity />}
             {selectedTab === 'manage' && <VaultManagement />}

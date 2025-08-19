@@ -1,5 +1,6 @@
 import { useQueries, useQuery, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { ethers } from 'ethers';
+import { calculateFromTimestamp, TimePeriod } from 'src/modules/charts/timePeriods';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import { useMemo } from 'react';
 import {
@@ -12,9 +13,26 @@ import { networkConfigs } from 'src/ui-config/networksConfig';
 import { ChainIds } from 'src/utils/const';
 import { useWalletClient } from 'wagmi';
 
-import { VAULT_ID_TO_CURATOR_INFO, VAULT_ID_TO_NAME } from './constants';
+import { VAULT_ID_TO_CURATOR_INFO, VAULT_ID_TO_NAME, VAULT_ID_TO_MARKDOWN_DESCRIPTION } from './constants';
 import { useVault, VaultData } from './useVault';
-import { fetchVaultData, fetchVaultHistoricalSnapshots, formatSnapshotsForChart } from './vaultSubgraph';
+import {
+  fetchVaultData,
+  fetchVaultHistoricalSnapshots,
+  formatSnapshotsForChart,
+  fetchUserVaultBalances,
+  fetchUserVaultTransactions,
+  fetchVaultDailySnapshots,
+  UserVaultBalance,
+  UserVaultTransaction,
+  PortfolioMetrics,
+
+
+  processPnLEvolution,
+  processAmountEvolutionWithInterpolation,
+  processDailyPortfolioEvolution,
+  processDailyCumulativePnL,
+  processDailyPnLPercentEvolution
+} from './vaultSubgraph';
 // Constants
 const POLLING_INTERVAL = 30000; // 30 seconds
 
@@ -48,6 +66,15 @@ export const vaultQueryKeys = {
   incentives: (chainId?: number) => ['incentives', chainId],
   userRewards: (userAddress: string, chainId?: number) => ['userRewards', userAddress, chainId],
   assetData: (assetAddress: string, chainId?: number) => ['assetData', assetAddress, chainId],
+  // PnL related query keys
+  userVaultBalances: (userAddress: string, chainId?: number) => ['userVaultBalances', userAddress, chainId],
+  userVaultTransactions: (userAddress: string, vaultIds: string[], chainId?: number) => [
+    'userVaultTransactions',
+    userAddress,
+    vaultIds.sort().join(','), // Sort for consistent caching
+    chainId
+  ],
+  userPortfolioMetrics: (userAddress: string, chainId?: number) => ['userPortfolioMetrics', userAddress, chainId],
 };
 
 // General hook options type
@@ -675,6 +702,7 @@ export const useVaultsListData = <TResult = VaultData>(
             name,
             curatorLogo: curatorInfo?.logo,
             curatorName: curatorInfo?.name || 'Unknown',
+            descriptionMarkdown: VAULT_ID_TO_MARKDOWN_DESCRIPTION[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_MARKDOWN_DESCRIPTION],
             asset: {
               symbol: assetSymbol || reserve?.symbol || 'UNKNOWN',
               decimals: assetDecimals,
@@ -682,7 +710,7 @@ export const useVaultsListData = <TResult = VaultData>(
             },
             sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
             decimals: vaultDecimals,
-            apy: latestSnapshot?.apyCalculatedLast360Days ? parseFloat(latestSnapshot.apyCalculatedLast360Days) : undefined,
+            apy: latestSnapshot?.apyDailyReturnLast365Days ? parseFloat(latestSnapshot.apyDailyReturnLast365Days) : undefined,
           },
           financials: {
             liquidity: {
@@ -1107,6 +1135,7 @@ export const useVaultData = <TResult = VaultData>(
           name,
           curatorLogo: curatorInfo?.logo,
           curatorName: curatorInfo?.name || 'Unknown',
+          descriptionMarkdown: VAULT_ID_TO_MARKDOWN_DESCRIPTION[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_MARKDOWN_DESCRIPTION],
           asset: {
             name: assetName || reserve?.name || 'UNKNOWN',
             symbol: assetSymbol || reserve?.symbol || 'UNKNOWN',
@@ -1121,11 +1150,19 @@ export const useVaultData = <TResult = VaultData>(
             curator,
             owner,
           },
-          apy: vaultData?.apyCalculatedLast360Days ? parseFloat(vaultData.apyCalculatedLast360Days) : undefined,
+          apy: vaultData?.apyDailyReturnLast365Days ? parseFloat(vaultData.apyDailyReturnLast365Days) : undefined,
+          apy1Day: vaultData?.apyDailyReturnLast1Day ? parseFloat(vaultData.apyDailyReturnLast1Day) : undefined,
+          apy7Days: vaultData?.apyDailyReturnLast7Days ? parseFloat(vaultData.apyDailyReturnLast7Days) : undefined,
+          apy30Days: vaultData?.apyDailyReturnLast30Days ? parseFloat(vaultData.apyDailyReturnLast30Days) : undefined,
+          apy1Week: vaultData?.apyWeeklyReturnLast1Week ? parseFloat(vaultData.apyWeeklyReturnLast1Week) : undefined,
+          apy4Weeks: vaultData?.apyWeeklyReturnLast4Weeks ? parseFloat(vaultData.apyWeeklyReturnLast4Weeks) : undefined,
+          apy26Weeks: vaultData?.apyWeeklyReturnLast26Weeks ? parseFloat(vaultData.apyWeeklyReturnLast26Weeks) : undefined,
+          apy52Weeks: vaultData?.apyWeeklyReturnLast52Weeks ? parseFloat(vaultData.apyWeeklyReturnLast52Weeks) : undefined,
           historicalSnapshots: {
-            apy: formatSnapshotsForChart(historicalSnapshots, 'apy'),
+            apyWeeklyReturnTrailing: formatSnapshotsForChart(historicalSnapshots, 'apyWeeklyReturnTrailing'),
             totalSupply: formatSnapshotsForChart(historicalSnapshots, 'totalSupply'),
             sharePrice: formatSnapshotsForChart(historicalSnapshots, 'sharePrice'),
+            totalAssets: formatSnapshotsForChart(historicalSnapshots, 'totalAssets'),
           },
           withdrawalTimelock: withdrawalTimelock.toString(),
           fee: fee.toString(),
@@ -1160,6 +1197,352 @@ export const useVaultData = <TResult = VaultData>(
   }
 
   return queryApiResult;
+};
+
+// PnL related hooks
+export const useUserVaultBalances = <TResult = UserVaultBalance[]>(
+  userAddress: string,
+  opts?: VaultDataHookOpts<UserVaultBalance[], TResult>
+) => {
+  const { chainId } = useVault();
+
+  return useVaultQuery<UserVaultBalance[], TResult>(
+    vaultQueryKeys.userVaultBalances(userAddress, chainId),
+    () => fetchUserVaultBalances(chainId, userAddress),
+    !!userAddress && opts?.enabled !== false,
+    {
+      ...opts,
+      // Cache balances for shorter time since they're user-specific and change with market movements
+      staleTime: 1 * 60 * 1000, // 1 minute
+      cacheTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
+};
+
+export const useUserVaultTransactions = <TResult = UserVaultTransaction[]>(
+  userAddress: string,
+  vaultIds: string[] = [],
+  opts?: VaultDataHookOpts<UserVaultTransaction[], TResult>
+) => {
+  const { chainId } = useVault();
+
+  return useVaultQuery<UserVaultTransaction[], TResult>(
+    vaultQueryKeys.userVaultTransactions(userAddress, vaultIds, chainId),
+    () => fetchUserVaultTransactions(chainId, userAddress, vaultIds),
+    !!userAddress && opts?.enabled !== false,
+    {
+      ...opts,
+      // Cache transactions for longer since they don't change once created
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 15 * 60 * 1000, // 15 minutes
+    }
+  );
+};
+
+// Composable: derive involved vault IDs from balances and transactions
+export const useInvolvedVaultIds = (
+  userAddress: string,
+  opts?: { enabled?: boolean }
+) => {
+  const balancesQuery = useUserVaultBalances(userAddress, {
+    enabled: !!userAddress && (opts?.enabled !== false),
+  });
+  const transactionsQuery = useUserVaultTransactions(userAddress, [], {
+    enabled: !!userAddress && (opts?.enabled !== false),
+  });
+
+  const vaultIds = useMemo(() => {
+    const b = (balancesQuery.data as UserVaultBalance[] | undefined) ?? [];
+    const t = (transactionsQuery.data as UserVaultTransaction[] | undefined) ?? [];
+    const ids = new Set<string>();
+    b.forEach((x) => ids.add(x.vault.id.toLowerCase()));
+    t.forEach((x) => ids.add(x.vault.id.toLowerCase()));
+    return Array.from(ids);
+  }, [balancesQuery.data, transactionsQuery.data]);
+
+  return {
+    data: vaultIds,
+    isLoading: balancesQuery.isLoading || transactionsQuery.isLoading,
+    isError: balancesQuery.isError || transactionsQuery.isError,
+  };
+};
+
+// Composable: per-vault live share price in asset units and asset address
+export const useVaultsSharePriceAsset = (
+  vaultIds: string[],
+  opts?: { enabled?: boolean }
+) => {
+  const { chainId } = useVault();
+  const provider = useVaultProvider(chainId);
+
+  const queries = useQueries({
+    queries: (vaultIds || []).map((vaultId) => ({
+      queryKey: ['vaultShareInfo', chainId, (vaultId || '').toLowerCase()],
+      queryFn: async (): Promise<{ vaultId: string; assetAddress: string; assetDecimals: number; sharePriceAsset: number }> => {
+        if (!provider || !vaultId) throw new Error('Missing provider or vaultId');
+        const vc = new ethers.Contract(
+          vaultId,
+          [
+            'function asset() external view returns (address)',
+            'function decimals() external view returns (uint8)',
+            'function convertToAssets(uint256 shares) external view returns (uint256 assets)'
+          ],
+          provider
+        );
+        const [assetAddress, vaultDecimals] = await Promise.all([
+          vc.asset().catch(() => ethers.constants.AddressZero),
+          vc.decimals().catch(() => 18),
+        ]);
+        let assetDecimals = 18;
+        if (assetAddress && assetAddress !== ethers.constants.AddressZero) {
+          const ac = new ethers.Contract(assetAddress, ['function decimals() external view returns (uint8)'], provider);
+          assetDecimals = await ac.decimals().catch(() => 18);
+        }
+        const oneShare = parseUnits('1', vaultDecimals);
+        const assetsForOneShare = await vc.convertToAssets(oneShare).catch(() => ethers.BigNumber.from(0));
+        const sharePriceAsset = Number(formatUnits(assetsForOneShare, assetDecimals));
+        return { vaultId: (vaultId || '').toLowerCase(), assetAddress: (assetAddress || '').toLowerCase(), assetDecimals, sharePriceAsset };
+      },
+      enabled: !!provider && !!vaultId && (opts?.enabled !== false),
+      staleTime: 60_000,
+      cacheTime: 300_000,
+    }))
+  });
+
+  const data = useMemo(() => (queries.map(q => q.data).filter(Boolean) as Array<{ vaultId: string; assetAddress: string; assetDecimals: number; sharePriceAsset: number }>), [queries.map(q => q.data).join(',')]);
+  const isLoading = queries.some(q => q.isLoading);
+  const isError = queries.some(q => q.isError);
+  return { data, isLoading, isError };
+};
+
+// Composable: portfolio daily time series (value, PnL USD, PnL %)
+export const usePortfolioDailySeries = (
+  userAddress: string,
+  period: TimePeriod,
+  opts?: { enabled?: boolean }
+) => {
+  const { chainId } = useVault();
+  const transactionsQuery = useUserVaultTransactions(userAddress, [], {
+    enabled: !!userAddress && (opts?.enabled !== false),
+  });
+
+  return useVaultQuery(
+    ['portfolioDailySeries', userAddress, chainId, period, (transactionsQuery.data || []).length],
+    async () => {
+      const transactions = transactionsQuery.data || [];
+      if (transactions.length === 0) {
+        return { dailyAmountEvolution: [], dailyPnLEvolution: [], dailyPnLPercentEvolution: [] };
+      }
+
+      const vaultIds = Array.from(new Set(transactions.map(tx => tx.vault.id)));
+      const nowSec = Math.floor(Date.now() / 1000);
+      const periodFromTimestamp = calculateFromTimestamp(period, nowSec);
+      // Fetch snapshots from the period start (not capped by earliest tx) to preserve baseline
+      const fromTimestamp = periodFromTimestamp;
+
+      try {
+        const vaultSnapshots = await fetchVaultDailySnapshots(chainId, vaultIds, fromTimestamp);
+        if (vaultSnapshots && vaultSnapshots.length > 0) {
+          // Use full transaction history to reconstruct shares/WACB baseline correctly
+          const fullTxs = transactions;
+          return {
+            dailyAmountEvolution: processDailyPortfolioEvolution(fullTxs, vaultSnapshots),
+            dailyPnLEvolution: processDailyCumulativePnL(fullTxs, vaultSnapshots),
+            dailyPnLPercentEvolution: processDailyPnLPercentEvolution(fullTxs, vaultSnapshots),
+          };
+        }
+      } catch { }
+
+      const filteredTxs = transactions.filter(tx => parseInt(tx.timestamp) >= periodFromTimestamp);
+      return {
+        dailyAmountEvolution: processAmountEvolutionWithInterpolation(filteredTxs),
+        dailyPnLEvolution: processPnLEvolution(filteredTxs),
+        dailyPnLPercentEvolution: [],
+      };
+    },
+    !!userAddress && (opts?.enabled !== false),
+    { keepPreviousData: true, staleTime: 120_000, cacheTime: 300_000 }
+  );
+};
+
+export const useUserPortfolioMetrics = <TResult = PortfolioMetrics>(
+  userAddress: string,
+  period: TimePeriod = '3m',
+  opts?: VaultDataHookOpts<PortfolioMetrics, TResult>
+) => {
+  const { chainId } = useVault();
+
+  // Fetch balances
+  const balancesQuery = useUserVaultBalances(userAddress, {
+    enabled: !!userAddress && opts?.enabled !== false,
+  });
+
+  // Use composable hooks
+  const involvedVaults = useInvolvedVaultIds(userAddress, { enabled: !!userAddress && opts?.enabled !== false });
+  const liveShareInfo = useVaultsSharePriceAsset(involvedVaults.data || [], { enabled: !!userAddress && opts?.enabled !== false });
+  const assetAddressesForPricing = useMemo(() => Array.from(new Set((liveShareInfo.data || []).map(d => d.assetAddress).filter(Boolean))), [liveShareInfo.data]);
+  const assetsDataQuery = useAssetsData(assetAddressesForPricing, { enabled: !!userAddress && assetAddressesForPricing.length > 0 && opts?.enabled !== false });
+  const dailySeries = usePortfolioDailySeries(userAddress, period, { enabled: !!userAddress && opts?.enabled !== false });
+  const assetUsdMap = useMemo(() => {
+    const map = new Map<string, number>();
+    const arr = assetsDataQuery.data || [];
+    arr.forEach((a) => {
+      if (a?.address) map.set(a.address.toLowerCase(), a.price || 0);
+    });
+    return map;
+  }, [assetsDataQuery.data]);
+
+  return useVaultQuery<PortfolioMetrics, TResult>(
+    [...vaultQueryKeys.userPortfolioMetrics(userAddress, chainId), balancesQuery.data, period, assetAddressesForPricing.join(','), (assetsDataQuery.data || []).length, (liveShareInfo.data || []).length, (dailySeries.data?.dailyAmountEvolution || []).length],
+    async () => {
+      const balances = balancesQuery.data;
+      // dailySeries already encapsulates transactions; we don't need them here
+
+      // Always return valid data structure, even if dependencies are still loading
+      if ((!balances || balances.length === 0) && (!dailySeries.data || dailySeries.data.dailyAmountEvolution.length === 0)) {
+        // Return empty metrics if no data available yet or user has no activity
+        return {
+          totalRealizedPnLUSD: 0,
+          totalUnrealizedPnLUSD: 0,
+          totalBalanceUSD: 0,
+          dailyPnLEvolution: [],
+          dailyPnLPercentEvolution: [],
+          dailyAmountEvolution: [],
+          perVaultMetrics: [],
+          lastUpdatedTimestamp: undefined,
+          positionsApy: undefined,
+        };
+      }
+
+      // Resolve live per-vault balances and USD prices to avoid stale unrealized PnL
+      const balancesArrLive = (balances as UserVaultBalance[] | undefined) ?? [];
+
+      // Build per-vault live sharePrice (asset) and asset address from queries
+      const perVaultLiveData = (liveShareInfo.data || [])
+        .filter(Boolean) as { vaultId: string; assetAddress: string; assetDecimals: number; sharePriceAsset: number }[];
+      const vaultIdToSharePriceAsset = new Map<string, number>();
+      perVaultLiveData.forEach((d) => {
+        vaultIdToSharePriceAsset.set(d.vaultId.toLowerCase(), d.sharePriceAsset);
+      });
+
+      // USD prices from useAssetsData
+
+      // Compute live portfolio totals and per-vault metrics
+      let totalBalanceUSD = 0;
+      let totalInvestedUSD = 0;
+      let totalRealizedPnLUSD = 0;
+      const perVaultMetricsLive: PortfolioMetrics['perVaultMetrics'] = [];
+
+      balancesArrLive.forEach((b) => {
+        const vaultId = b.vault.id.toLowerCase();
+        const shares = parseFloat(b.sharesBalance || '0');
+        const deposited = parseFloat(b.totalDepositedUSD || '0');
+        const withdrawn = parseFloat(b.totalWithdrawnUSD || '0');
+        const invested = deposited - withdrawn;
+        const realized = parseFloat(b.realizedPnLUSD || '0');
+        const sharePriceAsset = vaultIdToSharePriceAsset.get(vaultId) ?? 0;
+        const assetAddr = perVaultLiveData.find(d => d.vaultId.toLowerCase() === vaultId)?.assetAddress || '';
+        const assetUsd = assetAddr ? (assetUsdMap.get(assetAddr) ?? 0) : 0;
+        const balanceUSD = shares * sharePriceAsset * assetUsd;
+        const unrealizedPnLUSD = balanceUSD - invested;
+
+        totalBalanceUSD += balanceUSD;
+        totalInvestedUSD += invested;
+        totalRealizedPnLUSD += realized;
+
+        perVaultMetricsLive.push({
+          vaultId: b.vault.id,
+          realizedPnLUSD: realized,
+          unrealizedPnLUSD,
+          balanceUSD,
+          totalDepositedUSD: deposited,
+          totalWithdrawnUSD: withdrawn,
+        });
+      });
+
+      const dailyAmountEvolution = dailySeries.data?.dailyAmountEvolution || [];
+      const dailyPnLEvolution = dailySeries.data?.dailyPnLEvolution || [];
+      const dailyPnLPercentEvolution = dailySeries.data?.dailyPnLPercentEvolution || [];
+
+      // Derive a portfolio-level last update timestamp from balances
+      const lastUpdatedTimestamp = (() => {
+        const numericTimestamps = ((balances as UserVaultBalance[] | undefined) ?? [])
+          .map((b) => {
+            const tsStr = b.lastPnLUpdateTimestamp ?? b.lastUpdatedTimestamp ?? '0';
+            const n = parseInt(tsStr, 10);
+            return Number.isFinite(n) ? n : 0;
+          })
+          .filter((n) => n > 0);
+        return numericTimestamps.length ? Math.max(...numericTimestamps) : undefined;
+      })();
+
+      // Compute Positions APY: USD-weighted average of vault trailing APYs (current exposure)
+      const computePositionsApy = async (): Promise<number | undefined> => {
+        const balancesArr = (balances as UserVaultBalance[] | undefined) ?? [];
+        if (!balancesArr.length) return undefined;
+
+        // We need APY per vault. Fetch minimal vault data for the involved vault IDs.
+        const involvedVaultIds = Array.from(new Set(balancesArr.map((b) => b.vault.id.toLowerCase())));
+
+        const apyPromises = involvedVaultIds.map((id) => fetchVaultData(chainId, id));
+        // Note: fetchVaultData returns apyCalculatedLast* as strings
+        const results = await Promise.all(apyPromises);
+        const apyById = new Map<string, number>();
+        results.forEach((vd, idx) => {
+          const id = involvedVaultIds[idx];
+          if (!vd) return;
+          const apyStr = vd.apyWeeklyReturnLast4Weeks ?? vd.apyWeeklyReturnLast1Week ?? vd.apyWeeklyReturnLast52Weeks ?? vd.apyDailyReturnLast1Day;
+          const apyNum = apyStr ? parseFloat(apyStr) : NaN;
+          if (!Number.isNaN(apyNum)) {
+            apyById.set(id, apyNum);
+          }
+        });
+
+        const rows = balancesArr
+          .map((b) => {
+            const id = b.vault.id.toLowerCase();
+            const apy = apyById.get(id);
+            const shares = parseFloat(b.sharesBalance || '0');
+            const sharePriceAsset = vaultIdToSharePriceAsset.get(id) ?? 0;
+            const assetAddr = (perVaultLiveData.find(d => d.vaultId === id)?.assetAddress) || '';
+            const assetUsd = assetAddr ? (assetUsdMap.get(assetAddr) ?? 0) : 0;
+            const balance = shares * sharePriceAsset * assetUsd;
+            return apy !== undefined && balance > 0 ? { balance, apy } : null;
+          })
+          .filter(Boolean) as { balance: number; apy: number }[];
+
+        const total = rows.reduce((s, r) => s + r.balance, 0);
+        if (!Number.isFinite(total) || total <= 0) return undefined;
+        const weighted = rows.reduce((s, r) => s + (r.balance / total) * r.apy, 0);
+        return Number.isFinite(weighted) ? weighted : undefined;
+
+      };
+
+      // Resolve positions APY (async sub-queries)
+      const positionsApy = await computePositionsApy();
+
+      return {
+        totalRealizedPnLUSD: totalRealizedPnLUSD,
+        totalUnrealizedPnLUSD: totalBalanceUSD - totalInvestedUSD,
+        totalBalanceUSD: totalBalanceUSD,
+        dailyPnLEvolution,
+        dailyPnLPercentEvolution,
+        dailyAmountEvolution,
+        perVaultMetrics: perVaultMetricsLive,
+        lastUpdatedTimestamp,
+        positionsApy,
+      };
+    },
+    !!userAddress && opts?.enabled !== false,
+    {
+      ...opts,
+      // Keep previous data when switching period to avoid UI flicker/blink
+      keepPreviousData: true,
+      // Cache portfolio metrics for shorter time since they depend on dynamic market data
+      staleTime: 2 * 60 * 1000, // 2 minutes
+      cacheTime: 5 * 60 * 1000, // 5 minutes
+    }
+  );
 };
 
 export const useDeployedVaults = <TResult = string[]>(

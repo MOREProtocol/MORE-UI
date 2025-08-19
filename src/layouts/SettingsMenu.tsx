@@ -1,10 +1,8 @@
 import { CogIcon } from '@heroicons/react/solid';
 import { Button, Menu, MenuItem, SvgIcon, Typography } from '@mui/material';
 import React, { useState } from 'react';
-import { PROD_ENV } from 'src/utils/marketsAndNetworksConfig';
 
 import { DarkModeSwitcher } from './components/DarkModeSwitcher';
-import { TestNetModeSwitcher } from './components/TestNetModeSwitcher';
 
 export function SettingsMenu() {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -54,7 +52,6 @@ export function SettingsMenu() {
         </MenuItem>
 
         <DarkModeSwitcher component={MenuItem} />
-        {PROD_ENV && <TestNetModeSwitcher />}
       </Menu>
     </>
   );

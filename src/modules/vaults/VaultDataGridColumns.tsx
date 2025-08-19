@@ -1,10 +1,8 @@
-import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import {
   Avatar,
   Box,
   Button,
   Skeleton,
-  SvgIcon,
   Typography,
   useMediaQuery,
   useTheme,
@@ -345,11 +343,6 @@ export const DepositActionCell: React.FC<{ onDeposit: () => void }> = ({ onDepos
         e.stopPropagation();
         onDeposit();
       }}
-      endIcon={
-        <SvgIcon sx={{ fontSize: isMobile ? '14px' : '16px' }}>
-          <ArrowForwardRounded />
-        </SvgIcon>
-      }
       sx={{
         minWidth: 'unset',
         padding: isMobile ? '4px 8px' : '8px 16px',
@@ -380,11 +373,6 @@ export const ManageActionCell: React.FC<{ onManage: () => void }> = ({ onManage 
         e.stopPropagation();
         onManage();
       }}
-      endIcon={
-        <SvgIcon sx={{ fontSize: isMobile ? '14px' : '16px' }}>
-          <ArrowForwardRounded />
-        </SvgIcon>
-      }
       sx={{
         minWidth: 'unset',
         padding: isMobile ? '4px 8px' : '8px 16px',
