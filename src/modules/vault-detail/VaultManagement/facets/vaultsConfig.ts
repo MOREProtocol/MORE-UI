@@ -23,7 +23,7 @@ export const vaultsConfig = {
       VAULT_FACTORY: '0x88a70bc7a8e691d7558c60a35bf58ed68f00e3f4',
       ORACLE: '0x76DFB167956152620f47334A9E7De06E9bd1A4BC'
     },
-    subgraphUrl: `${subgraphDomain}/ethereum/subgraphs/name/eth-vaults`,
+    subgraphUrl: '/api/subgraph/ethereum',
   },
 };
 

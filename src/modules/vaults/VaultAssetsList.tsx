@@ -533,7 +533,7 @@ export const VaultAssetsList = () => {
                       }}>
                       {isInitialLoadingPortfolioMetrics ? <Skeleton width={60} height={24} /> : <>
                         <FormattedNumber
-                          value={portfolioMetrics.totalUnrealizedPnLUSD || '0'}
+                          value={(portfolioMetrics.totalRealizedPnLUSD + portfolioMetrics.totalUnrealizedPnLUSD) || 0}
                           symbol="USD"
                           variant="main16"
                           sx={{ fontWeight: 800 }}

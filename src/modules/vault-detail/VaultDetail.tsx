@@ -100,7 +100,6 @@ export const VaultDetail = () => {
   const portfolioMetricsQuery = useUserPortfolioMetrics(accountAddress || '', '3m', { enabled: !!accountAddress });
   const perVaultMetrics = portfolioMetricsQuery.data?.perVaultMetrics || [];
   const perVault = perVaultMetrics.find(m => m.vaultId.toLowerCase() === (selectedVaultId || '').toLowerCase());
-  const totalPnLUSD = perVault ? (perVault.realizedPnLUSD + perVault.unrealizedPnLUSD) : 0;
 
   // Compute P&L in asset denomination properly: realized (asset) + unrealized (shares*(sharePriceAsset - WACB))
   const thisVaultBalance = userVaultBalances?.data?.find(
@@ -114,7 +113,6 @@ export const VaultDetail = () => {
   const realizedAssetPnL = thisVaultBalance ? parseFloat(thisVaultBalance.realizedPnL || '0') : 0;
   const unrealizedAssetPnL = shares * (sharePriceAsset - wacb);
   const totalPnLInAsset = realizedAssetPnL + unrealizedAssetPnL;
-  const totalPnLInUsd = totalPnLUSD;
 
   // Asset-based invested and percent
   const totalInvestedAsset = thisVaultBalance ? (parseFloat(thisVaultBalance.totalDeposited || '0') - parseFloat(thisVaultBalance.totalWithdrawn || '0')) : 0;
@@ -402,16 +400,25 @@ export const VaultDetail = () => {
                       aria-label="share PnL on X"
                       sx={{ padding: '1px' }}
                       onClick={() => {
-                        const rawPnL = totalPnLUSD || 0;
-                        const absPnL = Math.abs(rawPnL);
-                        const valueString = new Intl.NumberFormat('en-US', {
+                        const rawPnLAsset = totalPnLInAsset || 0;
+                        const priceUsd = assetData.data?.price || 0;
+                        const rawPnLUsd = rawPnLAsset * priceUsd;
+                        const absAsset = Math.abs(rawPnLAsset);
+                        const absUsd = Math.abs(rawPnLUsd);
+                        const assetDecimals = absAsset >= 1 ? 2 : 6;
+                        const formattedAsset = new Intl.NumberFormat('en-US', {
+                          maximumFractionDigits: assetDecimals,
+                          minimumFractionDigits: 0,
+                        }).format(absAsset);
+                        const assetSymbol = selectedVault?.overview?.asset?.symbol || '';
+                        const valueStringUsd = new Intl.NumberFormat('en-US', {
                           style: 'currency',
                           currency: 'USD',
                           maximumFractionDigits: 2,
-                        }).format(absPnL);
-                        const direction = rawPnL > 0 ? 'gain' : rawPnL < 0 ? 'loss' : 'break-even';
+                        }).format(absUsd);
+                        const direction = rawPnLAsset > 0 ? 'gain' : rawPnLAsset < 0 ? 'loss' : 'break-even';
                         const vaultName = selectedVault?.overview?.name || 'this vault';
-                        const text = `My PnL shows a ${valueString} ${direction} on my LP to ${vaultName} on @MORE_DeFi.`;
+                        const text = `My PnL shows a ${formattedAsset} ${assetSymbol} (${valueStringUsd}) ${direction} on my LP to ${vaultName} on @MORE_DeFi.`;
                         const url = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
                         window.open(url, '_blank');
                       }}
@@ -437,7 +444,7 @@ export const VaultDetail = () => {
                       compact
                     />
                     <UsdChip
-                      value={totalPnLInUsd.toString() || '0'}
+                      value={new BigNumber(totalPnLInAsset).multipliedBy(assetData.data?.price || 0).toString() || '0'}
                     />
                   </Box>
                 )}
