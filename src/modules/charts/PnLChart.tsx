@@ -122,13 +122,15 @@ const BasePnLChart: React.FC<BasePnLChartProps> = ({
   }, [percentData, selectedPeriod]);
 
   let cumulativePnL = 0;
-  let cumulativePercent = 0;
   sortedFilteredData.forEach(item => {
     cumulativePnL += item.value;
   });
+  // Compound cumulative percent: product(1 + r_i) - 1
+  let cumulativeFactor = 1;
   filteredPercent.forEach(item => {
-    cumulativePercent += item.value;
+    cumulativeFactor *= (1 + item.value);
   });
+  const cumulativePercent = cumulativeFactor - 1;
 
   useEffect(() => {
     if (!chartContainerRef.current || height <= 0) {
@@ -425,7 +427,7 @@ const BasePnLChart: React.FC<BasePnLChartProps> = ({
               fontWeight: 500,
             }}
           >
-            {crosshairData ? 'Daily P&L' : 'Cumulative P&L'}: {crosshairData ? formatPercent(dailyPercent * 100) : formatPercent(cumulativePercentDisplay * 100)} ({formatCurrency(Math.abs(crosshairData ? displayData.dailyPnL : displayData.value))})
+            {crosshairData ? 'Daily P&L' : 'Cumulative P&L'}: {crosshairData ? formatPercent(dailyPercent * 100) : formatPercent(cumulativePercentDisplay * 100)} ({formatCurrency(crosshairData ? displayData.dailyPnL : displayData.value)})
           </Typography>
         </Box>
       )}
@@ -445,6 +447,7 @@ const BasePnLChart: React.FC<BasePnLChartProps> = ({
 
 export const PnLChart: React.FC<PnLChartProps> = ({
   data,
+  percentData,
   height,
   title,
   isInteractive = true,
@@ -461,9 +464,19 @@ export const PnLChart: React.FC<PnLChartProps> = ({
       time: new Date(item.time).getTime() / 1000 as Time,
     })) || [];
 
+  const filteredPercentRaw = percentData
+    ? filterByPeriod(percentData, (d) => new Date(d.time).getTime(), selectedPeriod ?? '3m')
+    : [];
+  const formattedPercent: PnLDataPoint[] = filteredPercentRaw
+    ?.map(item => ({
+      ...item,
+      time: new Date(item.time).getTime() / 1000 as Time,
+    })) || [];
+
   return (
     <BasePnLChart
       data={formattedData}
+      percentData={formattedPercent}
       height={height}
       isInteractive={isInteractive}
       title={title}

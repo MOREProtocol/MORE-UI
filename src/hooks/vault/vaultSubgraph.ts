@@ -848,17 +848,67 @@ export const processDailyPnLPercentEvolution = (
   transactions: UserVaultTransaction[],
   vaultSnapshots: VaultDailySnapshot[]
 ): Array<{ time: string; value: number }> => {
-  const daily = computeDailyPortfolioValues(transactions, vaultSnapshots);
-  const percentChanges: Array<{ time: string; value: number }> = [];
-  let prevPercent = 0;
-  daily.forEach((v, idx) => {
-    const invested = Math.max(1e-9, v.totalInvestedUSD);
-    const pct = v.totalPnLUSD / invested;
-    const delta = idx === 0 ? 0 : (pct - prevPercent);
-    percentChanges.push({ time: new Date(v.timestamp * 1000).toISOString(), value: delta });
-    prevPercent = pct;
+  if (!transactions || transactions.length === 0 || !vaultSnapshots || vaultSnapshots.length === 0) {
+    return [];
+  }
+
+  const vaultPositions = buildDailyPositionHistory(transactions);
+
+  const snapshotsByVault = new Map<string, Map<string, VaultDailySnapshot>>();
+  vaultSnapshots.forEach(snapshot => {
+    const vaultId = snapshot.vault.id;
+    const dayKey = new Date(parseInt(snapshot.timestamp) * 1000).toISOString().split('T')[0];
+    if (!snapshotsByVault.has(vaultId)) {
+      snapshotsByVault.set(vaultId, new Map());
+    }
+    snapshotsByVault.get(vaultId)!.set(dayKey, snapshot);
   });
-  return percentChanges;
+
+  const allDays = new Set<string>();
+  vaultSnapshots.forEach(snapshot => {
+    allDays.add(new Date(parseInt(snapshot.timestamp) * 1000).toISOString().split('T')[0]);
+  });
+  const sortedDays = Array.from(allDays).sort();
+
+  const results: Array<{ time: string; value: number }> = [];
+  if (sortedDays.length === 0) return results;
+
+  // First day has no previous day to compare against
+  results.push({ time: new Date(new Date(sortedDays[0] + 'T00:00:00Z').getTime()).toISOString(), value: 0 });
+
+  for (let i = 1; i < sortedDays.length; i++) {
+    const prevDay = sortedDays[i - 1];
+    const curDay = sortedDays[i];
+    const prevTs = new Date(prevDay + 'T00:00:00Z').getTime() / 1000;
+
+    let totalPrevValue = 0;
+    let weightedReturnSum = 0;
+
+    vaultPositions.forEach((positions, vaultId) => {
+      const prevPosition = positions
+        .filter(pos => pos.timestamp <= prevTs)
+        .slice(-1)[0];
+      if (!prevPosition || prevPosition.sharesBalance <= 0) return;
+
+      const prevSnap = snapshotsByVault.get(vaultId)?.get(prevDay);
+      const curSnap = snapshotsByVault.get(vaultId)?.get(curDay);
+      if (!prevSnap || !curSnap) return;
+
+      const prevPrice = prevSnap.sharePriceUSD ? parseFloat(prevSnap.sharePriceUSD) : NaN;
+      const curPrice = curSnap.sharePriceUSD ? parseFloat(curSnap.sharePriceUSD) : NaN;
+      if (!Number.isFinite(prevPrice) || !Number.isFinite(curPrice) || prevPrice <= 0) return;
+
+      const prevValue = prevPosition.sharesBalance * prevPrice;
+      const vaultReturn = (curPrice / prevPrice) - 1;
+      totalPrevValue += prevValue;
+      weightedReturnSum += prevValue * vaultReturn;
+    });
+
+    const portfolioReturn = totalPrevValue > 0 ? (weightedReturnSum / totalPrevValue) : 0;
+    results.push({ time: new Date(new Date(curDay + 'T00:00:00Z').getTime()).toISOString(), value: portfolioReturn });
+  }
+
+  return results;
 };
 
 // Shared helper: compute daily portfolio value/invested/realized/unrealized/totalPnL per day
