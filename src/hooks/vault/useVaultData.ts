@@ -1392,6 +1392,18 @@ export const useUserPortfolioMetrics = <TResult = PortfolioMetrics>(
     return map;
   }, [assetsDataQuery.data]);
 
+  // Helper to get a specific vault's balance entry quickly
+  const thisVaultBalanceFor = (vaultId: string, arr: UserVaultBalance[]) => {
+    const entry = arr.find(b => b.vault.id.toLowerCase() === vaultId.toLowerCase());
+    if (!entry) return undefined;
+    return {
+      wacbAssetPerShare: parseFloat(entry.weightedAverageCostBasis || '0'),
+      realizedAssetPnL: parseFloat(entry.realizedPnL || '0'),
+      totalDepositedAsset: parseFloat(entry.totalDeposited || '0'),
+      totalWithdrawnAsset: parseFloat(entry.totalWithdrawn || '0'),
+    };
+  };
+
   return useVaultQuery<PortfolioMetrics, TResult>(
     [...vaultQueryKeys.userPortfolioMetrics(userAddress, chainId), balancesQuery.data, period, assetAddressesForPricing.join(','), (assetsDataQuery.data || []).length, (liveShareInfo.data || []).length, (dailySeries.data?.dailyAmountEvolution || []).length],
     async () => {
@@ -1427,7 +1439,7 @@ export const useUserPortfolioMetrics = <TResult = PortfolioMetrics>(
 
       // USD prices from useAssetsData
 
-      // Compute live portfolio totals and per-vault metrics
+      // Compute live portfolio totals and per-vault metrics (USD and asset)
       let totalBalanceUSD = 0;
       let totalInvestedUSD = 0;
       let totalRealizedPnLUSD = 0;
@@ -1441,10 +1453,19 @@ export const useUserPortfolioMetrics = <TResult = PortfolioMetrics>(
         const invested = deposited - withdrawn;
         const realized = parseFloat(b.realizedPnLUSD || '0');
         const sharePriceAsset = vaultIdToSharePriceAsset.get(vaultId) ?? 0;
-        const assetAddr = perVaultLiveData.find(d => d.vaultId.toLowerCase() === vaultId)?.assetAddress || '';
+        const live = perVaultLiveData.find(d => d.vaultId.toLowerCase() === vaultId);
+        const assetAddr = live?.assetAddress || '';
         const assetUsd = assetAddr ? (assetUsdMap.get(assetAddr) ?? 0) : 0;
         const balanceUSD = shares * sharePriceAsset * assetUsd;
         const unrealizedPnLUSD = balanceUSD - invested;
+
+        // Asset-denominated PnL and percent
+        const wacb = thisVaultBalanceFor(vaultId, balancesArrLive)?.wacbAssetPerShare ?? parseFloat((balancesArrLive.find(b => b.vault.id.toLowerCase() === vaultId)?.weightedAverageCostBasis) || '0');
+        const realizedAssetPnL = parseFloat((balancesArrLive.find(b => b.vault.id.toLowerCase() === vaultId)?.realizedPnL) || '0');
+        const unrealizedAssetPnLVal = shares * (sharePriceAsset - (typeof wacb === 'number' ? wacb : 0));
+        const totalPnLAsset = realizedAssetPnL + unrealizedAssetPnLVal;
+        const investedAsset = parseFloat((balancesArrLive.find(b => b.vault.id.toLowerCase() === vaultId)?.totalDeposited) || '0') - parseFloat((balancesArrLive.find(b => b.vault.id.toLowerCase() === vaultId)?.totalWithdrawn) || '0');
+        const percentPnLAsset = investedAsset > 0 ? (totalPnLAsset / investedAsset) : 0;
 
         totalBalanceUSD += balanceUSD;
         totalInvestedUSD += invested;
@@ -1457,6 +1478,11 @@ export const useUserPortfolioMetrics = <TResult = PortfolioMetrics>(
           balanceUSD,
           totalDepositedUSD: deposited,
           totalWithdrawnUSD: withdrawn,
+          realizedPnLAsset: realizedAssetPnL,
+          unrealizedPnLAsset: unrealizedAssetPnLVal,
+          totalPnLAsset,
+          investedAsset,
+          percentPnLAsset,
         });
       });
 

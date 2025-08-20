@@ -4,7 +4,7 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import InfoIcon from '@mui/icons-material/InfoOutlined';
 import { useVault, VaultTab } from 'src/hooks/vault/useVault';
 import { useEffect, useMemo, useState } from 'react';
-import { useUserVaultsData, useVaultData, useAssetData, useUserVaultBalances, useUserPortfolioMetrics } from 'src/hooks/vault/useVaultData';
+import { useUserVaultsData, useVaultData, useAssetData, useUserVaultBalances, useUserPortfolioMetrics, useVaultsSharePriceAsset } from 'src/hooks/vault/useVaultData';
 import { CompactMode } from 'src/components/CompactableTypography';
 import { Address } from 'src/components/Address';
 import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
@@ -101,13 +101,24 @@ export const VaultDetail = () => {
   const perVaultMetrics = portfolioMetricsQuery.data?.perVaultMetrics || [];
   const perVault = perVaultMetrics.find(m => m.vaultId.toLowerCase() === (selectedVaultId || '').toLowerCase());
   const totalPnLUSD = perVault ? (perVault.realizedPnLUSD + perVault.unrealizedPnLUSD) : 0;
-  const totalInvestedUSD = perVault ? (perVault.totalDepositedUSD - perVault.totalWithdrawnUSD) : 0;
-  const pnlPercentage = totalInvestedUSD > 0 ? (totalPnLUSD / totalInvestedUSD) : 0;
 
-  // Convert P&L to asset denomination using current asset price
-  const assetPrice = assetData.data?.price || 0;
-  const totalPnLInAsset = assetPrice > 0 ? totalPnLUSD / assetPrice : 0;
-  const totalPnLInUsd = new BigNumber(totalPnLInAsset).multipliedBy(assetData.data?.price || 0);
+  // Compute P&L in asset denomination properly: realized (asset) + unrealized (shares*(sharePriceAsset - WACB))
+  const thisVaultBalance = userVaultBalances?.data?.find(
+    (b) => b.vault.id.toLowerCase() === (selectedVaultId || '').toLowerCase()
+  );
+  const shareInfo = useVaultsSharePriceAsset(selectedVaultId ? [selectedVaultId] : [], { enabled: !!selectedVaultId });
+  const sharePriceAsset = shareInfo.data && shareInfo.data[0] ? shareInfo.data[0].sharePriceAsset : 0;
+
+  const shares = thisVaultBalance ? parseFloat(thisVaultBalance.sharesBalance || '0') : 0;
+  const wacb = thisVaultBalance ? parseFloat(thisVaultBalance.weightedAverageCostBasis || '0') : 0;
+  const realizedAssetPnL = thisVaultBalance ? parseFloat(thisVaultBalance.realizedPnL || '0') : 0;
+  const unrealizedAssetPnL = shares * (sharePriceAsset - wacb);
+  const totalPnLInAsset = realizedAssetPnL + unrealizedAssetPnL;
+  const totalPnLInUsd = totalPnLUSD;
+
+  // Asset-based invested and percent
+  const totalInvestedAsset = thisVaultBalance ? (parseFloat(thisVaultBalance.totalDeposited || '0') - parseFloat(thisVaultBalance.totalWithdrawn || '0')) : 0;
+  const pnlPercentageAsset = totalInvestedAsset > 0 ? (totalPnLInAsset / totalInvestedAsset) : 0;
 
   const chartDataOptions = {
     apy: {
@@ -370,7 +381,7 @@ export const VaultDetail = () => {
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <FormattedNumber
-                          value={pnlPercentage}
+                          value={pnlPercentageAsset}
                           percent
                           variant="secondary12"
                           compact

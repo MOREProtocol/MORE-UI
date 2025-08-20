@@ -555,6 +555,12 @@ export interface PortfolioMetrics {
     balanceUSD: number;
     totalDepositedUSD: number;
     totalWithdrawnUSD: number;
+    // Asset-denominated metrics (optional)
+    realizedPnLAsset?: number;
+    unrealizedPnLAsset?: number;
+    totalPnLAsset?: number;
+    investedAsset?: number;
+    percentPnLAsset?: number;
   }>;
   // Maximum of userVaultBalances.lastPnLUpdateTimestamp across all balances
   // Expressed as UNIX seconds
