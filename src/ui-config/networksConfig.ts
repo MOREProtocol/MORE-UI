@@ -80,11 +80,11 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
   [ChainIds.ethereum]: {
     name: 'Ethereum',
     displayName: 'Ethereum',
-    get privateJsonRPCUrl() {
-      return typeof window !== 'undefined'
-        ? `${window.location.origin}/api/ethereum-rpc`
-        : 'https://app.more.markets/api/ethereum-rpc';
-    },
+    // get privateJsonRPCUrl() {
+    //   return typeof window !== 'undefined'
+    //     ? `${window.location.origin}/api/ethereum-rpc`
+    //     : 'https://app.more.markets/api/ethereum-rpc';
+    // },
     publicJsonRPCUrl: [
       'https://eth.merkle.io',
       'https://ethereum.publicnode.com',
