@@ -2,7 +2,7 @@ import { useQueries, useQuery, UseQueryOptions, UseQueryResult } from '@tanstack
 import { ethers } from 'ethers';
 import { calculateFromTimestamp, TimePeriod } from 'src/modules/charts/timePeriods';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import {
   ComputedReserveDataWithMarket,
   useAppDataContext,
@@ -12,6 +12,8 @@ import { vaultsConfig } from 'src/modules/vault-detail/VaultManagement/facets/va
 import { networkConfigs } from 'src/ui-config/networksConfig';
 import { ChainIds } from 'src/utils/const';
 import { useWalletClient } from 'wagmi';
+// import { useTokensBalance, TokenInfoWithBalance } from 'src/hooks/generic/useTokensBalance';
+// import { TokenInfo } from 'src/ui-config/TokenList';
 
 import { VAULT_ID_TO_CURATOR_INFO, VAULT_ID_TO_NAME, VAULT_ID_TO_MARKDOWN_DESCRIPTION } from './constants';
 import { useVault, VaultData } from './useVault';
@@ -75,6 +77,61 @@ export const vaultQueryKeys = {
     chainId
   ],
   userPortfolioMetrics: (userAddress: string, chainId?: number) => ['userPortfolioMetrics', userAddress, chainId],
+};
+
+// Helper: fetch depositable assets and enrich with token metadata, ensuring primary asset is included
+const getDepositableAssetsWithMetadata = async (
+  provider: ethers.providers.Provider,
+  vaultId: string,
+  primaryAssetAddress?: string,
+  fallbackSymbol?: string,
+  fallbackDecimals?: number,
+  fallbackName?: string
+): Promise<Array<{ address: string; symbol?: string; decimals?: number; name?: string }>> => {
+  let depositableAssets: Array<{ address: string; symbol?: string; decimals?: number; name?: string }> = [];
+  try {
+    const depAssets: string[] = await new ethers.Contract(
+      vaultId,
+      ['function getDepositableAssets() external view returns (address[])'],
+      provider
+    ).getDepositableAssets();
+
+    const unique = Array.from(new Set((depAssets || []).map((a) => (a || '').toLowerCase())));
+    depositableAssets = await Promise.all(
+      unique.map(async (addr) => {
+        try {
+          const token = new ethers.Contract(
+            addr,
+            [
+              'function symbol() external view returns (string)',
+              'function name() external view returns (string)',
+              'function decimals() external view returns (uint8)',
+            ],
+            provider
+          );
+          const [sym, nm, dec] = await Promise.all([
+            token.symbol().catch(() => 'UNKNOWN'),
+            token.name().catch(() => 'Unknown Token'),
+            token.decimals().catch(() => 18),
+          ]);
+          return { address: addr, symbol: sym, name: nm, decimals: dec };
+        } catch {
+          return { address: addr };
+        }
+      })
+    );
+  } catch {
+    depositableAssets = [];
+  }
+
+  if (primaryAssetAddress) {
+    const lower = (primaryAssetAddress || '').toLowerCase();
+    if (!depositableAssets.some((a) => (a.address || '').toLowerCase() === lower)) {
+      depositableAssets.unshift({ address: primaryAssetAddress, symbol: fallbackSymbol, decimals: fallbackDecimals, name: fallbackName });
+    }
+  }
+
+  return depositableAssets;
 };
 
 // General hook options type
@@ -694,6 +751,16 @@ export const useVaultsListData = <TResult = VaultData>(
         const curatorInfo = VAULT_ID_TO_CURATOR_INFO[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_CURATOR_INFO] || undefined;
 
         const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
+
+        const depositableAssets = await getDepositableAssetsWithMetadata(
+          provider,
+          vaultId,
+          assetAddress,
+          assetSymbol || reserve?.symbol,
+          assetDecimals,
+          reserve?.name
+        );
+
         // Get incentives for this vault
         const vaultIncentives = incentivesData ? getVaultIncentives(incentivesData, vaultId) : [];
         const vaultData: VaultData = {
@@ -708,6 +775,7 @@ export const useVaultsListData = <TResult = VaultData>(
               decimals: assetDecimals,
               address: assetAddress,
             },
+            depositableAssets,
             sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
             decimals: vaultDecimals,
             apy: latestSnapshot?.apyDailyReturnLast365Days ? parseFloat(latestSnapshot.apyDailyReturnLast365Days) : undefined,
@@ -1128,6 +1196,15 @@ export const useVaultData = <TResult = VaultData>(
       // Get incentives for this vault
       const vaultIncentives = incentivesData ? getVaultIncentives(incentivesData, vaultId) : [];
 
+      const depositableAssets = await getDepositableAssetsWithMetadata(
+        actualProvider,
+        vaultId,
+        assetAddress,
+        assetSymbol || reserve?.symbol,
+        assetDecimals,
+        assetName || reserve?.name
+      );
+
       return {
         id: vaultId,
         chainId: vaultActualChainId, // Network where the vault actually exists
@@ -1142,6 +1219,7 @@ export const useVaultData = <TResult = VaultData>(
             decimals: assetDecimals,
             address: assetAddress,
           },
+          depositableAssets,
           sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
           decimals: decimals, // vault decimals
           symbol,
@@ -1197,6 +1275,74 @@ export const useVaultData = <TResult = VaultData>(
   }
 
   return queryApiResult;
+};
+
+// Hook: balances for depositable assets of a given vault for a user
+export const useDepositableAssetsBalances = (
+  vaultId: string | null | undefined,
+  userAddress: string | null | undefined
+) => {
+  const { chainId } = useVault();
+  const vault = useVaultData(vaultId || '', { enabled: !!vaultId });
+
+  const targetChainId = (vault.data?.chainId || chainId) as number | undefined;
+
+  const assets = ((vault.data?.overview?.depositableAssets || []) as Array<{
+    address?: string;
+    decimals?: number;
+  }>).filter((a) => !!a.address && typeof a.decimals === 'number');
+
+  const [balances, setBalances] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    const run = async () => {
+      if (!vaultId || !userAddress || !targetChainId || assets.length === 0) {
+        setBalances({});
+        setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        const netCfg = networkConfigs[targetChainId];
+        const rpcUrl = netCfg?.privateJsonRPCUrl || netCfg?.publicJsonRPCUrl?.[0];
+        if (!rpcUrl) {
+          setBalances({});
+          setLoading(false);
+          return;
+        }
+        const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+        const entries = await Promise.all(
+          assets.map(async (a) => {
+            const addr = (a.address as string).toLowerCase();
+            try {
+              const erc20 = new ethers.Contract(
+                addr,
+                [{ name: 'balanceOf', type: 'function', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ name: 'balance', type: 'uint256' }] }],
+                provider
+              );
+              const raw = await erc20.balanceOf(userAddress);
+              const formatted = formatUnits(raw, (a.decimals as number) || 18);
+              return [addr, formatted] as const;
+            } catch {
+              return [addr, '0'] as const;
+            }
+          })
+        );
+        const map: Record<string, string> = {};
+        entries.forEach(([addr, bal]) => (map[addr] = bal));
+        setBalances(map);
+      } catch {
+        setBalances({});
+      } finally {
+        setLoading(false);
+      }
+    };
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vaultId, userAddress, targetChainId, JSON.stringify(assets.map((a) => a.address))]);
+
+  return { balances, isLoading: loading };
 };
 
 // PnL related hooks

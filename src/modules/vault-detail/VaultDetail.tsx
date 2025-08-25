@@ -54,7 +54,7 @@ export const VaultDetail = () => {
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [isWhitelistModalOpen, setIsWhitelistModalOpen] = useState(false);
-  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'sharePrice' | 'apy' | 'totalSupply' | 'totalAssets'>('sharePrice');
+  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'sharePrice' | 'totalAssets'>('sharePrice');
 
   // Get whitelist data from smart contract
   const { isWhitelisted, whitelistAmount, isWhitelistEnabled } = useDepositWhitelist();
@@ -78,18 +78,18 @@ export const VaultDetail = () => {
   const aumFormatted = selectedVault
     ? formatUnits(aum, selectedVault?.overview?.asset?.decimals || 18)
     : '0';
-  const aumInUsd = new BigNumber(aumFormatted).multipliedBy(
-    assetData.data?.price || 0
-  );
-  const totalSupply = selectedVault
-    ? BigInt(selectedVault?.financials?.liquidity?.totalSupply)
-    : BigInt(0);
-  const totalSupplyFormatted = selectedVault
-    ? formatUnits(totalSupply, selectedVault?.overview?.decimals || 18)
-    : '0';
-  const totalSupplyInUsd = new BigNumber(totalSupplyFormatted).multipliedBy(
-    assetData.data?.price || 0
-  );
+  // const aumInUsd = new BigNumber(aumFormatted).multipliedBy(
+  //   assetData.data?.price || 0
+  // );
+  // const totalSupply = selectedVault
+  //   ? BigInt(selectedVault?.financials?.liquidity?.totalSupply)
+  //   : BigInt(0);
+  // const totalSupplyFormatted = selectedVault
+  //   ? formatUnits(totalSupply, selectedVault?.overview?.decimals || 18)
+  //   : '0';
+  // const totalSupplyInUsd = new BigNumber(totalSupplyFormatted)
+  //   .multipliedBy(selectedVault?.overview?.sharePrice || 0)
+  //   .multipliedBy(assetData.data?.price || 0);
   const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
 
   // const secondsSinceInception = Number(new Date().getTime() / 1000) - Number(selectedVault?.overview?.creationTimestamp);
@@ -119,14 +119,23 @@ export const VaultDetail = () => {
   const pnlPercentageAsset = totalInvestedAsset > 0 ? (totalPnLInAsset / totalInvestedAsset) : 0;
 
   const chartDataOptions = {
-    apy: {
-      label: 'APY',
-      data: selectedVault?.overview?.historicalSnapshots?.apyWeeklyReturnTrailing || [],
-    },
-    totalSupply: {
-      label: 'Total Supply',
-      data: selectedVault?.overview?.historicalSnapshots?.totalSupply || [],
-    },
+    // apy: {
+    //   label: 'APY',
+    //   data: selectedVault?.overview?.historicalSnapshots?.apyWeeklyReturnTrailing || [],
+    // },
+    // totalSupply: {
+    //   label: 'Total Supply',
+    //   data: (() => {
+    //     const supplySeries = selectedVault?.overview?.historicalSnapshots?.totalSupply || [];
+    //     const sharePriceSeries = selectedVault?.overview?.historicalSnapshots?.sharePrice || [];
+    //     if (!supplySeries.length || !sharePriceSeries.length) return supplySeries;
+    //     const sharePriceByTime = new Map<string, number>(sharePriceSeries.map((p: { time: string; value: number }) => [p.time, p.value]));
+    //     return supplySeries.map((p: { time: string; value: number }) => ({
+    //       time: p.time,
+    //       value: (p?.value || 0) * (sharePriceByTime.get(p.time) || 0), // shares -> asset units
+    //     }));
+    //   })(),
+    // },
     sharePrice: {
       label: 'Share Price',
       data: selectedVault?.overview?.historicalSnapshots?.sharePrice || [],
@@ -139,6 +148,7 @@ export const VaultDetail = () => {
 
   const currentChartLabel = chartDataOptions[selectedChartDataKey]?.label || '';
   const currentChartData = chartDataOptions[selectedChartDataKey]?.data;
+  console.log(selectedVault?.overview?.historicalSnapshots?.totalAssets);
 
   const handleDepositClick = () => {
     // If whitelisting is not enabled, allow direct deposit
@@ -429,9 +439,13 @@ export const VaultDetail = () => {
                 )}
               </Box>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                {isLoading || isUserVaultBalancesLoading || isUserVaultDataLoading || assetData.isLoading ? (
+                {!accountAddress ? (
+                  <Typography variant="main16" fontWeight={600}>
+                    –
+                  </Typography>
+                ) : isLoading || isUserVaultBalancesLoading || isUserVaultDataLoading || assetData.isLoading ? (
                   <Skeleton width={80} height={24} />
-                ) : !accountAddress || !perVault ? (
+                ) : !perVault ? (
                   <Typography variant="main16" fontWeight={600}>
                     –
                   </Typography>
@@ -456,14 +470,27 @@ export const VaultDetail = () => {
               <Typography variant="secondary14" color="text.secondary">
                 Deposit Tokens
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {isLoading ? <Skeleton width={80} height={24} /> :
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    {/* TODO: add getDepositableTokens to SC */}
-                    <TokenIcon symbol={vaultData?.data?.overview?.asset?.symbol || ''} fontSize="medium" />
-                    <Typography variant="main16" fontWeight={600}>{vaultData?.data?.overview?.asset?.symbol || ''}</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                {isLoading ? (
+                  <Skeleton width={80} height={24} />
+                ) : (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                    {(selectedVault?.overview?.depositableAssets && selectedVault.overview.depositableAssets.length > 0
+                      ? selectedVault.overview.depositableAssets
+                      : [
+                        {
+                          address: selectedVault?.overview?.asset?.address || '',
+                          symbol: selectedVault?.overview?.asset?.symbol || '',
+                        },
+                      ]
+                    ).map((token) => (
+                      <Box key={(token.address || token.symbol || Math.random().toString())} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <TokenIcon symbol={token.symbol || ''} fontSize="medium" />
+                        <Typography variant="main16" fontWeight={600}>{token.symbol || ''}</Typography>
+                      </Box>
+                    ))}
                   </Box>
-                }
+                )}
               </Box>
             </Box>
 
@@ -758,7 +785,7 @@ export const VaultDetail = () => {
                 )}
               </Box>
             </Box> */}
-            <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
+            {/* <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
               <Typography variant="secondary14" color="text.secondary">Total Supply</Typography>
               <Box
                 onClick={() => setSelectedChartDataKey('totalSupply')}
@@ -795,7 +822,7 @@ export const VaultDetail = () => {
                 </>
                 }
               </Box>
-            </Box>
+            </Box> */}
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
               <Typography variant="secondary14" color="text.secondary">Net Asset Value</Typography>
               <Box
@@ -818,8 +845,8 @@ export const VaultDetail = () => {
                 }}>
                 {isLoading ? <Skeleton width={60} height={24} /> : <>
                   <FormattedNumber
-                    value={aumInUsd.toString() || '0'}
-                    symbol={'USD'}
+                    value={aumFormatted || '0'}
+                    symbol={vaultData?.data?.overview?.asset?.symbol || ''}
                     variant="main16"
                     sx={{ fontWeight: 800 }}
                   />
@@ -847,7 +874,7 @@ export const VaultDetail = () => {
               <LineChart
                 height={300}
                 data={currentChartData}
-                yAxisFormat={selectedChartDataKey === 'apy' ? '%' : vaultData?.data?.overview?.asset?.symbol}
+                yAxisFormat={vaultData?.data?.overview?.asset?.symbol}
                 showTimePeriodSelector={true}
               />
             ) : (
