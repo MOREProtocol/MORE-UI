@@ -148,7 +148,6 @@ export const VaultDetail = () => {
 
   const currentChartLabel = chartDataOptions[selectedChartDataKey]?.label || '';
   const currentChartData = chartDataOptions[selectedChartDataKey]?.data;
-  console.log(selectedVault?.overview?.historicalSnapshots?.totalAssets);
 
   const handleDepositClick = () => {
     // If whitelisting is not enabled, allow direct deposit
