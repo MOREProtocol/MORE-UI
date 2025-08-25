@@ -4,22 +4,17 @@ import {
   Alert,
   Box,
   CircularProgress,
-  MenuItem,
-  Select,
-  FormControl,
   Avatar,
-  TextField,
   Button,
   Divider,
   Paper,
 } from '@mui/material';
-import { useAccount, useChainId, useSwitchChain, useWalletClient, useBalance, useReadContract } from 'wagmi';
+import { useAccount, useChainId, useSwitchChain, useWalletClient, useBalance, useReadContract, usePublicClient } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
 import { debounce } from 'lodash';
 import { BridgeService, RelayToken, BridgeQuote } from '../services/BridgeService';
 import { ChainIds } from '../utils/const';
-import { ExternalTokenIcon } from './primitives/TokenIcon';
-import { FormattedNumber } from './primitives/FormattedNumber';
+import { AssetInput, Asset } from './transactions/AssetInput';
 
 export const BridgeContent: React.FC = () => {
   const { address } = useAccount();
@@ -138,6 +133,51 @@ export const BridgeContent: React.FC = () => {
       enabled: !!address && !!selectedSourceToken && selectedSourceToken.address !== '0x0000000000000000000000000000000000000000',
     },
   });
+  const publicClient = usePublicClient({ chainId: ChainIds.ethereum });
+  const [allBalances, setAllBalances] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    const run = async () => {
+      const map = new Map<string, string>();
+      // Native ETH
+      const native = sourceTokens.find((t) => t.address === '0x0000000000000000000000000000000000000000');
+      if (native) {
+        map.set(native.address.toLowerCase(), ethBalance ? formatUnits(ethBalance.value, native.decimals) : '0');
+      }
+      // ERC20s
+      if (!address || !publicClient) {
+        setAllBalances(map);
+        return;
+      }
+      const abi = [
+        {
+          name: 'balanceOf',
+          type: 'function',
+          stateMutability: 'view',
+          inputs: [{ name: 'account', type: 'address' }],
+          outputs: [{ name: 'balance', type: 'uint256' }],
+        },
+      ] as const;
+      await Promise.all(
+        sourceTokens
+          .filter((t) => t.address !== '0x0000000000000000000000000000000000000000')
+          .map(async (t) => {
+            try {
+              const value = (await publicClient.readContract({
+                address: t.address as `0x${string}`,
+                abi,
+                functionName: 'balanceOf',
+                args: [address as `0x${string}`],
+              })) as bigint;
+              map.set(t.address.toLowerCase(), formatUnits(value, t.decimals));
+            } catch {
+              map.set(t.address.toLowerCase(), '0');
+            }
+          })
+      );
+      setAllBalances(map);
+    };
+    if (sourceTokens.length > 0) run();
+  }, [sourceTokens, address, publicClient, ethBalance]);
 
   // Update source token balance when balances change
   useEffect(() => {
@@ -276,12 +316,6 @@ export const BridgeContent: React.FC = () => {
     setError(null);
   };
 
-  const handleMaxClick = () => {
-    const maxAmount = sourceTokenBalance;
-    setAmount(maxAmount);
-    debouncedAmountChange(maxAmount);
-    setError(null);
-  };
 
   const handleReset = () => {
     setAmount('');
@@ -297,7 +331,7 @@ export const BridgeContent: React.FC = () => {
       maxWidth: 600,
       minWidth: 400,
       mx: 'auto',
-      backgroundColor: 'background.surface',
+      backgroundColor: 'background.paper',
       borderRadius: 2,
       padding: '24px',
       boxShadow: '0px 2px 1px rgba(0, 0, 0, 0.05),0px 0px 1px rgba(0, 0, 0, 0.25)',
@@ -356,121 +390,37 @@ export const BridgeContent: React.FC = () => {
           </Typography>
         </Box>
 
-        {/* Asset Input */}
-        <Paper
-          sx={{
-            border: (theme) => `1px solid ${theme.palette.divider}`,
-            borderRadius: '6px',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Amount Input Row */}
-          <Box sx={{ p: 3, pb: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Typography variant="secondary14" color="text.secondary">
-                Amount
-              </Typography>
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <TextField
-                placeholder="0.0"
-                value={amount}
-                onChange={(e) => handleAmountChange(e.target.value)}
-                type="number"
-                inputProps={{
-                  step: selectedSourceToken?.symbol === 'ETH' ? '0.001' : '0.01',
-                  min: '0',
-                  style: { fontSize: '28px', fontWeight: 'bold', padding: 0 }
-                }}
-                sx={{
-                  flex: 1,
-                  '& .MuiOutlinedInput-root': {
-                    border: 'none',
-                    '& fieldset': { border: 'none' },
-                    '&:hover fieldset': { border: 'none' },
-                    '&.Mui-focused fieldset': { border: 'none' },
-                  },
-                }}
-                variant="outlined"
-              />
-
-              {/* Token Selector */}
-              {selectedSourceToken && (
-                <FormControl variant="outlined" sx={{ minWidth: 140 }}>
-                  <Select
-                    value={selectedSourceToken.address}
-                    onChange={(e) => {
-                      const token = sourceTokens.find(t => t.address === e.target.value);
-                      if (token) setSelectedSourceToken(token);
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                      '&:hover .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                    }}
-                    renderValue={() => (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <ExternalTokenIcon
-                          symbol={selectedSourceToken.symbol}
-                          logoURI={selectedSourceToken.logoURI}
-                          sx={{ width: 24, height: 24 }}
-                        />
-                        <Typography variant="main16" fontWeight={600}>
-                          {selectedSourceToken.symbol}
-                        </Typography>
-                      </Box>
-                    )}
-                  >
-                    {sourceTokens.map((token) => (
-                      <MenuItem key={token.address} value={token.address}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-                          <ExternalTokenIcon
-                            symbol={token.symbol}
-                            logoURI={token.logoURI}
-                          />
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="main14">{token.symbol}</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {token.name}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-            </Box>
-          </Box>
-
-          {/* Balance Row */}
-          <Box sx={{ display: 'flex', alignItems: 'center', px: 3, py: 2 }}>
-            <Box sx={{ flex: 1 }}>
-              {/* USD Value placeholder */}
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="secondary12" color="text.secondary">
-                Balance{' '}
-              </Typography>
-              <FormattedNumber
-                value={sourceTokenBalance}
-                compact
-                variant="secondary12"
-                color="text.secondary"
-                symbolsColor="text.disabled"
-              />
-              <Button
-                size="small"
-                sx={{ minWidth: 0, ml: 1, p: 0 }}
-                onClick={handleMaxClick}
-                disabled={isLoading || parseFloat(sourceTokenBalance) === 0}
-              >
-                Max
-              </Button>
-            </Box>
-          </Box>
-        </Paper>
+        {sourceTokens.length > 0 && (
+          <AssetInput
+            value={amount}
+            onChange={(val) => {
+              if (val === '-1') {
+                const maxAmount = sourceTokenBalance;
+                setAmount(maxAmount);
+                debouncedAmountChange(maxAmount);
+                setError(null);
+                return;
+              }
+              handleAmountChange(val);
+            }}
+            usdValue={undefined}
+            symbol={selectedSourceToken?.symbol || sourceTokens[0]?.symbol || ''}
+            assets={sourceTokens.map((t) => ({
+              address: t.address,
+              symbol: t.symbol,
+              balance: allBalances.get((t.address || '').toLowerCase()) || '0',
+              decimals: t.decimals,
+            }) as Asset)}
+            onSelect={(asset) => {
+              const token = sourceTokens.find((t) => t.symbol === asset.symbol);
+              if (token) setSelectedSourceToken(token);
+            }}
+            balanceText={'Balance'}
+            maxValue={sourceTokenBalance}
+            isMaxSelected={amount === sourceTokenBalance}
+            inputTitle="Amount"
+          />
+        )}
       </Box>
 
       {/* Separator */}
@@ -488,106 +438,25 @@ export const BridgeContent: React.FC = () => {
           </Typography>
         </Box>
 
-        {/* Output Amount */}
-        <Paper
-          sx={{
-            border: (theme) => `1px solid ${theme.palette.divider}`,
-            borderRadius: '6px',
-            overflow: 'hidden',
-            opacity: 0.8,
-          }}
-        >
-          {/* Amount Output Row */}
-          <Box sx={{ p: 3, pb: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Typography variant="secondary14" color="text.secondary">
-                You will receive
-              </Typography>
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <TextField
-                placeholder="0.0"
-                value={outputAmount}
-                InputProps={{
-                  readOnly: true,
-                }}
-                inputProps={{
-                  style: { fontSize: '28px', fontWeight: 'bold', padding: 0 }
-                }}
-                sx={{
-                  flex: 1,
-                  '& .MuiOutlinedInput-root': {
-                    border: 'none',
-                    '& fieldset': { border: 'none' },
-                    '&:hover fieldset': { border: 'none' },
-                    '&.Mui-focused fieldset': { border: 'none' },
-                  },
-                  '& .MuiInputBase-input': {
-                    color: 'text.secondary',
-                  },
-                }}
-                variant="outlined"
-              />
-
-              {/* Token Selector */}
-              {selectedDestinationToken && (
-                <FormControl variant="outlined" sx={{ minWidth: 140 }}>
-                  <Select
-                    value={selectedDestinationToken.address}
-                    onChange={(e) => {
-                      const token = destinationTokens.find(t => t.address === e.target.value);
-                      if (token) setSelectedDestinationToken(token);
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                      '&:hover .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                    }}
-                    renderValue={() => (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <ExternalTokenIcon
-                          symbol={selectedDestinationToken.symbol}
-                          logoURI={selectedDestinationToken.logoURI}
-                        />
-                        <Typography variant="main16" fontWeight={600}>
-                          {selectedDestinationToken.symbol}
-                        </Typography>
-                      </Box>
-                    )}
-                  >
-                    {destinationTokens.map((token) => (
-                      <MenuItem key={token.address} value={token.address}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-                          <ExternalTokenIcon
-                            symbol={token.symbol}
-                            logoURI={token.logoURI}
-                          />
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="main14">{token.symbol}</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {token.name}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-            </Box>
-          </Box>
-
-          {/* Bottom Row */}
-          <Box sx={{ display: 'flex', alignItems: 'center', px: 3, py: 2 }}>
-            <Box sx={{ flex: 1 }}>
-              {/* USD Value placeholder */}
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {/* Empty space to match layout */}
-            </Box>
-          </Box>
-        </Paper>
+        {destinationTokens.length > 0 && (
+          <AssetInput
+            value={outputAmount}
+            onChange={undefined}
+            usdValue={undefined}
+            disableInput
+            symbol={selectedDestinationToken?.symbol || destinationTokens[0]?.symbol || ''}
+            assets={destinationTokens.map((t) => ({
+              address: t.address,
+              symbol: t.symbol,
+              decimals: t.decimals,
+            }) as Asset)}
+            onSelect={(asset) => {
+              const token = destinationTokens.find((t) => t.symbol === asset.symbol);
+              if (token) setSelectedDestinationToken(token);
+            }}
+            inputTitle="You will receive"
+          />
+        )}
       </Box>
 
       {/* Quote and Fees Section */}

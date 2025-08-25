@@ -8,13 +8,11 @@ import {
   Typography,
 } from '@mui/material';
 import React, { ReactNode } from 'react';
-import { PROD_ENV } from 'src/utils/marketsAndNetworksConfig';
 
 import { DarkModeSwitcher } from './components/DarkModeSwitcher';
 import { DrawerWrapper } from './components/DrawerWrapper';
 import { MobileCloseButton } from './components/MobileCloseButton';
 import { NavItems } from './components/NavItems';
-import { TestNetModeSwitcher } from './components/TestNetModeSwitcher';
 
 interface MobileMenuProps {
   open: boolean;
@@ -61,7 +59,6 @@ export const MobileMenu = ({ open, setOpen, headerHeight }: MobileMenuProps) => 
         <MenuItemsWrapper title={'Global settings'}>
           <List>
             <DarkModeSwitcher />
-            {PROD_ENV && <TestNetModeSwitcher />}
           </List>
         </MenuItemsWrapper>
       </DrawerWrapper>

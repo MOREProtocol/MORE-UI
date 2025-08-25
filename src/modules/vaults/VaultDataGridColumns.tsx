@@ -1,10 +1,8 @@
-import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import {
   Avatar,
   Box,
   Button,
   Skeleton,
-  SvgIcon,
   Typography,
   useMediaQuery,
   useTheme,
@@ -134,7 +132,7 @@ export const MyDepositCell: React.FC<{ deposit: string; depositUsd: string; symb
   );
 };
 
-export const DepositTokenCell: React.FC<{ symbol: string; address: string }> = ({ symbol }) => {
+export const DepositTokenCell: React.FC<{ symbol?: string; address?: string; symbols?: string[] }> = ({ symbol, symbols }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -149,27 +147,30 @@ export const DepositTokenCell: React.FC<{ symbol: string; address: string }> = (
         flex: '0 1 auto',
       }}
     >
-      <TokenIcon
-        symbol={symbol}
-        sx={{
-          fontSize: isMobile ? '16px' : '20px',
-          flexShrink: 0,
-        }}
-      />
-      <Typography
-        variant={isMobile ? 'caption' : 'secondary14'}
-        sx={{
-          fontWeight: 500,
-          fontSize: isMobile ? '0.7rem' : undefined,
-          lineHeight: isMobile ? 1.2 : undefined,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          flex: 1,
-        }}
-      >
-        {symbol}
-      </Typography>
+      {(symbols && symbols.length > 0 ? symbols : [symbol]).slice(0, 3).map((sym, idx) => (
+        <Box key={`${sym}-${idx}`} sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 0.75 }}>
+          <TokenIcon
+            symbol={sym || ''}
+            sx={{
+              fontSize: isMobile ? '16px' : '20px',
+              flexShrink: 0,
+            }}
+          />
+          <Typography
+            variant={isMobile ? 'caption' : 'secondary14'}
+            sx={{
+              fontWeight: 500,
+              fontSize: isMobile ? '0.7rem' : undefined,
+              lineHeight: isMobile ? 1.2 : undefined,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {sym}
+          </Typography>
+        </Box>
+      ))}
     </Box>
   );
 };
@@ -345,11 +346,6 @@ export const DepositActionCell: React.FC<{ onDeposit: () => void }> = ({ onDepos
         e.stopPropagation();
         onDeposit();
       }}
-      endIcon={
-        <SvgIcon sx={{ fontSize: isMobile ? '14px' : '16px' }}>
-          <ArrowForwardRounded />
-        </SvgIcon>
-      }
       sx={{
         minWidth: 'unset',
         padding: isMobile ? '4px 8px' : '8px 16px',
@@ -380,11 +376,6 @@ export const ManageActionCell: React.FC<{ onManage: () => void }> = ({ onManage 
         e.stopPropagation();
         onManage();
       }}
-      endIcon={
-        <SvgIcon sx={{ fontSize: isMobile ? '14px' : '16px' }}>
-          <ArrowForwardRounded />
-        </SvgIcon>
-      }
       sx={{
         minWidth: 'unset',
         padding: isMobile ? '4px 8px' : '8px 16px',
@@ -415,6 +406,7 @@ export interface VaultGridRow {
   depositToken: string;
   depositTokenSymbol: string;
   depositTokenAddress: string;
+  depositTokenSymbols?: string[];
   network: string;
   networkIcon: string;
   apy: number | undefined;
@@ -453,7 +445,8 @@ export const getStandardVaultColumns = (isMobile = false): ColumnDefinition<Vaul
     label: isMobile ? 'Tokens' : 'Deposit Tokens',
     sortable: true,
     render: (row) => (
-      <DepositTokenCell symbol={row.depositTokenSymbol} address={row.depositTokenAddress} />
+      <DepositTokenCell symbol={row.depositTokenSymbol} address={row.depositTokenAddress} symbols={row.depositTokenSymbols}
+      />
     ),
     skeletonRender: () => (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -535,7 +528,8 @@ export const getUserVaultColumns = (isMobile = false): ColumnDefinition<VaultGri
     label: isMobile ? 'Tokens' : 'Deposit Tokens',
     sortable: true,
     render: (row) => (
-      <DepositTokenCell symbol={row.depositTokenSymbol} address={row.depositTokenAddress} />
+      <DepositTokenCell symbol={row.depositTokenSymbol} address={row.depositTokenAddress} symbols={row.depositTokenSymbols}
+      />
     ),
     skeletonRender: () => (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

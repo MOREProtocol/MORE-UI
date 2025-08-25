@@ -1,19 +1,23 @@
-import { Box, Typography, Skeleton, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Typography, Skeleton, useTheme, useMediaQuery, Button } from '@mui/material';
 import { useRouter } from 'next/router';
 import { BigNumber } from 'bignumber.js';
 import { formatUnits } from 'ethers/lib/utils';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import * as allChains from 'viem/chains';
 import { ethers } from 'ethers';
 
 import { ROUTES } from 'src/components/primitives/Link';
 import { BaseDataGrid } from 'src/components/primitives/DataGrid';
 import { useVault, VaultData } from 'src/hooks/vault/useVault';
-import { useDeployedVaults, useVaultsListData, useUserVaultsData, useAssetsData } from 'src/hooks/vault/useVaultData';
+import { useDeployedVaults, useVaultsListData, useUserVaultsData, useAssetsData, useUserData } from 'src/hooks/vault/useVaultData';
+import type { RewardItemEnriched } from 'src/hooks/vault/useVaultData';
 import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
 
 import { getStandardVaultColumns, getUserVaultColumns, DepositActionCell, ManageActionCell, VaultGridRow } from './VaultDataGridColumns';
-import { VaultStatsWidget } from './VaultStatsWidget';
+import { valueToBigNumber } from '@aave/math-utils';
+import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
+// import { PortfolioChartsSection } from './PortfolioChartsSection';
+import { VaultsRewardModal } from './VaultsRewardModal';
 
 // Helper function to get network information from chainId
 const getNetworkInfo = (chainId: number) => {
@@ -65,10 +69,13 @@ const transformVaultsToGridRows = (
     const userDepositFormatted = userVaultData ? formatUnits(userDeposit.toString(), assetDecimals) : undefined;
     const userDepositUsd = userDepositFormatted ? new BigNumber(userDepositFormatted).multipliedBy(assetPrice) : undefined;
 
-    // Get vault TVM
-    const totalAssetsString = vault?.financials?.liquidity?.totalSupply?.toString() || '0';
-    const tvmValue = formatUnits(totalAssetsString, vaultDecimals);
-    const tvmUsd = new BigNumber(tvmValue).multipliedBy(assetPrice);
+    // TVM: totalSupply (shares) * sharePrice (asset/share) * asset USD
+    const totalSupplyShares = vault?.financials?.liquidity?.totalSupply?.toString() || '0';
+    const shares = new BigNumber(formatUnits(totalSupplyShares, vaultDecimals));
+    const sharePriceAsset = new BigNumber(vault?.overview?.sharePrice || 0);
+    const tvmAsset = shares.multipliedBy(sharePriceAsset);
+    const tvmUsd = tvmAsset.multipliedBy(assetPrice);
+    const tvmValue = tvmAsset.toString();
 
     return {
       id: vault.id,
@@ -77,7 +84,14 @@ const transformVaultsToGridRows = (
       curatorName: vault.overview?.curatorName,
       myDeposit: userDepositFormatted,
       myDepositUsd: userDepositUsd?.toString(),
-      depositToken: vault.overview?.asset?.symbol || 'UNKNOWN',
+      depositToken: (vault.overview?.depositableAssets && vault.overview.depositableAssets.length > 0
+        ? (vault.overview.depositableAssets.map((a) => a.symbol).filter(Boolean).join(', ') || vault.overview?.asset?.symbol || 'UNKNOWN')
+        : (vault.overview?.asset?.symbol || 'UNKNOWN')
+      ),
+      depositTokenSymbols: (vault.overview?.depositableAssets && vault.overview.depositableAssets.length > 0
+        ? vault.overview.depositableAssets.map((a) => a.symbol || '').filter(Boolean)
+        : [vault.overview?.asset?.symbol || 'UNKNOWN']
+      ),
       depositTokenSymbol: vault.overview?.asset?.symbol || 'UNKNOWN',
       depositTokenAddress: vault.overview?.asset?.address || '',
       network: networkInfo.name,
@@ -147,41 +161,106 @@ export const VaultAssetsList = () => {
   // Combined loading state
   const isLoading = isLoadingVaultIds || isLoadingVaults || assetsDataQuery.isLoading;
 
+  // Positions APY computed locally as USD-weighted average of user's current exposures
+  // TODO: use useUserPortfolioMetrics instead if PortfolioChartsSection is used
+  const positionsApy = useMemo(() => {
+    if (!accountAddress || !vaults || !userVaults?.length) return undefined;
+    const rows = vaults.map((vault, index) => {
+      const userVaultData = userVaults[index];
+      if (!vault || !userVaultData) return null;
+      const assetAddress = vault?.overview?.asset?.address?.toLowerCase();
+      const assetDecimals = vault?.overview?.asset?.decimals || 18;
+      const price = assetAddress ? (assetPriceMap.get(assetAddress) || 0) : 0;
+      const userDeposit = userVaultData?.maxWithdraw || '0';
+      const deposit = parseFloat(formatUnits(userDeposit.toString(), assetDecimals));
+      const balanceUsd = deposit * price;
+      const apy = vault?.overview?.apy;
+      return balanceUsd > 0 && typeof apy === 'number' ? { balanceUsd, apy } : null;
+    }).filter(Boolean) as { balanceUsd: number; apy: number }[];
+    const total = rows.reduce((sum, r) => sum + r.balanceUsd, 0);
+    if (!Number.isFinite(total) || total <= 0) return undefined;
+    const weighted = rows.reduce((sum, r) => sum + (r.balanceUsd / total) * r.apy, 0);
+    return Number.isFinite(weighted) ? weighted : undefined;
+  }, [accountAddress, vaults, userVaults, assetPriceMap]);
+
+  // User rewards (for Available Rewards KPI)
+  const userDataQuery = useUserData(accountAddress);
+  const userData = userDataQuery?.data;
+  const claimableRewardsUsd = useMemo(
+    () => (userData?.userRewards ?? []).reduce((acc: number, reward: RewardItemEnriched) => acc + (reward.rewardAmountToClaimInUSD || 0), 0),
+    [userData]
+  );
+  const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
+  const handleOpenRewardModal = () => {
+    if (accountAddress) {
+      setIsRewardModalOpen(true);
+    }
+  };
+
   // Transform all vaults to grid rows
   const allVaultRows = useMemo(() => {
     return transformVaultsToGridRows(vaults || [], userVaults, assetPriceMap, networkInfo);
   }, [vaults, userVaults, assetPriceMap, networkInfo]);
 
   // Filter vaults based on user deposits
-  const { vaultsWithDeposits, vaultsWithoutDeposits } = useMemo(() => {
-    if (!vaults || !accountAddress) {
+  const { vaultsWithDeposits } = useMemo(() => {
+    if (!accountAddress) {
       return {
         vaultsWithDeposits: [],
-        vaultsWithoutDeposits: allVaultRows
       };
     }
 
     const withDeposits: VaultGridRow[] = [];
-    const withoutDeposits: VaultGridRow[] = [];
 
     allVaultRows.forEach((row, index) => {
       const userVaultData = userVaults[index];
       const userDeposit = userVaultData?.maxWithdraw || '0';
+      const assetDecimals = userVaultData?.assetDecimals || 18;
       const hasDeposit = userVaultData && userDeposit.toString() !== '0' &&
-        parseFloat(formatUnits(userDeposit.toString(), vaults[index]?.overview?.asset?.decimals || 18)) > 0;
+        parseFloat(formatUnits(userDeposit.toString(), assetDecimals)) > 0;
 
       if (hasDeposit) {
         withDeposits.push(row);
-      } else {
-        withoutDeposits.push(row);
       }
     });
 
     return {
       vaultsWithDeposits: withDeposits,
-      vaultsWithoutDeposits: withoutDeposits
-    };
-  }, [allVaultRows, vaults, userVaults, accountAddress]);
+    } as { vaultsWithDeposits: VaultGridRow[] };
+  }, [allVaultRows, userVaults, accountAddress]);
+
+  const aggregatedStats = useMemo(
+    () =>
+      vaults?.length > 0 &&
+      vaults.reduce(
+        (acc, vault, index) => {
+          const assetAddress = vault?.overview?.asset?.address?.toLowerCase();
+          const vaultTVLPrice = assetPriceMap.get(assetAddress) || 0;
+          const vaultTVLValue =
+            Number(
+              formatUnits(
+                vault?.financials?.liquidity?.totalAssets || 0,
+                vault?.overview?.asset?.decimals
+              )
+            ) * vaultTVLPrice;
+
+          const userVault = userVaults && userVaults[index];
+          const userVaultDepositsValue =
+            Number(
+              formatUnits(userVault?.maxWithdraw || 0, vault?.overview?.asset?.decimals)
+            ) * vaultTVLPrice;
+          return {
+            tvl: acc.tvl.plus(vaultTVLValue),
+            userDeposits: acc.userDeposits.plus(userVaultDepositsValue),
+          };
+        },
+        {
+          tvl: valueToBigNumber(0),
+          userDeposits: valueToBigNumber(0),
+        }
+      ),
+    [vaults, userVaults, assetPriceMap]
+  );
 
   const handleVaultClick = (row: VaultGridRow) => {
     setSelectedVaultId(row.id);
@@ -202,8 +281,6 @@ export const VaultAssetsList = () => {
     skeletonRender: () => <Skeleton variant="rectangular" width={80} height={32} sx={{ borderRadius: 1 }} />,
   };
 
-  const showTwoSections = accountAddress && vaultsWithDeposits.length > 0;
-
   return (
     <Box
       sx={{
@@ -212,19 +289,89 @@ export const VaultAssetsList = () => {
         pb: { xs: 4, md: 8 }
       }}
     >
-      {/* Top section with stats widget */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: isMobile ? 'space-between' : 'flex-end',
-          alignItems: isMobile ? 'stretch' : 'flex-start',
-          flexDirection: isMobile ? 'column' : 'row',
-          gap: isMobile ? 3 : 0,
-          mb: { xs: 6, md: 4 }
-        }}
-      >
-        <VaultStatsWidget />
-      </Box>
+      {/* Portfolio Charts Section - Only show when user is connected and has data */}
+      {accountAddress && vaultsWithDeposits.length > 0 && (
+        <Box sx={{ mb: { xs: 4, md: 6 } }}>
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: 'background.surface',
+            p: 3,
+            borderRadius: 2,
+            mb: { xs: 4, md: 6 }
+          }}>
+            <Typography
+              variant={isMobile ? "main16" : "main21"}
+              sx={{
+                textAlign: isMobile ? 'center' : 'left',
+                color: 'primary.main'
+              }}
+            >
+              My Vaults
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'top', gap: { xs: 2, md: 5 } }}>
+              <Box>
+                <Typography variant="secondary14" color="text.secondary">
+                  Positions APY
+                </Typography>
+                {isLoadingVaults ? (
+                  <Skeleton width={80} height={24} />
+                ) : (!accountAddress || positionsApy === undefined) ? (
+                  <Typography variant="main16">–</Typography>
+                ) : (
+                  <FormattedNumber
+                    value={positionsApy}
+                    percent
+                    variant="main16"
+                    sx={{ fontWeight: 800 }}
+                  />
+                )}
+              </Box>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'left' }}>
+                <Typography variant="secondary14" color="text.secondary" sx={{ mb: 1 }}>
+                  Available Rewards
+                </Typography>
+                {(!accountAddress || claimableRewardsUsd === 0) ? (
+                  <Typography variant="main16">–</Typography>
+                ) : (
+                  <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1 }}>
+                    <FormattedNumber
+                      value={claimableRewardsUsd}
+                      variant="main16"
+                      visibleDecimals={2}
+                      compact
+                      symbol="USD"
+                      symbolsColor="#A5A8B6"
+                      symbolsVariant="secondary16"
+                    />
+                    <Button
+                      variant="gradient"
+                      size="small"
+                      onClick={handleOpenRewardModal}
+                      sx={{ minWidth: 'unset', ml: { xs: 0, xsm: 2 } }}
+                    >
+                      Claim
+                    </Button>
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          </Box>
+          {/* <PortfolioChartsSection
+            accountAddress={accountAddress}
+            aggregatedUserDepositsUsd={aggregatedStats?.userDeposits?.toString() || '0'}
+            positionsApy={positionsApy}
+            isLoadingVaults={isLoadingVaults || false}
+            isLoading={isLoading}
+            claimableRewardsUsd={claimableRewardsUsd}
+            onOpenRewardModal={handleOpenRewardModal}
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+          /> */}
+        </Box>
+      )}
 
       {(!vaults || vaults?.length === 0) && !isLoading ? (
         <Box sx={{
@@ -254,54 +401,11 @@ export const VaultAssetsList = () => {
             Current network: {getChainName(chainId)} ({chainId})
           </Typography>
         </Box>
-      ) : showTwoSections ? (
+      ) : (
         <>
-          {/* My Vaults Section */}
-          <Box sx={{ mb: { xs: 4, md: 6 } }}>
-            <Typography
-              variant={isMobile ? "main16" : "main21"}
-              sx={{
-                mb: { xs: 2, md: 3 },
-                fontWeight: 600,
-                textAlign: isMobile ? 'center' : 'left'
-              }}
-            >
-              My Vaults
-            </Typography>
-            <Box
-              sx={{
-                overflowX: isMobile ? 'auto' : 'visible',
-                '& .MuiTableContainer-root': {
-                  minWidth: isMobile ? '800px' : 'auto'
-                }
-              }}
-            >
-              <BaseDataGrid
-                data={vaultsWithDeposits}
-                columns={userColumns}
-                loading={isLoading || isLoadingUserVaults}
-                onRowClick={handleVaultClick}
-                defaultSortColumn="myDeposit"
-                defaultSortOrder="desc"
-                actionColumn={manageActionColumn}
-                rowIdGetter={(row) => row.id}
-              />
-            </Box>
-          </Box>
-
-          {/* All Vaults Section */}
-          {vaultsWithoutDeposits.length > 0 && (
-            <Box>
-              <Typography
-                variant={isMobile ? "main16" : "main21"}
-                sx={{
-                  mb: { xs: 2, md: 3 },
-                  fontWeight: 600,
-                  textAlign: isMobile ? 'center' : 'left'
-                }}
-              >
-                All Vaults
-              </Typography>
+          {/* My Vaults Section (shown only if user has deposits) */}
+          {accountAddress && vaultsWithDeposits.length > 0 && (
+            <Box sx={{ mb: { xs: 4, md: 6 } }}>
               <Box
                 sx={{
                   overflowX: isMobile ? 'auto' : 'visible',
@@ -311,53 +415,86 @@ export const VaultAssetsList = () => {
                 }}
               >
                 <BaseDataGrid
-                  data={vaultsWithoutDeposits}
-                  columns={standardColumns}
-                  loading={isLoading}
+                  data={vaultsWithDeposits}
+                  columns={userColumns}
+                  loading={isLoading || isLoadingUserVaults}
                   onRowClick={handleVaultClick}
-                  defaultSortColumn="tvmUsd"
+                  defaultSortColumn="myDeposit"
                   defaultSortOrder="desc"
-                  actionColumn={depositActionColumn}
+                  actionColumn={manageActionColumn}
                   rowIdGetter={(row) => row.id}
                 />
               </Box>
             </Box>
           )}
-        </>
-      ) : (
-        /* Single Section - All Vaults */
-        <Box>
-          <Typography
-            variant={isMobile ? "main16" : "main21"}
-            sx={{
-              mb: { xs: 2, md: 3 },
-              fontWeight: 600,
-              textAlign: isMobile ? 'center' : 'left'
-            }}
-          >
-            All Vaults
-          </Typography>
-          <Box
-            sx={{
-              overflowX: isMobile ? 'auto' : 'visible',
-              '& .MuiTableContainer-root': {
-                minWidth: isMobile ? '800px' : 'auto'
-              }
-            }}
-          >
-            <BaseDataGrid
-              data={allVaultRows}
-              columns={standardColumns}
-              loading={isLoading}
-              onRowClick={handleVaultClick}
-              defaultSortColumn="tvmUsd"
-              defaultSortOrder="desc"
-              actionColumn={depositActionColumn}
-              rowIdGetter={(row) => row.id}
-            />
+
+          {/* All Vaults Section (always rendered, includes user's vaults as well) */}
+          <Box>
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: 'background.surface',
+              p: 3,
+              borderRadius: 2,
+              mb: { xs: 4, md: 6 }
+            }}>
+              <Typography
+                variant={isMobile ? "main16" : "main21"}
+                sx={{
+                  textAlign: isMobile ? 'center' : 'left',
+                  color: 'primary.main'
+                }}
+              >
+                All Vaults
+              </Typography>
+              <Box>
+                <Typography variant="secondary14" color="text.secondary" sx={{ pb: 1 }}>
+                  Total Value Locked
+                </Typography>
+                {isLoading ? (
+                  <Skeleton width={100} height={24} />
+                ) : (
+                  <FormattedNumber
+                    value={aggregatedStats?.tvl?.toString() || '0'}
+                    symbol="USD"
+                    symbolsVariant="secondary16"
+                    symbolsColor="text.secondary"
+                    variant="main16"
+                    sx={{ fontWeight: 800 }}
+                  />
+                )}
+              </Box>
+            </Box>
+            <Box
+              sx={{
+                overflowX: isMobile ? 'auto' : 'visible',
+                '& .MuiTableContainer-root': {
+                  minWidth: isMobile ? '800px' : 'auto'
+                }
+              }}
+            >
+              <BaseDataGrid
+                data={allVaultRows}
+                columns={standardColumns}
+                loading={isLoading}
+                onRowClick={handleVaultClick}
+                defaultSortColumn="tvmUsd"
+                defaultSortOrder="desc"
+                actionColumn={depositActionColumn}
+                rowIdGetter={(row) => row.id}
+              />
+            </Box>
           </Box>
-        </Box>
+        </>
       )}
+
+      {/* Rewards Modal */}
+      <VaultsRewardModal
+        open={isRewardModalOpen}
+        handleClose={() => setIsRewardModalOpen(false)}
+        userAddress={accountAddress || ''}
+      />
     </Box>
   );
 };

@@ -46,6 +46,7 @@ export interface VaultData {
   overview: {
     name?: string;
     description?: string;
+    descriptionMarkdown?: string;
     curatorLogo?: string;
     curatorName?: string;
     asset?: {
@@ -53,13 +54,24 @@ export interface VaultData {
       decimals?: number;
       address?: string;
     };
+    // Optional list of additional assets accepted for deposits
+    depositableAssets?: Array<{
+      address: string;
+      symbol?: string;
+      decimals?: number;
+      name?: string;
+    }>;
     sharePrice?: number;
     roles?: VaultRoles;
     apy?: number;
+    apy1Day?: number;
+    apy7Days?: number;
+    apy30Days?: number;
     historicalSnapshots?: {
-      apy: { time: string; value: number }[];
+      apyWeeklyReturnTrailing: { time: string; value: number }[];
       totalSupply: { time: string; value: number }[];
       sharePrice: { time: string; value: number }[];
+      totalAssets: { time: string; value: number }[];
     };
     withdrawalTimelock?: string;
     fee?: string;
@@ -108,7 +120,7 @@ export interface VaultData {
 }
 
 // Define the tabs for your vault page
-export type VaultTab = 'overview' | 'financials' | 'allocations' | 'activity' | 'manage';
+export type VaultTab = 'notes' | 'allocations' | 'activity' | 'manage';
 
 interface VaultBatchTransaction {
   id: string;
@@ -136,6 +148,14 @@ export interface VaultContextData {
   transactions: VaultBatchTransaction[];
   nbTransactions: number;
   depositInVault: (amountInWei: string, accountAddress?: string) => Promise<{
+    tx: ethers.providers.TransactionRequest;
+    action: 'approve' | 'deposit';
+  }>;
+  depositInVaultFromToken: (
+    tokenAddress: string,
+    amountInWei: string,
+    accountAddress?: string
+  ) => Promise<{
     tx: ethers.providers.TransactionRequest;
     action: 'approve' | 'deposit';
   }>;
@@ -224,7 +244,18 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
       return 'invalid';
     }
   }, [chainId]);
-  const accountAddress = useMemo(() => walletClient?.account.address, [walletClient]);
+  // const accountAddress = useMemo(() => walletClient?.account.address, [walletClient]);
+  const accountAddress = useMemo(() => {
+    // Dev-only overrides: env var or URL param
+    const isProd = process.env.NODE_ENV === 'production';
+    const envOverride = process.env.NEXT_PUBLIC_DEV_WALLET_ADDRESS?.toLowerCase();
+
+    if (!isProd && envOverride) {
+      return envOverride as string;
+    }
+
+    return walletClient?.account.address || null;
+  }, [walletClient]);
 
   // Use the useVaultAssetBalance hook to get a balance
   const getVaultAssetBalance = useCallback(
@@ -304,7 +335,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
       if (allowance.lt(amountInWei)) {
         const approveTx = await tokenContract.populateTransaction.approve(
           selectedVaultId,
-          ethers.constants.MaxUint256
+          amountInWei
         );
         return { tx: approveTx, action: 'approve' };
       }
@@ -314,6 +345,66 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
         return { tx, action: 'deposit' };
       } catch (error) {
         console.error('Deposit failed:', error);
+        throw error;
+      }
+    },
+    [selectedVaultId, signer, accountAddress]
+  );
+
+  // New: multi-asset deposit path using deposit(address[] tokens, uint256[] assets, address receiver)
+  const depositInVaultFromToken = useCallback(
+    async (
+      tokenAddress: string,
+      amountInWei: string,
+      localAccountAddress = accountAddress
+    ): Promise<{ tx: ethers.providers.TransactionRequest; action: 'approve' | 'deposit' }> => {
+      if (!selectedVaultId) {
+        throw new Error('No vault selected');
+      }
+      if (!localAccountAddress) {
+        throw new Error('No account connected');
+      }
+      if (!signer) {
+        throw new Error('No signer available');
+      }
+
+      // Contracts
+      const vaultContract = new ethers.Contract(
+        selectedVaultId,
+        [
+          `function paused() external view returns (bool)`,
+          `function deposit(address[] calldata tokens, uint256[] calldata assets, address receiver) external payable returns (uint256 shares)`,
+        ],
+        signer
+      );
+      const tokenContract = new ethers.Contract(
+        tokenAddress,
+        [
+          `function allowance(address owner, address spender) external view returns (uint256)`,
+          `function approve(address spender, uint256 amount) external returns (bool)`,
+        ],
+        signer
+      );
+
+      // State checks
+      const isPaused = await vaultContract.paused();
+      if (isPaused) {
+        throw new Error('Vault is paused');
+      }
+
+      // Approval flow
+      const allowance = await tokenContract.allowance(localAccountAddress, selectedVaultId);
+      if (allowance.lt(amountInWei)) {
+        const approveTx = await tokenContract.populateTransaction.approve(selectedVaultId, amountInWei);
+        return { tx: approveTx, action: 'approve' };
+      }
+
+      // Deposit path (single token)
+      try {
+        const depositTx = await vaultContract.populateTransaction.deposit([tokenAddress], [amountInWei], localAccountAddress);
+        return { tx: depositTx, action: 'deposit' };
+      } catch (error) {
+        console.error('Multi-asset Deposit failed:', error);
         throw error;
       }
     },
@@ -869,6 +960,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     transactions,
     nbTransactions,
     depositInVault,
+    depositInVaultFromToken,
     withdrawFromVault,
     requestWithdraw,
     getWithdrawalRequest,
