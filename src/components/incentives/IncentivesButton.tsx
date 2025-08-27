@@ -23,6 +23,7 @@ interface RewardsButtonProps {
   rewards?: PoolReservesRewardsHumanized[];
   displayBlank?: boolean;
   rounded?: boolean;
+  side?: 'supply' | 'borrow';
 }
 
 const BlankIncentives = () => {
@@ -88,7 +89,7 @@ export const IncentivesButton = ({ incentives, symbol, displayBlank }: Incentive
   );
 };
 
-export const RewardsButton = ({ rewards, displayBlank, rounded }: RewardsButtonProps) => {
+export const RewardsButton = ({ rewards, displayBlank, rounded, side }: RewardsButtonProps) => {
   const [open, setOpen] = useState(false);
 
   if (!(rewards && rewards.length > 0)) {
@@ -99,20 +100,22 @@ export const RewardsButton = ({ rewards, displayBlank, rounded }: RewardsButtonP
     }
   }
 
-  // const isIncentivesInfinity = incentives.some(
-  //   (incentive) => incentive.incentiveAPR === 'Infinity'
-  // );
-  // const incentivesAPRSum = isIncentivesInfinity
-  //   ? 'Infinity'
-  //   : incentives.reduce((aIncentive, bIncentive) => aIncentive + +bIncentive.incentiveAPR, 0);
+  // Determine side if not provided (fallback heuristic)
+  const derivedSide: 'supply' | 'borrow' = (() => {
+    if (side) return side;
+    const hasBorrowOnly = (rewards || []).some((r) => r.tracked_token_type === 'borrow');
+    if (hasBorrowOnly) return 'borrow';
+    return 'supply';
+  })();
 
-  // const incentivesNetAPR = isIncentivesInfinity
-  //   ? 'Infinity'
-  //   : incentivesAPRSum !== 'Infinity'
-  //     ? valueToBigNumber(incentivesAPRSum || 0).toNumber()
-  //     : 'Infinity';
+  const aprForReward = (r: PoolReservesRewardsHumanized): number => {
+    if (r.tracked_token_type === 'supply') return r.incentive_apr_supply || 0;
+    if (r.tracked_token_type === 'borrow') return r.incentive_apr_borrow || 0;
+    // supply_and_borrow
+    return derivedSide === 'borrow' ? (r.incentive_apr_borrow || 0) : (r.incentive_apr_supply || 0);
+  };
 
-  const apy = rewards.reduce((acc, reward) => acc + reward.apy_bps / 10000, 0);
+  const apy = (rewards || []).reduce((acc, r) => acc + aprForReward(r), 0);
 
   return (
     <ContentWithTooltip
@@ -127,13 +130,11 @@ export const RewardsButton = ({ rewards, displayBlank, rounded }: RewardsButtonP
       open={open}
     >
       <Content
-        incentives={rewards ? rewards.filter(r => ['supply', 'supply_and_borrow'].includes(r.tracked_token_type)).map(r => {
-          return {
-            incentiveAPR: apy.toString(),
-            rewardTokenAddress: r.reward_token_address,
-            rewardTokenSymbol: r.reward_token_symbol,
-          }
-        }) : []}
+        incentives={rewards ? rewards.map(r => ({
+          incentiveAPR: aprForReward(r).toString(),
+          rewardTokenAddress: r.reward_token_address,
+          rewardTokenSymbol: r.reward_token_symbol || '',
+        })) : []}
         incentivesNetAPR={apy}
         displayBlank={displayBlank}
         rounded={rounded}

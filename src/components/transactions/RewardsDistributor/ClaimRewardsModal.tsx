@@ -1,7 +1,10 @@
-import { Box, Typography, Modal, IconButton, Paper, CircularProgress, Theme, Button, Link, Alert } from '@mui/material';
+import { Box, Typography, Modal, IconButton, Paper, CircularProgress, Theme, Button, Link, Alert, FormControl, Select, MenuItem } from '@mui/material';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { RewardItemEnriched } from 'src/hooks/vault/useVaultData';
+import { UserAuthenticated } from 'src/components/UserAuthenticated';
+import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { ClaimRewardsModalContent as LegacyClaimRewardsModalContent } from '../ClaimRewards/ClaimRewardsModalContent';
 import CloseIcon from '@mui/icons-material/Close';
 import LaunchIcon from '@mui/icons-material/Launch';
 import { ethers, Signer } from 'ethers';
@@ -17,14 +20,16 @@ interface ClaimRewardsModalProps {
   userAddress: string;
   rewards: RewardItemEnriched[];
   onClaimSuccess?: (claimedRewardAddresses: string[]) => void;
+  legacyAvailable?: boolean;
 }
 
-export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onClaimSuccess }: ClaimRewardsModalProps) => {
+export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onClaimSuccess, legacyAvailable = false }: ClaimRewardsModalProps) => {
   const { data: walletClient } = useWalletClient();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
   const [signer, setSigner] = useState<Signer | null>(null);
   const [loadingClaims, setLoadingClaims] = useState<Record<string, boolean>>({});
+  const [mode, setMode] = useState<'new' | 'legacy'>('legacy');
   const [claimErrors, setClaimErrors] = useState<Record<string, string>>({});
   const [claimedRewards, setClaimedRewards] = useState<Set<string>>(new Set());
   const [transactionHashes, setTransactionHashes] = useState<Record<string, string>>({});
@@ -47,6 +52,7 @@ export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onC
   }, [walletClient]);
 
   const rewardsToDisplay = rewards?.filter(reward => reward.rewardAmountToClaim > 0);
+  const { reserves } = useAppDataContext();
 
   const getExplorerUrl = (txHash: string) => {
     const networkConfig = getNetworkConfig(chainId);
@@ -134,6 +140,15 @@ export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onC
           </IconButton>
         </Box>
 
+        {legacyAvailable && rewardsToDisplay && rewardsToDisplay.length > 0 && (
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <Select value={mode} onChange={(e) => setMode(e.target.value as 'new' | 'legacy')}>
+              <MenuItem value="legacy">Legacy incentives</MenuItem>
+              <MenuItem value="new">New incentives</MenuItem>
+            </Select>
+          </FormControl>
+        )}
+
         {/* Network Status Check */}
         {shouldShowNetworkWarning && (
           <Alert severity="warning" sx={{ mb: 3 }}>
@@ -166,7 +181,7 @@ export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onC
           </Alert>
         )}
 
-        {!rewards && (
+        {mode === 'new' && (!rewards || rewardsToDisplay?.length === 0) && !legacyAvailable && (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
             <CircularProgress />
           </Box>
@@ -180,7 +195,7 @@ export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onC
           </Box>
         )}
 
-        {rewardsToDisplay && rewardsToDisplay.length > 0 && (
+        {mode === 'new' && rewardsToDisplay && rewardsToDisplay.length > 0 && (
           <Box>
             <Typography variant="caption" color="text.secondary" mb={8}>
               {
@@ -286,6 +301,12 @@ export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onC
               </Box>
             ))}
           </Box>
+        )}
+
+        {mode === 'legacy' && (
+          <UserAuthenticated>
+            {(user) => <LegacyClaimRewardsModalContent user={user} reserves={reserves} />}
+          </UserAuthenticated>
         )}
       </Paper>
     </Modal>

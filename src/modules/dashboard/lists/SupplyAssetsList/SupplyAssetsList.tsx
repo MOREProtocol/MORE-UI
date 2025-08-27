@@ -250,7 +250,7 @@ export const SupplyAssetsList = () => {
             {user?.isInIsolationMode ? (
               <Warning severity="warning">
                 Collateral usage is limited because of isolation mode.{' '}
-                <Link href="https://docs.aave.com/faq/" target="_blank" rel="noopener">
+                <Link href="https://docs.more.markets/" target="_blank" rel="noopener">
                   Learn More
                 </Link>
               </Warning>

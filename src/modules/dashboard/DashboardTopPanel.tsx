@@ -11,6 +11,7 @@ import { PageTitle } from 'src/components/TopInfoPanel/PageTitle';
 import { useModalContext } from 'src/hooks/useModal';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
+import { useUserPoolReservesRewardsHumanized } from 'src/hooks/pool/useUserPoolReservesRewards';
 import { selectIsMigrationAvailable } from 'src/store/v3MigrationSelectors';
 import { DASHBOARD, GENERAL } from 'src/utils/mixPanelEvents';
 
@@ -48,52 +49,75 @@ export const DashboardTopPanel = () => {
 
   const { claimableRewardsUsd } = user
     ? Object.keys(user.calculatedUserIncentives).reduce(
-        (acc, rewardTokenAddress) => {
-          const incentive: UserIncentiveData = user.calculatedUserIncentives[rewardTokenAddress];
-          const rewardBalance = normalize(
-            incentive.claimableRewards,
-            incentive.rewardTokenDecimals
-          );
+      (acc, rewardTokenAddress) => {
+        const incentive: UserIncentiveData = user.calculatedUserIncentives[rewardTokenAddress];
+        const rewardBalance = normalize(
+          incentive.claimableRewards,
+          incentive.rewardTokenDecimals
+        );
 
-          let tokenPrice = 0;
-          // getting price from reserves for the native rewards for v2 markets
-          if (!currentMarketData.v3 && Number(rewardBalance) > 0) {
-            if (currentMarketData.chainId === ChainId.mainnet) {
-              const moreToken = reserves.find((reserve) => reserve.symbol === 'MORE');
-              tokenPrice = moreToken ? Number(moreToken.priceInUSD) : 0;
-            } else {
-              reserves.forEach((reserve) => {
-                if (reserve.symbol === currentNetworkConfig.wrappedBaseAssetSymbol) {
-                  tokenPrice = Number(reserve.priceInUSD);
-                }
-              });
-            }
+        let tokenPrice = 0;
+        // getting price from reserves for the native rewards for v2 markets
+        if (!currentMarketData.v3 && Number(rewardBalance) > 0) {
+          if (currentMarketData.chainId === ChainId.mainnet) {
+            const moreToken = reserves.find((reserve) => reserve.symbol === 'MORE');
+            tokenPrice = moreToken ? Number(moreToken.priceInUSD) : 0;
           } else {
-            tokenPrice = Number(incentive.rewardPriceFeed);
+            reserves.forEach((reserve) => {
+              if (reserve.symbol === currentNetworkConfig.wrappedBaseAssetSymbol) {
+                tokenPrice = Number(reserve.priceInUSD);
+              }
+            });
+          }
+        } else {
+          tokenPrice = Number(incentive.rewardPriceFeed);
+        }
+
+        const rewardBalanceUsd = Number(rewardBalance) * tokenPrice;
+
+        if (rewardBalanceUsd > 0) {
+          if (acc.assets.indexOf(incentive.rewardTokenSymbol) === -1) {
+            acc.assets.push(incentive.rewardTokenSymbol);
           }
 
-          const rewardBalanceUsd = Number(rewardBalance) * tokenPrice;
+          acc.claimableRewardsUsd += Number(rewardBalanceUsd);
+        }
 
-          if (rewardBalanceUsd > 0) {
-            if (acc.assets.indexOf(incentive.rewardTokenSymbol) === -1) {
-              acc.assets.push(incentive.rewardTokenSymbol);
-            }
-
-            acc.claimableRewardsUsd += Number(rewardBalanceUsd);
-          }
-
-          return acc;
-        },
-        { claimableRewardsUsd: 0, assets: [] } as { claimableRewardsUsd: number; assets: string[] }
-      )
+        return acc;
+      },
+      { claimableRewardsUsd: 0, assets: [] } as { claimableRewardsUsd: number; assets: string[] }
+    )
     : { claimableRewardsUsd: 0 };
+
+  // New rewards system values
+  const userPoolRewardsQuery = useUserPoolReservesRewardsHumanized(currentMarketData);
+  const distributedRewards = userPoolRewardsQuery?.data?.distributed || [];
+  const accruingRewards = userPoolRewardsQuery?.data?.accruing || [];
+
+  const claimableRewardsUsdNew = distributedRewards.reduce((acc, r) => {
+    const reserve = reserves.find((res) => res.underlyingAsset.toLowerCase() === r.reward_token_address.toLowerCase());
+    const decimals = reserve ? Number(reserve.decimals || 18) : 18;
+    const price = reserve ? Number(reserve.priceInUSD || 0) : 0;
+    const netTokens = valueToBigNumber(r.net_claimable_amount).dividedBy(valueToBigNumber(10).pow(decimals));
+    return acc + netTokens.multipliedBy(price).toNumber();
+  }, 0);
+
+  const accruingRewardsUsdNew = accruingRewards.reduce((acc, r) => {
+    const reserve = reserves.find((res) => res.underlyingAsset.toLowerCase() === r.reward_token_address.toLowerCase());
+    const decimals = reserve ? Number(reserve.decimals || 18) : 18;
+    const price = reserve ? Number(reserve.priceInUSD || 0) : 0;
+    const estTokens = valueToBigNumber(r.amount_wei_estimated).dividedBy(valueToBigNumber(10).pow(decimals));
+    return acc + estTokens.multipliedBy(price).toNumber();
+  }, 0);
+
+  const totalClaimableUsd = claimableRewardsUsd + claimableRewardsUsdNew;
 
   const loanToValue =
     user?.totalCollateralMarketReferenceCurrency === '0'
       ? '0'
       : valueToBigNumber(user?.totalBorrowsMarketReferenceCurrency || '0')
-          .dividedBy(user?.totalCollateralMarketReferenceCurrency || '1')
-          .toFixed();
+        .dividedBy(user?.totalCollateralMarketReferenceCurrency || '1')
+        .toFixed();
 
   const valueTypographyVariant = downToSM ? 'main16' : 'main21';
   const noDataTypographyVariant = downToSM ? 'secondary16' : 'secondary21';
@@ -209,7 +233,7 @@ export const DashboardTopPanel = () => {
           </TopInfoPanelItem>
         )}
 
-        {currentAccount && claimableRewardsUsd > 0 && (
+        {currentAccount && (totalClaimableUsd > 0 || accruingRewardsUsdNew > 0) && (
           <TopInfoPanelItem title={'Available rewards'} loading={loading} hideIcon>
             <Box
               sx={{
@@ -220,7 +244,7 @@ export const DashboardTopPanel = () => {
             >
               <Box sx={{ display: 'inline-flex', alignItems: 'center' }} data-cy={'Claim_Box'}>
                 <FormattedNumber
-                  value={claimableRewardsUsd}
+                  value={totalClaimableUsd}
                   variant={valueTypographyVariant}
                   visibleDecimals={2}
                   compact
@@ -241,6 +265,19 @@ export const DashboardTopPanel = () => {
                 Claim
               </Button>
             </Box>
+          </TopInfoPanelItem>
+        )}
+        {accruingRewardsUsdNew > 0 && (
+          <TopInfoPanelItem title={'Accruing rewards'} loading={loading} hideIcon>
+            <FormattedNumber
+              value={accruingRewardsUsdNew}
+              variant={valueTypographyVariant}
+              visibleDecimals={2}
+              compact
+              symbol="USD"
+              symbolsColor="#A5A8B6"
+              symbolsVariant={noDataTypographyVariant}
+            />
           </TopInfoPanelItem>
         )}
       </TopInfoPanel>

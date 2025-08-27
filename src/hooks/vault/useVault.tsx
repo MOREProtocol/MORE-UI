@@ -115,7 +115,7 @@ export interface VaultData {
     tracked_token_type: "supply" | "borrow" | "supply_and_borrow";
     created_at: number;
     reward_token_symbol: string;
-    apy_bps: number;
+    emission_wei_per_second: string;
   }[];
 }
 

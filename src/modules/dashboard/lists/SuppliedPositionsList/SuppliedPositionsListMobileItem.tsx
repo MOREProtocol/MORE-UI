@@ -10,6 +10,7 @@ import { useProtocolDataContext } from '../../../../hooks/useProtocolDataContext
 import { isFeatureEnabled } from '../../../../utils/marketsAndNetworksConfig';
 import { ListItemUsedAsCollateral } from '../ListItemUsedAsCollateral';
 import { ListMobileItemWrapper } from '../ListMobileItemWrapper';
+import { usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 import { ListValueRow } from '../ListValueRow';
 
 export const SuppliedPositionsListMobileItem = ({
@@ -21,6 +22,11 @@ export const SuppliedPositionsListMobileItem = ({
 }: DashboardReserve) => {
   const { user } = useAppDataContext();
   const { currentMarketData, currentMarket } = useProtocolDataContext();
+  const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
+  const allRewards = (rewardsQuery?.data || []) as any[];
+  const supplyRewards = allRewards.filter(
+    (r) => r.tracked_token_address?.toLowerCase() === underlyingAsset.toLowerCase() && ['supply', 'supply_and_borrow'].includes(r.tracked_token_type)
+  );
   const { openSupply, openSwap, openWithdraw, openCollateralChange } = useModalContext();
   const { debtCeiling } = useAssetCaps();
   const isSwapButton = isFeatureEnabled.liquiditySwap(currentMarketData);
@@ -38,10 +44,10 @@ export const SuppliedPositionsListMobileItem = ({
 
   const canBeEnabledAsCollateral = user
     ? !debtCeiling.isMaxed &&
-      reserve.reserveLiquidationThreshold !== '0' &&
-      ((!reserve.isIsolated && !user.isInIsolationMode) ||
-        user.isolatedReserve?.underlyingAsset === reserve.underlyingAsset ||
-        (reserve.isIsolated && user.totalCollateralMarketReferenceCurrency === '0'))
+    reserve.reserveLiquidationThreshold !== '0' &&
+    ((!reserve.isIsolated && !user.isInIsolationMode) ||
+      user.isolatedReserve?.underlyingAsset === reserve.underlyingAsset ||
+      (reserve.isIsolated && user.totalCollateralMarketReferenceCurrency === '0'))
     : false;
 
   const disableSwap = !isActive || isPaused || reserve.symbol == 'stETH';
@@ -70,6 +76,7 @@ export const SuppliedPositionsListMobileItem = ({
         <IncentivesCard
           value={Number(supplyAPY)}
           incentives={aIncentivesData}
+          rewards={supplyRewards}
           symbol={symbol}
           variant="secondary14"
         />

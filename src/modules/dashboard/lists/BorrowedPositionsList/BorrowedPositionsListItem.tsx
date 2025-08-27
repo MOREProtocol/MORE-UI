@@ -12,6 +12,7 @@ import { isFeatureEnabled } from 'src/utils/marketsAndNetworksConfig';
 
 import { ListColumn } from '../../../../components/lists/ListColumn';
 import { ListAPRColumn } from '../ListAPRColumn';
+import { usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 import { ListButtonsColumn } from '../ListButtonsColumn';
 import { ListItemAPYButton } from '../ListItemAPYButton';
 import { ListItemWrapper } from '../ListItemWrapper';
@@ -123,6 +124,12 @@ const BorrowedPositionsListItemDesktop = ({
   const { currentMarket } = useRootStore((store) => ({
     currentMarket: store.currentMarket,
   }));
+  const { currentMarketData } = useRootStore((s) => ({ currentMarketData: s.currentMarketData }));
+  const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
+  const allRewards = (rewardsQuery?.data || []) as any[];
+  const borrowRewards = allRewards.filter(
+    (r) => r.tracked_token_address?.toLowerCase() === reserve.underlyingAsset.toLowerCase() && ['borrow', 'supply_and_borrow'].includes(r.tracked_token_type)
+  );
 
   const { isActive, isFrozen, isPaused, stableBorrowRateEnabled, name } = reserve;
 
@@ -141,7 +148,7 @@ const BorrowedPositionsListItemDesktop = ({
     >
       <ListValueColumn symbol={reserve.symbol} value={totalBorrows} subValue={totalBorrowsUSD} />
 
-      <ListAPRColumn value={borrowAPY} incentives={incentives} symbol={reserve.symbol} />
+      <ListAPRColumn value={borrowAPY} incentives={incentives} rewards={borrowRewards} symbol={reserve.symbol} />
 
       <ListColumn>
         <ListItemAPYButton
@@ -198,6 +205,12 @@ const BorrowedPositionsListItemMobile = ({
   const { currentMarket } = useRootStore((store) => ({
     currentMarket: store.currentMarket,
   }));
+  const { currentMarketData } = useRootStore((s) => ({ currentMarketData: s.currentMarketData }));
+  const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
+  const allRewards = (rewardsQuery?.data || []) as any[];
+  const borrowRewards = allRewards.filter(
+    (r) => r.tracked_token_address?.toLowerCase() === reserve.underlyingAsset.toLowerCase() && ['borrow', 'supply_and_borrow'].includes(r.tracked_token_type)
+  );
 
   const {
     symbol,
@@ -234,6 +247,7 @@ const BorrowedPositionsListItemMobile = ({
         <IncentivesCard
           value={borrowAPY}
           incentives={incentives}
+          rewards={borrowRewards}
           symbol={symbol}
           variant="secondary14"
         />

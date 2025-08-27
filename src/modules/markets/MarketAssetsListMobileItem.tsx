@@ -14,11 +14,14 @@ import { Row } from '../../components/primitives/Row';
 import { ComputedReserveDataWithMarket, ExtendedFormattedUser } from '../../hooks/app-data-provider/useAppDataProvider';
 import { ListMobileItemWrapper } from '../dashboard/lists/ListMobileItemWrapper';
 import { useMemo } from 'react';
+import { PoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 
 export const MarketAssetsListMobileItem = ({
   reserve,
   user,
-}: { reserve: ComputedReserveDataWithMarket; user: ExtendedFormattedUser }) => {
+  rewardsSupply,
+  rewardsBorrow,
+}: { reserve: ComputedReserveDataWithMarket; user: ExtendedFormattedUser; rewardsSupply?: PoolReservesRewardsHumanized[]; rewardsBorrow?: PoolReservesRewardsHumanized[] }) => {
   const trackEvent = useRootStore((store) => store.trackEvent);
   const { currentMarket, setCurrentMarket } = useRootStore();
   const { openSupply, openBorrow } = useModalContext();
@@ -69,6 +72,7 @@ export const MarketAssetsListMobileItem = ({
           align="flex-end"
           value={reserve.supplyAPY}
           incentives={reserve.aIncentivesData || []}
+          rewards={rewardsSupply}
           symbol={reserve.symbol}
           variant="secondary14"
         />
@@ -113,6 +117,7 @@ export const MarketAssetsListMobileItem = ({
             align="flex-end"
             value={Number(reserve.totalVariableDebtUSD) > 0 ? reserve.variableBorrowAPY : '-1'}
             incentives={reserve.vIncentivesData || []}
+            rewards={rewardsBorrow}
             symbol={reserve.symbol}
             variant="secondary14"
           />

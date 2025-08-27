@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { calculateFromTimestamp, TimePeriod } from 'src/modules/charts/timePeriods';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import { useMemo, useEffect, useState } from 'react';
+import helperVaultInfoAbi from 'src/libs/abis/helper_vault_info_abi.json';
 import {
   ComputedReserveDataWithMarket,
   useAppDataContext,
@@ -52,6 +53,12 @@ export interface AssetData {
 export const vaultQueryKeys = {
   vaultInList: (vaultId: string, chainId?: number) => ['allVaults', chainId, vaultId],
   allDeployedVaults: (chainId?: number) => ['allDeployedVaults', chainId],
+  helperVaultInfo: (vaultId: string, userAddress: string | undefined, chainId?: number) => [
+    'helperVaultInfo',
+    chainId,
+    vaultId,
+    userAddress || '0x0000000000000000000000000000000000000000',
+  ],
   userVaultData: (vaultId: string, userAddress: string, chainId?: number) => [
     'userVaultData',
     vaultId,
@@ -234,7 +241,7 @@ interface IncentiveItem {
   tracked_token_type: "supply" | "borrow" | "supply_and_borrow";
   created_at: number;
   reward_token_symbol: string;
-  apy_bps: number;
+  emission_wei_per_second: string;
 }
 
 // Helper function to encode/validate tracked token type
@@ -305,6 +312,92 @@ export const useIncentives = <TResult = IncentiveItem[]>(
       cacheTime: 10 * 60 * 1000, // 10 minutes
     }
   );
+};
+
+export type HelperVaultInfo = {
+  basicInfo: {
+    name: string;
+    symbol: string;
+    decimals: number;
+    totalSupply: ethers.BigNumber;
+    totalAssets: ethers.BigNumber;
+    asset: string;
+    feeRecipient: string;
+    fee: ethers.BigNumber;
+    depositCapacity: ethers.BigNumber;
+    isPaused: boolean;
+    isDepositWhitelistEnabled: boolean;
+    withdrawalTimelock: ethers.BigNumber;
+    owner: string;
+    curator: string;
+    guardian: string;
+    balanceOfUser: ethers.BigNumber;
+    convertedToAssetsBalance: ethers.BigNumber;
+  };
+  assetsInfo: {
+    availableAssets: string[];
+    depositableAssets: string[];
+  };
+  denominatorAssetInfo: {
+    asset: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    totalSupply: ethers.BigNumber;
+    balance: ethers.BigNumber;
+  };
+};
+
+export const useHelperVaultInfo = <TResult = HelperVaultInfo | null>(
+  vaultId: string,
+  userAddress?: string,
+  opts?: VaultDataHookOpts<HelperVaultInfo | null, TResult>
+) => {
+  const { chainId } = useVault();
+  const provider = useVaultProvider(chainId);
+
+  const isEnabled = !!provider && !!vaultId && (opts?.enabled !== false);
+
+  return useVaultQuery<HelperVaultInfo | null, TResult>(
+    vaultQueryKeys.helperVaultInfo(vaultId, userAddress, chainId),
+    async () => {
+      if (!provider) return null;
+
+      const helperAddress = vaultsConfig[chainId]?.helperContract;
+      if (!helperAddress || helperAddress === '0x0000000000000000000000000000000000000000') {
+        return null;
+      }
+
+      // Use imported ABI for the helper
+      const helper = new ethers.Contract(helperAddress, helperVaultInfoAbi, provider);
+
+      const zeroAddress = '0x0000000000000000000000000000000000000000';
+      const info = await helper.getVaultInfo(vaultId, userAddress || zeroAddress);
+      return info as HelperVaultInfo;
+    },
+    isEnabled,
+    {
+      ...opts,
+      staleTime: 30_000,
+    }
+  );
+};
+
+// Non-hook helper to fetch helper contract data (usable inside other queries)
+const fetchHelperVaultInfoRaw = async (
+  provider: ethers.providers.Provider,
+  chainId: number,
+  vaultId: string,
+  userAddress?: string
+): Promise<HelperVaultInfo | null> => {
+  const helperAddress = vaultsConfig[chainId]?.helperContract;
+  if (!helperAddress || helperAddress === '0x0000000000000000000000000000000000000000') {
+    return null;
+  }
+  const helper = new ethers.Contract(helperAddress, helperVaultInfoAbi, provider);
+  const zeroAddress = '0x0000000000000000000000000000000000000000';
+  const info = await helper.getVaultInfo(vaultId, userAddress || zeroAddress);
+  return info as HelperVaultInfo;
 };
 
 // Separate hook for rewards that can be shared across vault queries
@@ -704,53 +797,93 @@ export const useVaultsListData = <TResult = VaultData>(
           throw new Error('Invalid chainId');
         }
 
-        const vaultDiamondContract = new ethers.Contract(
-          vaultId,
-          [
-            `function totalSupply() external view override returns (uint256)`,
-            `function totalAssets() external view override returns (uint256)`,
-            `function asset() external view override returns (address)`,
-            `function decimals() external view returns (uint8)`,
-            `function name() external view override returns (string)`,
-            `function convertToAssets(uint256 shares) external view returns (uint256 assets)`,
-          ],
-          provider
-        );
-        const [totalSupply, totalAssets, assetAddress, decimals, nameFromContract, latestSnapshot] = await Promise.all([
-          vaultDiamondContract.totalSupply().catch(() => 0),
-          vaultDiamondContract.totalAssets().catch(() => 0),
-          vaultDiamondContract.asset().catch(() => undefined),
-          vaultDiamondContract.decimals().catch(() => 18),
-          vaultDiamondContract.name().catch(() => 'Unnamed Vault'),
-          fetchVaultData(chainId, vaultId),
-        ]);
-        let assetDecimals = decimals;
-        let assetSymbol = 'UNKNOWN';
-        const vaultDecimals = decimals;
+        // Try helper contract first to minimize on-chain calls
+        const helperInfo = await fetchHelperVaultInfoRaw(provider, chainId, vaultId).catch(() => null);
+        console.log('helperInfo', helperInfo);
 
-        if (assetAddress) {
-          const assetContract = new ethers.Contract(
-            assetAddress,
+        let totalSupply: ethers.BigNumber | number = ethers.BigNumber.from(0);
+        let totalAssets: ethers.BigNumber | number = ethers.BigNumber.from(0);
+        let assetAddress: string | undefined = undefined;
+        let assetDecimals = 18;
+        let assetSymbol = 'UNKNOWN';
+        let vaultDecimals = 18;
+        let nameFromContract = 'Unnamed Vault';
+        let sharePriceNumber = 0;
+
+        const latestSnapshot = await fetchVaultData(chainId, vaultId);
+
+        if (helperInfo) {
+          totalSupply = helperInfo.basicInfo.totalSupply;
+          totalAssets = helperInfo.basicInfo.totalAssets;
+          assetAddress = helperInfo.basicInfo.asset;
+          vaultDecimals = helperInfo.basicInfo.decimals;
+          nameFromContract = helperInfo.basicInfo.name;
+          assetDecimals = helperInfo.denominatorAssetInfo.decimals;
+          assetSymbol = helperInfo.denominatorAssetInfo.symbol || 'UNKNOWN';
+
+          // Compute share price = (totalAssets * 10^vaultDecimals) / totalSupply in asset units
+          if (!ethers.BigNumber.isBigNumber(totalSupply)) totalSupply = ethers.BigNumber.from(totalSupply);
+          if (!ethers.BigNumber.isBigNumber(totalAssets)) totalAssets = ethers.BigNumber.from(totalAssets);
+          if ((totalSupply as ethers.BigNumber).isZero()) {
+            sharePriceNumber = 1;
+          } else {
+            const numerator = (totalAssets as ethers.BigNumber).mul(ethers.BigNumber.from(10).pow(vaultDecimals));
+            const sharePriceInAssetBN = numerator.div(totalSupply as ethers.BigNumber);
+            sharePriceNumber = Number(formatUnits(sharePriceInAssetBN, assetDecimals));
+          }
+        } else {
+          console.log('Helper contract not available, falling back to legacy per-call logic');
+          // Fallback to legacy per-call logic if helper is not available
+          const vaultDiamondContract = new ethers.Contract(
+            vaultId,
             [
+              `function totalSupply() external view override returns (uint256)`,
+              `function totalAssets() external view override returns (uint256)`,
+              `function asset() external view override returns (address)`,
               `function decimals() external view returns (uint8)`,
-              `function symbol() external view returns (string)`,
+              `function name() external view override returns (string)`,
+              `function convertToAssets(uint256 shares) external view returns (uint256 assets)`,
             ],
             provider
           );
-          [assetDecimals, assetSymbol] = await Promise.all([
-            assetContract.decimals().catch(() => 18),
-            assetContract.symbol().catch(() => 'UNKNOWN'),
+          const [ts, ta, aAddr, decimals, nameFromC] = await Promise.all([
+            vaultDiamondContract.totalSupply().catch(() => ethers.BigNumber.from(0)),
+            vaultDiamondContract.totalAssets().catch(() => ethers.BigNumber.from(0)),
+            vaultDiamondContract.asset().catch(() => undefined),
+            vaultDiamondContract.decimals().catch(() => 18),
+            vaultDiamondContract.name().catch(() => 'Unnamed Vault'),
           ]);
-        }
+          totalSupply = ts; totalAssets = ta; assetAddress = aAddr; vaultDecimals = decimals; nameFromContract = nameFromC;
 
-        const sharePriceInAsset = await vaultDiamondContract.convertToAssets(
-          parseUnits('1', decimals)
-        );
+          if (assetAddress) {
+            const assetContract = new ethers.Contract(
+              assetAddress,
+              [
+                `function decimals() external view returns (uint8)`,
+                `function symbol() external view returns (string)`,
+              ],
+              provider
+            );
+            [assetDecimals, assetSymbol] = await Promise.all([
+              assetContract.decimals().catch(() => 18),
+              assetContract.symbol().catch(() => 'UNKNOWN'),
+            ]);
+          }
+
+          if ((totalSupply as ethers.BigNumber).isZero()) {
+            sharePriceNumber = 1;
+          } else {
+            const sharePriceInAsset = await vaultDiamondContract.convertToAssets(
+              ethers.BigNumber.from(10).pow(vaultDecimals)
+            );
+            sharePriceNumber = Number(formatUnits(sharePriceInAsset, assetDecimals));
+          }
+        }
 
         const name = VAULT_ID_TO_NAME[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
         const curatorInfo = VAULT_ID_TO_CURATOR_INFO[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_CURATOR_INFO] || undefined;
 
-        const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
+        const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === (assetAddress || '').toLowerCase());
 
         const depositableAssets = await getDepositableAssetsWithMetadata(
           provider,
@@ -776,14 +909,14 @@ export const useVaultsListData = <TResult = VaultData>(
               address: assetAddress,
             },
             depositableAssets,
-            sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
+            sharePrice: sharePriceNumber,
             decimals: vaultDecimals,
             apy: latestSnapshot?.apyDailyReturnLast365Days ? parseFloat(latestSnapshot.apyDailyReturnLast365Days) : undefined,
           },
           financials: {
             liquidity: {
-              totalSupply: totalSupply.toString(),
-              totalAssets: totalAssets.toString(),
+              totalSupply: (ethers.BigNumber.isBigNumber(totalSupply) ? (totalSupply as ethers.BigNumber).toString() : String(totalSupply)),
+              totalAssets: (ethers.BigNumber.isBigNumber(totalAssets) ? (totalAssets as ethers.BigNumber).toString() : String(totalAssets)),
             },
           },
           incentives: vaultIncentives,
@@ -1098,35 +1231,82 @@ export const useVaultData = <TResult = VaultData>(
         throw new Error('Invalid chainId');
       }
 
-      const vaultDiamondContract = new ethers.Contract(
-        vaultId,
-        [
-          `function totalAssets() external view override returns (uint256)`,
-          `function totalSupply() external view override returns (uint256)`,
-          `function asset() external view override returns (address)`,
-          `function name() external view override returns (string)`,
-          `function decimals() external view returns (uint8)`,
-          `function symbol() external view returns (string)`,
-          `function guardian() external view returns (address)`,
-          `function curator() external view returns (address)`,
-          `function owner() external view returns (address)`,
-          `function maxDeposit(address receiver) external view returns (uint256 maxAssets)`,
-          `function depositCapacity() external view returns (uint256)`,
-          `function convertToAssets(uint256 shares) external view returns (uint256 assets)`,
-          `function getWithdrawalTimelock() external view returns (uint256)`,
-          `function fee() external view returns (uint256)`,
-        ],
-        actualProvider
-      );
+      // Pre-fetch subgraph-based data and activity (independent of helper)
+      const [activityData, subgraphVaultData, historicalSnapshots] = await Promise.all([
+        fetchActivity(vaultId, vaultActualChainId, reserves).catch(() => []),
+        fetchVaultData(vaultActualChainId, vaultId),
+        fetchVaultHistoricalSnapshots(vaultActualChainId, vaultId),
+      ]);
 
-      // Fetch contract data and subgraph data in parallel where possible
-      const [
-        contractData,
-        activityData,
-        vaultData,
-        historicalSnapshots,
-      ] = await Promise.all([
-        Promise.all([
+      // Try helper first to fetch majority of fields in one call
+      const helperInfo = await fetchHelperVaultInfoRaw(actualProvider, vaultActualChainId, vaultId, undefined).catch(() => null);
+      console.log('helperInfo', helperInfo);
+
+      let totalAssets = ethers.BigNumber.from(0);
+      let totalSupply = ethers.BigNumber.from(0);
+      let assetAddress: string | undefined = undefined;
+      let nameFromContract = 'Unnamed Vault';
+      let decimals = 18;
+      let symbol = 'UNKNOWN';
+      let guardian: string | undefined;
+      let curator: string | undefined;
+      let owner: string | undefined;
+      let maxDeposit = ethers.BigNumber.from(0);
+      let depositCapacity = ethers.BigNumber.from(0);
+      let withdrawalTimelock: ethers.BigNumber | number = 0;
+      let fee: ethers.BigNumber | number = 0;
+      let assetDecimals = 18;
+      let assetSymbol = 'UNKNOWN';
+      let assetName = 'Unknown Token';
+      let sharePriceInAssetBN = ethers.BigNumber.from(0);
+
+      if (helperInfo) {
+        totalAssets = helperInfo.basicInfo.totalAssets;
+        totalSupply = helperInfo.basicInfo.totalSupply;
+        assetAddress = helperInfo.basicInfo.asset;
+        nameFromContract = helperInfo.basicInfo.name;
+        decimals = helperInfo.basicInfo.decimals;
+        symbol = helperInfo.basicInfo.symbol;
+        guardian = helperInfo.basicInfo.guardian;
+        curator = helperInfo.basicInfo.curator;
+        owner = helperInfo.basicInfo.owner;
+        maxDeposit = ethers.BigNumber.from(0); // not provided; keep placeholder
+        depositCapacity = helperInfo.basicInfo.depositCapacity;
+        withdrawalTimelock = helperInfo.basicInfo.withdrawalTimelock;
+        fee = helperInfo.basicInfo.fee;
+
+        assetDecimals = helperInfo.denominatorAssetInfo.decimals;
+        assetSymbol = helperInfo.denominatorAssetInfo.symbol || 'UNKNOWN';
+        assetName = helperInfo.denominatorAssetInfo.name || 'Unknown Token';
+
+        if (!totalSupply.isZero()) {
+          const precision = ethers.BigNumber.from(10).pow(decimals);
+          sharePriceInAssetBN = totalAssets.mul(precision).div(totalSupply);
+        }
+      } else {
+        console.log('Helper contract not available, falling back to legacy per-call logic');
+        const vaultDiamondContract = new ethers.Contract(
+          vaultId,
+          [
+            `function totalAssets() external view override returns (uint256)`,
+            `function totalSupply() external view override returns (uint256)`,
+            `function asset() external view override returns (address)`,
+            `function name() external view override returns (string)`,
+            `function decimals() external view returns (uint8)`,
+            `function symbol() external view returns (string)`,
+            `function guardian() external view returns (address)`,
+            `function curator() external view returns (address)`,
+            `function owner() external view returns (address)`,
+            `function maxDeposit(address receiver) external view returns (uint256 maxAssets)`,
+            `function depositCapacity() external view returns (uint256)`,
+            `function convertToAssets(uint256 shares) external view returns (uint256 assets)`,
+            `function getWithdrawalTimelock() external view returns (uint256)`,
+            `function fee() external view returns (uint256)`,
+          ],
+          actualProvider
+        );
+
+        const contractData = await Promise.all([
           vaultDiamondContract.totalAssets().catch(() => ethers.BigNumber.from(0)),
           vaultDiamondContract.totalSupply().catch(() => ethers.BigNumber.from(0)),
           vaultDiamondContract.asset().catch(() => undefined),
@@ -1143,55 +1323,63 @@ export const useVaultData = <TResult = VaultData>(
           vaultDiamondContract.convertToAssets(parseUnits('1', (await vaultDiamondContract.decimals().catch(() => 18)).toString())).catch(() => ethers.BigNumber.from(0)),
           vaultDiamondContract.getWithdrawalTimelock().catch(() => 0),
           vaultDiamondContract.fee().catch(() => 0),
-        ]),
-        fetchActivity(vaultId, vaultActualChainId, reserves).catch(() => []),
-        fetchVaultData(vaultActualChainId, vaultId),
-        fetchVaultHistoricalSnapshots(vaultActualChainId, vaultId),
-      ]);
-
-      const [
-        totalAssets,
-        totalSupply,
-        assetAddress,
-        nameFromContract,
-        decimals,
-        symbol,
-        guardian,
-        curator,
-        owner,
-        maxDeposit,
-        depositCapacity,
-        sharePriceInAsset,
-        withdrawalTimelock,
-        fee,
-      ] = contractData;
-
-      let assetDecimals = decimals;
-      let assetSymbol;
-      let assetName;
-
-      if (assetAddress) {
-        const assetContract = new ethers.Contract(
-          assetAddress,
-          [
-            `function balanceOf(address user) external view returns (uint256)`,
-            `function decimals() external view returns (uint8)`,
-            `function symbol() external view returns (string)`,
-            `function name() external view returns (string)`,
-          ],
-          actualProvider
-        );
-        [assetDecimals, assetSymbol, assetName] = await Promise.all([
-          assetContract.decimals().catch(() => 18),
-          assetContract.symbol().catch(() => 'UNKNOWN'),
-          assetContract.name().catch(() => 'Unknown Token'),
         ]);
+
+        const [
+          totalAssetsRaw,
+          totalSupplyRaw,
+          assetAddressRaw,
+          nameFromContractRaw,
+          decimalsRaw,
+          symbolRaw,
+          guardianRaw,
+          curatorRaw,
+          ownerRaw,
+          maxDepositRaw,
+          depositCapacityRaw,
+          sharePriceInAssetRaw,
+          withdrawalTimelockRaw,
+          feeRaw,
+        ] = contractData as any;
+
+        totalAssets = totalAssetsRaw;
+        totalSupply = totalSupplyRaw;
+        assetAddress = assetAddressRaw;
+        nameFromContract = nameFromContractRaw;
+        decimals = decimalsRaw;
+        symbol = symbolRaw;
+        guardian = guardianRaw;
+        curator = curatorRaw;
+        owner = ownerRaw;
+        maxDeposit = maxDepositRaw;
+        depositCapacity = depositCapacityRaw;
+        sharePriceInAssetBN = sharePriceInAssetRaw;
+        withdrawalTimelock = withdrawalTimelockRaw;
+        fee = feeRaw;
+
+        if (assetAddress) {
+          const assetContract = new ethers.Contract(
+            assetAddress,
+            [
+              `function balanceOf(address user) external view returns (uint256)`,
+              `function decimals() external view returns (uint8)`,
+              `function symbol() external view returns (string)`,
+              `function name() external view returns (string)`,
+            ],
+            actualProvider
+          );
+          [assetDecimals, assetSymbol, assetName] = await Promise.all([
+            assetContract.decimals().catch(() => 18),
+            assetContract.symbol().catch(() => 'UNKNOWN'),
+            assetContract.name().catch(() => 'Unknown Token'),
+          ]);
+        }
       }
 
       const name = VAULT_ID_TO_NAME[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
       const curatorInfo = VAULT_ID_TO_CURATOR_INFO[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_CURATOR_INFO] || undefined;
 
-      const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress?.toLowerCase());
+      const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === (assetAddress || '').toLowerCase());
 
       // Get incentives for this vault
       const vaultIncentives = incentivesData ? getVaultIncentives(incentivesData, vaultId) : [];
@@ -1220,7 +1408,7 @@ export const useVaultData = <TResult = VaultData>(
             address: assetAddress,
           },
           depositableAssets,
-          sharePrice: Number(formatUnits(sharePriceInAsset, assetDecimals)),
+          sharePrice: Number(formatUnits(sharePriceInAssetBN, assetDecimals)),
           decimals: decimals, // vault decimals
           symbol,
           roles: {
@@ -1228,14 +1416,14 @@ export const useVaultData = <TResult = VaultData>(
             curator,
             owner,
           },
-          apy: vaultData?.apyDailyReturnLast365Days ? parseFloat(vaultData.apyDailyReturnLast365Days) : undefined,
-          apy1Day: vaultData?.apyDailyReturnLast1Day ? parseFloat(vaultData.apyDailyReturnLast1Day) : undefined,
-          apy7Days: vaultData?.apyDailyReturnLast7Days ? parseFloat(vaultData.apyDailyReturnLast7Days) : undefined,
-          apy30Days: vaultData?.apyDailyReturnLast30Days ? parseFloat(vaultData.apyDailyReturnLast30Days) : undefined,
-          apy1Week: vaultData?.apyWeeklyReturnLast1Week ? parseFloat(vaultData.apyWeeklyReturnLast1Week) : undefined,
-          apy4Weeks: vaultData?.apyWeeklyReturnLast4Weeks ? parseFloat(vaultData.apyWeeklyReturnLast4Weeks) : undefined,
-          apy26Weeks: vaultData?.apyWeeklyReturnLast26Weeks ? parseFloat(vaultData.apyWeeklyReturnLast26Weeks) : undefined,
-          apy52Weeks: vaultData?.apyWeeklyReturnLast52Weeks ? parseFloat(vaultData.apyWeeklyReturnLast52Weeks) : undefined,
+          apy: subgraphVaultData?.apyDailyReturnLast365Days ? parseFloat(subgraphVaultData.apyDailyReturnLast365Days) : undefined,
+          apy1Day: subgraphVaultData?.apyDailyReturnLast1Day ? parseFloat(subgraphVaultData.apyDailyReturnLast1Day) : undefined,
+          apy7Days: subgraphVaultData?.apyDailyReturnLast7Days ? parseFloat(subgraphVaultData.apyDailyReturnLast7Days) : undefined,
+          apy30Days: subgraphVaultData?.apyDailyReturnLast30Days ? parseFloat(subgraphVaultData.apyDailyReturnLast30Days) : undefined,
+          apy1Week: subgraphVaultData?.apyWeeklyReturnLast1Week ? parseFloat(subgraphVaultData.apyWeeklyReturnLast1Week) : undefined,
+          apy4Weeks: subgraphVaultData?.apyWeeklyReturnLast4Weeks ? parseFloat(subgraphVaultData.apyWeeklyReturnLast4Weeks) : undefined,
+          apy26Weeks: subgraphVaultData?.apyWeeklyReturnLast26Weeks ? parseFloat(subgraphVaultData.apyWeeklyReturnLast26Weeks) : undefined,
+          apy52Weeks: subgraphVaultData?.apyWeeklyReturnLast52Weeks ? parseFloat(subgraphVaultData.apyWeeklyReturnLast52Weeks) : undefined,
           historicalSnapshots: {
             apyWeeklyReturnTrailing: formatSnapshotsForChart(historicalSnapshots, 'apyWeeklyReturnTrailing'),
             totalSupply: formatSnapshotsForChart(historicalSnapshots, 'totalSupply'),
@@ -1244,7 +1432,7 @@ export const useVaultData = <TResult = VaultData>(
           },
           withdrawalTimelock: withdrawalTimelock.toString(),
           fee: fee.toString(),
-          creationTimestamp: vaultData?.creationTimestamp.toString(),
+          creationTimestamp: subgraphVaultData?.creationTimestamp.toString(),
         },
         financials: {
           liquidity: {

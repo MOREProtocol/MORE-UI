@@ -5,6 +5,8 @@ import { ListColumn } from 'src/components/lists/ListColumn';
 import { ListHeaderTitle } from 'src/components/lists/ListHeaderTitle';
 import { ListHeaderWrapper } from 'src/components/lists/ListHeaderWrapper';
 import { ComputedReserveDataWithMarket, useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
+import { marketsData } from 'src/ui-config/marketsConfig';
 import { WalletBalancesMap } from 'src/hooks/app-data-provider/useWalletBalances';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 
@@ -67,6 +69,18 @@ export default function MarketAssetsList({
   const { currentAccount } = useWeb3Context();
   const { currentMarket } = useRootStore()
   const { user } = useAppDataContext();
+  const marketData = marketsData[currentMarket];
+  const rewardsQuery = usePoolReservesRewardsHumanized(marketData);
+  const allRewards = (rewardsQuery?.data || []) as any[];
+
+  const getRewardsForReserve = (reserve: ComputedReserveDataWithMarket) => {
+    const base = allRewards.filter((r) => r.tracked_token_address?.toLowerCase() === reserve.underlyingAsset.toLowerCase());
+    return {
+      supply: base.filter((r) => ['supply', 'supply_and_borrow'].includes(r.tracked_token_type)),
+      borrow: base.filter((r) => ['borrow', 'supply_and_borrow'].includes(r.tracked_token_type)),
+    };
+  };
+
   const lastColumnSize = useMemo(() => (!!currentAccount && currentMarket !== 'all_markets' ? 320 : 95), [currentAccount, currentMarket]);
   const isTableChangedToCards = useMediaQuery('(max-width:1125px)');
   const [sortName, setSortName] = useState('');
@@ -139,12 +153,20 @@ export default function MarketAssetsList({
 
       {reserves.map((reserve) =>
         isTableChangedToCards ? (
-          <MarketAssetsListMobileItem reserve={reserve} user={user} key={reserve.id} />
+          <MarketAssetsListMobileItem
+            reserve={reserve}
+            user={user}
+            key={reserve.id}
+            rewardsSupply={getRewardsForReserve(reserve).supply}
+            rewardsBorrow={getRewardsForReserve(reserve).borrow}
+          />
         ) : (
           <MarketAssetsListItem
             reserve={reserve}
             walletBalances={walletBalances}
             user={user}
+            rewardsSupply={getRewardsForReserve(reserve).supply}
+            rewardsBorrow={getRewardsForReserve(reserve).borrow}
             key={reserve.id}
           />
         )

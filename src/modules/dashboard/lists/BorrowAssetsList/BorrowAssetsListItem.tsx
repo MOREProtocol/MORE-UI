@@ -9,6 +9,7 @@ import { CapsHint } from '../../../../components/caps/CapsHint';
 import { CapType } from '../../../../components/caps/helper';
 import { Link, ROUTES } from '../../../../components/primitives/Link';
 import { ListAPRColumn } from '../ListAPRColumn';
+import { usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 import { ListButtonsColumn } from '../ListButtonsColumn';
 import { ListItemWrapper } from '../ListItemWrapper';
 import { ListValueColumn } from '../ListValueColumn';
@@ -31,6 +32,12 @@ export const BorrowAssetsListItem = ({
 }: DashboardReserve & { user: ExtendedFormattedUser }) => {
   const { openBorrow } = useModalContext();
   const { currentMarket } = useProtocolDataContext();
+  const { currentMarketData } = useRootStore((s) => ({ currentMarketData: s.currentMarketData }));
+  const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
+  const allRewards = (rewardsQuery?.data || []) as any[];
+  const borrowRewards = allRewards.filter(
+    (r) => r.tracked_token_address?.toLowerCase() === underlyingAsset.toLowerCase() && ['borrow', 'supply_and_borrow'].includes(r.tracked_token_type)
+  );
   const isReserveAlreadySupplied = useMemo(
     () =>
       user?.userReservesData.some(
@@ -72,6 +79,7 @@ export const BorrowAssetsListItem = ({
       <ListAPRColumn
         value={Number(variableBorrowRate)}
         incentives={vIncentivesData}
+        rewards={borrowRewards}
         symbol={symbol}
       />
       {/* <ListAPRColumn

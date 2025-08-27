@@ -3,11 +3,13 @@ import { Box } from '@mui/material';
 import { ReactNode } from 'react';
 
 import { IncentivesCard } from '../../../components/incentives/IncentivesCard';
+import { PoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 import { ListColumn } from '../../../components/lists/ListColumn';
 
 interface ListAPRColumnProps {
   value: number;
   incentives?: ReserveIncentiveResponse[];
+  rewards?: PoolReservesRewardsHumanized[];
   symbol: string;
   tooltip?: ReactNode;
   children?: ReactNode;
@@ -16,6 +18,7 @@ interface ListAPRColumnProps {
 export const ListAPRColumn = ({
   value,
   incentives,
+  rewards,
   symbol,
   tooltip,
   children,
@@ -23,7 +26,7 @@ export const ListAPRColumn = ({
   return (
     <ListColumn>
       <Box sx={{ display: 'flex' }}>
-        <IncentivesCard value={value} incentives={incentives} symbol={symbol} />
+        <IncentivesCard value={value} incentives={incentives} rewards={rewards} symbol={symbol} />
         {tooltip}
       </Box>
       {children}

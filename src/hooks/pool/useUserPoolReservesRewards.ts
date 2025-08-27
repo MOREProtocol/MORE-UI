@@ -7,19 +7,31 @@ import { getProvider } from 'src/utils/marketsAndNetworksConfig';
 import { HookOpts } from '../commonTypes';
 import { ethers } from 'ethers';
 
-export type UserPoolReservesRewardsHumanized = {
+export type UserDistributedReward = {
   merkle_root: string;
   reward_amount_wei: string;
   reward_token_address: string;
   merkle_proof: string[];
   reward_contract_address: string;
-  claimed_amount: string;
-  net_claimable_amount: string;
-}
+  claimed_amount: string;           // enriched
+  net_claimable_amount: string;     // enriched
+};
 
-export const useUserPoolsReservesRewardsHumanized = <T = UserPoolReservesRewardsHumanized[]>(
+export type UserAccruingReward = {
+  reward_token_address: string;
+  tracked_token_address: string;
+  amount_wei_estimated: string;
+  updated_at: number;
+};
+
+export type UserRewardsResponse = {
+  distributed: UserDistributedReward[];
+  accruing: UserAccruingReward[];
+};
+
+export const useUserPoolsReservesRewardsHumanized = <T = UserRewardsResponse>(
   marketsData: MarketDataType[],
-  opts?: HookOpts<UserPoolReservesRewardsHumanized[], T>
+  opts?: HookOpts<UserRewardsResponse, T>
 ) => {
   const user = useRootStore((store) => store.account);
   return useQueries({
@@ -27,18 +39,21 @@ export const useUserPoolsReservesRewardsHumanized = <T = UserPoolReservesRewards
       queryKey: queryKeysFactory.userPoolReservesRewardsDataHumanized(user, marketData),
       queryFn: async () => {
         const response = await fetch(`${process.env.NEXT_PUBLIC_REWARD_URL}/api/markets/user?userAddress=${user}`);
-        const data: UserPoolReservesRewardsHumanized[] = await response.json();
+        const data = await response.json();
 
-        if (!data || data.length === 0) {
-          return data;
+        const distributed = Array.isArray(data?.distributed) ? data.distributed : [];
+        const accruing = Array.isArray(data?.accruing) ? data.accruing : [];
+
+        if (distributed.length === 0 && accruing.length === 0) {
+          return { distributed: [], accruing: [] } as UserRewardsResponse;
         }
 
         // Get provider for this chain
         const provider = getProvider(marketData.chainId);
 
         // Enrich each reward with claimed amount
-        const enrichedData = await Promise.all(
-          data.map(async (reward) => {
+        const enrichedDistributed = await Promise.all(
+          distributed.map(async (reward) => {
             try {
               // Create contract instance for the reward contract
               const rewardContract = new ethers.Contract(
@@ -72,7 +87,7 @@ export const useUserPoolsReservesRewardsHumanized = <T = UserPoolReservesRewards
           })
         );
 
-        return enrichedData;
+        return { distributed: enrichedDistributed, accruing } as UserRewardsResponse;
       },
       enabled: !!user,
       refetchInterval: POLLING_INTERVAL,

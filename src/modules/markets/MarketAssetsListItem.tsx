@@ -22,15 +22,20 @@ import { ROUTES } from '../../components/primitives/Link';
 import { TokenIcon } from '../../components/primitives/TokenIcon';
 import { ComputedReserveDataWithMarket, ExtendedFormattedUser } from '../../hooks/app-data-provider/useAppDataProvider';
 import { InterestRate } from '@aave/contract-helpers';
+import { PoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 
 export const MarketAssetsListItem = ({
   reserve,
   walletBalances,
   user,
+  rewardsSupply,
+  rewardsBorrow,
 }: {
   reserve: ComputedReserveDataWithMarket;
   walletBalances: WalletBalancesMap;
   user: ExtendedFormattedUser;
+  rewardsSupply?: PoolReservesRewardsHumanized[];
+  rewardsBorrow?: PoolReservesRewardsHumanized[];
 }) => {
   const router = useRouter();
   const { currentMarket, setCurrentMarket } = useRootStore();
@@ -128,6 +133,7 @@ export const MarketAssetsListItem = ({
         <IncentivesCard
           value={reserve.supplyAPY}
           incentives={reserve.aIncentivesData || []}
+          rewards={rewardsSupply}
           symbol={reserve.symbol}
           variant="main16"
           symbolsVariant="secondary16"
@@ -149,6 +155,7 @@ export const MarketAssetsListItem = ({
         <IncentivesCard
           value={Number(reserve.totalVariableDebtUSD) > 0 ? reserve.variableBorrowAPY : '-1'}
           incentives={reserve.vIncentivesData || []}
+          rewards={rewardsBorrow}
           symbol={reserve.symbol}
           variant="main16"
           symbolsVariant="secondary16"

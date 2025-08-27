@@ -1,6 +1,7 @@
 import { Box, Button, Tooltip } from '@mui/material';
 import { VariableAPYTooltip } from 'src/components/infoTooltips/VariableAPYTooltip';
 import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
+import { usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 import { DashboardReserve } from 'src/utils/dashboardSortUtils';
 
 import { CapsHint } from '../../../../components/caps/CapsHint';
@@ -29,7 +30,12 @@ export const BorrowAssetsListMobileItem = ({
   user,
 }: DashboardReserve & { user: ExtendedFormattedUser }) => {
   const { openBorrow } = useModalContext();
-  const { currentMarket } = useProtocolDataContext();
+  const { currentMarket, currentMarketData } = useProtocolDataContext();
+  const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
+  const allRewards = (rewardsQuery?.data || []) as any[];
+  const borrowRewards = allRewards.filter(
+    (r) => r.tracked_token_address?.toLowerCase() === underlyingAsset.toLowerCase() && ['borrow', 'supply_and_borrow'].includes(r.tracked_token_type)
+  );
   const isReserveAlreadySupplied = useMemo(
     () =>
       user?.userReservesData.some(
@@ -79,6 +85,7 @@ export const BorrowAssetsListMobileItem = ({
         <IncentivesCard
           value={Number(variableBorrowRate)}
           incentives={vIncentivesData}
+          rewards={borrowRewards}
           symbol={symbol}
           variant="secondary14"
         />

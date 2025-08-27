@@ -34,6 +34,7 @@ import { CapType } from '../../../../components/caps/helper';
 import { ListColumn } from '../../../../components/lists/ListColumn';
 import { Link, ROUTES } from '../../../../components/primitives/Link';
 import { ListAPRColumn } from '../ListAPRColumn';
+import { usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 import { ListButtonsColumn } from '../ListButtonsColumn';
 import { ListItemCanBeCollateral } from '../ListItemCanBeCollateral';
 import { ListItemWrapper } from '../ListItemWrapper';
@@ -106,6 +107,11 @@ export const SupplyAssetsListItemDesktop = ({
   const currentMarketData = useRootStore((store) => store.currentMarketData);
   const currentMarket = useRootStore((store) => store.currentMarket);
   const wrappedTokenReserves = useWrappedTokens();
+  const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
+  const allRewards = (rewardsQuery?.data || []) as any[];
+  const supplyRewards = allRewards.filter(
+    (r) => r.tracked_token_address?.toLowerCase() === underlyingAsset.toLowerCase() && ['supply', 'supply_and_borrow'].includes(r.tracked_token_type)
+  );
 
   const { openSupply, openSwitch } = useModalContext();
 
@@ -210,7 +216,7 @@ export const SupplyAssetsListItemDesktop = ({
         />
       )}
 
-      <ListAPRColumn value={Number(supplyAPY)} incentives={aIncentivesData} symbol={symbol} />
+      <ListAPRColumn value={Number(supplyAPY)} incentives={aIncentivesData} rewards={supplyRewards} symbol={symbol} />
 
       <ListColumn>
         {debtCeiling.isMaxed ? (
@@ -314,6 +320,12 @@ export const SupplyAssetsListItemMobile = ({
   const { currentMarket } = useProtocolDataContext();
   const { openSupply } = useModalContext();
   const wrappedTokenReserves = useWrappedTokens();
+  const currentMarketData = useRootStore((store) => store.currentMarketData);
+  const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
+  const allRewards = (rewardsQuery?.data || []) as any[];
+  const supplyRewards = allRewards.filter(
+    (r) => r.tracked_token_address?.toLowerCase() === underlyingAsset.toLowerCase() && ['supply', 'supply_and_borrow'].includes(r.tracked_token_type)
+  );
 
   // Disable the asset to prevent it from being supplied if supply cap has been reached
   const { supplyCap: supplyCapUsage } = useAssetCaps();
@@ -393,6 +405,7 @@ export const SupplyAssetsListItemMobile = ({
         <IncentivesCard
           value={Number(supplyAPY)}
           incentives={aIncentivesData}
+          rewards={supplyRewards}
           symbol={symbol}
           variant="secondary14"
         />

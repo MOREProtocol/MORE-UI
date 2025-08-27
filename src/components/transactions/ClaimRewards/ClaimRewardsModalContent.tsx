@@ -23,7 +23,7 @@ import {
   DetailsNumberLineWithSub,
   TxModalDetails,
 } from '../FlowCommons/TxModalDetails';
-import { TxModalTitle } from '../FlowCommons/TxModalTitle';
+// import { TxModalTitle } from '../FlowCommons/TxModalTitle';
 import { ChangeNetworkWarning } from '../Warnings/ChangeNetworkWarning';
 import { ClaimRewardsActions } from './ClaimRewardsActions';
 import { RewardsSelect } from './RewardsSelect';
@@ -146,7 +146,7 @@ export const ClaimRewardsModalContent = ({ user, reserves }: ClaimRewardsModalCo
 
   return (
     <>
-      <TxModalTitle title="Claim rewards" />
+      {/* <TxModalTitle title="Claim rewards" /> */}
       {isWrongNetwork && !readOnlyModeAddress && (
         <ChangeNetworkWarning networkName={networkConfig.name} chainId={currentChainId} />
       )}

@@ -25,8 +25,6 @@ export const DashboardContentWrapper = ({ isBorrow }: DashboardContentWrapperPro
   const isDesktop = useMediaQuery(breakpoints.up('lg'));
   const paperWidth = isDesktop ? 'calc(50% - 8px)' : '100%';
 
-  const downToLg = useMediaQuery(breakpoints.down('lg'));
-
   const upFromSm = useMediaQuery(breakpoints.up('xsm'));
 
   return (
@@ -47,27 +45,6 @@ export const DashboardContentWrapper = ({ isBorrow }: DashboardContentWrapperPro
             width: paperWidth,
           }}
         >
-          {currentAccount && !isBorrow && downToLg && (
-            <Box>
-              <Button
-                sx={{
-                  position: 'absolute',
-                  top: upFromSm ? '-60px' : '-90px',
-                  right: '0px',
-                }}
-                onClick={() => {
-                  router.push(ROUTES.history);
-                  trackEvent(AUTH.VIEW_TX_HISTORY);
-                }}
-                component="a"
-                variant="surface"
-                size="small"
-              >
-                View Transactions
-              </Button>
-            </Box>
-          )}
-
           <SuppliedPositionsList />
           <SupplyAssetsList />
         </Box>

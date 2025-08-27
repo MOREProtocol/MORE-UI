@@ -114,39 +114,33 @@ const formatUserYield = memoize(
       }
     );
 
-    // Add rewards from poolsReservesRewards
+    // Add rewards from poolsReservesRewards (reuse precomputed APRs)
     if (Array.isArray(poolsReservesRewards)) {
       poolsReservesRewards.forEach((reward) => {
-        if (reward.apy_bps === 0) {
-          return;
-        }
-        // apy_bps is in basis points and needs division by 10000
-        const rewardAPY = new BigNumber(reward.apy_bps).dividedBy(10000);
-        if (reward.tracked_token_type === 'supply' || reward.tracked_token_type === 'supply_and_borrow') {
-          const userReserveData = user.userReservesData.find(
-            (r) => r.reserve.underlyingAsset === reward.tracked_token_address
-          );
-          if (userReserveData && userReserveData.underlyingBalanceUSD !== '0') {
+        const userReserveData = user.userReservesData.find(
+          (r) => r.reserve.underlyingAsset.toLowerCase() === reward.tracked_token_address.toLowerCase()
+        );
+        if (!userReserveData) return;
+
+        if (['supply', 'supply_and_borrow'].includes(reward.tracked_token_type)) {
+          const marketRewardAPY = new BigNumber(reward.incentive_apr_supply || 0);
+          if (userReserveData.underlyingBalanceUSD !== '0') {
             proportions.positiveProportion = proportions.positiveProportion.plus(
-              rewardAPY.multipliedBy(userReserveData.underlyingBalanceUSD)
+              marketRewardAPY.multipliedBy(userReserveData.underlyingBalanceUSD)
             );
           }
         }
-        if (reward.tracked_token_type === 'borrow' || reward.tracked_token_type === 'supply_and_borrow') {
-          const userReserveData = user.userReservesData.find(
-            (r) => r.reserve.underlyingAsset === reward.tracked_token_address
-          );
-          if (userReserveData) {
-            if (userReserveData.variableBorrowsUSD !== '0') {
-              proportions.positiveProportion = proportions.positiveProportion.plus(
-                rewardAPY.multipliedBy(userReserveData.variableBorrowsUSD)
-              );
-            }
-            if (userReserveData.stableBorrowsUSD !== '0') {
-              proportions.positiveProportion = proportions.positiveProportion.plus(
-                rewardAPY.multipliedBy(userReserveData.stableBorrowsUSD)
-              );
-            }
+        if (['borrow', 'supply_and_borrow'].includes(reward.tracked_token_type)) {
+          const marketRewardAPY = new BigNumber(reward.incentive_apr_borrow || 0);
+          if (userReserveData.variableBorrowsUSD !== '0') {
+            proportions.positiveProportion = proportions.positiveProportion.plus(
+              marketRewardAPY.multipliedBy(userReserveData.variableBorrowsUSD)
+            );
+          }
+          if (userReserveData.stableBorrowsUSD !== '0') {
+            proportions.positiveProportion = proportions.positiveProportion.plus(
+              marketRewardAPY.multipliedBy(userReserveData.stableBorrowsUSD)
+            );
           }
         }
       });
