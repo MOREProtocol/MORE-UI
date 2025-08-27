@@ -10,6 +10,7 @@ import { useRootStore } from 'src/store/root';
 import type { RewardItemEnriched } from 'src/hooks/vault/useVaultData';
 import { ClaimRewardsModalContent as LegacyClaimRewardsModalContent } from './ClaimRewardsModalContent';
 import { TxModalTitle } from '../FlowCommons/TxModalTitle';
+import { formatUnits } from 'viem';
 
 export const ClaimRewardsModal = () => {
   const { type, close } = useModalContext();
@@ -34,7 +35,7 @@ export const ClaimRewardsModal = () => {
       // RewardItemEnriched
       price,
       rewardAmountToClaim,
-      rewardAmountToClaimInUSD: rewardAmountToClaim * price,
+      rewardAmountToClaimInUSD: Number(formatUnits(BigInt(rewardAmountToClaim || '0'), decimals)) * price,
       symbol: reserve?.symbol || '',
       name: reserve?.name || '',
       decimals,
