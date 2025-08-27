@@ -199,7 +199,7 @@ export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onC
           <Box>
             <Typography variant="caption" color="text.secondary" mb={8}>
               {
-                'This incentive program is funded by third party donors and facilitated by the MORE DAO. MORE does not guarantee the program and accepts no liability for it. '
+                'This incentive program is funded by third party donors and facilitated by the MORE DAO. Claims are processed on a weekly basis. MORE does not guarantee the program and accepts no liability for it. '
               }
               <Link
                 href="https://docs.more.markets/resources/incentives"

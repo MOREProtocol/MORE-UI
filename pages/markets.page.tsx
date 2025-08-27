@@ -1,8 +1,9 @@
-import { Box, Container } from '@mui/material';
+import { Box, Container, Alert } from '@mui/material';
 import { ReactNode, useEffect } from 'react';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { MarketAssetsListContainer } from 'src/modules/markets/MarketAssetsListContainer';
 import { MarketsTopPanel } from 'src/modules/markets/MarketsTopPanel';
+import { Link } from 'src/components/primitives/Link';
 import { useRootStore } from 'src/store/root';
 
 interface MarketContainerProps {
@@ -47,6 +48,13 @@ export default function Markets() {
   }, [trackEvent]);
   return (
     <>
+      <Alert severity="warning">
+        The new rewards distributor is live! Claim weekly rewards using our Merkle-based process. Read more
+        <Link href="https://docs.more.markets/resources/incentives" sx={{ pl: 0.5 }}>
+          here
+        </Link>
+        .
+      </Alert>
       <MarketsTopPanel />
       <Box
         sx={{

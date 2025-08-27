@@ -1,4 +1,4 @@
-import { Box, Typography } from '@mui/material';
+import { Alert, Box, Link, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import StyledToggleButton from 'src/components/StyledToggleButton';
 import StyledToggleButtonGroup from 'src/components/StyledToggleButtonGroup';
@@ -27,6 +27,14 @@ export default function Home() {
 
   return (
     <>
+      <Alert severity="warning">
+        The new rewards distributor is live! Claim weekly rewards using our Merkle-based process. Read more
+        <Link href="https://docs.more.markets/resources/incentives" sx={{ pl: 0.5 }}>
+          here
+        </Link>
+        .
+      </Alert>
+
       <DashboardTopPanel />
 
       <ContentContainer>
