@@ -9,7 +9,7 @@ import { CapsHint } from '../../../../components/caps/CapsHint';
 import { CapType } from '../../../../components/caps/helper';
 import { Link, ROUTES } from '../../../../components/primitives/Link';
 import { ListAPRColumn } from '../ListAPRColumn';
-import { usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
+import { PoolReservesRewardsHumanized, usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 import { ListButtonsColumn } from '../ListButtonsColumn';
 import { ListItemWrapper } from '../ListItemWrapper';
 import { ListValueColumn } from '../ListValueColumn';
@@ -34,7 +34,7 @@ export const BorrowAssetsListItem = ({
   const { currentMarket } = useProtocolDataContext();
   const { currentMarketData } = useRootStore((s) => ({ currentMarketData: s.currentMarketData }));
   const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
-  const allRewards = (rewardsQuery?.data || []) as any[];
+  const allRewards: PoolReservesRewardsHumanized[] = rewardsQuery?.data ?? [];
   const borrowRewards = allRewards.filter(
     (r) => r.tracked_token_address?.toLowerCase() === underlyingAsset.toLowerCase() && ['borrow', 'supply_and_borrow'].includes(r.tracked_token_type)
   );

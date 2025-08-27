@@ -34,7 +34,7 @@ export const usePoolsReservesRewardsHumanized = <T = PoolReservesRewardsHumanize
       queryFn: () => {
         return fetch(`${process.env.NEXT_PUBLIC_REWARD_URL}/api/markets/apy`)
           .then(res => res.json())
-          .then((raw: any[]) => {
+          .then((raw: Omit<PoolReservesRewardsHumanized, 'reward_token_symbol' | 'incentive_apr_supply' | 'incentive_apr_borrow'>[]) => {
             const SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
             return (raw || []).map((r) => {
               const rewardReserve = reserves.find(

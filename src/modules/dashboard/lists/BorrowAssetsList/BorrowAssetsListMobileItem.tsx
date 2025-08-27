@@ -1,7 +1,7 @@
 import { Box, Button, Tooltip } from '@mui/material';
 import { VariableAPYTooltip } from 'src/components/infoTooltips/VariableAPYTooltip';
 import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
-import { usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
+import { PoolReservesRewardsHumanized, usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 import { DashboardReserve } from 'src/utils/dashboardSortUtils';
 
 import { CapsHint } from '../../../../components/caps/CapsHint';
@@ -32,7 +32,7 @@ export const BorrowAssetsListMobileItem = ({
   const { openBorrow } = useModalContext();
   const { currentMarket, currentMarketData } = useProtocolDataContext();
   const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
-  const allRewards = (rewardsQuery?.data || []) as any[];
+  const allRewards: PoolReservesRewardsHumanized[] = rewardsQuery?.data ?? [];
   const borrowRewards = allRewards.filter(
     (r) => r.tracked_token_address?.toLowerCase() === underlyingAsset.toLowerCase() && ['borrow', 'supply_and_borrow'].includes(r.tracked_token_type)
   );

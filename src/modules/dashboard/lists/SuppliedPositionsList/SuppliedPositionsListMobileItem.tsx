@@ -10,7 +10,7 @@ import { useProtocolDataContext } from '../../../../hooks/useProtocolDataContext
 import { isFeatureEnabled } from '../../../../utils/marketsAndNetworksConfig';
 import { ListItemUsedAsCollateral } from '../ListItemUsedAsCollateral';
 import { ListMobileItemWrapper } from '../ListMobileItemWrapper';
-import { usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
+import { PoolReservesRewardsHumanized, usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 import { ListValueRow } from '../ListValueRow';
 
 export const SuppliedPositionsListMobileItem = ({
@@ -23,7 +23,7 @@ export const SuppliedPositionsListMobileItem = ({
   const { user } = useAppDataContext();
   const { currentMarketData, currentMarket } = useProtocolDataContext();
   const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
-  const allRewards = (rewardsQuery?.data || []) as any[];
+  const allRewards: PoolReservesRewardsHumanized[] = rewardsQuery?.data ?? [];
   const supplyRewards = allRewards.filter(
     (r) => r.tracked_token_address?.toLowerCase() === underlyingAsset.toLowerCase() && ['supply', 'supply_and_borrow'].includes(r.tracked_token_type)
   );

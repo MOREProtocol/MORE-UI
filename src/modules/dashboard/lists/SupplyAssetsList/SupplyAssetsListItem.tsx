@@ -34,7 +34,7 @@ import { CapType } from '../../../../components/caps/helper';
 import { ListColumn } from '../../../../components/lists/ListColumn';
 import { Link, ROUTES } from '../../../../components/primitives/Link';
 import { ListAPRColumn } from '../ListAPRColumn';
-import { usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
+import { PoolReservesRewardsHumanized, usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 import { ListButtonsColumn } from '../ListButtonsColumn';
 import { ListItemCanBeCollateral } from '../ListItemCanBeCollateral';
 import { ListItemWrapper } from '../ListItemWrapper';
@@ -108,7 +108,7 @@ export const SupplyAssetsListItemDesktop = ({
   const currentMarket = useRootStore((store) => store.currentMarket);
   const wrappedTokenReserves = useWrappedTokens();
   const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
-  const allRewards = (rewardsQuery?.data || []) as any[];
+  const allRewards: PoolReservesRewardsHumanized[] = rewardsQuery?.data ?? [];
   const supplyRewards = allRewards.filter(
     (r) => r.tracked_token_address?.toLowerCase() === underlyingAsset.toLowerCase() && ['supply', 'supply_and_borrow'].includes(r.tracked_token_type)
   );
@@ -322,7 +322,7 @@ export const SupplyAssetsListItemMobile = ({
   const wrappedTokenReserves = useWrappedTokens();
   const currentMarketData = useRootStore((store) => store.currentMarketData);
   const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
-  const allRewards = (rewardsQuery?.data || []) as any[];
+  const allRewards: PoolReservesRewardsHumanized[] = rewardsQuery?.data ?? [];
   const supplyRewards = allRewards.filter(
     (r) => r.tracked_token_address?.toLowerCase() === underlyingAsset.toLowerCase() && ['supply', 'supply_and_borrow'].includes(r.tracked_token_type)
   );

@@ -5,7 +5,7 @@ import { ListColumn } from 'src/components/lists/ListColumn';
 import { ListHeaderTitle } from 'src/components/lists/ListHeaderTitle';
 import { ListHeaderWrapper } from 'src/components/lists/ListHeaderWrapper';
 import { ComputedReserveDataWithMarket, useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
-import { usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
+import { usePoolReservesRewardsHumanized, PoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 import { marketsData } from 'src/ui-config/marketsConfig';
 import { WalletBalancesMap } from 'src/hooks/app-data-provider/useWalletBalances';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
@@ -71,7 +71,7 @@ export default function MarketAssetsList({
   const { user } = useAppDataContext();
   const marketData = marketsData[currentMarket];
   const rewardsQuery = usePoolReservesRewardsHumanized(marketData);
-  const allRewards = (rewardsQuery?.data || []) as any[];
+  const allRewards: PoolReservesRewardsHumanized[] = rewardsQuery?.data ?? [];
 
   const getRewardsForReserve = (reserve: ComputedReserveDataWithMarket) => {
     const base = allRewards.filter((r) => r.tracked_token_address?.toLowerCase() === reserve.underlyingAsset.toLowerCase());

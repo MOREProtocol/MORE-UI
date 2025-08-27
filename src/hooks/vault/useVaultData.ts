@@ -1240,7 +1240,6 @@ export const useVaultData = <TResult = VaultData>(
 
       // Try helper first to fetch majority of fields in one call
       const helperInfo = await fetchHelperVaultInfoRaw(actualProvider, vaultActualChainId, vaultId, undefined).catch(() => null);
-      console.log('helperInfo', helperInfo);
 
       let totalAssets = ethers.BigNumber.from(0);
       let totalSupply = ethers.BigNumber.from(0);
@@ -1340,7 +1339,7 @@ export const useVaultData = <TResult = VaultData>(
           sharePriceInAssetRaw,
           withdrawalTimelockRaw,
           feeRaw,
-        ] = contractData as any;
+        ] = contractData;
 
         totalAssets = totalAssetsRaw;
         totalSupply = totalSupplyRaw;

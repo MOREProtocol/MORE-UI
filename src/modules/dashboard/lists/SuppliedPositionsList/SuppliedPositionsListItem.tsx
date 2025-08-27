@@ -1,6 +1,6 @@
 import { Button } from '@mui/material';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
-import { usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
+import { PoolReservesRewardsHumanized, usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 import { useRootStore } from 'src/store/root';
 import { useAssetCaps } from 'src/hooks/useAssetCaps';
 import { useModalContext } from 'src/hooks/useModal';
@@ -26,7 +26,7 @@ export const SuppliedPositionsListItem = ({
   const { user } = useAppDataContext();
   const { currentMarketData } = useRootStore((s) => ({ currentMarketData: s.currentMarketData }));
   const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
-  const allRewards = (rewardsQuery?.data || []) as any[];
+  const allRewards: PoolReservesRewardsHumanized[] = rewardsQuery?.data ?? [];
   const supplyRewards = allRewards.filter(
     (r) => r.tracked_token_address?.toLowerCase() === underlyingAsset.toLowerCase() && ['supply', 'supply_and_borrow'].includes(r.tracked_token_type)
   );
