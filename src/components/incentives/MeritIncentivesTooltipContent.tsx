@@ -27,7 +27,7 @@ export const RewardsIncentivesTooltipContent = ({
 
       <Typography variant="caption" color="text.secondary" mb={3}>
         {
-          'This incentive program is funded by third party donors and facilitated by the MORE DAO. MORE does not guarantee the program and accepts no liability for it. '
+          'Incentive programs are provided by third parties. MORE does not guarantee these programs and accepts no liability for them. Some positions are not eligible for incentives. '
         }
         <Link
           href="https://docs.more.markets/resources/incentives"
@@ -37,7 +37,7 @@ export const RewardsIncentivesTooltipContent = ({
           variant="caption"
           color="text.secondary"
         >
-          Learn more
+          Read more
         </Link>
       </Typography>
 

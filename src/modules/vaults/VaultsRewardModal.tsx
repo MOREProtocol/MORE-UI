@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useUserData, vaultQueryKeys } from 'src/hooks/vault/useVaultData';
 import { useVault } from 'src/hooks/vault/useVault';
 import { ClaimRewardsModal } from 'src/components/transactions/RewardsDistributor/ClaimRewardsModal';
+import { BasicModal } from 'src/components/primitives/BasicModal';
 
 interface VaultsRewardModalProps {
   open: boolean;
@@ -43,12 +44,18 @@ export const VaultsRewardModal = ({ open, handleClose, userAddress }: VaultsRewa
   const rewards = userData?.userRewards || [];
 
   return (
-    <ClaimRewardsModal
+    <BasicModal
       open={open}
-      handleClose={handleClose}
-      userAddress={userAddress}
-      rewards={rewards}
-      onClaimSuccess={handleClaimSuccess}
-    />
+      setOpen={(value) => {
+        if (!value) handleClose();
+      }}
+    >
+      <ClaimRewardsModal
+        open={open}
+        userAddress={userAddress}
+        rewards={rewards}
+        onClaimSuccess={handleClaimSuccess}
+      />
+    </BasicModal>
   )
 };

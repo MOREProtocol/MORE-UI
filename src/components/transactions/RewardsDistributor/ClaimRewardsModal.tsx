@@ -1,11 +1,11 @@
-import { Box, Typography, Modal, IconButton, Paper, CircularProgress, Theme, Button, Link, Alert, FormControl, Select, MenuItem } from '@mui/material';
+import { Box, Typography, CircularProgress, Theme, Button, Link, Alert, FormControl, Select, MenuItem } from '@mui/material';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { RewardItemEnriched } from 'src/hooks/vault/useVaultData';
 import { UserAuthenticated } from 'src/components/UserAuthenticated';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { ClaimRewardsModalContent as LegacyClaimRewardsModalContent } from '../ClaimRewards/ClaimRewardsModalContent';
-import CloseIcon from '@mui/icons-material/Close';
+// Close button removed; BasicModal provides close control
 import LaunchIcon from '@mui/icons-material/Launch';
 import { ethers, Signer } from 'ethers';
 import { formatUnits } from 'ethers/lib/utils';
@@ -16,14 +16,13 @@ import { ChainIds } from 'src/utils/const';
 
 interface ClaimRewardsModalProps {
   open: boolean;
-  handleClose: () => void;
   userAddress: string;
   rewards: RewardItemEnriched[];
   onClaimSuccess?: (claimedRewardAddresses: string[]) => void;
   legacyAvailable?: boolean;
 }
 
-export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onClaimSuccess, legacyAvailable = false }: ClaimRewardsModalProps) => {
+export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, legacyAvailable = false }: ClaimRewardsModalProps) => {
   const { data: walletClient } = useWalletClient();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
@@ -50,6 +49,17 @@ export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onC
     }
     getSigner();
   }, [walletClient]);
+
+  // Reset transient state when modal open state changes to avoid stale UI
+  useEffect(() => {
+    if (!open) {
+      setLoadingClaims({});
+      setClaimErrors({});
+      setClaimedRewards(new Set());
+      setTransactionHashes({});
+      setMode('legacy');
+    }
+  }, [open]);
 
   const rewardsToDisplay = rewards?.filter(reward => reward.rewardAmountToClaim > 0);
   const { reserves } = useAppDataContext();
@@ -116,199 +126,181 @@ export const ClaimRewardsModal = ({ open, handleClose, userAddress, rewards, onC
   };
 
   return (
-    <Modal open={open} onClose={handleClose} aria-labelledby="vaults-reward-modal-title">
-      <Paper
-        sx={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 400,
-          bgcolor: 'background.paper',
-          boxShadow: 24,
-          p: 4,
-          borderRadius: '8px',
-          outline: 'none',
-        }}
-      >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h3">
-            Claim MORE Incentives
+    <>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h3">
+          Claim MORE Incentives
+        </Typography>
+      </Box>
+
+      {legacyAvailable && rewardsToDisplay && rewardsToDisplay.length > 0 && (
+        <FormControl fullWidth sx={{ mb: 2 }}>
+          <Select value={mode} onChange={(e) => setMode(e.target.value as 'new' | 'legacy')}>
+            <MenuItem value="legacy">Legacy incentives</MenuItem>
+            <MenuItem value="new">New incentives</MenuItem>
+          </Select>
+        </FormControl>
+      )}
+
+      {/* Network Status Check */}
+      {shouldShowNetworkWarning && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          <Typography variant="main14">
+            Wrong Network{' '}
+            <Typography
+              component="span"
+              variant="main14"
+              onClick={handleSwitchToFlowNetwork}
+              sx={{
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                '&:hover': {
+                  color: 'primary.dark',
+                },
+              }}
+            >
+              Please switch to Flow EVM
+            </Typography>
+            {' '}to claim rewards
           </Typography>
-          <IconButton onClick={handleClose} aria-label="close">
-            <CloseIcon />
-          </IconButton>
+        </Alert>
+      )}
+
+      {!userAddress && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="main14">
+            Please connect your wallet to claim rewards
+          </Typography>
+        </Alert>
+      )}
+
+      {mode === 'new' && (!rewards || rewardsToDisplay?.length === 0) && !legacyAvailable && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+          <CircularProgress />
         </Box>
+      )}
 
-        {legacyAvailable && rewardsToDisplay && rewardsToDisplay.length > 0 && (
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <Select value={mode} onChange={(e) => setMode(e.target.value as 'new' | 'legacy')}>
-              <MenuItem value="legacy">Legacy incentives</MenuItem>
-              <MenuItem value="new">New incentives</MenuItem>
-            </Select>
-          </FormControl>
-        )}
+      {!rewardsToDisplay || rewardsToDisplay.length === 0 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+          <Typography color="error" sx={{ my: 2 }}>
+            You have no rewards available to claim.
+          </Typography>
+        </Box>
+      )}
 
-        {/* Network Status Check */}
-        {shouldShowNetworkWarning && (
-          <Alert severity="warning" sx={{ mb: 3 }}>
-            <Typography variant="main14">
-              Wrong Network:{' '}
-              <Typography
-                component="span"
-                variant="main14"
-                onClick={handleSwitchToFlowNetwork}
+      {mode === 'new' && rewardsToDisplay && rewardsToDisplay.length > 0 && (
+        <Box>
+          <Typography variant="caption" color="text.secondary" mb={8}>
+            {
+              'This incentive program is funded by third party donors and facilitated by the MORE DAO. Claims are processed on a weekly basis. MORE does not guarantee the program and accepts no liability for it. '
+            }
+            <Link
+              href="https://docs.more.markets/resources/incentives"
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ textDecoration: 'underline' }}
+              variant="caption"
+              color="text.secondary"
+            >
+              Read more
+            </Link>
+          </Typography>
+          {rewardsToDisplay.map((reward) => (
+            <Box key={reward.reward_token_address}>
+              <Box
                 sx={{
-                  textDecoration: 'underline',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    color: 'primary.dark',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  py: 1.5,
+                  borderBottom: (theme: Theme) => `1px solid ${theme.palette.divider}`,
+                  '&:last-child': {
+                    borderBottom: 'none',
                   },
                 }}
               >
-                Please switch to Flow EVM
-              </Typography>
-              {' '}to claim rewards
-            </Typography>
-          </Alert>
-        )}
-
-        {!userAddress && (
-          <Alert severity="info" sx={{ mb: 3 }}>
-            <Typography variant="main14">
-              Please connect your wallet to claim rewards
-            </Typography>
-          </Alert>
-        )}
-
-        {mode === 'new' && (!rewards || rewardsToDisplay?.length === 0) && !legacyAvailable && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
-            <CircularProgress />
-          </Box>
-        )}
-
-        {!rewardsToDisplay || rewardsToDisplay.length === 0 && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
-            <Typography color="error" sx={{ my: 2 }}>
-              You have no rewards available to claim.
-            </Typography>
-          </Box>
-        )}
-
-        {mode === 'new' && rewardsToDisplay && rewardsToDisplay.length > 0 && (
-          <Box>
-            <Typography variant="caption" color="text.secondary" mb={8}>
-              {
-                'This incentive program is funded by third party donors and facilitated by the MORE DAO. Claims are processed on a weekly basis. MORE does not guarantee the program and accepts no liability for it. '
-              }
-              <Link
-                href="https://docs.more.markets/resources/incentives"
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{ textDecoration: 'underline' }}
-                variant="caption"
-                color="text.secondary"
-              >
-                Learn more
-              </Link>
-            </Typography>
-            {rewardsToDisplay.map((reward) => (
-              <Box key={reward.reward_token_address}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    py: 1.5,
-                    borderBottom: (theme: Theme) => `1px solid ${theme.palette.divider}`,
-                    '&:last-child': {
-                      borderBottom: 'none',
-                    },
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <TokenIcon symbol={reward.symbol} sx={{ mr: 1.5, fontSize: '24px' }} />
-                    <Box>
-                      <Typography variant="main14">
-                        {reward.name}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <FormattedNumber value={formatUnits(reward.rewardAmountToClaim.toString(), reward.decimals).toString()} symbol={reward.symbol} variant="secondary14" />
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="caption">(</Typography>
-                          <FormattedNumber
-                            value={reward.rewardAmountToClaimInUSD}
-                            variant="caption"
-                            compact
-                            symbol="USD"
-                            color="text.secondary"
-                          />
-                          <Typography variant="caption">)</Typography>
-                        </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <TokenIcon symbol={reward.symbol} sx={{ mr: 1.5, fontSize: '24px' }} />
+                  <Box>
+                    <Typography variant="main14">
+                      {reward.name}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <FormattedNumber value={formatUnits(reward.rewardAmountToClaim.toString(), reward.decimals).toString()} symbol={reward.symbol} variant="secondary14" />
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="caption">(</Typography>
+                        <FormattedNumber
+                          value={reward.rewardAmountToClaimInUSD}
+                          variant="caption"
+                          compact
+                          symbol="USD"
+                          color="text.secondary"
+                        />
+                        <Typography variant="caption">)</Typography>
                       </Box>
                     </Box>
                   </Box>
-                  <Box sx={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                    {claimedRewards.has(reward.reward_token_address) ? (
-                      <Button
-                        variant="outlined"
-                        onClick={() => handleViewTransaction(transactionHashes[reward.reward_token_address])}
-                        sx={{
-                          minWidth: 'unset',
-                          ml: { xs: 0, xsm: 2 },
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 0.5
-                        }}
-                      >
-                        View Tx
-                        <LaunchIcon sx={{ fontSize: '14px' }} />
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="gradient"
-                        onClick={() => handleClaim(reward)}
-                        disabled={loadingClaims[reward.reward_token_address] || shouldShowNetworkWarning}
-                        sx={{
-                          minWidth: 72,
-                          height: 36,
-                          ml: { xs: 0, xsm: 2 },
-                          position: 'relative'
-                        }}
-                      >
-                        {loadingClaims[reward.reward_token_address] ? (
-                          <CircularProgress size={16} sx={{ color: 'inherit' }} />
-                        ) : (
-                          'Claim'
-                        )}
-                      </Button>
-                    )}
-                  </Box>
                 </Box>
-                {claimErrors[reward.reward_token_address] && (
-                  <Alert
-                    severity="error"
-                    sx={{ mt: 1, mb: 1 }}
-                    onClose={() => setClaimErrors(prev => {
-                      const newErrors = { ...prev };
-                      delete newErrors[reward.reward_token_address];
-                      return newErrors;
-                    })}
-                  >
-                    {claimErrors[reward.reward_token_address]}
-                  </Alert>
-                )}
+                <Box sx={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                  {claimedRewards.has(reward.reward_token_address) ? (
+                    <Button
+                      variant="outlined"
+                      onClick={() => handleViewTransaction(transactionHashes[reward.reward_token_address])}
+                      sx={{
+                        minWidth: 'unset',
+                        ml: { xs: 0, xsm: 2 },
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5
+                      }}
+                    >
+                      View Tx
+                      <LaunchIcon sx={{ fontSize: '14px' }} />
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="gradient"
+                      onClick={() => handleClaim(reward)}
+                      disabled={loadingClaims[reward.reward_token_address] || shouldShowNetworkWarning}
+                      sx={{
+                        minWidth: 72,
+                        height: 36,
+                        ml: { xs: 0, xsm: 2 },
+                        position: 'relative'
+                      }}
+                    >
+                      {loadingClaims[reward.reward_token_address] ? (
+                        <CircularProgress size={16} sx={{ color: 'inherit' }} />
+                      ) : (
+                        'Claim'
+                      )}
+                    </Button>
+                  )}
+                </Box>
               </Box>
-            ))}
-          </Box>
-        )}
+              {claimErrors[reward.reward_token_address] && (
+                <Alert
+                  severity="error"
+                  sx={{ mt: 1, mb: 1 }}
+                  onClose={() => setClaimErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors[reward.reward_token_address];
+                    return newErrors;
+                  })}
+                >
+                  {claimErrors[reward.reward_token_address]}
+                </Alert>
+              )}
+            </Box>
+          ))}
+        </Box>
+      )}
 
-        {mode === 'legacy' && (
-          <UserAuthenticated>
-            {(user) => <LegacyClaimRewardsModalContent user={user} reserves={reserves} />}
-          </UserAuthenticated>
-        )}
-      </Paper>
-    </Modal>
+      {mode === 'legacy' && (
+        <UserAuthenticated>
+          {(user) => <LegacyClaimRewardsModalContent user={user} reserves={reserves} />}
+        </UserAuthenticated>
+      )}
+    </>
   );
 };

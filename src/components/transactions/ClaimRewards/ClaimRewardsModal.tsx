@@ -52,8 +52,7 @@ export const ClaimRewardsModal = () => {
     <BasicModal open={type === ModalType.ClaimRewards} setOpen={close}>
       {hasNew ? (
         <NewClaimRewardsModal
-          open={true}
-          handleClose={close}
+          open={type === ModalType.ClaimRewards}
           userAddress={currentAccount || ''}
           rewards={mappedRewards}
           legacyAvailable={true}

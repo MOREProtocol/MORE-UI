@@ -49,12 +49,13 @@ export default function Markets() {
   return (
     <>
       <Alert severity="warning">
-        The new rewards distributor is live! Claim weekly rewards using our Merkle-based process. Read more
-        <Link href="https://docs.more.markets/resources/incentives" sx={{ pl: 0.5 }}>
-          here
+        MORE incentives have moved to a new system. Claims will now be available on a weekly basis, but you&apos;ll still see them accrue in real-time.
+        <Link href="https://docs.more.markets/resources/incentives" sx={{ pl: 0.5 }} target="_blank">
+          Read more
         </Link>
         .
       </Alert>
+
       <MarketsTopPanel />
       <Box
         sx={{
