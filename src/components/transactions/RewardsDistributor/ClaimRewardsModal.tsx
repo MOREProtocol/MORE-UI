@@ -32,6 +32,9 @@ export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, 
   const [claimErrors, setClaimErrors] = useState<Record<string, string>>({});
   const [claimedRewards, setClaimedRewards] = useState<Set<string>>(new Set());
   const [transactionHashes, setTransactionHashes] = useState<Record<string, string>>({});
+  // Local copy to avoid UI disappearing when parent rewards prop updates to empty
+  const [localRewards, setLocalRewards] = useState<RewardItemEnriched[]>(rewards || []);
+  const [freezeRewards, setFreezeRewards] = useState<boolean>(false);
 
   // Check if user is on a supported Flow network
   const isOnSupportedNetwork = chainId === ChainIds.flowEVMMainnet || chainId === ChainIds.flowEVMTestnet;
@@ -58,10 +61,20 @@ export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, 
       setClaimedRewards(new Set());
       setTransactionHashes({});
       setMode('legacy');
+      setFreezeRewards(false);
+      setLocalRewards(rewards || []);
     }
   }, [open]);
 
-  const rewardsToDisplay = rewards?.filter(reward => reward.rewardAmountToClaim > 0);
+  // Keep a local snapshot of rewards while the modal is open; after a claim, freeze to prevent disappearance
+  useEffect(() => {
+    if (open && !freezeRewards) {
+      setLocalRewards(rewards || []);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rewards, open]);
+
+  const rewardsToDisplay = (localRewards || [])?.filter(reward => reward.rewardAmountToClaim > 0);
   const { reserves } = useAppDataContext();
 
   const getExplorerUrl = (txHash: string) => {
@@ -109,6 +122,9 @@ export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, 
 
       // Mark as claimed
       setClaimedRewards(prev => new Set(prev).add(rewardKey));
+
+      // Freeze incoming rewards updates so UI doesn't disappear mid-session
+      setFreezeRewards(true);
 
       // Call success callback for data refresh
       if (onClaimSuccess) {

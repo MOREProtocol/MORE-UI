@@ -48,14 +48,29 @@ export const ClaimRewardsModal = () => {
     } as RewardItemForNewModal;
   });
   const hasNew = mappedRewards.some((r) => r.rewardAmountToClaim > 0);
+  const [showNew, setShowNew] = React.useState<boolean | null>(null);
+  React.useEffect(() => {
+    if (type === ModalType.ClaimRewards) {
+      if (showNew === null) setShowNew(hasNew);
+    } else {
+      setShowNew(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, hasNew]);
+  const handleClaimSuccess = async () => {
+    try {
+      await rewardsQuery.refetch();
+    } catch { }
+  };
   return (
     <BasicModal open={type === ModalType.ClaimRewards} setOpen={close}>
-      {hasNew ? (
+      {(showNew ?? hasNew) ? (
         <NewClaimRewardsModal
           open={type === ModalType.ClaimRewards}
           userAddress={currentAccount || ''}
           rewards={mappedRewards}
           legacyAvailable={true}
+          onClaimSuccess={handleClaimSuccess}
         />
       ) : (
         // Only legacy available
