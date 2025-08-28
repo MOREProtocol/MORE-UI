@@ -243,7 +243,7 @@ export const DashboardTopPanel = () => {
           </TopInfoPanelItem>
         )}
 
-        {currentAccount && (totalClaimableUsd > 0 || accruingRewardsUsdNew > 0) && (
+        {currentAccount && totalClaimableUsd > 0 && (
           <TopInfoPanelItem title={'Available rewards'} loading={loading} hideIcon>
             <Box
               sx={{
