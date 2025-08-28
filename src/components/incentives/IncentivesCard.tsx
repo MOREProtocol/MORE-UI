@@ -14,7 +14,7 @@ interface IncentivesCardProps {
   rewards?: PoolReservesRewardsHumanized[];
   variant?: 'main14' | 'main16' | 'secondary14';
   symbolsVariant?: 'secondary14' | 'secondary16';
-  align?: 'center' | 'flex-end';
+  align?: 'center' | 'flex-end' | 'flex-start';
   color?: string;
   tooltip?: ReactNode;
 }
@@ -37,7 +37,7 @@ export const IncentivesCard = ({
         flexDirection: 'column',
         alignItems: align || { xs: 'flex-end', xsm: 'center' },
         justifyContent: 'center',
-        textAlign: 'center',
+        textAlign: align === 'flex-start' ? 'left' : 'center',
       }}
     >
       {value.toString() !== '-1' ? (

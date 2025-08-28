@@ -3,7 +3,7 @@ import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { AlertTitle, Box, Typography } from '@mui/material';
 import { CapsCircularStatus } from 'src/components/caps/CapsCircularStatus';
 import { DebtCeilingStatus } from 'src/components/caps/DebtCeilingStatus';
-import { IncentivesButton } from 'src/components/incentives/IncentivesButton';
+import { IncentivesCard } from 'src/components/incentives/IncentivesCard';
 import { LiquidationPenaltyTooltip } from 'src/components/infoTooltips/LiquidationPenaltyTooltip';
 import { LiquidationThresholdTooltip } from 'src/components/infoTooltips/LiquidationThresholdTooltip';
 import { MaxLTVTooltip } from 'src/components/infoTooltips/MaxLTVTooltip';
@@ -17,6 +17,7 @@ import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvi
 import { AssetCapHookData } from 'src/hooks/useAssetCaps';
 import { MarketDataType } from 'src/utils/marketsAndNetworksConfig';
 import { GENERAL } from 'src/utils/mixPanelEvents';
+import { PoolReservesRewardsHumanized, usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 
 import { ApyGraphContainer } from './graphs/ApyGraphContainer';
 import { PanelItem } from './ReservePanels';
@@ -38,12 +39,19 @@ export const SupplyInfo = ({
   supplyCap,
   debtCeiling,
 }: SupplyInfoProps) => {
+  const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
+  const allRewards: PoolReservesRewardsHumanized[] = rewardsQuery?.data ?? [];
+  const supplyRewards = allRewards.filter(
+    (r) =>
+      r.tracked_token_address?.toLowerCase() === reserve.underlyingAsset.toLowerCase() &&
+      ['supply', 'supply_and_borrow'].includes(r.tracked_token_type)
+  );
   return (
     <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
       <Box
         sx={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'top',
           flexWrap: 'wrap',
         }}
       >
@@ -144,11 +152,14 @@ export const SupplyInfo = ({
           </PanelItem>
         )}
         <PanelItem title={'APY'}>
-          <FormattedNumber value={reserve.supplyAPY} percent variant="main16" />
-          <IncentivesButton
-            symbol={reserve.symbol}
+          <IncentivesCard
+            value={Number(reserve.supplyAPY)}
             incentives={reserve.aIncentivesData}
-            displayBlank={true}
+            rewards={supplyRewards}
+            symbol={reserve.symbol}
+            variant="main16"
+            symbolsVariant="secondary16"
+            align="flex-start"
           />
         </PanelItem>
         {reserve.unbacked && reserve.unbacked !== '0' && (
