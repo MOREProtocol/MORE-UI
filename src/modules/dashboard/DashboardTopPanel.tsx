@@ -5,6 +5,7 @@ import Link from 'next/link';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { NetAPYTooltip } from 'src/components/infoTooltips/NetAPYTooltip';
+import { TextWithTooltip } from 'src/components/TextWithTooltip';
 import { getMarketInfoById } from 'src/components/MarketSwitcher';
 import { ROUTES } from 'src/components/primitives/Link';
 import { PageTitle } from 'src/components/TopInfoPanel/PageTitle';
@@ -109,6 +110,15 @@ export const DashboardTopPanel = () => {
     const estTokens = valueToBigNumber(r.amount_wei_estimated).dividedBy(valueToBigNumber(10).pow(decimals));
     return acc + estTokens.multipliedBy(price).toNumber();
   }, 0);
+
+  // Latest update time for accruing rewards
+  const lastAccruingUpdateAt = accruingRewards.reduce((max, r) => {
+    const updatedAt = Number(r?.updated_at || 0);
+    return updatedAt > max ? updatedAt : max;
+  }, 0);
+  const lastAccruingUpdateAtDate = lastAccruingUpdateAt
+    ? new Date(lastAccruingUpdateAt > 1e12 ? lastAccruingUpdateAt : lastAccruingUpdateAt * 1000)
+    : undefined;
 
   const totalClaimableUsd = claimableRewardsUsd + claimableRewardsUsdNew;
 
@@ -268,7 +278,22 @@ export const DashboardTopPanel = () => {
           </TopInfoPanelItem>
         )}
         {accruingRewardsUsdNew > 0 && (
-          <TopInfoPanelItem title={'Accruing rewards'} loading={loading} hideIcon>
+          <TopInfoPanelItem
+            title={
+              <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                Accruing rewards
+                {lastAccruingUpdateAtDate && (
+                  <TextWithTooltip iconMargin={0.5}>
+                    <>
+                      {`Last update: ${lastAccruingUpdateAtDate.toLocaleString()}`}
+                    </>
+                  </TextWithTooltip>
+                )}
+              </Box>
+            }
+            loading={loading}
+            hideIcon
+          >
             <FormattedNumber
               value={accruingRewardsUsdNew}
               variant={valueTypographyVariant}
