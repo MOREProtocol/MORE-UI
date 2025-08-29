@@ -28,7 +28,7 @@ export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, 
   const { switchChain } = useSwitchChain();
   const [signer, setSigner] = useState<Signer | null>(null);
   const [loadingClaims, setLoadingClaims] = useState<Record<string, boolean>>({});
-  const [mode, setMode] = useState<'new' | 'legacy'>('legacy');
+  const [mode, setMode] = useState<'new' | 'legacy'>(legacyAvailable ? 'legacy' : 'new');
   const [claimErrors, setClaimErrors] = useState<Record<string, string>>({});
   const [claimedRewards, setClaimedRewards] = useState<Set<string>>(new Set());
   const [transactionHashes, setTransactionHashes] = useState<Record<string, string>>({});
@@ -60,11 +60,18 @@ export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, 
       setClaimErrors({});
       setClaimedRewards(new Set());
       setTransactionHashes({});
-      setMode('legacy');
+      setMode(legacyAvailable ? 'legacy' : 'new');
       setFreezeRewards(false);
       setLocalRewards(rewards || []);
     }
-  }, [open]);
+  }, [open, legacyAvailable]);
+
+  // If legacy becomes unavailable, ensure mode switches to 'new'
+  useEffect(() => {
+    if (!legacyAvailable && mode !== 'new') {
+      setMode('new');
+    }
+  }, [legacyAvailable, mode]);
 
   // Keep a local snapshot of rewards while the modal is open; after a claim, freeze to prevent disappearance
   useEffect(() => {
@@ -114,6 +121,8 @@ export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, 
         [`function claim(address account, address reward, uint256 claimable, bytes32[] calldata proof) external returns (uint256)`],
         signer
       );
+      console.log('reward', reward);
+
       const tx = await rewardContract.claim(userAddress, reward.reward_token_address, reward.reward_amount_wei, reward.merkle_proof);
       await tx.wait();
 
@@ -196,7 +205,7 @@ export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, 
         </Box>
       )}
 
-      {!rewardsToDisplay || rewardsToDisplay.length === 0 && (
+      {mode === 'new' && (!rewardsToDisplay || rewardsToDisplay.length === 0) && (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
           <Typography color="error" sx={{ my: 2 }}>
             You have no rewards available to claim.
@@ -312,7 +321,7 @@ export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, 
         </Box>
       )}
 
-      {mode === 'legacy' && (
+      {legacyAvailable && mode === 'legacy' && (
         <UserAuthenticated>
           {(user) => <LegacyClaimRewardsModalContent user={user} reserves={reserves} />}
         </UserAuthenticated>

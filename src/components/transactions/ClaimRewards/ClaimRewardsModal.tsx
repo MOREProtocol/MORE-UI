@@ -1,4 +1,6 @@
 import React from 'react';
+import { ChainId } from '@aave/contract-helpers';
+import { normalize, UserIncentiveData } from '@aave/math-utils';
 import { UserAuthenticated } from 'src/components/UserAuthenticated';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { ModalType, useModalContext } from 'src/hooks/useModal';
@@ -14,9 +16,10 @@ import { formatUnits } from 'viem';
 
 export const ClaimRewardsModal = () => {
   const { type, close } = useModalContext();
-  const { reserves } = useAppDataContext();
+  const { reserves, user } = useAppDataContext();
   const { currentAccount } = useWeb3Context();
   const currentMarketData = useRootStore((s) => s.currentMarketData);
+  const currentNetworkConfig = useRootStore((s) => s.currentNetworkConfig);
   const rewardsQuery = useUserPoolReservesRewardsHumanized(currentMarketData);
   const distributed = rewardsQuery?.data?.distributed || [];
   // Type that includes both the fields expected by the new modal UI and RewardItemEnriched
@@ -43,11 +46,38 @@ export const ClaimRewardsModal = () => {
       proof: r.merkle_proof,
       // Extra fields used by the new modal implementation
       reward_token_address: r.reward_token_address,
-      reward_amount_wei: r.net_claimable_amount,
+      reward_amount_wei: r.reward_amount_wei,
       merkle_proof: r.merkle_proof,
     } as RewardItemForNewModal;
   });
   const hasNew = mappedRewards.some((r) => r.rewardAmountToClaim > 0);
+  // Determine if legacy (v2) rewards are available
+  const legacyClaimableRewardsUsd = user
+    ? Object.keys(user.calculatedUserIncentives).reduce((acc, rewardTokenAddress) => {
+      const incentive: UserIncentiveData = user.calculatedUserIncentives[rewardTokenAddress];
+      const rewardBalance = normalize(incentive.claimableRewards, incentive.rewardTokenDecimals);
+
+      let tokenPrice = 0;
+      if (!currentMarketData.v3 && Number(rewardBalance) > 0) {
+        if (currentMarketData.chainId === ChainId.mainnet) {
+          const moreToken = reserves.find((reserve) => reserve.symbol === 'MORE');
+          tokenPrice = moreToken ? Number(moreToken.priceInUSD) : 0;
+        } else {
+          reserves.forEach((reserve) => {
+            if (reserve.symbol === currentNetworkConfig.wrappedBaseAssetSymbol) {
+              tokenPrice = Number(reserve.priceInUSD);
+            }
+          });
+        }
+      } else {
+        tokenPrice = Number(incentive.rewardPriceFeed);
+      }
+
+      const rewardBalanceUsd = Number(rewardBalance) * tokenPrice;
+      return rewardBalanceUsd > 0 ? acc + Number(rewardBalanceUsd) : acc;
+    }, 0)
+    : 0;
+  const legacyAvailable = legacyClaimableRewardsUsd > 0;
   const [showNew, setShowNew] = React.useState<boolean | null>(null);
   React.useEffect(() => {
     if (type === ModalType.ClaimRewards) {
@@ -69,7 +99,7 @@ export const ClaimRewardsModal = () => {
           open={type === ModalType.ClaimRewards}
           userAddress={currentAccount || ''}
           rewards={mappedRewards}
-          legacyAvailable={true}
+          legacyAvailable={legacyAvailable}
           onClaimSuccess={handleClaimSuccess}
         />
       ) : (
