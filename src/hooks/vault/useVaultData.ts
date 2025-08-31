@@ -1260,6 +1260,7 @@ export const useVaultData = <TResult = VaultData>(
       let sharePriceInAssetBN = ethers.BigNumber.from(0);
 
       if (helperInfo) {
+        console.log('Helper contract available');
         totalAssets = helperInfo.basicInfo.totalAssets;
         totalSupply = helperInfo.basicInfo.totalSupply;
         assetAddress = helperInfo.basicInfo.asset;
@@ -1269,7 +1270,6 @@ export const useVaultData = <TResult = VaultData>(
         guardian = helperInfo.basicInfo.guardian;
         curator = helperInfo.basicInfo.curator;
         owner = helperInfo.basicInfo.owner;
-        maxDeposit = ethers.BigNumber.from(0); // not provided; keep placeholder
         depositCapacity = helperInfo.basicInfo.depositCapacity;
         withdrawalTimelock = helperInfo.basicInfo.withdrawalTimelock;
         fee = helperInfo.basicInfo.fee;
@@ -1296,7 +1296,6 @@ export const useVaultData = <TResult = VaultData>(
             `function guardian() external view returns (address)`,
             `function curator() external view returns (address)`,
             `function owner() external view returns (address)`,
-            `function maxDeposit(address receiver) external view returns (uint256 maxAssets)`,
             `function depositCapacity() external view returns (uint256)`,
             `function convertToAssets(uint256 shares) external view returns (uint256 assets)`,
             `function getWithdrawalTimelock() external view returns (uint256)`,
@@ -1315,9 +1314,6 @@ export const useVaultData = <TResult = VaultData>(
           vaultDiamondContract.guardian().catch(() => undefined),
           vaultDiamondContract.curator().catch(() => undefined),
           vaultDiamondContract.owner().catch(() => undefined),
-          vaultDiamondContract
-            .maxDeposit('0x0000000000000000000000000000000000000000')
-            .catch(() => ethers.BigNumber.from(0)),
           vaultDiamondContract.depositCapacity().catch(() => ethers.BigNumber.from(0)),
           vaultDiamondContract.convertToAssets(parseUnits('1', (await vaultDiamondContract.decimals().catch(() => 18)).toString())).catch(() => ethers.BigNumber.from(0)),
           vaultDiamondContract.getWithdrawalTimelock().catch(() => 0),
@@ -1334,7 +1330,6 @@ export const useVaultData = <TResult = VaultData>(
           guardianRaw,
           curatorRaw,
           ownerRaw,
-          maxDepositRaw,
           depositCapacityRaw,
           sharePriceInAssetRaw,
           withdrawalTimelockRaw,
@@ -1350,7 +1345,6 @@ export const useVaultData = <TResult = VaultData>(
         guardian = guardianRaw;
         curator = curatorRaw;
         owner = ownerRaw;
-        maxDeposit = maxDepositRaw;
         depositCapacity = depositCapacityRaw;
         sharePriceInAssetBN = sharePriceInAssetRaw;
         withdrawalTimelock = withdrawalTimelockRaw;
@@ -1373,6 +1367,21 @@ export const useVaultData = <TResult = VaultData>(
             assetContract.name().catch(() => 'Unknown Token'),
           ]);
         }
+      }
+
+      try {
+        const vaultContractForMaxDeposit = new ethers.Contract(
+          vaultId,
+          [
+            `function maxDeposit(address receiver) external view returns (uint256 maxAssets)`,
+          ],
+          actualProvider
+        );
+        maxDeposit = await vaultContractForMaxDeposit
+          .maxDeposit('0x0000000000000000000000000000000000000000')
+          .catch(() => ethers.BigNumber.from(0));
+      } catch {
+        maxDeposit = ethers.BigNumber.from(0);
       }
 
       const name = VAULT_ID_TO_NAME[vaultId.toLowerCase() as keyof typeof VAULT_ID_TO_NAME] || nameFromContract;
