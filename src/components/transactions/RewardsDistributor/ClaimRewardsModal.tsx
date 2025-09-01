@@ -14,10 +14,16 @@ import { useEffect, useState } from 'react';
 import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
 import { ChainIds } from 'src/utils/const';
 
+type NewRewardItem = RewardItemEnriched & {
+  reward_token_address: string;
+  reward_amount_wei: string;
+  merkle_proof: string[];
+};
+
 interface ClaimRewardsModalProps {
   open: boolean;
   userAddress: string;
-  rewards: RewardItemEnriched[];
+  rewards: NewRewardItem[];
   onClaimSuccess?: (claimedRewardAddresses: string[]) => void;
   legacyAvailable?: boolean;
 }
@@ -33,7 +39,7 @@ export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, 
   const [claimedRewards, setClaimedRewards] = useState<Set<string>>(new Set());
   const [transactionHashes, setTransactionHashes] = useState<Record<string, string>>({});
   // Local copy to avoid UI disappearing when parent rewards prop updates to empty
-  const [localRewards, setLocalRewards] = useState<RewardItemEnriched[]>(rewards || []);
+  const [localRewards, setLocalRewards] = useState<NewRewardItem[]>(rewards || []);
   const [freezeRewards, setFreezeRewards] = useState<boolean>(false);
 
   // Check if user is on a supported Flow network
@@ -102,7 +108,7 @@ export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, 
     }
   };
 
-  const handleClaim = async (reward: RewardItemEnriched) => {
+  const handleClaim = async (reward: NewRewardItem) => {
     const rewardKey = reward.reward_token_address;
 
     // Set loading state
@@ -251,7 +257,7 @@ export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, 
                       {reward.name}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <FormattedNumber value={formatUnits(reward.rewardAmountToClaim.toString(), reward.decimals).toString()} symbol={reward.symbol} variant="secondary14" />
+                      <FormattedNumber value={formatUnits(reward.reward_amount_wei, reward.decimals).toString()} symbol={reward.symbol} variant="secondary14" />
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <Typography variant="caption">(</Typography>
                         <FormattedNumber

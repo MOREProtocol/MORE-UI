@@ -33,12 +33,13 @@ export const ClaimRewardsModal = () => {
     const reserve = reserves.find((res) => res.underlyingAsset.toLowerCase() === r.reward_token_address.toLowerCase());
     const decimals = Number(reserve?.decimals || 18);
     const price = Number(reserve?.priceInUSD || 0);
-    const rewardAmountToClaim = Number(r.net_claimable_amount || '0');
+    const wei = r.reward_amount_wei || '0';
+    const rewardAmountToClaim = Number(formatUnits(BigInt(wei), decimals));
     return {
       // RewardItemEnriched
       price,
       rewardAmountToClaim,
-      rewardAmountToClaimInUSD: Number(formatUnits(BigInt(rewardAmountToClaim || '0'), decimals)) * price,
+      rewardAmountToClaimInUSD: rewardAmountToClaim * price,
       symbol: reserve?.symbol || '',
       name: reserve?.name || '',
       decimals,
