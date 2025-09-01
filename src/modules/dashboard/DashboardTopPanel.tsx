@@ -25,6 +25,8 @@ import { TopInfoPanelItem } from '../../components/TopInfoPanel/TopInfoPanelItem
 import { useAppDataContext } from '../../hooks/app-data-provider/useAppDataProvider';
 import { LiquidationRiskParametresInfoModal } from './LiquidationRiskParametresModal/LiquidationRiskParametresModal';
 import { CustomMarket } from 'src/ui-config/marketsConfig';
+import { TokenIcon } from 'src/components/primitives/TokenIcon';
+import { formatUnits } from 'ethers/lib/utils';
 
 export const DashboardTopPanel = () => {
   const { currentNetworkConfig, currentMarketData, currentMarket, setCurrentMarket } = useRootStore();
@@ -285,7 +287,27 @@ export const DashboardTopPanel = () => {
                 {lastAccruingUpdateAtDate && (
                   <TextWithTooltip iconMargin={0.5}>
                     <>
-                      {`Last update: ${lastAccruingUpdateAtDate.toLocaleString()}`}
+                      {accruingRewards.map((reward) => {
+                        const reserve = reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === reward.reward_token_address.toLowerCase());
+                        const decimals = reserve ? Number(reserve.decimals || 18) : 18;
+                        return (
+                          <Box key={reward.reward_token_address} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <TokenIcon
+                              symbol={reserve?.symbol || ''}
+                              sx={{ fontSize: `12px`, ml: -1 }}
+                            />
+                            <FormattedNumber
+                              value={formatUnits(reward.amount_wei_estimated, decimals || 18)}
+                              visibleDecimals={2}
+                              compact
+                              symbol={reserve?.symbol || ''}
+                              variant="secondary12"
+                              color="text.main"
+                            />
+                          </Box>
+                        )
+                      })}
+                      <Typography variant="secondary12" color="text.main" pt={1}>Last update: {lastAccruingUpdateAtDate.toLocaleString()}</Typography>
                     </>
                   </TextWithTooltip>
                 )}
@@ -303,9 +325,9 @@ export const DashboardTopPanel = () => {
               symbolsColor="#A5A8B6"
               symbolsVariant={noDataTypographyVariant}
             />
-          </TopInfoPanelItem>
+          </TopInfoPanelItem >
         )}
-      </TopInfoPanel>
+      </TopInfoPanel >
       <LiquidationRiskParametresInfoModal
         open={open}
         setOpen={setOpen}
