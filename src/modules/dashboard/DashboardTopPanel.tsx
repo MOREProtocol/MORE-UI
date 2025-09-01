@@ -300,6 +300,7 @@ export const DashboardTopPanel = () => {
                               value={formatUnits(reward.amount_wei_estimated, decimals || 18)}
                               visibleDecimals={2}
                               compact
+                              toggleCompactOnClick
                               symbol={reserve?.symbol || ''}
                               variant="secondary12"
                               color="text.main"

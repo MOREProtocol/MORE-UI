@@ -7,7 +7,8 @@ import type {
   TypographyPropsVariantOverrides,
 } from '@mui/material/Typography/Typography';
 import type { OverridableStringUnion } from '@mui/types';
-import type { ElementType } from 'react';
+import type React from 'react';
+import { useState, type ElementType } from 'react';
 
 interface CompactNumberProps {
   value: string | number;
@@ -76,6 +77,7 @@ export type FormattedNumberProps = TypographyProps<ElementType, { component?: El
   symbolsVariant?: OverridableStringUnion<Variant | 'inherit', TypographyPropsVariantOverrides>;
   roundDown?: boolean;
   compactThreshold?: number;
+  toggleCompactOnClick?: boolean;
 };
 
 export function FormattedNumber({
@@ -89,10 +91,13 @@ export function FormattedNumber({
   symbolsColor,
   roundDown,
   compactThreshold,
+  toggleCompactOnClick,
   ...rest
 }: FormattedNumberProps) {
   const theme = useTheme();
   const number = percent || coloredPercent ? Number(value) * 100 : Number(value);
+
+  const [manualCompact, setManualCompact] = useState<boolean | undefined>(undefined);
 
   let decimals: number = visibleDecimals ?? 0;
   if (number === 0) {
@@ -108,7 +113,8 @@ export function FormattedNumber({
   const minValue = 10 ** -(decimals as number);
   const isSmallerThanMin = number !== 0 && Math.abs(number) < Math.abs(minValue);
   let formattedNumber = isSmallerThanMin ? minValue : number;
-  const forceCompact = compact !== false && (compact || number > 99_999);
+  const compactInput = toggleCompactOnClick ? (manualCompact ?? compact) : compact;
+  const forceCompact = compactInput !== false && (Boolean(compactInput) || number > 99_999);
   const percentColor = coloredPercent
     ? number > 0
       ? theme.palette.success.main
@@ -128,8 +134,19 @@ export function FormattedNumber({
         flexDirection: 'row',
         alignItems: 'center',
         position: 'relative',
+        ...(toggleCompactOnClick && { cursor: 'pointer' }),
         ...(percentColor && { color: percentColor }),
         ...rest.sx,
+      }}
+      title={toggleCompactOnClick ? (rest.title ?? 'Click to toggle compact formatting') : rest.title}
+      onClick={(e: React.MouseEvent<HTMLElement>) => {
+        if (toggleCompactOnClick) {
+          setManualCompact((prev) => {
+            const currentCompact = (prev ?? (compact !== false && (Boolean(compact) || number > 99_999)));
+            return !currentCompact;
+          });
+        }
+        if (rest.onClick) rest.onClick(e);
       }}
       noWrap
     >
