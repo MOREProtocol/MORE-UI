@@ -1,4 +1,4 @@
-import { Box, Button, ButtonGroup, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Button, ButtonGroup, Typography } from '@mui/material';
 import { valueToBigNumber } from '@aave/math-utils';
 import { useMemo, useState } from 'react';
 import { BaseDataGrid, ColumnDefinition } from 'src/components/primitives/DataGrid';
@@ -22,8 +22,6 @@ export function MarketsTable() {
   const { currentMarket, trackEvent } = useRootStore();
   const account = useRootStore((s) => s.account);
   const { setWalletModalOpen } = useWalletModalContext();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const supplyRows: MarketRow[] = useMemo(() => {
     return (reserves || []).map((r) => {
@@ -74,11 +72,17 @@ export function MarketsTable() {
       label: 'Asset',
       sortable: true,
       render: (row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          justifyContent: { xs: 'flex-end', md: 'flex-start' },
+          flexDirection: { xs: 'row-reverse', md: 'row' }
+        }}>
           {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
           <Box>
-            <Typography variant="subheader1">{row.assetName}</Typography>
-            <Typography variant="caption" color="text.secondary">{row.assetSymbol}</Typography>
+            <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
           </Box>
         </Box>
       ),
@@ -105,7 +109,12 @@ export function MarketsTable() {
       sortable: true,
       render: (row) => (
         row.reserve ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: { xs: 'row', md: 'column' },
+            alignItems: { xs: 'center', md: 'start' },
+            gap: { xs: 1.5, md: 0 }
+          }}>
             <FormattedNumber compact value={row.reserve.totalLiquidity} variant="secondary14" />
             <UsdChip value={row.reserve.totalLiquidityUSD} textVariant="secondary12" />
           </Box>
@@ -118,7 +127,12 @@ export function MarketsTable() {
       sortable: true,
       render: (row) => (
         row.reserve ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: { xs: 'row', md: 'column' },
+            alignItems: { xs: 'center', md: 'start' },
+            gap: { xs: 1.5, md: 0 }
+          }}>
             <FormattedNumber
               compact
               value={Number(row.reserve.formattedAvailableLiquidity ?? row.reserve.availableLiquidity ?? 0)}
@@ -164,19 +178,19 @@ export function MarketsTable() {
     <Box>
       <Box sx={{
         display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
+        flexDirection: { xs: 'column', md: 'row' },
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: 'background.surface',
-        gap: isMobile ? 3 : 0,
+        gap: { xs: 3, md: 0 },
         p: 3,
         borderRadius: 2,
         mb: { xs: 4, md: 6 }
       }}>
         <Typography
-          variant={isMobile ? "main16" : "main21"}
           sx={{
-            textAlign: isMobile ? 'center' : 'left',
+            typography: { xs: 'main16', md: 'main21' },
+            textAlign: { xs: 'center', md: 'left' },
             color: 'primary.main'
           }}
         >
@@ -186,15 +200,15 @@ export function MarketsTable() {
           display="flex"
           alignItems="center"
           gap={4}
-          flexDirection={isMobile ? "column" : "row"}
-          width={isMobile ? "100%" : "unset"}
+          flexDirection={{ xs: 'column', md: 'row' }}
+          width={{ xs: '100%', md: 'unset' }}
         >
           <Box sx={{
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
             width: '100%',
-            justifyContent: isMobile ? 'space-between' : 'flex-start',
+            justifyContent: { xs: 'space-between', md: 'flex-start' },
             gap: { xs: 2, md: 5 }
           }}>
             <Box display='flex' flexDirection='column' alignItems='flex-start'>
@@ -240,8 +254,8 @@ export function MarketsTable() {
               />
             </Box>
           </Box>
-          <Box display="flex" flexDirection="row" alignItems="center" width={isMobile ? "100%" : "unset"}>
-            <ButtonGroup fullWidth={isMobile}>
+          <Box display="flex" flexDirection="row" alignItems="center" width={{ xs: '100%', md: 'unset' }}>
+            <ButtonGroup fullWidth>
               <Button
                 onClick={() => setActiveTab('supply')}
                 aria-pressed={activeTab === 'supply'}
@@ -274,6 +288,7 @@ export function MarketsTable() {
               size="medium"
               variant="gradient"
               disabled={!row.reserve || !account}
+              sx={{ width: { xs: '100%', md: 'auto' } }}
               onClick={(e) => {
                 e.stopPropagation();
                 if (!row.reserve) return;
@@ -304,19 +319,19 @@ export function MarketsTable() {
         <Box sx={{ mt: 4 }}>
           <Box sx={{
             display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
+            flexDirection: { xs: 'column', md: 'row' },
             alignItems: 'center',
             justifyContent: 'space-between',
             backgroundColor: 'background.surface',
-            gap: isMobile ? 3 : 0,
+            gap: { xs: 3, md: 0 },
             p: 3,
             borderRadius: 2,
             mb: { xs: 4, md: 6 }
           }}>
             <Typography
-              variant={isMobile ? "main16" : "main21"}
               sx={{
-                textAlign: isMobile ? 'center' : 'left',
+                typography: { xs: 'main16', md: 'main21' },
+                textAlign: { xs: 'center', md: 'left' },
                 color: 'primary.main'
               }}
             >
@@ -337,6 +352,7 @@ export function MarketsTable() {
                   size="medium"
                   variant="gradient"
                   disabled={!row.reserve || !account}
+                  sx={{ width: { xs: '100%', md: 'auto' } }}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!row.reserve) return;

@@ -4,8 +4,6 @@ import {
   Button,
   Skeleton,
   Typography,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material';
 import React from 'react';
 import { RewardsButton } from 'src/components/incentives/IncentivesButton';
@@ -17,27 +15,28 @@ import { PoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewa
 
 // Cell Components
 export const VaultCell: React.FC<{ name: string }> = ({ name }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
   return (
     <Box
       sx={{
         display: 'flex',
         alignItems: 'center',
-        gap: isMobile ? 0.5 : 1.5,
-        minWidth: isMobile ? '80px' : '100px',
-        maxWidth: isMobile ? '130px' : '180px',
+        gap: { xs: 0.5, md: 1.5 },
+        minWidth: { xs: 0, md: '100px' },
+        maxWidth: { xs: 'unset', md: '180px' },
+        width: '100%',
+        justifyContent: { xs: 'flex-end', md: 'flex-start' },
+        overflow: 'hidden',
       }}
     >
       <Typography
-        variant={isMobile ? 'caption' : 'secondary14'}
+        variant='secondary14'
         sx={{
-          // fontSize: isMobile ? '0.75rem' : undefined,
-          lineHeight: isMobile ? 1.2 : undefined,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
+          overflow: { xs: 'visible', md: 'hidden' },
+          textOverflow: { xs: 'clip', md: 'ellipsis' },
+          whiteSpace: { xs: 'normal', md: 'nowrap' },
+          wordBreak: { xs: 'break-word', md: 'normal' },
+          textAlign: { xs: 'right', md: 'left' },
+          maxWidth: '100%',
         }}
       >
         {name}
@@ -47,42 +46,42 @@ export const VaultCell: React.FC<{ name: string }> = ({ name }) => {
 };
 
 export const CuratorCell: React.FC<{ logo?: string; name: string }> = ({ logo, name }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
   return (
     <Box
       sx={{
         display: 'flex',
         alignItems: 'center',
-        gap: isMobile ? 0.5 : 1,
-        minWidth: isMobile ? '70px' : '90px',
-        width: 'auto',
+        gap: 1,
+        minWidth: { xs: 'unset', md: '90px' },
+        width: '100%',
         flex: '0 1 auto',
+        justifyContent: { xs: 'flex-end', md: 'flex-start' },
       }}
     >
-      <Avatar
-        src={logo}
-        sx={{
-          width: isMobile ? 20 : 24,
-          height: isMobile ? 20 : 24,
-          flexShrink: 0,
-        }}
-      >
-        {name}
-      </Avatar>
-      <Typography
-        variant={isMobile ? 'caption' : 'secondary14'}
-        sx={{
-          lineHeight: isMobile ? 1.2 : undefined,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          flex: 1,
-        }}
-      >
-        {name}
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, justifyContent: { xs: 'flex-end', md: 'flex-start' } }}>
+        <Avatar
+          src={logo}
+          sx={{
+            width: { xs: 20, md: 24 },
+            height: { xs: 20, md: 24 },
+            flexShrink: 0,
+          }}
+        >
+          {name}
+        </Avatar>
+        <Typography
+          variant='secondary14'
+          sx={{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            maxWidth: '100%',
+            textAlign: { xs: 'right', md: 'left' },
+          }}
+        >
+          {name}
+        </Typography>
+      </Box>
     </Box>
   );
 };
@@ -92,79 +91,75 @@ export const MyDepositCell: React.FC<{ deposit: string; depositUsd: string; symb
   depositUsd,
   symbol,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-
-  // Only wrap on very small screens (smaller than TVM)
-  const shouldWrap = isSmallScreen;
-
   return (
     <Box
       sx={{
         display: 'flex',
-        flexDirection: shouldWrap ? 'column' : 'row',
-        gap: shouldWrap ? 0.25 : isMobile ? 0.5 : 1.5,
-        alignItems: shouldWrap ? 'flex-start' : 'center',
-        minWidth: isMobile ? '70px' : '90px',
-        maxWidth: isMobile ? '110px' : '160px',
+        flexDirection: { xs: 'column', md: 'row' },
+        gap: { xs: 0.5, md: 1 },
+        alignItems: { xs: 'flex-end', md: 'center' },
+        minWidth: { xs: 'unset', md: '90px' },
+        maxWidth: { xs: 'unset', md: '160px' },
+        width: '100%',
+        justifyContent: { xs: 'flex-end', md: 'flex-start' },
+        textAlign: 'right',
       }}
     >
-      <FormattedNumber
-        value={deposit}
-        symbol={symbol}
-        variant={isMobile ? 'caption' : 'secondary14'}
-        compact
-        sx={{
-          fontWeight: 500,
-          fontSize: isMobile ? '0.75rem' : undefined,
-          lineHeight: shouldWrap ? 1.1 : isMobile ? 1.2 : undefined,
-        }}
-      />
-      <UsdChip
-        value={depositUsd}
-        sx={{
-          flexShrink: 0,
-          fontSize: shouldWrap ? '0.7rem' : undefined,
-        }}
-      />
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <FormattedNumber
+          value={deposit}
+          symbol={symbol}
+          variant='secondary14'
+          compact
+          sx={{
+            fontWeight: 500,
+            lineHeight: { xs: 1.2, md: undefined },
+            textAlign: { xs: 'right', md: 'left' },
+          }}
+        />
+        <UsdChip
+          value={depositUsd}
+          sx={{
+            flexShrink: 0,
+          }}
+        />
+      </Box>
     </Box>
   );
 };
 
 export const DepositTokenCell: React.FC<{ symbol?: string; address?: string; symbols?: string[] }> = ({ symbol, symbols }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
   return (
     <Box
       sx={{
         display: 'flex',
         alignItems: 'center',
-        gap: isMobile ? 0.5 : 1,
-        minWidth: isMobile ? '60px' : '80px',
-        width: 'auto',
+        gap: { xs: 0.5, md: 1 },
+        minWidth: { xs: 'unset', md: '80px' },
+        width: '100%',
         flex: '0 1 auto',
+        flexWrap: { xs: 'wrap', md: 'nowrap' },
+        justifyContent: { xs: 'flex-end', md: 'flex-start' },
       }}
     >
       {(symbols && symbols.length > 0 ? symbols : [symbol]).slice(0, 3).map((sym, idx) => (
-        <Box key={`${sym}-${idx}`} sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 0.75 }}>
+        <Box key={`${sym}-${idx}`} sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 0.75 } }}>
           <TokenIcon
             symbol={sym || ''}
             sx={{
-              fontSize: isMobile ? '16px' : '20px',
+              fontSize: { xs: '16px', md: '20px' },
               flexShrink: 0,
             }}
           />
           <Typography
-            variant={isMobile ? 'caption' : 'secondary14'}
+            variant='secondary14'
             sx={{
               fontWeight: 500,
-              fontSize: isMobile ? '0.7rem' : undefined,
-              lineHeight: isMobile ? 1.2 : undefined,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              overflow: { xs: 'visible', md: 'hidden' },
+              textOverflow: { xs: 'clip', md: 'ellipsis' },
+              whiteSpace: { xs: 'normal', md: 'nowrap' },
+              wordBreak: { xs: 'break-word', md: 'normal' },
+              textAlign: { xs: 'right', md: 'left' },
             }}
           >
             {sym}
@@ -176,43 +171,42 @@ export const DepositTokenCell: React.FC<{ symbol?: string; address?: string; sym
 };
 
 export const NetworkCell: React.FC<{ network: string; icon: string }> = ({ network, icon }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
   return (
     <Box
       sx={{
         display: 'flex',
         alignItems: 'center',
-        gap: isMobile ? 0.5 : 1,
-        minWidth: isMobile ? '70px' : '90px',
-        width: 'auto', // Allow natural expansion
-        flex: '0 1 auto', // Flexible but don't grow unnecessarily
+        gap: 1,
+        minWidth: { xs: 'unset', md: '90px' },
+        width: '100%',
+        flex: '0 1 auto',
+        justifyContent: { xs: 'flex-end', md: 'flex-start' },
       }}
     >
       <Avatar
         src={icon}
         sx={{
-          width: isMobile ? 16 : 20,
-          height: isMobile ? 16 : 20,
+          width: { xs: 16, md: 20 },
+          height: { xs: 16, md: 20 },
           bgcolor: 'transparent',
           flexShrink: 0,
         }}
       />
-      <Typography
-        variant={isMobile ? 'caption' : 'secondary14'}
-        sx={{
-          fontWeight: 500,
-          fontSize: isMobile ? '0.7rem' : undefined,
-          lineHeight: isMobile ? 1.2 : undefined,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          flex: 1, // Take available space
-        }}
-      >
-        {network}
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'flex-end', md: 'flex-start' }, minWidth: 0 }}>
+        <Typography
+          variant='secondary14'
+          sx={{
+            fontWeight: 500,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            maxWidth: '100%',
+            textAlign: { xs: 'right', md: 'left' },
+          }}
+        >
+          {network}
+        </Typography>
+      </Box>
     </Box>
   );
 };
@@ -221,38 +215,32 @@ export const APYCell: React.FC<{
   apy: number | undefined;
   incentives?: PoolReservesRewardsHumanized[];
 }> = ({ apy, incentives }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-
-  // Determine layout based on screen size - similar to TVM wrapping logic
-  const shouldWrap = isSmallScreen || (isTablet && !isMobile);
-
   return (
     <Box
       sx={{
-        minWidth: isMobile ? '40px' : '50px',
-        textAlign: 'left',
+        minWidth: { xs: 'unset', md: '50px' },
+        textAlign: { xs: 'right', md: 'left' },
+        width: '100%',
+        display: 'flex',
+        justifyContent: { xs: 'flex-end', md: 'flex-start' },
+        alignItems: 'center',
       }}
     >
       {apy !== undefined ? (
         <Box
           sx={{
             display: 'flex',
-            flexDirection: shouldWrap ? 'column' : 'row',
-            gap: shouldWrap ? 0.25 : 1,
-            alignItems: shouldWrap ? 'flex-start' : 'center',
+            flexDirection: { xs: 'column', lg: 'row' },
+            gap: { xs: 0.25, lg: 1 },
+            alignItems: { xs: 'flex-start', lg: 'center' },
           }}
         >
           <FormattedNumber
             value={apy}
             percent
             coloredPercent
-            variant={isMobile ? 'caption' : 'secondary14'}
+            variant='secondary14'
             sx={{
-              fontSize: isMobile ? '0.75rem' : undefined,
-              lineHeight: isMobile ? 1.2 : undefined,
               whiteSpace: 'nowrap',
             }}
           />
@@ -261,7 +249,7 @@ export const APYCell: React.FC<{
               <Typography
                 variant="secondary14"
                 color="text.secondary"
-                sx={{ ml: shouldWrap ? 0 : 1, mr: 1 }}
+                sx={{ ml: { xs: 0, lg: 1 }, mr: 1 }}
               >
                 +
               </Typography>
@@ -271,11 +259,9 @@ export const APYCell: React.FC<{
         </Box>
       ) : (
         <Typography
-          variant={isMobile ? 'caption' : 'secondary14'}
+          variant={{ xs: 'caption', md: 'secondary14' } as any}
           color="text.secondary"
           sx={{
-            fontSize: isMobile ? '0.7rem' : undefined,
-            lineHeight: isMobile ? 1.2 : undefined,
             whiteSpace: 'nowrap',
           }}
         >
@@ -291,35 +277,24 @@ export const TVMCell: React.FC<{ tvm: string; tvmUsd: number; symbol: string }> 
   tvmUsd,
   symbol,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-
-  // Determine layout based on screen size - TVM wraps earlier than other columns
-  const shouldWrap = isSmallScreen || (isTablet && !isMobile);
-
   return (
     <Box
       sx={{
         display: 'flex',
-        flexDirection: shouldWrap ? 'column' : 'row',
-        gap: shouldWrap ? 0.25 : isMobile ? 0.5 : 1.5,
-        alignItems: shouldWrap ? 'flex-start' : 'center',
-        minWidth: isMobile ? '70px' : '90px',
+        flexDirection: 'row',
+        gap: 1.5,
+        alignItems: { xs: 'flex-start', md: 'center' },
+        minWidth: { xs: '70px', md: '90px' },
         width: 'auto',
       }}
     >
       <FormattedNumber
         value={tvm}
         symbol={symbol}
-        variant={isMobile ? 'caption' : 'main14'}
+        variant='secondary14'
         compact
         sx={{
           fontWeight: 500,
-          fontSize: isMobile ? '0.75rem' : undefined,
-          lineHeight: shouldWrap ? 1.1 : isMobile ? 1.2 : undefined,
-          whiteSpace: shouldWrap ? 'normal' : 'nowrap',
           hyphens: 'none',
         }}
       />
@@ -327,8 +302,7 @@ export const TVMCell: React.FC<{ tvm: string; tvmUsd: number; symbol: string }> 
         value={tvmUsd}
         sx={{
           flexShrink: 0,
-          fontSize: shouldWrap ? '0.7rem' : undefined,
-          alignSelf: shouldWrap ? 'flex-start' : 'center',
+          alignSelf: { xs: 'flex-start', md: 'center' },
         }}
       />
     </Box>
@@ -336,61 +310,33 @@ export const TVMCell: React.FC<{ tvm: string; tvmUsd: number; symbol: string }> 
 };
 
 export const DepositActionCell: React.FC<{ onDeposit: () => void }> = ({ onDeposit }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
   return (
     <Button
       variant="gradient"
+      size="medium"
+      sx={{ width: { xs: '100%', md: 'auto' } }}
       onClick={(e) => {
         e.stopPropagation();
         onDeposit();
       }}
-      sx={{
-        minWidth: 'unset',
-        padding: isMobile ? '4px 8px' : '8px 16px',
-        minHeight: isMobile ? '28px' : '32px',
-      }}
     >
-      <Typography
-        variant={isMobile ? 'caption' : 'secondary14'}
-        fontWeight={600}
-        sx={{
-          fontSize: isMobile ? '0.7rem' : undefined,
-        }}
-      >
-        Deposit
-      </Typography>
+      Deposit
     </Button>
   );
 };
 
 export const ManageActionCell: React.FC<{ onManage: () => void }> = ({ onManage }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
   return (
     <Button
       variant="gradient"
+      size="medium"
+      sx={{ width: { xs: '100%', md: 'auto' } }}
       onClick={(e) => {
         e.stopPropagation();
         onManage();
       }}
-      sx={{
-        minWidth: 'unset',
-        padding: isMobile ? '4px 8px' : '8px 16px',
-        minHeight: isMobile ? '28px' : '32px',
-      }}
     >
-      <Typography
-        variant={isMobile ? 'caption' : 'secondary14'}
-        fontWeight={600}
-        sx={{
-          fontSize: isMobile ? '0.7rem' : undefined,
-        }}
-      >
-        Manage
-      </Typography>
+      Manage
     </Button>
   );
 };

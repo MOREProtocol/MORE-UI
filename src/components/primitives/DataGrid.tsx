@@ -11,7 +11,11 @@ import {
   Skeleton,
   useTheme,
   useMediaQuery,
-  alpha
+  alpha,
+  Typography,
+  Divider,
+  Select,
+  MenuItem,
 } from '@mui/material';
 
 export interface ColumnDefinition<T> {
@@ -21,6 +25,8 @@ export interface ColumnDefinition<T> {
   render: (row: T) => React.ReactNode;
   skeletonRender?: () => React.ReactNode;
   headerRender?: () => React.ReactNode;
+  mobileRender?: (row: T) => React.ReactNode;
+  hideOnMobile?: boolean;
 }
 
 interface BaseDataGridProps<T> {
@@ -37,6 +43,8 @@ interface BaseDataGridProps<T> {
   minWidth?: string | number;
   rowIdGetter?: (row: T, index: number) => string | number;
   hideActionsWhenOverflow?: boolean;
+  mobileCardMode?: boolean;
+  mobileRowRender?: (row: T) => React.ReactNode;
 }
 
 type SortOrder = 'asc' | 'desc';
@@ -52,6 +60,8 @@ export function BaseDataGrid<T>({
   minWidth = 650,
   rowIdGetter = (_row: T, index: number) => index,
   hideActionsWhenOverflow = true,
+  mobileCardMode,
+  mobileRowRender,
 }: BaseDataGridProps<T>) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -60,6 +70,7 @@ export function BaseDataGrid<T>({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [hasOverflow, setHasOverflow] = useState(false);
   const hideOnOverflow = hideActionsWhenOverflow && hasOverflow;
+  const useMobileCards = (mobileCardMode ?? isMobile);
 
   useEffect(() => {
     const updateOverflow = () => {
@@ -133,6 +144,67 @@ export function BaseDataGrid<T>({
       onRowClick(row);
     }
   };
+
+  // Mobile card mode: loading skeletons
+  if (loading && useMobileCards) {
+    const sortableColumns = columns.filter((c) => c.sortable);
+    return (
+      <Box ref={containerRef} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {sortableColumns.length > 0 && (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              bgcolor: 'background.surface',
+              borderRadius: 2,
+              p: 2,
+            }}
+          >
+            <Typography variant="secondary14" color="text.secondary">Sort by</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Skeleton variant="rounded" width={120} height={32} />
+              <Skeleton variant="circular" width={28} height={28} />
+            </Box>
+          </Box>
+        )}
+        {[1, 2, 3].map((index) => (
+          <Box
+            key={`mobile-skeleton-${index}`}
+            sx={{
+              borderRadius: 2,
+              bgcolor: 'background.paper',
+              p: 2,
+              boxShadow: 'none',
+            }}
+          >
+            {columns.map((column, columnIndex) => (
+              <Box key={`mobile-skel-field-${index}-${columnIndex}`} sx={{ py: 1.25 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                  <Typography variant="description" color="text.secondary" sx={{ flex: '0 0 45%' }}>
+                    {column.label}
+                  </Typography>
+                  <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                    {column.skeletonRender ? column.skeletonRender() : (
+                      <Skeleton variant="text" width={120} height={20} />
+                    )}
+                  </Box>
+                </Box>
+                {columnIndex < columns.length - 1 && <Divider sx={{ mt: 1.25 }} />}
+              </Box>
+            ))}
+            {actionColumn && (
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1 }}>
+                {actionColumn.skeletonRender ? actionColumn.skeletonRender() : (
+                  <Skeleton variant="rectangular" width={120} height={36} sx={{ borderRadius: 1 }} />
+                )}
+              </Box>
+            )}
+          </Box>
+        ))}
+      </Box>
+    );
+  }
 
   if (loading) {
     return (
@@ -214,6 +286,94 @@ export function BaseDataGrid<T>({
           </TableBody>
         </Table>
       </TableContainer>
+    );
+  }
+
+  // Mobile card mode: data rendering
+  if (useMobileCards) {
+    const sortableColumns = columns.filter((c) => c.sortable);
+    const orderByIsValid = orderBy && columns.some((c) => c.key === orderBy);
+
+    return (
+      <Box ref={containerRef} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {sortableColumns.length > 0 && (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              bgcolor: 'background.surface',
+              borderRadius: 2,
+              p: 2,
+            }}
+          >
+            <Typography variant="secondary14" color="text.secondary">Sort by</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Select
+                size="small"
+                value={(orderByIsValid ? (orderBy as string) : (sortableColumns[0]?.key as string)) || ''}
+                onChange={(e) => {
+                  const next = e.target.value as keyof T;
+                  setOrderBy(next);
+                }}
+                sx={{ minWidth: 140 }}
+              >
+                {sortableColumns.map((c) => (
+                  <MenuItem key={String(c.key)} value={String(c.key)}>{c.label}</MenuItem>
+                ))}
+              </Select>
+              <TableSortLabel
+                active
+                direction={order}
+                onClick={() => setOrder(order === 'asc' ? 'desc' : 'asc')}
+              />
+            </Box>
+          </Box>
+        )}
+
+        {sortedData.map((row, index) => {
+          const rowId = typeof rowIdGetter === 'function' ? rowIdGetter(row, index) : index;
+          return (
+            <Box
+              key={`mobile-row-${rowId}`}
+              onClick={() => handleRowClick(row)}
+              sx={{
+                borderRadius: 2,
+                bgcolor: 'background.paper',
+                p: 2,
+                cursor: onRowClick ? 'pointer' : 'default',
+                '&:hover': onRowClick ? { bgcolor: alpha(theme.palette.primary.main, 0.04) } : {},
+              }}
+            >
+              {mobileRowRender ? (
+                mobileRowRender(row)
+              ) : (
+                <>
+                  {columns.filter((c) => !c.hideOnMobile).map((column, columnIndex, visibleColumns) => (
+                    <Box key={`mobile-field-${rowId}-${columnIndex}`} sx={{ py: 1.25 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                        <Typography variant="description" color="text.secondary" sx={{ flex: '0 0 45%' }}>
+                          {column.label}
+                        </Typography>
+                        <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', textAlign: 'right', minWidth: 0 }}>
+                          {(column.mobileRender || column.render)(row)}
+                        </Box>
+                      </Box>
+                      {columnIndex < visibleColumns.length - 1 && <Divider sx={{ mt: 1.25 }} />}
+                    </Box>
+                  ))}
+                </>
+              )}
+
+              {actionColumn && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1 }}>
+                  {actionColumn.render(row)}
+                </Box>
+              )}
+            </Box>
+          );
+        })}
+      </Box>
     );
   }
 

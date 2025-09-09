@@ -1,4 +1,4 @@
-import { Box, Button, IconButton, Typography, useMediaQuery, useTheme, Collapse } from '@mui/material';
+import { Box, Button, IconButton, Typography, Collapse } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useMemo, useState } from 'react';
@@ -20,8 +20,6 @@ import { TextWithTooltip } from 'src/components/TextWithTooltip';
 
 export function MyPositions() {
   const { user, loading, reserves } = useAppDataContext();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [myPositionsOpen, setMyPositionsOpen] = useState(true);
   const [headerHovered, setHeaderHovered] = useState(false);
   const reserveByUnderlying = useReserveMap();
@@ -168,11 +166,17 @@ export function MyPositions() {
       label: 'Asset',
       sortable: true,
       render: (row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          justifyContent: { xs: 'flex-end', md: 'flex-start' },
+          flexDirection: { xs: 'row-reverse', md: 'row' }
+        }}>
           {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
           <Box>
-            <Typography variant="subheader1">{row.assetName}</Typography>
-            <Typography variant="caption" color="text.secondary">{row.assetSymbol}</Typography>
+            <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
           </Box>
         </Box>
       ),
@@ -182,7 +186,12 @@ export function MyPositions() {
       label: 'Balance',
       sortable: true,
       render: (row) => (
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: { xs: 'row', md: 'column' },
+          alignItems: { xs: 'center', md: 'start' },
+          gap: { xs: 1.5, md: 0 }
+        }}>
           <FormattedNumber compact value={row.tokenBalance} variant="secondary14" />
           <UsdChip value={row.balance} textVariant="secondary12" />
         </Box>
@@ -212,11 +221,17 @@ export function MyPositions() {
       label: 'Asset',
       sortable: true,
       render: (row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          justifyContent: { xs: 'flex-end', md: 'flex-start' },
+          flexDirection: { xs: 'row-reverse', md: 'row' }
+        }}>
           {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
           <Box>
-            <Typography variant="subheader1">{row.assetName}</Typography>
-            <Typography variant="caption" color="text.secondary">{row.assetSymbol}</Typography>
+            <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
           </Box>
         </Box>
       ),
@@ -226,7 +241,12 @@ export function MyPositions() {
       label: 'Debt',
       sortable: true,
       render: (row) => (
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'start' }}>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: { xs: 'row', md: 'column' },
+          alignItems: { xs: 'center', md: 'start' },
+          gap: { xs: 1.5, md: 0 }
+        }}>
           <FormattedNumber compact value={row.tokenBalance} variant="secondary14" />
           <UsdChip value={row.balance} textVariant="secondary12" />
         </Box>
@@ -294,14 +314,14 @@ export function MyPositions() {
         onMouseLeave={() => setHeaderHovered(false)}
         sx={{
           display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
+          flexDirection: { xs: 'column', md: 'row' },
           alignItems: 'center',
           justifyContent: 'space-between',
           cursor: 'pointer',
-          gap: isMobile ? 3 : 0,
+          gap: { xs: 3, md: 0 },
         }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant={isMobile ? 'main16' : 'main21'} sx={{ color: 'primary.main' }}>
+          <Typography sx={{ typography: { xs: 'main16', md: 'main21' }, color: 'primary.main' }}>
             My positions
           </Typography>
           <IconButton aria-label="Toggle My Positions" size="small">
@@ -314,7 +334,7 @@ export function MyPositions() {
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'flex-start',
-            justifyContent: isMobile ? 'space-between' : 'flex-start',
+            justifyContent: { xs: 'space-between', md: 'flex-start' },
             gap: { xs: 3, md: 5 },
             flexWrap: 'wrap'
           }}>
@@ -454,9 +474,9 @@ export function MyPositions() {
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography
-                  variant={isMobile ? "main16" : "main21"}
                   sx={{
-                    textAlign: isMobile ? 'center' : 'left',
+                    typography: { xs: 'main16', md: 'main21' },
+                    textAlign: { xs: 'center', md: 'left' },
                     color: 'primary.main'
                   }}
                 >
@@ -516,10 +536,11 @@ export function MyPositions() {
                 defaultSortOrder={'desc'}
                 actionColumn={{
                   render: (row) => (
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'stretch', md: 'flex-end' }, width: '100%' }}>
                       <Button
                         size="medium"
                         variant="gradient"
+                        sx={{ width: { xs: '100%', md: 'auto' } }}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (row.reserve) openSupply(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
@@ -531,6 +552,7 @@ export function MyPositions() {
                       <Button
                         size="medium"
                         variant="outlined"
+                        sx={{ width: { xs: '100%', md: 'auto' } }}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (row.reserve) openWithdraw(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
@@ -564,9 +586,9 @@ export function MyPositions() {
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography
-                  variant={isMobile ? "main16" : "main21"}
                   sx={{
-                    textAlign: isMobile ? 'center' : 'left',
+                    typography: { xs: 'main16', md: 'main21' },
+                    textAlign: { xs: 'center', md: 'left' },
                     color: 'primary.main'
                   }}
                 >
@@ -624,10 +646,11 @@ export function MyPositions() {
                 defaultSortOrder={'desc'}
                 actionColumn={{
                   render: (row) => (
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'stretch', md: 'flex-end' }, width: '100%' }}>
                       <Button
                         size="medium"
                         variant="gradient"
+                        sx={{ width: { xs: '100%', md: 'auto' } }}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (row.reserve) openBorrow(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
@@ -639,6 +662,7 @@ export function MyPositions() {
                       <Button
                         size="medium"
                         variant="outlined"
+                        sx={{ width: { xs: '100%', md: 'auto' } }}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (row.reserve) {

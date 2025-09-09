@@ -304,7 +304,7 @@ export const VaultAssetsList = () => {
             <Typography
               variant={isMobile ? "main16" : "main21"}
               sx={{
-                textAlign: isMobile ? 'center' : 'left',
+                textAlign: { xs: 'center', md: 'left' },
                 color: 'primary.main'
               }}
             >
