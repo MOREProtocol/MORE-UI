@@ -8,7 +8,11 @@ import { getDesignTokens, getThemedComponents } from '../utils/theme';
 
 export const ColorModeContext = React.createContext({
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  toggleColorMode: () => {},
+  toggleColorMode: () => { },
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  setModeLight: () => { },
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  setModeDark: () => { },
 });
 
 type Mode = 'light' | 'dark';
@@ -29,6 +33,14 @@ export function AppGlobalStyles({ children }: { children: ReactNode }) {
           localStorage.setItem('colorMode', newMode);
           return newMode;
         });
+      },
+      setModeLight: () => {
+        setMode('light');
+        localStorage.setItem('colorMode', 'light');
+      },
+      setModeDark: () => {
+        setMode('dark');
+        localStorage.setItem('colorMode', 'dark');
       },
     }),
     []

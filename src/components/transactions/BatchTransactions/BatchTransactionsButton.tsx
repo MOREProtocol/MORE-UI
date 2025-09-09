@@ -65,6 +65,11 @@ export const BatchTransactionsButton = ({ open, setOpen }: BatchTransactionProps
           sx={{
             ...(!hasBatchTransactions && { p: '7px 8px' }),
             minWidth: 'unset',
+            bgcolor: 'background.surface',
+            '&:hover': {
+              bgcolor: 'background.surface3',
+            },
+            color: 'text.primary',
           }}
           startIcon={
             hasBatchTransactions ? (

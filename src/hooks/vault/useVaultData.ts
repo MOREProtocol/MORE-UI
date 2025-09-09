@@ -799,7 +799,6 @@ export const useVaultsListData = <TResult = VaultData>(
 
         // Try helper contract first to minimize on-chain calls
         const helperInfo = await fetchHelperVaultInfoRaw(provider, chainId, vaultId).catch(() => null);
-        console.log('helperInfo', helperInfo);
 
         let totalSupply: ethers.BigNumber | number = ethers.BigNumber.from(0);
         let totalAssets: ethers.BigNumber | number = ethers.BigNumber.from(0);

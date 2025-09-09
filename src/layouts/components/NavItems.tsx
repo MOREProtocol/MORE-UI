@@ -26,23 +26,16 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
 
   const navigation: Navigation[] = [
     {
-      link: ROUTES.dashboard,
-      title: 'Dashboard',
-      visibleTitle: 'Dashboard',
-      dataCy: 'menuDashboard',
+      link: ROUTES.vaults || ROUTES.dashboard,
+      title: 'Vaults',
+      visibleTitle: 'Vaults',
+      dataCy: 'menuVaults',
     },
     {
       link: ROUTES.markets,
       title: 'Markets',
       visibleTitle: 'Markets',
       dataCy: 'menuMarkets',
-    },
-    {
-      link: ROUTES.vaults,
-      title: 'Vaults',
-      visibleTitle: 'Vaults',
-      dataCy: 'menuVaults',
-      isVisible: () => process.env.NEXT_PUBLIC_VAULTS_ENABLED === 'true',
     },
     {
       link: ROUTES.bridge,
@@ -56,26 +49,6 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
       visibleTitle: 'Faucet',
       isVisible: () => process.env.NEXT_PUBLIC_ENV === 'staging' || ENABLE_TESTNET,
     },
-    // {
-    //   link: ROUTES.staking,
-    //   title: 'Stake',
-    //   visibleTitle: 'Stake',
-    //   dataCy: 'menuStake',
-    //   isVisible: () =>
-    //     process.env.NEXT_PUBLIC_ENABLE_STAKING === 'true' &&
-    //     process.env.NEXT_PUBLIC_ENV === 'prod' &&
-    //     !ENABLE_TESTNET,
-    // },
-    // {
-    //   link: ROUTES.governance,
-    //   title: 'Governance',
-    //   visibleTitle: 'Governance',
-    //   dataCy: 'menuGovernance',
-    //   isVisible: () =>
-    //     process.env.NEXT_PUBLIC_ENABLE_GOVERNANCE === 'true' &&
-    //     process.env.NEXT_PUBLIC_ENV === 'prod' &&
-    //     !ENABLE_TESTNET,
-    // },
   ];
 
   const { breakpoints } = useTheme();
@@ -115,7 +88,7 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
                 component={Link}
                 href={item.link}
                 variant="h2"
-                color="#F1F1F3"
+                color="primary.main"
                 sx={{ width: '100%', p: 4 }}
                 onClick={() => handleClick(item.title, true)}
               >
@@ -127,7 +100,7 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
                 onClick={() => handleClick(item.title, false)}
                 href={item.link}
                 sx={(theme) => ({
-                  color: '#F1F1F3',
+                  color: theme.palette.primary.main,
                   p: '6px 8px',
                   position: 'relative',
                   '.active&:after, &:hover&:after': {

@@ -1,4 +1,5 @@
 export const uiConfig = {
-  appLogo: '/logo-header.png',
+  appLogo: '/logo-header-dark.png',
+  appLogoDark: '/logo-header.png',
   appLogoMobile: '/logo-header.webp',
 };

@@ -27,9 +27,18 @@ export function SettingsMenu() {
         aria-expanded={settingsOpen ? 'true' : undefined}
         aria-haspopup="true"
         onClick={handleSettingsClick}
-        sx={{ p: '7px 8px', minWidth: 'unset', ml: 2 }}
+        sx={{
+          p: '7px 8px',
+          minWidth: 'unset',
+          ml: 2,
+          bgcolor: 'background.surface',
+          '&:hover': {
+            bgcolor: 'background.surface3',
+          },
+          color: 'text.primary',
+        }}
       >
-        <SvgIcon sx={{ color: '#F1F1F3' }} fontSize="small">
+        <SvgIcon sx={{ color: 'text.primary' }} fontSize="small">
           <CogIcon />
         </SvgIcon>
       </Button>

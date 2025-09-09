@@ -17,8 +17,6 @@ import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
 
-import LightningBoltGradient from '/public/lightningBoltGradient.svg';
-
 import { TxErrorView } from '../FlowCommons/Error';
 import { GasEstimationError } from '../FlowCommons/GasEstimationError';
 import { TxSuccessView } from '../FlowCommons/Success';
@@ -226,9 +224,6 @@ export const EmodeModalContent = ({
               <Box sx={{ display: 'inline-flex', alignItems: 'center', mx: 1 }}>
                 {user.userEmodeCategoryId !== 0 ? (
                   <>
-                    <SvgIcon sx={{ fontSize: '12px' }}>
-                      <LightningBoltGradient />
-                    </SvgIcon>
                     <Typography variant="subheader1">
                       {getEmodeMessage(eModes[user.userEmodeCategoryId].label)}
                     </Typography>
@@ -243,9 +238,6 @@ export const EmodeModalContent = ({
                   <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
                     {selectedEmode.id !== 0 ? (
                       <>
-                        <SvgIcon sx={{ fontSize: '12px', mr: 0.5 }}>
-                          <LightningBoltGradient />
-                        </SvgIcon>
                         <Typography variant="subheader1">
                           {getEmodeMessage(eModes[selectedEmode.id].label)}
                         </Typography>

@@ -38,12 +38,12 @@ export const MarketContainer = ({ children }: MarketContainerProps) => {
   return <Container {...marketContainerProps}>{children}</Container>;
 };
 
-export default function Markets() {
+export default function LegacyMarkets() {
   const trackEvent = useRootStore((store) => store.trackEvent);
 
   useEffect(() => {
     trackEvent('Page Viewed', {
-      'Page Name': 'Markets',
+      'Page Name': 'Legacy Markets',
     });
   }, [trackEvent]);
   return (
@@ -74,6 +74,8 @@ export default function Markets() {
   );
 }
 
-Markets.getLayout = function getLayout(page: React.ReactElement) {
+LegacyMarkets.getLayout = function getLayout(page: React.ReactElement) {
   return <MainLayout>{page}</MainLayout>;
 };
+
+

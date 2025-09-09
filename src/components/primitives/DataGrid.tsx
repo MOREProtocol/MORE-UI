@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Table,
@@ -36,6 +36,7 @@ interface BaseDataGridProps<T> {
   };
   minWidth?: string | number;
   rowIdGetter?: (row: T, index: number) => string | number;
+  hideActionsWhenOverflow?: boolean;
 }
 
 type SortOrder = 'asc' | 'desc';
@@ -50,11 +51,40 @@ export function BaseDataGrid<T>({
   actionColumn,
   minWidth = 650,
   rowIdGetter = (_row: T, index: number) => index,
+  hideActionsWhenOverflow = true,
 }: BaseDataGridProps<T>) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [orderBy, setOrderBy] = useState<keyof T | undefined>(defaultSortColumn);
   const [order, setOrder] = useState<SortOrder>(defaultSortOrder);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const hideOnOverflow = hideActionsWhenOverflow && hasOverflow;
+
+  useEffect(() => {
+    const updateOverflow = () => {
+      const el = containerRef.current;
+      if (!el) return;
+      // el.firstElementChild may be the actual scrollable container, but TableContainer is the Box with overflowX auto
+      setHasOverflow(el.scrollWidth > el.clientWidth);
+    };
+    updateOverflow();
+    window.addEventListener('resize', updateOverflow);
+    const id = setInterval(updateOverflow, 250);
+    return () => {
+      window.removeEventListener('resize', updateOverflow);
+      clearInterval(id);
+    };
+  }, [data, columns, minWidth, isMobile, hideActionsWhenOverflow]);
+
+  // Keep sorting in sync if caller changes defaults (e.g., on tab switch)
+  useEffect(() => {
+    setOrderBy(defaultSortColumn);
+  }, [defaultSortColumn]);
+
+  useEffect(() => {
+    setOrder(defaultSortOrder);
+  }, [defaultSortOrder]);
 
   // Sorting logic
   const sortedData = useMemo(() => {
@@ -190,6 +220,7 @@ export function BaseDataGrid<T>({
   return (
     <TableContainer
       component={Box}
+      ref={containerRef}
       sx={{
         borderRadius: 2,
         backgroundColor: 'background.paper',
@@ -269,6 +300,7 @@ export function BaseDataGrid<T>({
                     fontSize: isMobile ? '0.75rem' : '0.875rem',
                     overflow: 'visible',
                   },
+                  ...(hideOnOverflow ? { '&:hover .datagrid-action': { opacity: 1 } } : {}),
                 }}
               >
                 {columns.map((column, columnIndex) => (
@@ -285,9 +317,15 @@ export function BaseDataGrid<T>({
                       paddingLeft: isMobile ? '8px' : '16px',
                       position: 'sticky',
                       right: 0,
+                      '& .datagrid-action': {
+                        opacity: hideOnOverflow ? 0 : 1,
+                        transition: 'opacity 0.15s ease',
+                      },
                     }}
                   >
-                    {actionColumn.render(row)}
+                    <Box className="datagrid-action">
+                      {actionColumn.render(row)}
+                    </Box>
                   </TableCell>
                 )}
               </TableRow>

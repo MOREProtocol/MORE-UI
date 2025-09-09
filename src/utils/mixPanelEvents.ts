@@ -40,6 +40,7 @@ export const MARKETS = {
   DETAILS_NAVIGATION: 'View reserve details markets',
   SEARCH_ASSET: 'Search asset markets', // how to handle
   SORT: 'Sort',
+  TAB_SWITCH: 'Markets tab switch',
 };
 
 export const RESERVE_DETAILS = {

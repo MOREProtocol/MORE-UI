@@ -114,11 +114,12 @@ export const ROUTES = {
   dashboard: '/',
   markets: '/markets',
   vaults: '/vaults',
-  vaultDetail: (vaultId: string) =>
-    `/vault-detail?vaultId=${vaultId}`,
+  vaultDetail: (vaultId: string) => `/vaults/${vaultId}`,
   faucet: '/faucet',
-  reserveOverview: (underlyingAsset: string, marketName: ExtendedMarket) =>
-    `/reserve-overview/?underlyingAsset=${underlyingAsset}&marketName=${marketName}`,
+  reserveOverview: (underlyingAsset: string, _market?: ExtendedMarket) => {
+    void _market;
+    return `/markets/${underlyingAsset}`;
+  },
   bridge: '/bridge',
 
   migrationTool: '/v3-migration',

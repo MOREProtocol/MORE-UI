@@ -285,7 +285,7 @@ export const VaultAssetsList = () => {
     <Box
       sx={{
         mt: { xs: 1, md: 2 },
-        px: { xs: 2, sm: 4, md: 6 },
+        px: { xs: 2, sm: 4, md: 2 },
         pb: { xs: 4, md: 8 }
       }}
     >

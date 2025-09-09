@@ -1,6 +1,6 @@
 import { valueToBigNumber } from '@aave/math-utils';
 import { useMediaQuery, useTheme } from '@mui/material';
-import { marketContainerProps } from 'pages/markets.page';
+import { marketContainerProps } from 'pages/legacy-markets.page';
 import * as React from 'react';
 
 import { FormattedNumber } from '../../components/primitives/FormattedNumber';

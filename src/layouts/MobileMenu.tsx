@@ -43,10 +43,19 @@ export const MobileMenu = ({ open, setOpen, headerHeight }: MobileMenuProps) => 
         <Button
           id="settings-button-mobile"
           variant="surface"
-          sx={{ p: '7px 8px', minWidth: 'unset', ml: 2 }}
+          sx={{
+            p: '7px 8px',
+            minWidth: 'unset',
+            ml: 2,
+            bgcolor: 'background.surface',
+            '&:hover': {
+              bgcolor: 'background.surface3',
+            },
+            color: 'text.primary',
+          }}
           onClick={() => setOpen(true)}
         >
-          <SvgIcon sx={{ color: '#F1F1F3' }} fontSize="small">
+          <SvgIcon sx={{ color: 'text.primary' }} fontSize="small">
             <MenuIcon />
           </SvgIcon>
         </Button>

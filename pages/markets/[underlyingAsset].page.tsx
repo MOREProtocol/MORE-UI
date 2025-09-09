@@ -14,12 +14,12 @@ import { ReserveConfigurationWrapper } from 'src/modules/reserve-overview/Reserv
 import { ReserveTopDetailsWrapper } from 'src/modules/reserve-overview/ReserveTopDetailsWrapper';
 import { useRootStore } from 'src/store/root';
 
-import { ContentContainer } from '../src/components/ContentContainer';
+import { ContentContainer } from '../../src/components/ContentContainer';
 
 export default function ReserveOverview() {
   const router = useRouter();
   const { reserves } = useAppDataContext();
-  const underlyingAsset = router.query.underlyingAsset as string;
+  const underlyingAsset = (router.query.underlyingAsset as string) || (router.query.vaultId as string) || (router.query.asset as string);
 
   const [mode, setMode] = useState<'overview' | 'actions' | ''>('overview');
   const trackEvent = useRootStore((store) => store.trackEvent);

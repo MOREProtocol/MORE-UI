@@ -1,10 +1,10 @@
-import GitHub from '@mui/icons-material/GitHub';
-import X from '@mui/icons-material/X';
-import { Box, styled, SvgIcon, Typography } from '@mui/material';
+// import GitHub from '@mui/icons-material/GitHub';
+// import X from '@mui/icons-material/X';
+import { Box, styled, Typography } from '@mui/material';
 import { Link } from 'src/components/primitives/Link';
 import { useRootStore } from 'src/store/root';
 
-import DiscordIcon from '/public/icons/discord.svg';
+// import DiscordIcon from '/public/icons/discord.svg';
 
 interface StyledLinkProps {
   onClick?: React.MouseEventHandler<HTMLAnchorElement>;
@@ -19,23 +19,23 @@ const StyledLink = styled(Link)<StyledLinkProps>(({ theme }) => ({
   alignItems: 'center',
 }));
 
-const FOOTER_ICONS = [
-  {
-    href: 'https://x.com/more_defi/',
-    icon: <X />,
-    title: 'Lens',
-  },
-  {
-    href: 'https://discord.gg/XnU7hHQgYF',
-    icon: <DiscordIcon />,
-    title: 'Discord',
-  },
-  {
-    href: 'https://github.com/MOREProtocol',
-    icon: <GitHub />,
-    title: 'Github',
-  },
-];
+// const FOOTER_ICONS = [
+//   {
+//     href: 'https://x.com/more_defi/',
+//     icon: <X />,
+//     title: 'Lens',
+//   },
+//   {
+//     href: 'https://discord.gg/XnU7hHQgYF',
+//     icon: <DiscordIcon />,
+//     title: 'Discord',
+//   },
+//   {
+//     href: 'https://github.com/MOREProtocol',
+//     icon: <GitHub />,
+//     title: 'Github',
+//   },
+// ];
 
 export function AppFooter() {
   // const [setAnalyticsConfigOpen, setFeedbackOpen] = useRootStore((store) => [
@@ -46,21 +46,21 @@ export function AppFooter() {
   const [setAnalyticsConfigOpen] = useRootStore((store) => [store.setAnalyticsConfigOpen]);
 
   const FOOTER_LINKS = [
-    {
-      href: 'https://docs.more.markets/terms',
-      label: 'Terms',
-      key: 'Terms',
-    },
-    {
-      href: 'https://docs.more.markets/privacy',
-      label: 'Privacy',
-      key: 'Privacy',
-    },
-    {
-      href: 'https://docs.more.markets/',
-      label: 'Docs',
-      key: 'Docs',
-    },
+    // {
+    //   href: 'https://docs.more.markets/terms',
+    //   label: 'Terms',
+    //   key: 'Terms',
+    // },
+    // {
+    //   href: 'https://docs.more.markets/privacy',
+    //   label: 'Privacy',
+    //   key: 'Privacy',
+    // },
+    // {
+    //   href: 'https://docs.more.markets/',
+    //   label: 'Docs',
+    //   key: 'Docs',
+    // },
     {
       href: '/attributions',
       label: 'Attributions',
@@ -110,7 +110,7 @@ export function AppFooter() {
           </StyledLink>
         ))}
       </Box>
-      <Box sx={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+      {/* <Box sx={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         {FOOTER_ICONS.map((icon) => (
           <StyledLink href={icon.href} key={icon.title}>
             <SvgIcon
@@ -122,7 +122,7 @@ export function AppFooter() {
             </SvgIcon>
           </StyledLink>
         ))}
-      </Box>
+      </Box> */}
     </Box>
   );
 }

@@ -121,7 +121,12 @@ export default function NetworkSelector() {
           gap: 1,
           alignItems: 'center',
           mr: 2,
-          overflow: 'hidden' // Ensure button itself doesn't overflow
+          overflow: 'hidden', // Ensure button itself doesn't overflow
+          bgcolor: 'background.surface',
+          '&:hover': {
+            bgcolor: 'background.surface3',
+          },
+          color: 'text.primary',
         }}
         endIcon={
           <SvgIcon>

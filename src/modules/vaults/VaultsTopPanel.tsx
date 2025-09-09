@@ -1,7 +1,7 @@
 import { valueToBigNumber } from '@aave/math-utils';
 import { Box, Button, useMediaQuery, useTheme } from '@mui/material';
 import { formatUnits } from 'ethers/lib/utils';
-import { marketContainerProps } from 'pages/markets.page';
+import { marketContainerProps } from 'pages/legacy-markets.page';
 import { useMemo, useState } from 'react';
 import { useVault } from 'src/hooks/vault/useVault';
 import {
