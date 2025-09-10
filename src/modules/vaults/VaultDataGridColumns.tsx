@@ -259,9 +259,9 @@ export const APYCell: React.FC<{
         </Box>
       ) : (
         <Typography
-          variant={{ xs: 'caption', md: 'secondary14' } as any}
           color="text.secondary"
           sx={{
+            typography: { xs: 'caption', md: 'secondary14' },
             whiteSpace: 'nowrap',
           }}
         >
