@@ -8,7 +8,6 @@ import { ClaimRewardsModalContent as LegacyClaimRewardsModalContent } from '../C
 // Close button removed; BasicModal provides close control
 import LaunchIcon from '@mui/icons-material/Launch';
 import { ethers, Signer } from 'ethers';
-import { formatUnits } from 'ethers/lib/utils';
 import { useWalletClient, useChainId, useSwitchChain } from 'wagmi';
 import { useEffect, useState } from 'react';
 import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
@@ -257,7 +256,7 @@ export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, 
                       {reward.name}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <FormattedNumber value={formatUnits(reward.reward_amount_wei, reward.decimals).toString()} symbol={reward.symbol} variant="secondary14" />
+                      <FormattedNumber value={reward.rewardAmountToClaim} symbol={reward.symbol} variant="secondary14" />
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <Typography variant="caption">(</Typography>
                         <FormattedNumber

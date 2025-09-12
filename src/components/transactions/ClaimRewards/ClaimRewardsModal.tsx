@@ -33,8 +33,9 @@ export const ClaimRewardsModal = () => {
     const reserve = reserves.find((res) => res.underlyingAsset.toLowerCase() === r.reward_token_address.toLowerCase());
     const decimals = Number(reserve?.decimals || 18);
     const price = Number(reserve?.priceInUSD || 0);
-    const wei = r.reward_amount_wei || '0';
-    const rewardAmountToClaim = Number(formatUnits(BigInt(wei), decimals));
+    // Use net claimable amount for display (not the total merkle amount)
+    const netWei = r.net_claimable_amount || '0';
+    const rewardAmountToClaim = Number(formatUnits(BigInt(netWei), decimals));
     return {
       // RewardItemEnriched
       price,
