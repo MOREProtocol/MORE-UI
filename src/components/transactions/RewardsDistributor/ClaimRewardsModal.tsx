@@ -86,7 +86,10 @@ export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rewards, open]);
 
-  const rewardsToDisplay = (localRewards || [])?.filter(reward => reward.rewardAmountToClaim > 0);
+  // Keep items visible if claimed this session so user can open the explorer link
+  const rewardsToDisplay = (localRewards || [])?.filter(
+    (reward) => reward.rewardAmountToClaim > 0 || claimedRewards.has(reward.reward_token_address)
+  );
   const { reserves } = useAppDataContext();
 
   const getExplorerUrl = (txHash: string) => {
@@ -126,7 +129,6 @@ export const ClaimRewardsModal = ({ open, userAddress, rewards, onClaimSuccess, 
         [`function claim(address account, address reward, uint256 claimable, bytes32[] calldata proof) external returns (uint256)`],
         signer
       );
-      console.log('reward', reward);
 
       const tx = await rewardContract.claim(userAddress, reward.reward_token_address, reward.reward_amount_wei, reward.merkle_proof);
       await tx.wait();
