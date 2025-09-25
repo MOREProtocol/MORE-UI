@@ -92,8 +92,8 @@ export const AIP = {
 };
 export const NAV_BAR = {
   MAIN_MENU: 'Main menu navigation', //done
-  MORE: 'More View', //done
-  MORE_NAV: 'More navigation', //done
+  MORE: 'MORE View', //done
+  MORE_NAV: 'MORE navigation', //done
 };
 
 export const SETTINGS = {

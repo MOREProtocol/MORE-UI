@@ -68,6 +68,8 @@ interface TypographyCustomVariants {
   main40: React.CSSProperties;
   main21: React.CSSProperties;
   secondary21: React.CSSProperties;
+  main19: React.CSSProperties;
+  secondary19: React.CSSProperties;
   main16: React.CSSProperties;
   secondary16: React.CSSProperties;
   main14: React.CSSProperties;
@@ -104,6 +106,8 @@ declare module '@mui/material/Typography' {
     main40: true;
     main21: true;
     secondary21: true;
+    main19: true;
+    secondary19: true;
     main16: true;
     secondary16: true;
     main14: true;
@@ -339,6 +343,18 @@ export const getDesignTokens = (mode: 'light' | 'dark') => {
         lineHeight: '133.4%',
         fontSize: pxToRem(21),
       },
+      main19: {
+        fontFamily: FONT,
+        fontWeight: 800,
+        lineHeight: '133.4%',
+        fontSize: pxToRem(19),
+      },
+      secondary19: {
+        fontFamily: FONT,
+        fontWeight: 500,
+        lineHeight: '133.4%',
+        fontSize: pxToRem(19),
+      },
       main16: {
         fontFamily: FONT,
         fontWeight: 600,
@@ -548,11 +564,13 @@ export function getThemedComponents(theme: Theme) {
             main12: 'p',
             main14: 'p',
             main16: 'p',
+            main19: 'p',
             main21: 'p',
             main40: 'p',
             secondary12: 'p',
             secondary14: 'p',
             secondary16: 'p',
+            secondary19: 'p',
             secondary21: 'p',
             helperText: 'span',
             tooltip: 'span',
@@ -703,6 +721,26 @@ export function getThemedComponents(theme: Theme) {
             height: 20 + 6 * 2,
             width: 34 + 6 * 2,
             padding: 6,
+          },
+          sizeSmall: {
+            height: 24,
+            width: 40,
+            padding: 4,
+            '& .MuiSwitch-switchBase': {
+              padding: 4,
+              '&.Mui-checked': {
+                transform: 'translateX(16.5px)',
+              },
+            },
+            '& .MuiSwitch-thumb': {
+              transform: 'translateY(1.4px) translateX(1px)',
+              width: '13px',
+              height: '13px',
+              borderRadius: '5px',
+            },
+            '& .MuiSwitch-track': {
+              borderRadius: '6px',
+            },
           },
           switchBase: {
             padding: 8,

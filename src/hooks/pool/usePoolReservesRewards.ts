@@ -90,6 +90,7 @@ export const usePoolsReservesRewardsHumanized = <T = PoolReservesRewardsHumanize
       },
       enabled: reserves?.length > 0,
       refetchInterval: POLLING_INTERVAL,
+      staleTime: POLLING_INTERVAL,
       meta: {},
       ...opts,
     })),

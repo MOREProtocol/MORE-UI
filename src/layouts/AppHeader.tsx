@@ -8,8 +8,8 @@ import {
 import Box from '@mui/material/Box';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import { LogoMenu } from './components/LogoMenu';
-import { BatchTransactionsButton } from 'src/components/transactions/BatchTransactions/BatchTransactionsButton';
 import { VaultManagementBundleButton } from 'src/modules/vault-detail/VaultManagement/VaultManagementBundleButton';
 import NetworkSelector from 'src/components/NetworkSelector';
 import { useRootStore } from 'src/store/root';
@@ -42,6 +42,7 @@ export function AppHeader() {
   const desktopLogo = isDark ? uiConfig.appLogoDark : uiConfig.appLogo;
   const mobileLogo = uiConfig.appLogoMobile;
   const logo = md ? { src: mobileLogo, width: 30, height: 30 } : { src: desktopLogo, width: 130, height: 30 };
+  const router = useRouter();
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useRootStore((state) => [
     state.mobileDrawerOpen,
@@ -49,7 +50,7 @@ export function AppHeader() {
   ]);
 
   const [walletWidgetOpen, setWalletWidgetOpen] = useState(false);
-  const [batchTransactionsOpen, setBatchTransactionsOpen] = useState(false);
+  // const [batchTransactionsOpen, setBatchTransactionsOpen] = useState(false);
   useEffect(() => {
     if (mobileDrawerOpen && !md) {
       setMobileDrawerOpen(false);
@@ -64,6 +65,9 @@ export function AppHeader() {
     if (md) setMobileDrawerOpen(state);
     setWalletWidgetOpen(state);
   };
+
+  const hideNetworkSelector =
+    router.pathname === '/markets' || router.pathname === '/markets/[underlyingAsset]';
 
   return (
     <HideOnScroll>
@@ -97,9 +101,10 @@ export function AppHeader() {
 
         <Box sx={{ flexGrow: 1 }} />
 
-        <NetworkSelector />
+        {!hideNetworkSelector && <NetworkSelector />}
         <VaultManagementBundleButton />
-        <BatchTransactionsButton open={batchTransactionsOpen} setOpen={setBatchTransactionsOpen} />
+        {/* BATCH TRANSACTIONS DISABLED FOR NOW */}
+        {/* <BatchTransactionsButton open={batchTransactionsOpen} setOpen={setBatchTransactionsOpen} /> */}
 
         <WalletWidget
           open={walletWidgetOpen}

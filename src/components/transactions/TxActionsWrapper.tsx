@@ -1,6 +1,6 @@
 import { CheckIcon } from '@heroicons/react/solid';
 import { Box, BoxProps, Button, CircularProgress, SvgIcon, Typography } from '@mui/material';
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 import { TxStateType, useModalContext } from 'src/hooks/useModal';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { TrackEventProps } from 'src/store/analyticsSlice';
@@ -57,7 +57,7 @@ export const TxActionsWrapper = ({
   event,
   ...rest
 }: TxActionsWrapperProps) => {
-  const { txError, close } = useModalContext();
+  const { txError } = useModalContext();
   const { readOnlyModeAddress } = useWeb3Context();
   const hasApprovalError =
     requiresApproval && txError?.txAction === TxAction.APPROVAL && txError?.actionBlocked;
@@ -124,13 +124,13 @@ export const TxActionsWrapper = ({
     };
   }
 
-  const [isBatchLoading, setIsBatchLoading] = useState(false);
-  const handleAddToBatchClick = async () => {
-    setIsBatchLoading(true);
-    await handleAddToBatch();
-    setIsBatchLoading(false);
-    close();
-  };
+  // const [isBatchLoading, setIsBatchLoading] = useState(false);
+  // const handleAddToBatchClick = async () => {
+  //   setIsBatchLoading(true);
+  //   await handleAddToBatch();
+  //   setIsBatchLoading(false);
+  //   close();
+  // };
 
   const { content, disabled, loading, handleClick } = getMainParams();
   const approvalParams = getApprovalParams();
@@ -170,7 +170,8 @@ export const TxActionsWrapper = ({
           {loading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
           {content}
         </Button>
-        <Button
+        {/* BATCH TRANSACTIONS DISABLED FOR NOW */}
+        {/* <Button
           variant="contained"
           disabled={
             blocked || readOnlyModeAddress !== undefined || !handleAddToBatch || isAmountMissing
@@ -185,7 +186,7 @@ export const TxActionsWrapper = ({
           ) : (
             'Add to batch'
           )}
-        </Button>
+        </Button> */}
       </Box>
       {readOnlyModeAddress && (
         <Typography variant="helperText" color="warning.main" sx={{ textAlign: 'center', mt: 2 }}>

@@ -1,16 +1,8 @@
 import { valueToBigNumber } from '@aave/math-utils';
-import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
-import { AlertTitle, Box, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { CapsCircularStatus } from 'src/components/caps/CapsCircularStatus';
-import { DebtCeilingStatus } from 'src/components/caps/DebtCeilingStatus';
-import { IncentivesCard } from 'src/components/incentives/IncentivesCard';
-import { LiquidationPenaltyTooltip } from 'src/components/infoTooltips/LiquidationPenaltyTooltip';
-import { LiquidationThresholdTooltip } from 'src/components/infoTooltips/LiquidationThresholdTooltip';
-import { MaxLTVTooltip } from 'src/components/infoTooltips/MaxLTVTooltip';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { Link } from 'src/components/primitives/Link';
-import { Warning } from 'src/components/primitives/Warning';
-import { ReserveOverviewBox } from 'src/components/ReserveOverviewBox';
 import { ReserveSubheader } from 'src/components/ReserveSubheader';
 import { TextWithTooltip } from 'src/components/TextWithTooltip';
 import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
@@ -19,13 +11,14 @@ import { MarketDataType } from 'src/utils/marketsAndNetworksConfig';
 import { GENERAL } from 'src/utils/mixPanelEvents';
 import { PoolReservesRewardsHumanized, usePoolReservesRewardsHumanized } from 'src/hooks/pool/usePoolReservesRewards';
 
-import { ApyGraphContainer } from './graphs/ApyGraphContainer';
 import { PanelItem } from './ReservePanels';
+import { useMemo } from 'react';
+import { UsdChip } from 'src/components/primitives/UsdChip';
+import { RewardsButton } from 'src/components/incentives/IncentivesButton';
 
 interface SupplyInfoProps {
   reserve: ComputedReserveData;
   currentMarketData: MarketDataType;
-  renderCharts: boolean;
   showSupplyCapStatus: boolean;
   supplyCap: AssetCapHookData;
   debtCeiling: AssetCapHookData;
@@ -34,27 +27,27 @@ interface SupplyInfoProps {
 export const SupplyInfo = ({
   reserve,
   currentMarketData,
-  renderCharts,
   showSupplyCapStatus,
   supplyCap,
-  debtCeiling,
 }: SupplyInfoProps) => {
   const rewardsQuery = usePoolReservesRewardsHumanized(currentMarketData);
   const allRewards: PoolReservesRewardsHumanized[] = rewardsQuery?.data ?? [];
-  const supplyRewards = allRewards.filter(
+  const supplyRewards = useMemo(() => allRewards.filter(
     (r) =>
       r.tracked_token_address?.toLowerCase() === reserve.underlyingAsset.toLowerCase() &&
       ['supply', 'supply_and_borrow'].includes(r.tracked_token_type)
-  );
+  ), [allRewards, reserve.underlyingAsset]);
   return (
     <Box sx={{ flexGrow: 1, minWidth: 0, maxWidth: '100%', width: '100%' }}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'top',
-          flexWrap: 'wrap',
-        }}
-      >
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', xsm: '1fr 1fr' },
+        height: '100%',
+        gap: 3,
+        p: { xs: 4, md: 6 },
+        backgroundColor: 'background.paper',
+        borderRadius: 2,
+      }}>
         {showSupplyCapStatus ? (
           // With supply cap
           <>
@@ -140,28 +133,45 @@ export const SupplyInfo = ({
           </>
         ) : (
           // Without supply cap
-          <PanelItem
-            title={
-              <Box display="flex" alignItems="center">
-                Total supplied
+          <Box>
+            <Typography variant="secondary14" color="text.secondary">
+              Total supplied
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <FormattedNumber value={reserve.totalLiquidity} variant="main16" compact />
               </Box>
-            }
-          >
-            <FormattedNumber value={reserve.totalLiquidity} variant="main16" compact />
-            <ReserveSubheader value={reserve.totalLiquidityUSD} />
-          </PanelItem>
+              <UsdChip
+                value={reserve.totalLiquidityUSD}
+              />
+            </Box>
+          </Box>
         )}
-        <PanelItem title={'APY'}>
-          <IncentivesCard
-            value={Number(reserve.supplyAPY)}
-            incentives={reserve.aIncentivesData}
-            rewards={supplyRewards}
-            symbol={reserve.symbol}
-            variant="main16"
-            symbolsVariant="secondary16"
-            align="flex-start"
-          />
-        </PanelItem>
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="secondary14" color="text.secondary">
+              APY
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <FormattedNumber
+                value={reserve.supplyAPY || ''}
+                percent
+                variant="main16"
+                compact
+              />
+            </Box>
+            {supplyRewards && supplyRewards.length > 0 && (
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography variant="main14" color="text.secondary" sx={{ ml: 1, mr: 1 }}>
+                  +
+                </Typography>
+                <RewardsButton rewards={supplyRewards} />
+              </Box>
+            )}
+          </Box>
+        </Box>
         {reserve.unbacked && reserve.unbacked !== '0' && (
           <PanelItem title={'Unbacked'}>
             <FormattedNumber value={reserve.unbacked} variant="main16" symbol={reserve.name} />
@@ -169,163 +179,7 @@ export const SupplyInfo = ({
           </PanelItem>
         )}
       </Box>
-      {renderCharts && (reserve.borrowingEnabled || Number(reserve.totalDebt) > 0) && (
-        <ApyGraphContainer
-          graphKey="supply"
-          reserve={reserve}
-          currentMarketData={currentMarketData}
-        />
-      )}
-      <div>
-        {reserve.isIsolated ? (
-          <Box sx={{ pt: '42px', pb: '12px' }}>
-            <Typography variant="subheader1" color="text.main" paddingBottom={'12px'}>
-              Collateral usage
-            </Typography>
-            <Warning severity="warning">
-              <Typography variant="subheader1">
-                Asset can only be used as collateral in isolation mode only.
-              </Typography>
-              <Typography variant="caption">
-                In Isolation mode you cannot supply other assets as collateral for borrowing. Assets
-                used as collateral in Isolation mode can only be borrowed to a specific debt
-                ceiling.{' '}
-                <Link href="https://docs.more.markets/faq/more-v3-features#isolation-mode">
-                  Learn more
-                </Link>
-              </Typography>
-            </Warning>
-          </Box>
-        ) : reserve.reserveLiquidationThreshold !== '0' ? (
-          <Box
-            sx={{ display: 'inline-flex', alignItems: 'center', pt: '42px', pb: '12px' }}
-            paddingTop={'42px'}
-          >
-            <Typography variant="subheader1" color="text.main">
-              Collateral usage
-            </Typography>
-            <CheckRoundedIcon fontSize="small" color="success" sx={{ ml: 2 }} />
-            <Typography variant="subheader1" sx={{ color: '#46BC4B' }}>
-              Can be collateral
-            </Typography>
-          </Box>
-        ) : (
-          <Box sx={{ pt: '42px', pb: '12px' }}>
-            <Typography variant="subheader1" color="text.main">
-              Collateral usage
-            </Typography>
-            <Warning sx={{ my: '12px' }} severity="warning">
-              Asset cannot be used as collateral.
-            </Warning>
-          </Box>
-        )}
-      </div>
-      {reserve.reserveLiquidationThreshold !== '0' && (
-        <Box
-          sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'space-between',
-          }}
-        >
-          <ReserveOverviewBox
-            title={
-              <MaxLTVTooltip
-                event={{
-                  eventName: GENERAL.TOOL_TIP,
-                  eventParams: {
-                    tooltip: 'MAX LTV',
-                    asset: reserve.underlyingAsset,
-                    assetName: reserve.name,
-                  },
-                }}
-                variant="description"
-                text={'Max LTV'}
-              />
-            }
-          >
-            <FormattedNumber
-              value={reserve.formattedBaseLTVasCollateral}
-              percent
-              variant="secondary14"
-              visibleDecimals={2}
-            />
-          </ReserveOverviewBox>
 
-          <ReserveOverviewBox
-            title={
-              <LiquidationThresholdTooltip
-                event={{
-                  eventName: GENERAL.TOOL_TIP,
-                  eventParams: {
-                    tooltip: 'Liquidation threshold',
-                    asset: reserve.underlyingAsset,
-                    assetName: reserve.name,
-                  },
-                }}
-                variant="description"
-                text={'Liquidation threshold'}
-              />
-            }
-          >
-            <FormattedNumber
-              value={reserve.formattedReserveLiquidationThreshold}
-              percent
-              variant="secondary14"
-              visibleDecimals={2}
-            />
-          </ReserveOverviewBox>
-
-          <ReserveOverviewBox
-            title={
-              <LiquidationPenaltyTooltip
-                event={{
-                  eventName: GENERAL.TOOL_TIP,
-                  eventParams: {
-                    tooltip: 'Liquidation penalty',
-                    asset: reserve.underlyingAsset,
-                    assetName: reserve.name,
-                  },
-                }}
-                variant="description"
-                text={'Liquidation penalty'}
-              />
-            }
-          >
-            <FormattedNumber
-              value={reserve.formattedReserveLiquidationBonus}
-              percent
-              variant="secondary14"
-              visibleDecimals={2}
-            />
-          </ReserveOverviewBox>
-
-          {reserve.isIsolated && (
-            <ReserveOverviewBox fullWidth>
-              <DebtCeilingStatus
-                debt={reserve.isolationModeTotalDebtUSD}
-                ceiling={reserve.debtCeilingUSD}
-                usageData={debtCeiling}
-              />
-            </ReserveOverviewBox>
-          )}
-        </Box>
-      )}
-      {reserve.symbol == 'stETH' && (
-        <Box>
-          <Warning severity="info">
-            <AlertTitle>Staking Rewards</AlertTitle>
-            stETH supplied as collateral will continue to accrue staking rewards provided by daily
-            rebases.{' '}
-            <Link
-              href="https://docs.more.markets"
-              underline="always"
-            >
-              Learn more
-            </Link>
-          </Warning>
-        </Box>
-      )}
     </Box>
   );
 };

@@ -1,4 +1,4 @@
-import { Box, Button, IconButton, Typography, Collapse } from '@mui/material';
+import { Box, Button, IconButton, Typography, Collapse, Switch } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useMemo, useState } from 'react';
@@ -14,9 +14,14 @@ import { PositionRow } from './types';
 import { useReserveMap, useRewardsMaps, sumIncentivesApr, sumRewardsApr } from './hooks';
 import { useModalContext } from 'src/hooks/useModal';
 import { ChainId, InterestRate } from '@aave/contract-helpers';
+import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
+import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableToSupply';
+import { getMaxAmountAvailableToBorrow, assetCanBeBorrowedByUser } from 'src/utils/getMaxAmountAvailableToBorrow';
 import { useRootStore } from 'src/store/root';
 import { GENERAL } from 'src/utils/mixPanelEvents';
 import { TextWithTooltip } from 'src/components/TextWithTooltip';
+import { EmodeModalType } from 'src/components/transactions/Emode/EmodeModalContent';
+import { Link } from 'src/components/primitives/Link';
 
 export function MyPositions() {
   const { user, loading, reserves } = useAppDataContext();
@@ -24,8 +29,11 @@ export function MyPositions() {
   const [headerHovered, setHeaderHovered] = useState(false);
   const reserveByUnderlying = useReserveMap();
   const { rewardsByAddress } = useRewardsMaps();
-  const { openSupply, openWithdraw, openBorrow, openRepay, openClaimRewards } = useModalContext();
+  const { openSupply, openWithdraw, openBorrow, openRepay, openClaimRewards, openEmode } = useModalContext();
   const { currentMarket, trackEvent, currentMarketData, currentNetworkConfig } = useRootStore();
+  const account = useRootStore((s) => s.account);
+  const minRemainingBaseTokenBalance = useRootStore((s) => s.poolComputed.minRemainingBaseTokenBalance);
+  const { walletBalances } = useWalletBalances(currentMarketData);
   const ltv = useMemo(() => {
     const collateralRef = user?.totalCollateralMarketReferenceCurrency || '0';
     if (valueToBigNumber(collateralRef).eq(0)) return 0;
@@ -160,6 +168,40 @@ export function MyPositions() {
       });
   }, [user, reserveByUnderlying, rewardsByAddress]);
 
+  const eligibilityByAsset = useMemo(() => {
+    const map = new Map<string, { disableSupply: boolean; disableBorrow: boolean }>();
+    (reserves || []).forEach((r) => {
+      const asset = (r.underlyingAsset || '').toLowerCase();
+      const balanceAmount = walletBalances?.[asset]?.amount || '0';
+
+      const maxAmountToSupply = getMaxAmountAvailableToSupply(
+        balanceAmount,
+        r,
+        r.underlyingAsset,
+        minRemainingBaseTokenBalance
+      ).toString();
+      const disableSupply = !account || maxAmountToSupply === '0' || balanceAmount === '0';
+
+      const isReserveAlreadySupplied = (user?.userReservesData || []).some(
+        (ur) => ur.reserve.underlyingAsset === r.underlyingAsset && ur.underlyingBalance !== '0'
+      );
+      const userHasNoCollateralSupplied = user?.totalCollateralMarketReferenceCurrency === '0';
+      const assetBorrowable = user ? assetCanBeBorrowedByUser(r, user) : false;
+      const maxAmountToBorrow = user
+        ? getMaxAmountAvailableToBorrow(r, user, InterestRate.Variable).toString()
+        : '0';
+      const disableBorrow =
+        !account ||
+        !assetBorrowable ||
+        userHasNoCollateralSupplied ||
+        isReserveAlreadySupplied ||
+        maxAmountToBorrow === '0';
+
+      map.set(r.underlyingAsset, { disableSupply, disableBorrow });
+    });
+    return map;
+  }, [reserves, walletBalances, user, account, minRemainingBaseTokenBalance]);
+
   const supplyColumns: ColumnDefinition<PositionRow>[] = useMemo(() => [
     {
       key: 'assetName',
@@ -188,9 +230,9 @@ export function MyPositions() {
       render: (row) => (
         <Box sx={{
           display: 'flex',
-          flexDirection: { xs: 'row', md: 'column' },
-          alignItems: { xs: 'center', md: 'start' },
-          gap: { xs: 1.5, md: 0 }
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 1.5
         }}>
           <FormattedNumber compact value={row.tokenBalance} variant="secondary14" />
           <UsdChip value={row.balance} textVariant="secondary12" />
@@ -243,9 +285,9 @@ export function MyPositions() {
       render: (row) => (
         <Box sx={{
           display: 'flex',
-          flexDirection: { xs: 'row', md: 'column' },
-          alignItems: { xs: 'center', md: 'start' },
-          gap: { xs: 1.5, md: 0 }
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 1.5
         }}>
           <FormattedNumber compact value={row.tokenBalance} variant="secondary14" />
           <UsdChip value={row.balance} textVariant="secondary12" />
@@ -335,7 +377,7 @@ export function MyPositions() {
             flexDirection: 'row',
             alignItems: 'flex-start',
             justifyContent: { xs: 'space-between', md: 'flex-start' },
-            gap: { xs: 3, md: 5 },
+            gap: { xs: 3, md: 10 },
             flexWrap: 'wrap'
           }}>
           <Box>
@@ -483,7 +525,7 @@ export function MyPositions() {
                   My supplies
                 </Typography>
               </Box>
-              <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: { xs: 2, md: 5 } }}>
+              <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: { xs: 2, md: 10 } }}>
                 <Box>
                   <Typography variant="secondary14" color="text.secondary">
                     Balance
@@ -540,6 +582,11 @@ export function MyPositions() {
                       <Button
                         size="medium"
                         variant="gradient"
+                        disabled={
+                          !row.reserve ||
+                          (row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableSupply) ||
+                          false
+                        }
                         sx={{ width: { xs: '100%', md: 'auto' } }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -595,7 +642,40 @@ export function MyPositions() {
                   My borrows
                 </Typography>
               </Box>
-              <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: { xs: 2, md: 5 } }}>
+              <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: { xs: 2, md: 10 } }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="secondary14" color="text.secondary">
+                      MOST Mode
+                    </Typography>
+                    <TextWithTooltip iconMargin={0.5}>
+                      <>
+                        MOST Mode increases your LTV for a selected category of assets up to 97%.{' '}
+                        <Link
+                          href="https://docs.more.markets/more-markets/editor-1/most-mode"
+                          sx={{ textDecoration: 'underline' }}
+                          variant="caption"
+                          color="text.secondary"
+                        >
+                          Learn more
+                        </Link>
+                      </>
+                    </TextWithTooltip>
+                  </Box>
+                  <Switch
+                    checked={(user?.userEmodeCategoryId || 0) !== 0}
+                    size='small'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const isInEmode = (user?.userEmodeCategoryId || 0) !== 0;
+                      if (isInEmode) {
+                        openEmode(EmodeModalType.DISABLE);
+                      } else {
+                        openEmode(EmodeModalType.ENABLE);
+                      }
+                    }}
+                  />
+                </Box>
                 <Box>
                   <Typography variant="secondary14" color="text.secondary">
                     Balance
@@ -650,6 +730,11 @@ export function MyPositions() {
                       <Button
                         size="medium"
                         variant="gradient"
+                        disabled={
+                          !row.reserve ||
+                          (row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableBorrow) ||
+                          false
+                        }
                         sx={{ width: { xs: '100%', md: 'auto' } }}
                         onClick={(e) => {
                           e.stopPropagation();

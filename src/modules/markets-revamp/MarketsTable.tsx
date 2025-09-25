@@ -1,5 +1,6 @@
 import { Box, Button, ButtonGroup, Typography } from '@mui/material';
 import { valueToBigNumber } from '@aave/math-utils';
+import { InterestRate } from '@aave/contract-helpers';
 import { useMemo, useState } from 'react';
 import { BaseDataGrid, ColumnDefinition } from 'src/components/primitives/DataGrid';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
@@ -13,6 +14,9 @@ import { useModalContext } from 'src/hooks/useModal';
 import { useRootStore } from 'src/store/root';
 import { useWalletModalContext } from 'src/hooks/useWalletModal';
 import { GENERAL } from 'src/utils/mixPanelEvents';
+import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
+import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableToSupply';
+import { getMaxAmountAvailableToBorrow, assetCanBeBorrowedByUser } from 'src/utils/getMaxAmountAvailableToBorrow';
 
 export function MarketsTable() {
   const { reserves, user, loading } = useAppDataContext();
@@ -22,6 +26,46 @@ export function MarketsTable() {
   const { currentMarket, trackEvent } = useRootStore();
   const account = useRootStore((s) => s.account);
   const { setWalletModalOpen } = useWalletModalContext();
+  const currentMarketData = useRootStore((s) => s.currentMarketData);
+  const minRemainingBaseTokenBalance = useRootStore((s) => s.poolComputed.minRemainingBaseTokenBalance);
+  const { walletBalances } = useWalletBalances(currentMarketData);
+
+  const eligibilityByAsset = useMemo(() => {
+    const map = new Map<string, { disableSupply: boolean; disableBorrow: boolean }>();
+    (reserves || []).forEach((r) => {
+      const asset = r.underlyingAsset?.toLowerCase();
+      const balanceAmount = walletBalances?.[asset]?.amount || '0';
+
+      // Supply eligibility
+      const maxAmountToSupply = getMaxAmountAvailableToSupply(
+        balanceAmount,
+        r,
+        r.underlyingAsset,
+        minRemainingBaseTokenBalance
+      ).toString();
+      const disableSupply = !account || !r || maxAmountToSupply === '0' || balanceAmount === '0';
+
+      // Borrow eligibility
+      const isReserveAlreadySupplied = (user?.userReservesData || []).some(
+        (ur) => ur.reserve.underlyingAsset === r.underlyingAsset && ur.underlyingBalance !== '0'
+      );
+      const userHasNoCollateralSupplied = user?.totalCollateralMarketReferenceCurrency === '0';
+      const assetBorrowable = user ? assetCanBeBorrowedByUser(r, user) : false;
+      const maxAmountToBorrow = user
+        ? getMaxAmountAvailableToBorrow(r, user, InterestRate.Variable).toString()
+        : '0';
+      const disableBorrow =
+        !account ||
+        !r ||
+        !assetBorrowable ||
+        userHasNoCollateralSupplied ||
+        isReserveAlreadySupplied ||
+        maxAmountToBorrow === '0';
+
+      map.set(r.underlyingAsset, { disableSupply, disableBorrow });
+    });
+    return map;
+  }, [reserves, walletBalances, user, account, minRemainingBaseTokenBalance]);
 
   const supplyRows: MarketRow[] = useMemo(() => {
     return (reserves || []).map((r) => {
@@ -99,7 +143,7 @@ export function MarketsTable() {
           symbol={row.assetSymbol}
           variant="secondary14"
           symbolsVariant="secondary14"
-          align="flex-start"
+          align="center"
         />
       ),
     },
@@ -111,9 +155,9 @@ export function MarketsTable() {
         row.reserve ? (
           <Box sx={{
             display: 'flex',
-            flexDirection: { xs: 'row', md: 'column' },
-            alignItems: { xs: 'center', md: 'start' },
-            gap: { xs: 1.5, md: 0 }
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 1.5
           }}>
             <FormattedNumber compact value={row.reserve.totalLiquidity} variant="secondary14" />
             <UsdChip value={row.reserve.totalLiquidityUSD} textVariant="secondary12" />
@@ -129,9 +173,9 @@ export function MarketsTable() {
         row.reserve ? (
           <Box sx={{
             display: 'flex',
-            flexDirection: { xs: 'row', md: 'column' },
-            alignItems: { xs: 'center', md: 'start' },
-            gap: { xs: 1.5, md: 0 }
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 1.5
           }}>
             <FormattedNumber
               compact
@@ -187,15 +231,41 @@ export function MarketsTable() {
         borderRadius: 2,
         mb: { xs: 4, md: 6 }
       }}>
-        <Typography
-          sx={{
-            typography: { xs: 'main16', md: 'main21' },
-            textAlign: { xs: 'center', md: 'left' },
-            color: 'primary.main'
-          }}
+        <Box
+          display="flex"
+          flexDirection={{ xs: "column", md: "row" }}
+          width={{ xs: '100%', md: 'unset' }}
+          alignItems="center"
+          gap={5}
         >
-          Markets
-        </Typography>
+          <Typography
+            sx={{
+              typography: { xs: 'main16', md: 'main21' },
+              textAlign: { xs: 'center', md: 'left' },
+              color: 'primary.main'
+            }}
+          >
+            Markets
+          </Typography>
+          <Box display="flex" flexDirection="row" alignItems="center" width={{ xs: '100%', md: 'unset' }}>
+            <ButtonGroup fullWidth>
+              <Button
+                onClick={() => setActiveTab('supply')}
+                aria-pressed={activeTab === 'supply'}
+                variant={activeTab === 'supply' ? 'contained' : 'outlined'}
+              >
+                Supply
+              </Button>
+              <Button
+                onClick={() => setActiveTab('borrow')}
+                aria-pressed={activeTab === 'borrow'}
+                variant={activeTab === 'borrow' ? 'contained' : 'outlined'}
+              >
+                Borrow
+              </Button>
+            </ButtonGroup>
+          </Box>
+        </Box>
         <Box
           display="flex"
           alignItems="center"
@@ -209,7 +279,7 @@ export function MarketsTable() {
             alignItems: 'center',
             width: '100%',
             justifyContent: { xs: 'space-between', md: 'flex-start' },
-            gap: { xs: 2, md: 5 }
+            gap: { xs: 2, md: 10 }
           }}>
             <Box display='flex' flexDirection='column' alignItems='flex-start'>
               <Typography variant="secondary14" color="text.secondary">
@@ -254,24 +324,6 @@ export function MarketsTable() {
               />
             </Box>
           </Box>
-          <Box display="flex" flexDirection="row" alignItems="center" width={{ xs: '100%', md: 'unset' }}>
-            <ButtonGroup fullWidth>
-              <Button
-                onClick={() => setActiveTab('supply')}
-                aria-pressed={activeTab === 'supply'}
-                variant={activeTab === 'supply' ? 'contained' : 'outlined'}
-              >
-                Supply
-              </Button>
-              <Button
-                onClick={() => setActiveTab('borrow')}
-                aria-pressed={activeTab === 'borrow'}
-                variant={activeTab === 'borrow' ? 'contained' : 'outlined'}
-              >
-                Borrow
-              </Button>
-            </ButtonGroup>
-          </Box>
         </Box>
       </Box>
 
@@ -287,7 +339,15 @@ export function MarketsTable() {
             <Button
               size="medium"
               variant="gradient"
-              disabled={!row.reserve || !account}
+              disabled={
+                !row.reserve ||
+                  !account ||
+                  (row.reserve && (activeTab === 'supply'
+                    ? eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableSupply
+                    : eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableBorrow))
+                  ? true
+                  : false
+              }
               sx={{ width: { xs: '100%', md: 'auto' } }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -351,7 +411,15 @@ export function MarketsTable() {
                 <Button
                   size="medium"
                   variant="gradient"
-                  disabled={!row.reserve || !account}
+                  disabled={
+                    !row.reserve ||
+                      !account ||
+                      (row.reserve && (activeTab === 'supply'
+                        ? eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableSupply
+                        : eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableBorrow))
+                      ? true
+                      : false
+                  }
                   sx={{ width: { xs: '100%', md: 'auto' } }}
                   onClick={(e) => {
                     e.stopPropagation();

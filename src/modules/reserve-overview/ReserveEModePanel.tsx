@@ -105,7 +105,7 @@ export const ReserveEModePanel: React.FC<ReserverEModePanelProps> = ({ reserve }
               trackEvent(GENERAL.EXTERNAL_LINK, { Link: 'V3 Tech Paper' });
             }}
           >
-            More V3 Technical Paper
+            MORE V3 Technical Paper
           </Link>
           .
         </Typography>

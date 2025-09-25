@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Divider,
+  alpha,
   ListItem,
   ListItemIcon,
   ListItemText,
@@ -284,7 +285,11 @@ export default function WalletWidget({ open, setOpen }: WalletWidgetProps) {
   return (
     <>
       {loading ? (
-        <Skeleton height={36} width={126} sx={{ background: '#383D51' }} />
+        <Skeleton
+          height={36}
+          width={126}
+          sx={{ background: (theme) => alpha(theme.palette.background.paper, 0.75) }}
+        />
       ) : (
         <Button
           variant={connected ? 'surface' : 'gradient'}
@@ -302,7 +307,7 @@ export default function WalletWidget({ open, setOpen }: WalletWidgetProps) {
             '&:hover': {
               bgcolor: 'background.surface3',
             },
-            color: 'text.primary',
+            color: connected ? 'text.primary' : null,
           }}
           endIcon={
             connected &&
