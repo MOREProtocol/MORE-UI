@@ -1,4 +1,4 @@
-import { Box, Button, Container, IconButton, Skeleton, SvgIcon, Tooltip, Typography } from '@mui/material';
+import { Box, Button, Container, IconButton, Skeleton, SvgIcon, Tooltip, Typography, Menu, MenuItem } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { useRouter } from 'next/router';
@@ -10,6 +10,7 @@ import { useAppDataContext, ComputedReserveData } from 'src/hooks/app-data-provi
 import { TokenIconAddDropdown } from 'src/modules/reserve-overview/TokenIconAddDropdown';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useModalContext } from 'src/hooks/useModal';
+import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
 import { SupplyInfo } from 'src/modules/reserve-overview/SupplyInfo';
 import { BorrowInfo } from 'src/modules/reserve-overview/BorrowInfo';
 import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
@@ -26,6 +27,7 @@ export default function ReserveOverview() {
   const { currentAccount, addERC20Token, switchNetwork, chainId: connectedChainId } = useWeb3Context();
   const { openSupply, openBorrow } = useModalContext();
   const trackEvent = useRootStore((store) => store.trackEvent);
+  const [supplyMenuAnchor, setSupplyMenuAnchor] = useState<null | HTMLElement>(null);
 
   const underlyingAsset = (router.query.underlyingAsset as string) || (router.query.vaultId as string) || (router.query.asset as string);
 
@@ -99,13 +101,50 @@ export default function ReserveOverview() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         {currentAccount && reserve && (
           <>
-            <Button
-              variant="gradient"
-              color="primary"
-              onClick={() => openSupply(reserve.underlyingAsset, currentMarket, reserve.name, 'reserve-page', true)}
-            >
-              Supply
-            </Button>
+            {reserve.isWrappedBaseAsset ? (
+              <>
+                <Button
+                  variant="gradient"
+                  color="primary"
+                  onClick={(e) => setSupplyMenuAnchor(e.currentTarget)}
+                >
+                  Supply
+                </Button>
+                <Menu
+                  anchorEl={supplyMenuAnchor}
+                  open={Boolean(supplyMenuAnchor)}
+                  onClose={() => setSupplyMenuAnchor(null)}
+                  PaperProps={{ sx: { minWidth: 'unset', width: 'auto' } }}
+                  anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+                  transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+                >
+                  <MenuItem
+                    onClick={() => {
+                      openSupply(API_ETH_MOCK_ADDRESS.toLowerCase(), currentMarket, reserve.name, 'reserve-page', true);
+                      setSupplyMenuAnchor(null);
+                    }}
+                  >
+                    {`Supply ${currentNetworkConfig.baseAssetSymbol}`}
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      openSupply(reserve.underlyingAsset, currentMarket, reserve.name, 'reserve-page', true);
+                      setSupplyMenuAnchor(null);
+                    }}
+                  >
+                    {`Supply ${reserve.symbol}`}
+                  </MenuItem>
+                </Menu>
+              </>
+            ) : (
+              <Button
+                variant="gradient"
+                color="primary"
+                onClick={() => openSupply(reserve.underlyingAsset, currentMarket, reserve.name, 'reserve-page', true)}
+              >
+                Supply
+              </Button>
+            )}
             {reserve.borrowingEnabled && (
               <Button
                 variant="gradient"
@@ -119,7 +158,7 @@ export default function ReserveOverview() {
         )}
       </Box>
     </Box>
-  ), [reserve, currentAccount, openSupply, openBorrow, currentMarket, connectedChainId, currentChainId]);
+  ), [reserve, currentAccount, openSupply, openBorrow, currentMarket, connectedChainId, currentChainId, currentNetworkConfig, supplyMenuAnchor]);
 
   if (!reserve) return null;
 

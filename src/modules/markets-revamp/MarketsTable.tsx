@@ -1,6 +1,6 @@
 import { Box, Button, ButtonGroup, Typography } from '@mui/material';
 import { valueToBigNumber } from '@aave/math-utils';
-import { InterestRate } from '@aave/contract-helpers';
+import { API_ETH_MOCK_ADDRESS, InterestRate } from '@aave/contract-helpers';
 import { useMemo, useState } from 'react';
 import { BaseDataGrid, ColumnDefinition } from 'src/components/primitives/DataGrid';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
@@ -17,6 +17,7 @@ import { GENERAL } from 'src/utils/mixPanelEvents';
 import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
 import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableToSupply';
 import { getMaxAmountAvailableToBorrow, assetCanBeBorrowedByUser } from 'src/utils/getMaxAmountAvailableToBorrow';
+import { fetchIconSymbolAndName } from 'src/ui-config/reservePatches';
 
 export function MarketsTable() {
   const { reserves, user, loading } = useAppDataContext();
@@ -27,11 +28,104 @@ export function MarketsTable() {
   const account = useRootStore((s) => s.account);
   const { setWalletModalOpen } = useWalletModalContext();
   const currentMarketData = useRootStore((s) => s.currentMarketData);
+  const currentNetworkConfig = useRootStore((s) => s.currentNetworkConfig);
   const minRemainingBaseTokenBalance = useRootStore((s) => s.poolComputed.minRemainingBaseTokenBalance);
   const { walletBalances } = useWalletBalances(currentMarketData);
 
+  // Helpers
+  const usdValue = (amount: string | number, priceInUSD?: string | number) =>
+    (Number(amount || 0) * Number(priceInUSD || 0)).toString();
+
+  const renderBalanceCell = (row: MarketRow) => {
+    const assetKey = row.id.toLowerCase();
+    const isWrapped = row.reserve?.isWrappedBaseAsset;
+    const baseKey = API_ETH_MOCK_ADDRESS.toLowerCase();
+
+    if (isWrapped && assetKey === baseKey) {
+      const baseBal = walletBalances?.[baseKey]?.amount || '0';
+      const baseUsd = usdValue(baseBal, row.reserve?.priceInUSD);
+      return (
+        <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
+          <FormattedNumber compact value={Number(baseBal)} variant="secondary14" />
+          <UsdChip value={baseUsd} textVariant="secondary12" />
+        </Box>
+      );
+    }
+    if (isWrapped && assetKey !== baseKey) {
+      const wrappedBal = walletBalances?.[row.reserve?.underlyingAsset.toLowerCase() || assetKey]?.amount || '0';
+      const wrappedUsd = usdValue(wrappedBal, row.reserve?.priceInUSD);
+      return (
+        <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
+          <FormattedNumber compact value={Number(wrappedBal)} variant="secondary14" />
+          <UsdChip value={wrappedUsd} textVariant="secondary12" />
+        </Box>
+      );
+    }
+
+    const bal = walletBalances?.[assetKey]?.amount || '0';
+    const usd = usdValue(bal, row.reserve?.priceInUSD);
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
+        <FormattedNumber compact value={Number(bal)} variant="secondary14" />
+        <UsdChip value={usd} textVariant="secondary12" />
+      </Box>
+    );
+  };
+
+  const buildRowsForMode = (mode: 'supply' | 'borrow'): MarketRow[] => {
+    const rows: MarketRow[] = [];
+    (reserves || []).forEach((r) => {
+      const key = r.underlyingAsset.toLowerCase();
+      const rewards = rewardsByAddress.get(key);
+      const baseApy =
+        mode === 'supply'
+          ? (typeof r.supplyAPY === 'number' ? r.supplyAPY : parseFloat(String(r.supplyAPY || 0)))
+          : (typeof r.variableBorrowAPY === 'number' ? r.variableBorrowAPY : parseFloat(String(r.variableBorrowAPY || 0)));
+      const effectiveApy =
+        baseApy +
+        (mode === 'supply' ? sumIncentivesApr(r.aIncentivesData) : sumIncentivesApr(r.vIncentivesData)) +
+        sumRewardsApr(mode === 'supply' ? rewards?.supply : rewards?.borrow, mode);
+
+      rows.push({
+        id: r.underlyingAsset,
+        assetSymbol: r.symbol,
+        assetName: r.name,
+        apy: baseApy,
+        variableApy: mode === 'borrow' ? baseApy : undefined,
+        totalLiquidity: Number(r.totalLiquidityUSD || 0),
+        availableLiquidity: Number(r.availableLiquidityUSD || 0),
+        effectiveApy,
+        reserve: r,
+        rewardsSupply: rewards?.supply,
+        rewardsBorrow: rewards?.borrow,
+      } as MarketRow);
+
+      if (r.isWrappedBaseAsset && account) {
+        const baseDisplay = fetchIconSymbolAndName({
+          symbol: currentNetworkConfig.baseAssetSymbol,
+          underlyingAsset: API_ETH_MOCK_ADDRESS.toLowerCase(),
+          name: currentNetworkConfig.baseAssetSymbol,
+        });
+        rows.push({
+          id: API_ETH_MOCK_ADDRESS.toLowerCase(),
+          assetSymbol: currentNetworkConfig.baseAssetSymbol,
+          assetName: baseDisplay?.name || currentNetworkConfig.baseAssetSymbol,
+          apy: baseApy,
+          variableApy: mode === 'borrow' ? baseApy : undefined,
+          totalLiquidity: Number(r.totalLiquidityUSD || 0),
+          availableLiquidity: Number(r.availableLiquidityUSD || 0),
+          effectiveApy,
+          reserve: r,
+          rewardsSupply: rewards?.supply,
+          rewardsBorrow: rewards?.borrow,
+        } as MarketRow);
+      }
+    });
+    return rows;
+  };
+
   const eligibilityByAsset = useMemo(() => {
-    const map = new Map<string, { disableSupply: boolean; disableBorrow: boolean }>();
+    const map = new Map<string, { disableSupply: boolean; disableBorrow: boolean; maxBorrow?: string }>();
     (reserves || []).forEach((r) => {
       const asset = r.underlyingAsset?.toLowerCase();
       const balanceAmount = walletBalances?.[asset]?.amount || '0';
@@ -62,135 +156,139 @@ export function MarketsTable() {
         isReserveAlreadySupplied ||
         maxAmountToBorrow === '0';
 
-      map.set(r.underlyingAsset, { disableSupply, disableBorrow });
+      map.set(r.underlyingAsset, { disableSupply, disableBorrow, maxBorrow: maxAmountToBorrow });
+
+      // Add synthetic base-asset eligibility for FLOW alongside WFLOW
+      if (r.isWrappedBaseAsset) {
+        const baseKey = API_ETH_MOCK_ADDRESS.toLowerCase();
+        const baseBalanceAmount = walletBalances?.[baseKey]?.amount || '0';
+        const baseMaxAmountToSupply = getMaxAmountAvailableToSupply(
+          baseBalanceAmount,
+          r,
+          API_ETH_MOCK_ADDRESS.toLowerCase(),
+          minRemainingBaseTokenBalance
+        ).toString();
+        const baseDisableSupply = !account || !r || baseMaxAmountToSupply === '0' || baseBalanceAmount === '0';
+        // Borrow eligibility mirrors the wrapped reserve
+        const baseDisableBorrow = disableBorrow;
+        const baseMaxBorrow = maxAmountToBorrow;
+        map.set(baseKey, { disableSupply: baseDisableSupply, disableBorrow: baseDisableBorrow, maxBorrow: baseMaxBorrow });
+      }
     });
     return map;
   }, [reserves, walletBalances, user, account, minRemainingBaseTokenBalance]);
 
-  const supplyRows: MarketRow[] = useMemo(() => {
-    return (reserves || []).map((r) => {
-      const key = r.underlyingAsset.toLowerCase();
-      const rewards = rewardsByAddress.get(key);
-      const baseApy = typeof r.supplyAPY === 'number' ? r.supplyAPY : parseFloat(String(r.supplyAPY || 0));
-      const effectiveApy = baseApy + sumIncentivesApr(r.aIncentivesData) + sumRewardsApr(rewards?.supply, 'supply');
-      return {
-        id: r.underlyingAsset,
-        assetSymbol: r.symbol,
-        assetName: r.name,
-        apy: baseApy,
-        totalLiquidity: Number(r.totalLiquidityUSD || 0),
-        availableLiquidity: Number(r.availableLiquidityUSD || 0),
-        effectiveApy,
-        reserve: r,
-        rewardsSupply: rewards?.supply,
-        rewardsBorrow: rewards?.borrow,
-      } as MarketRow;
-    });
-  }, [reserves, rewardsByAddress]);
+  const supplyRows: MarketRow[] = useMemo(() => buildRowsForMode('supply'), [reserves, rewardsByAddress, currentNetworkConfig.baseAssetSymbol, account]);
 
-  const borrowRows: MarketRow[] = useMemo(() => {
-    return (reserves || []).map((r) => {
-      const key = r.underlyingAsset.toLowerCase();
-      const rewards = rewardsByAddress.get(key);
-      const baseApy = typeof r.variableBorrowAPY === 'number' ? r.variableBorrowAPY : parseFloat(String(r.variableBorrowAPY || 0));
-      const effectiveApy = baseApy + sumIncentivesApr(r.vIncentivesData) + sumRewardsApr(rewards?.borrow, 'borrow');
-      return {
-        id: r.underlyingAsset,
-        assetSymbol: r.symbol,
-        assetName: r.name,
-        apy: baseApy,
-        variableApy: baseApy,
-        totalLiquidity: Number(r.totalLiquidityUSD || 0),
-        availableLiquidity: Number(r.availableLiquidityUSD || 0),
-        effectiveApy,
-        reserve: r,
-        rewardsSupply: rewards?.supply,
-        rewardsBorrow: rewards?.borrow,
-      } as MarketRow;
-    });
-  }, [reserves, rewardsByAddress]);
+  const borrowRows: MarketRow[] = useMemo(() => buildRowsForMode('borrow'), [reserves, rewardsByAddress, currentNetworkConfig.baseAssetSymbol, account]);
 
-  const columns: ColumnDefinition<MarketRow>[] = useMemo(() => [
-    {
-      key: 'assetName',
-      label: 'Asset',
-      sortable: true,
-      render: (row) => (
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          justifyContent: { xs: 'flex-end', md: 'flex-start' },
-          flexDirection: { xs: 'row-reverse', md: 'row' }
-        }}>
-          {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
-          <Box>
-            <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
-          </Box>
-        </Box>
-      ),
-    },
-    {
-      key: 'effectiveApy',
-      label: activeTab === 'supply' ? 'Supply APY' : 'Borrow Rate',
-      sortable: true,
-      render: (row) => (
-        <IncentivesCard
-          value={activeTab === 'supply' ? row.apy : (row.variableApy ?? row.apy)}
-          incentives={activeTab === 'supply' ? (row.reserve?.aIncentivesData || []) : (row.reserve?.vIncentivesData || [])}
-          rewards={activeTab === 'supply' ? (row.rewardsSupply || []) : (row.rewardsBorrow || [])}
-          symbol={row.assetSymbol}
-          variant="secondary14"
-          symbolsVariant="secondary14"
-          align="center"
-        />
-      ),
-    },
-    {
-      key: 'totalLiquidity',
-      label: 'Total Liquidity',
-      sortable: true,
-      render: (row) => (
-        row.reserve ? (
+  const columns: ColumnDefinition<MarketRow>[] = useMemo(() => {
+    const baseColumns: ColumnDefinition<MarketRow>[] = [
+      {
+        key: 'assetName',
+        label: 'Asset',
+        sortable: true,
+        render: (row) => (
           <Box sx={{
             display: 'flex',
-            flexDirection: 'row',
             alignItems: 'center',
-            gap: 1.5
+            gap: 2,
+            justifyContent: { xs: 'flex-end', md: 'flex-start' },
+            flexDirection: { xs: 'row-reverse', md: 'row' }
           }}>
-            <FormattedNumber compact value={row.reserve.totalLiquidity} variant="secondary14" />
-            <UsdChip value={row.reserve.totalLiquidityUSD} textVariant="secondary12" />
+            {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
+            <Box>
+              <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
+            </Box>
           </Box>
-        ) : null
-      ),
-    },
-    {
-      key: 'availableLiquidity',
-      label: 'Available',
-      sortable: true,
-      render: (row) => (
-        row.reserve ? (
-          <Box sx={{
-            display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 1.5
-          }}>
-            <FormattedNumber
-              compact
-              value={Number(row.reserve.formattedAvailableLiquidity ?? row.reserve.availableLiquidity ?? 0)}
-              variant="secondary14"
-            />
-            <UsdChip
-              value={row.reserve.availableLiquidityUSD?.toString() || '0'}
-              textVariant="secondary12"
-            />
-          </Box>
-        ) : null
-      ),
-    },
-  ], [activeTab]);
+        ),
+      },
+      {
+        key: 'effectiveApy',
+        label: activeTab === 'supply' ? 'Supply APY' : 'Borrow Rate',
+        sortable: true,
+        render: (row) => (
+          <IncentivesCard
+            value={activeTab === 'supply' ? row.apy : (row.variableApy ?? row.apy)}
+            incentives={activeTab === 'supply' ? (row.reserve?.aIncentivesData || []) : (row.reserve?.vIncentivesData || [])}
+            rewards={activeTab === 'supply' ? (row.rewardsSupply || []) : (row.rewardsBorrow || [])}
+            symbol={row.assetSymbol}
+            variant="secondary14"
+            symbolsVariant="secondary14"
+            align="center"
+          />
+        ),
+      },
+    ];
+
+    const supplyColumns: ColumnDefinition<MarketRow>[] = [
+      {
+        key: 'totalLiquidity',
+        label: 'Total Liquidity',
+        sortable: true,
+        render: (row: MarketRow) => (
+          row.reserve ? (
+            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
+              <FormattedNumber compact value={row.reserve.totalLiquidity} variant="secondary14" />
+              <UsdChip value={row.reserve.totalLiquidityUSD} textVariant="secondary12" />
+            </Box>
+          ) : null
+        ),
+      },
+    ];
+
+    // Add Balance column only when a wallet is connected
+    if (account) {
+      supplyColumns.push({
+        key: 'balance',
+        label: 'Balance',
+        sortable: false,
+        render: (row: MarketRow) => renderBalanceCell(row),
+      });
+    }
+
+    const borrowColumns: ColumnDefinition<MarketRow>[] = [
+      {
+        key: 'totalLiquidity',
+        label: 'Total Borrowed',
+        sortable: true,
+        render: (row: MarketRow) => (
+          row.reserve ? (
+            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
+              <FormattedNumber compact value={row.reserve.totalDebt} variant="secondary14" />
+              <UsdChip value={row.reserve.totalDebtUSD} textVariant="secondary12" />
+            </Box>
+          ) : null
+        ),
+      },
+    ];
+
+    // Add Available for you column only when a wallet is connected
+    if (account) {
+      borrowColumns.push({
+        key: 'availableForYou',
+        label: 'Available for you',
+        sortable: false,
+        render: (row: MarketRow) => {
+          if (!row.reserve) return null;
+          const key = row.id.toLowerCase();
+          const maxBorrowRaw = Number(eligibilityByAsset.get(key)?.maxBorrow || '0');
+          const availableLiquidity = Number(row.reserve.formattedAvailableLiquidity ?? row.reserve.availableLiquidity ?? 0);
+          const maxBorrow = Math.min(maxBorrowRaw, availableLiquidity);
+          const usd = (maxBorrow * Number(row.reserve.priceInUSD || 0)).toString();
+          return (
+            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
+              <FormattedNumber compact value={maxBorrow} variant="secondary14" />
+              <UsdChip value={usd} textVariant="secondary12" />
+            </Box>
+          );
+        },
+      });
+    }
+
+    return [...baseColumns, ...(activeTab === 'supply' ? supplyColumns : borrowColumns)];
+  }, [activeTab, walletBalances, eligibilityByAsset, account]);
 
   const activeRows = activeTab === 'supply' ? supplyRows : borrowRows;
   const nonFrozenRows = useMemo(() => (activeRows || []).filter((r) => !r.reserve || (!r.reserve.isPaused && !r.reserve.isFrozen)), [activeRows]);
@@ -332,7 +430,7 @@ export function MarketsTable() {
         columns={columns}
         loading={loading}
         minWidth={900}
-        defaultSortColumn={activeTab === 'supply' ? 'effectiveApy' : 'availableLiquidity'}
+        defaultSortColumn={'effectiveApy'}
         defaultSortOrder={'desc'}
         actionColumn={{
           render: (row) => (
@@ -343,8 +441,8 @@ export function MarketsTable() {
                 !row.reserve ||
                   !account ||
                   (row.reserve && (activeTab === 'supply'
-                    ? eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableSupply
-                    : eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableBorrow))
+                    ? eligibilityByAsset.get(row.id)?.disableSupply
+                    : eligibilityByAsset.get(row.id)?.disableBorrow))
                   ? true
                   : false
               }
@@ -357,9 +455,9 @@ export function MarketsTable() {
                   return;
                 }
                 if (activeTab === 'supply') {
-                  openSupply(row.reserve.underlyingAsset, currentMarket, row.assetName, 'market-list');
+                  openSupply(row.id, currentMarket, row.assetName, 'market-list');
                 } else {
-                  openBorrow(row.reserve.underlyingAsset, currentMarket, row.assetName, 'market-list');
+                  openBorrow(row.id, currentMarket, row.assetName, 'market-list');
                 }
                 trackEvent(GENERAL.OPEN_MODAL, { modal: activeTab === 'supply' ? 'Supply' : 'Borrow', assetName: row.assetName });
               }}
@@ -371,6 +469,7 @@ export function MarketsTable() {
         rowIdGetter={(row) => row.id}
         onRowClick={(row) => {
           if (!row.reserve) return;
+          // Always navigate to the wrapped reserve page for details
           window.location.href = `/markets/${row.reserve.underlyingAsset}`;
         }}
       />
@@ -415,8 +514,8 @@ export function MarketsTable() {
                     !row.reserve ||
                       !account ||
                       (row.reserve && (activeTab === 'supply'
-                        ? eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableSupply
-                        : eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableBorrow))
+                        ? eligibilityByAsset.get(row.id)?.disableSupply
+                        : eligibilityByAsset.get(row.id)?.disableBorrow))
                       ? true
                       : false
                   }
@@ -429,9 +528,9 @@ export function MarketsTable() {
                       return;
                     }
                     if (activeTab === 'supply') {
-                      openSupply(row.reserve.underlyingAsset, currentMarket, row.assetName, 'market-list');
+                      openSupply(row.id, currentMarket, row.assetName, 'market-list');
                     } else {
-                      openBorrow(row.reserve.underlyingAsset, currentMarket, row.assetName, 'market-list');
+                      openBorrow(row.id, currentMarket, row.assetName, 'market-list');
                     }
                   }}
                 >

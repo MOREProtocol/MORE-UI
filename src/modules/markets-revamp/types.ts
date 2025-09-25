@@ -12,6 +12,8 @@ export interface MarketRow {
   totalLiquidity: number;
   availableLiquidity: number;
   effectiveApy?: number;
+  balance?: number;
+  availableForYou?: number;
   reserve?: ComputedReserveDataWithMarket;
   rewardsSupply?: PoolReservesRewardsHumanized[];
   rewardsBorrow?: PoolReservesRewardsHumanized[];
