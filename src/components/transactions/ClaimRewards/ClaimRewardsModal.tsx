@@ -27,6 +27,7 @@ export const ClaimRewardsModal = () => {
     reward_token_address: string;
     reward_amount_wei: string;
     merkle_proof: string[];
+    merkle_root: string;
   };
   // Map distributed to typed rewards for the new modal
   const mappedRewards: RewardItemForNewModal[] = distributed.map((r) => {
@@ -50,6 +51,7 @@ export const ClaimRewardsModal = () => {
       reward_token_address: r.reward_token_address,
       reward_amount_wei: r.reward_amount_wei,
       merkle_proof: r.merkle_proof,
+      merkle_root: r.merkle_root,
     } as RewardItemForNewModal;
   });
   const hasNew = mappedRewards.some((r) => r.rewardAmountToClaim > 0);
