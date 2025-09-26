@@ -75,7 +75,8 @@ export function AppHeader() {
         sx={(theme) => ({
           height: HEADER_HEIGHT,
           position: 'sticky',
-          top: 0,
+          top: 12,
+          mb: 5,
           transition: theme.transitions.create('top'),
           zIndex: theme.zIndex.appBar + 1,
           bgcolor: alpha(theme.palette.background.paper, 0.75),

@@ -44,7 +44,7 @@ export const VaultDetail = () => {
   const theme = useTheme();
   const downToMd = useMediaQuery(theme.breakpoints.down('md'));
   const downToMdLg = useMediaQuery(theme.breakpoints.down('mdlg'));
-  const xPadding = downToMd ? 5 : 20;
+  const xPadding = downToMd ? 5 : 7;
 
   const baseUrl = useMemo(() => chainId && networkConfigs[chainId] && networkConfigs[chainId].explorerLink, [chainId]);
 

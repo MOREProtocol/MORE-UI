@@ -40,7 +40,7 @@ export const BorrowInfo = ({
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', xsm: '1fr 1fr' },
         height: '100%',
-        gap: 3,
+        gap: { xs: 3, md: 8 },
         p: { xs: 4, md: 6 },
         backgroundColor: 'background.paper',
         borderRadius: 2,

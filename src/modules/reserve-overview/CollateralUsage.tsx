@@ -26,7 +26,7 @@ export const CollateralUsage = ({ reserve }: CollateralUsageProps) => {
     <Box>
 
       {reserve.reserveLiquidationThreshold !== '0' && (
-        <Box sx={{ mt: 5, mb: 3, px: 4 }}>
+        <Box sx={{ mt: 5, mb: 3, px: { xs: 1, md: 4 } }}>
           <TableContainer sx={{ boxShadow: 'none', backgroundColor: 'transparent' }}>
             <Table
               size="small"
@@ -45,6 +45,13 @@ export const CollateralUsage = ({ reserve }: CollateralUsageProps) => {
                 '& thead .MuiTableRow-root': {
                   borderBottom: '1px solid',
                   borderColor: 'rgba(235, 235, 239, 0.7)',
+                },
+                '& tbody .MuiTableCell-root': {
+                  borderBottom: '1px solid',
+                  borderColor: 'rgba(235, 235, 239, 0.7)',
+                },
+                '& tbody .MuiTableRow-root:last-of-type .MuiTableCell-root': {
+                  borderBottom: 'none',
                 },
               }}
             >
@@ -114,7 +121,7 @@ export const CollateralUsage = ({ reserve }: CollateralUsageProps) => {
                           <Box sx={{ width: { xs: 20, xsm: 24 }, height: { xs: 20, xsm: 24 }, flexShrink: 0 }} />
                         )}
                         <Typography variant="secondary14" color="text.secondary">
-                          No MOST Mode
+                          Normal Mode
                         </Typography>
                       </Box>
                     </TableCell>

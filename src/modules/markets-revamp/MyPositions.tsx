@@ -216,7 +216,7 @@ export function MyPositions() {
           flexDirection: { xs: 'row-reverse', md: 'row' }
         }}>
           {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
-          <Box>
+          <Box sx={{ my: 1 }}>
             <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
             <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
           </Box>
@@ -271,7 +271,7 @@ export function MyPositions() {
           flexDirection: { xs: 'row-reverse', md: 'row' }
         }}>
           {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
-          <Box>
+          <Box sx={{ my: 1 }}>
             <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
             <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
           </Box>

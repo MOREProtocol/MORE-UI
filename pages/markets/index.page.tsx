@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Alert, Container } from '@mui/material';
+import { Alert, Box } from '@mui/material';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { useRootStore } from 'src/store/root';
 import { Link } from 'src/components/primitives/Link';
@@ -22,7 +22,7 @@ export default function Markets() {
         .
       </Alert>
 
-      <Container sx={{
+      <Box sx={{
         mt: { xs: 1, md: 2 },
         px: { xs: 2, sm: 4, md: 6 },
         pb: { xs: 4, md: 8 },
@@ -32,7 +32,7 @@ export default function Markets() {
       }}>
         <MyPositions />
         <MarketsTable />
-      </Container>
+      </Box>
     </>
   );
 }

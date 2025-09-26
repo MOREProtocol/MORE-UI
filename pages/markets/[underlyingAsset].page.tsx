@@ -1,4 +1,4 @@
-import { Box, Button, Container, IconButton, Skeleton, SvgIcon, Tooltip, Typography, Menu, MenuItem } from '@mui/material';
+import { Box, Button, IconButton, Skeleton, SvgIcon, Tooltip, Typography, Menu, MenuItem } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { useRouter } from 'next/router';
@@ -164,7 +164,7 @@ export default function ReserveOverview() {
 
   return (
     <AssetCapsProvider asset={reserve}>
-      <Container sx={{
+      <Box sx={{
         mt: { xs: 2, md: 3 },
         px: { xs: 2, sm: 4, md: 6 },
         pb: { xs: 4, md: 8 },
@@ -177,7 +177,7 @@ export default function ReserveOverview() {
         <Box sx={{
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-          gap: { xs: 2, md: 4 }
+          gap: 4
         }}>
           {/* Supply column */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -231,7 +231,7 @@ export default function ReserveOverview() {
             </Box>
           </Box>
         </Box>
-      </Container>
+      </Box>
     </AssetCapsProvider>
   );
 
