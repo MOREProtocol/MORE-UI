@@ -580,7 +580,7 @@ export const VaultDetail = () => {
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="secondary14" color="text.secondary">
-                  30 Days APY
+                  7 Days APY
                 </Typography>
                 <Tooltip
                   title={
@@ -600,9 +600,9 @@ export const VaultDetail = () => {
                           />
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 3 }}>
-                          <Typography variant="secondary12">7 Days APY:</Typography>
+                          <Typography variant="secondary12">30 Days APY:</Typography>
                           <FormattedNumber
-                            value={vaultData?.data?.overview?.apy7Days || ''}
+                            value={vaultData?.data?.overview?.apy30Days || ''}
                             percent
                             variant="secondary12"
                             compact
@@ -631,7 +631,7 @@ export const VaultDetail = () => {
               <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   {isLoading ? <Skeleton width={80} height={24} /> : <FormattedNumber
-                    value={vaultData?.data?.overview?.apy30Days || ''}
+                    value={vaultData?.data?.overview?.apy7Days || ''}
                     percent
                     variant="main16"
                     compact

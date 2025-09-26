@@ -410,7 +410,7 @@ export interface VaultGridRow {
   network: string;
   networkIcon: string;
   apy: number | undefined;
-  apy30Days?: number | undefined;
+  apy7Days?: number | undefined;
   incentives?: PoolReservesRewardsHumanized[];
   tvm: string;
   tvmUsd: number;
@@ -469,10 +469,10 @@ export const getStandardVaultColumns = (isMobile = false): ColumnDefinition<Vaul
     ),
   },
   {
-    key: 'apy30Days',
-    label: '30 Days APY',
+    key: 'apy7Days',
+    label: '7 Days APY',
     sortable: true,
-    render: (row) => <APYCell apy={row.apy30Days} incentives={row.incentives} />,
+    render: (row) => <APYCell apy={row.apy7Days} incentives={row.incentives} />,
     skeletonRender: () => <Skeleton variant="text" width={50} height={20} />,
   },
   {
@@ -552,10 +552,10 @@ export const getUserVaultColumns = (isMobile = false): ColumnDefinition<VaultGri
     ),
   },
   {
-    key: 'apy30Days',
-    label: '30 Days APY',
+    key: 'apy7Days',
+    label: '7 Days APY',
     sortable: true,
-    render: (row) => <APYCell apy={row.apy30Days} incentives={row.incentives} />,
+    render: (row) => <APYCell apy={row.apy7Days} incentives={row.incentives} />,
     skeletonRender: () => <Skeleton variant="text" width={50} height={20} />,
   },
   {
