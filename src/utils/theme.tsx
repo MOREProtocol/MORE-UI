@@ -192,10 +192,19 @@ export const getDesignTokens = (mode: 'light' | 'dark') => {
       background: {
         default: getColor('#E4E4ED', '#474E68'),
         paper: getColor('#FFFFFF', '#292E41'),
-        surface: getColor('#F7F7F9', '#383D51'),
-        surface2: getColor('#F1F1F5', '#3D4359'),
-        surface3: getColor('#EAEAF1', '#424860'),
-        bg: getColor('#E4E4ED', '#474E68'),
+
+        // Old values
+        // surface: getColor('#F7F7F9', '#383D51'),
+        // surface2: getColor('#F1F1F5', '#3D4359'),
+        // surface3: getColor('#EAEAF1', '#424860'),
+        // bg: getColor('#E4E4ED', '#474E68'),
+
+        // New values
+        surface: getColor('#F5F5F8', '#323B4A'),
+        surface2: getColor('#EBEBF0', '#2D3341'),
+        surface3: getColor('#E0E0EA', '#252B38'),
+        bg: getColor('#D8D8E0', '#1A1E2A'),
+
         header: getColor('#111017', '#111017'),
         disabled: getColor('#EAEBEF', '#EBEBEF14'),
       },
