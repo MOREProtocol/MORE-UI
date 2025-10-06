@@ -2,7 +2,6 @@ import { Button, List, ListItem, Typography, useMediaQuery, useTheme } from '@mu
 import * as React from 'react';
 import { useRootStore } from 'src/store/root';
 import { MarketDataType } from 'src/ui-config/marketsConfig';
-import { ENABLE_TESTNET } from 'src/utils/marketsAndNetworksConfig';
 import { NAV_BAR } from 'src/utils/mixPanelEvents';
 
 import { Link, ROUTES } from '../../components/primitives/Link';
@@ -43,12 +42,12 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
       visibleTitle: 'Bridge',
       dataCy: 'menuBridge',
     },
-    {
-      link: ROUTES.faucet,
-      title: 'Faucet',
-      visibleTitle: 'Faucet',
-      isVisible: () => process.env.NEXT_PUBLIC_ENV === 'staging' || ENABLE_TESTNET,
-    },
+    // {
+    //   link: ROUTES.faucet,
+    //   title: 'Faucet',
+    //   visibleTitle: 'Faucet',
+    //   isVisible: () => process.env.NEXT_PUBLIC_ENV === 'staging' || ENABLE_TESTNET,
+    // },
   ];
 
   const { breakpoints } = useTheme();

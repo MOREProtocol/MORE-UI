@@ -567,7 +567,7 @@ export function MarketsTable() {
         </Box>
 
         {/* Large: dual-pane supply/borrow tables within Markets container */}
-        <Box sx={{ display: { xs: 'none', lg: 'block' }, mt: 3 }}>
+        <Box sx={{ display: { xs: 'none', lg: 'block' }, mt: 2 }}>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 5 }}>
             {/* Supply column */}
             <Box sx={{ flex: 1, minWidth: 0 }}>

@@ -173,7 +173,7 @@ export const VaultDetail = () => {
   }, [hasNotes]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5, pt: 7, pb: 7, px: xPadding }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5, pt: 4, pb: 7, px: xPadding }}>
 
       {/* Network Status Check */}
       {shouldShowNetworkBanner && (
