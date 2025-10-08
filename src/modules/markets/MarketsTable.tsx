@@ -2,6 +2,7 @@ import { Box, Button, ButtonGroup, Typography, Tooltip, Alert } from '@mui/mater
 import { valueToBigNumber } from '@aave/math-utils';
 import { API_ETH_MOCK_ADDRESS, InterestRate } from '@aave/contract-helpers';
 import { useMemo, useState } from 'react';
+import type { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { BaseDataGrid, ColumnDefinition } from 'src/components/primitives/DataGrid';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
@@ -37,7 +38,7 @@ export function MarketsTable() {
     (Number(amount || 0) * Number(priceInUSD || 0)).toString();
 
   // Compute wallet balance in USD for a given row id and reserve
-  const getWalletBalanceUsdFor = (rowId: string, reserve?: any): number => {
+  const getWalletBalanceUsdFor = (rowId: string, reserve?: ComputedReserveDataWithMarket): number => {
     if (!reserve) return 0;
     const assetKey = (rowId || '').toLowerCase();
     const baseKey = API_ETH_MOCK_ADDRESS.toLowerCase();
