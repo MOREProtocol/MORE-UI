@@ -8,8 +8,6 @@ import { useModalContext } from 'src/hooks/useModal';
 import { useRootStore } from 'src/store/root';
 import { DASHBOARD, GENERAL } from 'src/utils/mixPanelEvents';
 
-import LightningBoltGradient from '/public/lightningBoltGradient.svg';
-
 import { Link } from '../../components/primitives/Link';
 import { Row } from '../../components/primitives/Row';
 import { TypographyGradient } from '../../components/primitives/TypographyGradient';
@@ -100,7 +98,7 @@ export const DashboardEModeButton = ({ userEmodeCategoryId }: DashboardEModeButt
               color: isEModeDisabled ? 'text.muted' : 'text.primary',
             }}
           >
-            {isEModeDisabled ? <LightningBoltIcon /> : <LightningBoltGradient />}
+            <LightningBoltIcon />
           </SvgIcon>
 
           {isEModeDisabled ? (
@@ -160,7 +158,7 @@ export const DashboardEModeButton = ({ userEmodeCategoryId }: DashboardEModeButt
                           mr: 1,
                         }}
                       >
-                        <LightningBoltGradient />
+                        <LightningBoltIcon />
                       </SvgIcon>
                       <Typography variant="subheader2" color="text.primary">
                         <EModeLabelMessage />

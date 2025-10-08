@@ -9,7 +9,7 @@ export const FaucetButton = () => {
   const { currentNetworkConfig } = useProtocolDataContext();
 
   return (
-    <DarkTooltip title="Get free assets to test the More protocol">
+    <DarkTooltip title="Get free assets to test the MORE protocol">
       <Button
         startIcon={
           <img

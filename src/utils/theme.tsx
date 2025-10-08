@@ -5,7 +5,7 @@ import {
   ExclamationIcon,
   InformationCircleIcon,
 } from '@heroicons/react/outline';
-import { SvgIcon, Theme, ThemeOptions } from '@mui/material';
+import { SvgIcon, Theme, ThemeOptions, alpha } from '@mui/material';
 import { createTheme } from '@mui/material/styles';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -20,7 +20,7 @@ const {
 const FONT = 'Inter, Arial';
 
 declare module '@mui/material/styles/createPalette' {
-  interface PaletteColor extends ColorPartial {}
+  interface PaletteColor extends ColorPartial { }
 
   interface TypeText {
     muted: string;
@@ -31,6 +31,8 @@ declare module '@mui/material/styles/createPalette' {
     paper: string;
     surface: string;
     surface2: string;
+    surface3: string;
+    bg: string;
     header: string;
     disabled: string;
   }
@@ -66,6 +68,8 @@ interface TypographyCustomVariants {
   main40: React.CSSProperties;
   main21: React.CSSProperties;
   secondary21: React.CSSProperties;
+  main19: React.CSSProperties;
+  secondary19: React.CSSProperties;
   main16: React.CSSProperties;
   secondary16: React.CSSProperties;
   main14: React.CSSProperties;
@@ -75,10 +79,10 @@ interface TypographyCustomVariants {
 }
 
 declare module '@mui/material/styles' {
-  interface TypographyVariants extends TypographyCustomVariants {}
+  interface TypographyVariants extends TypographyCustomVariants { }
 
   // allow configuration using `createTheme`
-  interface TypographyVariantsOptions extends TypographyCustomVariants {}
+  interface TypographyVariantsOptions extends TypographyCustomVariants { }
 
   interface BreakpointOverrides {
     xsm: true;
@@ -102,6 +106,8 @@ declare module '@mui/material/Typography' {
     main40: true;
     main21: true;
     secondary21: true;
+    main19: true;
+    secondary19: true;
     main16: true;
     secondary16: true;
     main14: true;
@@ -184,11 +190,21 @@ export const getDesignTokens = (mode: 'light' | 'dark') => {
         highlight: getColor('#383D51', '#C9B3F9'),
       },
       background: {
-        default: getColor('#F1F1F3', '#1B2030'),
+        // Old values
+        // default: getColor('#E4E4ED', '#474E68'),
+        // surface: getColor('#F7F7F9', '#383D51'),
+        // surface2: getColor('#F1F1F5', '#3D4359'),
+        // surface3: getColor('#EAEAF1', '#424860'),
+        // bg: getColor('#E4E4ED', '#474E68'),
+
+        // New values
+        default: getColor('#D8D8E0', '#1A1E2A'),
+        surface: getColor('#F5F5F8', '#323B4A'),
+        surface2: getColor('#EBEBF0', '#2D3341'),
+        surface3: getColor('#E0E0EA', '#252B38'),
+        bg: getColor('#D8D8E0', '#1A1E2A'),
+
         paper: getColor('#FFFFFF', '#292E41'),
-        surface: getColor('#F7F7F9', '#383D51'),
-        surface2: getColor('#F9F9FB', '#383D51'),
-        // header: getColor('#2B2D3C', '#1B2030'),
         header: getColor('#111017', '#111017'),
         disabled: getColor('#EAEBEF', '#EBEBEF14'),
       },
@@ -336,6 +352,18 @@ export const getDesignTokens = (mode: 'light' | 'dark') => {
         lineHeight: '133.4%',
         fontSize: pxToRem(21),
       },
+      main19: {
+        fontFamily: FONT,
+        fontWeight: 800,
+        lineHeight: '133.4%',
+        fontSize: pxToRem(19),
+      },
+      secondary19: {
+        fontFamily: FONT,
+        fontWeight: 500,
+        lineHeight: '133.4%',
+        fontSize: pxToRem(19),
+      },
       main16: {
         fontFamily: FONT,
         fontWeight: 600,
@@ -424,7 +452,27 @@ export function getThemedComponents(theme: Theme) {
         },
         styleOverrides: {
           root: {
-            borderRadius: '4px',
+            borderRadius: '6px',
+            boxShadow: 'none',
+            '&:hover': {
+              boxShadow: 'none',
+            },
+            '&.Mui-focusVisible': {
+              boxShadow: 'none',
+            },
+            '&:active': {
+              boxShadow: 'none',
+            },
+          },
+          outlined: {
+            borderColor: 'transparent',
+            borderWidth: 0,
+            backgroundColor: theme.palette.background.paper,
+            '&:hover': {
+              borderColor: 'transparent',
+              borderWidth: 0,
+              backgroundColor: theme.palette.action.hover,
+            },
           },
           sizeLarge: {
             ...theme.typography.buttonL,
@@ -471,11 +519,40 @@ export function getThemedComponents(theme: Theme) {
           {
             props: { color: 'primary', variant: 'outlined' },
             style: {
-              background: theme.palette.background.surface,
-              borderColor: theme.palette.divider,
+              background: theme.palette.background.surface3,
+              borderColor: 'transparent',
+              borderWidth: 0,
             },
           },
         ],
+      },
+      MuiButtonGroup: {
+        styleOverrides: {
+          root: {
+            borderRadius: '50px',
+            overflow: 'hidden',
+          },
+          grouped: {
+            borderRadius: 0,
+            borderColor: 'transparent',
+          },
+          groupedOutlined: {
+            borderColor: 'transparent',
+            '&:hover': {
+              backgroundColor: theme.palette.action.hover,
+              borderColor: 'transparent',
+              color: theme.palette.text.primary,
+            },
+          },
+          groupedContained: {
+            backgroundColor: theme.palette.action.selected,
+            color: theme.palette.text.primary,
+            '&:hover': {
+              backgroundColor: theme.palette.action.selected,
+              color: theme.palette.text.primary,
+            },
+          },
+        },
       },
       MuiTypography: {
         defaultProps: {
@@ -496,11 +573,13 @@ export function getThemedComponents(theme: Theme) {
             main12: 'p',
             main14: 'p',
             main16: 'p',
+            main19: 'p',
             main21: 'p',
             main40: 'p',
             secondary12: 'p',
             secondary14: 'p',
             secondary16: 'p',
+            secondary19: 'p',
             secondary21: 'p',
             helperText: 'span',
             tooltip: 'span',
@@ -521,6 +600,15 @@ export function getThemedComponents(theme: Theme) {
               minWidth: 240,
               marginTop: '4px',
             },
+          },
+        },
+        styleOverrides: {
+          paper: {
+            boxShadow: 'none',
+            border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+            backgroundColor: alpha(theme.palette.background.paper, 0.75),
+            backdropFilter: 'blur(10px)',
+            borderRadius: '10px',
           },
         },
       },
@@ -642,6 +730,26 @@ export function getThemedComponents(theme: Theme) {
             height: 20 + 6 * 2,
             width: 34 + 6 * 2,
             padding: 6,
+          },
+          sizeSmall: {
+            height: 24,
+            width: 40,
+            padding: 4,
+            '& .MuiSwitch-switchBase': {
+              padding: 4,
+              '&.Mui-checked': {
+                transform: 'translateX(16.5px)',
+              },
+            },
+            '& .MuiSwitch-thumb': {
+              transform: 'translateY(1.4px) translateX(1px)',
+              width: '13px',
+              height: '13px',
+              borderRadius: '5px',
+            },
+            '& .MuiSwitch-track': {
+              borderRadius: '6px',
+            },
           },
           switchBase: {
             padding: 8,

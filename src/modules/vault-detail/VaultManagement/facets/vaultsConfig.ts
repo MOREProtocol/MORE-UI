@@ -37,7 +37,7 @@ const protocolDescriptions = {
     icon: 'https://swap.kittypunch.xyz/Punch1.png',
   },
   more: {
-    name: 'More Markets',
+    name: 'MORE Markets',
     icon: '/loveMore.svg',
   },
   kittyRouterNGPools: {

@@ -6,24 +6,22 @@ import { FORK_ENABLED } from 'src/utils/marketsAndNetworksConfig';
 
 import { AppFooter } from './AppFooter';
 import { AppHeader } from './AppHeader';
-// import TopBarNotify from './TopBarNotify';
 
 export function MainLayout({ children }: { children: ReactNode }) {
   return (
-    <>
-      {/* <TopBarNotify
-        notifyText="MORE Markets is now live on Flow Crescendo Mainnet!"
-        learnMoreLink="https://mirror.xyz/0xA85C9020A57179C61d9794353DCaa7d9A6c16ad9/CoMo7eIjiLdMbmXXv4YIadrZwDQNn-zgjtSjokxzmRQ"
-        buttonText="Read the full announcement here"
-      /> */}
+    <Box sx={{ bgcolor: 'background.bg' }}>
       <AppHeader />
-      <Box component="main" sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <Box component="main" sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+      }}>
         {children}
       </Box>
 
       <AppFooter />
       <FeedbackModal />
       {FORK_ENABLED ? null : <AnalyticsConsent />}
-    </>
+    </Box>
   );
 }

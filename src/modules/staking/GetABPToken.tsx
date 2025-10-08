@@ -23,7 +23,7 @@ export const GetABPToken = () => {
 
   return (
     <>
-      <DarkTooltip title="Get ABP tokens to stake within the More Protocol">
+      <DarkTooltip title="Get ABP tokens to stake within the MORE Protocol">
         <Button
           variant="outlined"
           size="small"

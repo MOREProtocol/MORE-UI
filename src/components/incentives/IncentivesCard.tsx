@@ -34,9 +34,10 @@ export const IncentivesCard = ({
     <Box
       sx={{
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
+        gap: 1.5,
         alignItems: align || { xs: 'flex-end', xsm: 'center' },
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         textAlign: align === 'flex-start' ? 'left' : 'center',
       }}
     >

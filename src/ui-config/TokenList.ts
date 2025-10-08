@@ -13,14 +13,14 @@ export interface TokenInfo {
   readonly tags?: string[];
   readonly extensions?: {
     readonly [key: string]:
+    | {
+      [key: string]:
       | {
-          [key: string]:
-            | {
-                [key: string]: ExtensionValue;
-              }
-            | ExtensionValue;
-        }
+        [key: string]: ExtensionValue;
+      }
       | ExtensionValue;
+    }
+    | ExtensionValue;
   };
 }
 
@@ -76,7 +76,7 @@ const NETWORK_ASSETS: TokenInfo[] = [
 ];
 
 export const TOKEN_LIST: TokenList = {
-  name: 'More Labs Default',
+  name: 'MORE Labs Default',
   timestamp: '2024-12-19T15:47:25.037Z',
   version: {
     major: 11,

@@ -4,7 +4,7 @@ import {
   Box,
   Button,
   Divider,
-  List,
+  alpha,
   ListItem,
   ListItemIcon,
   ListItemText,
@@ -29,8 +29,6 @@ import { AUTH, GENERAL } from 'src/utils/mixPanelEvents';
 
 import { Link } from '../components/primitives/Link';
 import { ENABLE_TESTNET, getNetworkConfig, STAGING_ENV } from '../utils/marketsAndNetworksConfig';
-import { DrawerWrapper } from './components/DrawerWrapper';
-import { MobileCloseButton } from './components/MobileCloseButton';
 
 interface WalletWidgetProps {
   open: boolean;
@@ -38,7 +36,7 @@ interface WalletWidgetProps {
   headerHeight: number;
 }
 
-export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidgetProps) {
+export default function WalletWidget({ open, setOpen }: WalletWidgetProps) {
   const { disconnectWallet, currentAccount, connected, chainId, loading, readOnlyModeAddress } =
     useWeb3Context();
   const { openConnectModal } = useConnectModal();
@@ -107,7 +105,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
         variant="subheader2"
         sx={{
           display: { xs: 'block', md: 'none' },
-          color: '#A5A8B6',
+          color: 'text.secondary',
           px: 4,
           py: 2,
         }}
@@ -165,7 +163,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
           </Button>
         </Box>
       )}
-      <Divider sx={{ my: { xs: 7, md: 0 }, borderColor: { xs: '#FFFFFF1F', md: 'divider' } }} />
+      <Divider sx={{ my: { xs: 7, md: 0 }, borderColor: 'divider' }} />
 
       <Box component={component} disabled>
         <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
@@ -177,7 +175,7 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
               mb: 1,
             }}
           >
-            <Typography variant="caption" color={{ xs: '#FFFFFFB2', md: 'text.secondary' }}>
+            <Typography variant="caption" color={{ xs: 'text.secondary', md: 'text.secondary' }}>
               Network
             </Typography>
           </Box>
@@ -192,27 +190,29 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
                 borderRadius: '50%',
               }}
             />
-            <Typography color={{ xs: '#F1F1F3', md: 'text.primary' }} variant="subheader1">
+            <Typography color={'text.primary'} variant="subheader1">
               {networkConfig.name}
             </Typography>
           </Box>
         </Box>
       </Box>
-      <Divider sx={{ my: { xs: 7, md: 0 }, borderColor: { xs: '#FFFFFF1F', md: 'divider' } }} />
+      <Divider sx={{ my: { xs: 7, md: 0 }, borderColor: 'divider' }} />
 
       <Box
         component={component}
-        sx={{ color: { xs: '#F1F1F3', md: 'text.primary', cursor: 'pointer' } }}
+        sx={{
+          color: 'text.primary',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          width: '100%',
+        }}
         onClick={handleCopy}
       >
         <ListItemIcon
           sx={{
-            color: {
-              xs: '#F1F1F3',
-              md: 'primary.light',
-              minWidth: 'unset',
-              marginRight: 12,
-            },
+            color: 'primary.light',
+            minWidth: 'unset',
           }}
         >
           <SvgIcon fontSize="small">
@@ -226,17 +226,18 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
         <Link href={networkConfig.explorerLinkBuilder({ address: currentAccount })}>
           <Box
             component={component}
-            sx={{ color: { xs: '#F1F1F3', md: 'text.primary' } }}
+            sx={{
+              color: 'text.primary',
+              display: 'flex',
+              alignItems: 'center',
+              width: '100%',
+            }}
             onClick={handleViewOnExplorer}
           >
             <ListItemIcon
               sx={{
-                color: {
-                  xs: '#F1F1F3',
-                  md: 'primary.light',
-                  minWidth: 'unset',
-                  marginRight: 12,
-                },
+                color: 'primary.light',
+                minWidth: 'unset',
               }}
             >
               <SvgIcon fontSize="small">
@@ -249,7 +250,6 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
       )}
       {md && (
         <>
-          <Divider sx={{ my: { xs: 7, md: 0 }, borderColor: { xs: '#FFFFFF1F', md: 'divider' } }} />
           <Box sx={{ padding: '16px 16px 10px' }}>
             {/* <Button
               sx={{
@@ -284,10 +284,12 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
 
   return (
     <>
-      {md && connected && open ? (
-        <MobileCloseButton setOpen={setOpen} />
-      ) : loading ? (
-        <Skeleton height={36} width={126} sx={{ background: '#383D51' }} />
+      {loading ? (
+        <Skeleton
+          height={36}
+          width={126}
+          sx={{ background: (theme) => alpha(theme.palette.background.paper, 0.75) }}
+        />
       ) : (
         <Button
           variant={connected ? 'surface' : 'gradient'}
@@ -300,7 +302,12 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
           sx={{
             p: connected ? '5px 8px' : undefined,
             minWidth: hideWalletAccountText ? 'unset' : undefined,
-            overflow: 'hidden' // Ensure button itself doesn't overflow
+            overflow: 'hidden', // Ensure button itself doesn't overflow
+            bgcolor: 'background.surface',
+            '&:hover': {
+              bgcolor: 'background.surface3',
+            },
+            color: connected ? 'text.primary' : null,
           }}
           endIcon={
             connected &&
@@ -328,28 +335,22 @@ export default function WalletWidget({ open, setOpen, headerHeight }: WalletWidg
         </Button>
       )}
 
-      {md ? (
-        <DrawerWrapper open={open} setOpen={setOpen} headerHeight={headerHeight}>
-          <List sx={{ px: 2, '.MuiListItem-root.Mui-disabled': { opacity: 1 } }}>
-            <Content />
-          </List>
-        </DrawerWrapper>
-      ) : (
-        <Menu
-          id="wallet-menu"
-          MenuListProps={{
-            'aria-labelledby': 'wallet-button',
-          }}
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleClose}
-          keepMounted={true}
-        >
-          <MenuList disablePadding sx={{ '.MuiMenuItem-root.Mui-disabled': { opacity: 1 } }}>
-            <Content component={MenuItem} />
-          </MenuList>
-        </Menu>
-      )}
+      <Menu
+        id="wallet-menu"
+        MenuListProps={{
+          'aria-labelledby': 'wallet-button',
+        }}
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        keepMounted={true}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MenuList disablePadding sx={{ '.MuiMenuItem-root.Mui-disabled': { opacity: 1 } }}>
+          <Content component={MenuItem} />
+        </MenuList>
+      </Menu>
     </>
   );
 }

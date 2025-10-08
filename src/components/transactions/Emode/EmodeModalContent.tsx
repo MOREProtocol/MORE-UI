@@ -17,8 +17,6 @@ import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
 
-import LightningBoltGradient from '/public/lightningBoltGradient.svg';
-
 import { TxErrorView } from '../FlowCommons/Error';
 import { GasEstimationError } from '../FlowCommons/GasEstimationError';
 import { TxSuccessView } from '../FlowCommons/Success';
@@ -186,11 +184,11 @@ export const EmodeModalContent = ({
             Enabling E-Mode only allows you to borrow assets belonging to the selected category.
             Please visit our{' '}
             <Link
-              href="https://docs.aave.com/faq/aave-v3-features#high-efficiency-mode-e-mode"
+              href="https://docs.more.markets/more-markets/editor-1/most-mode"
               target="_blank"
               rel="noopener"
             >
-              FAQ guide
+              guide
             </Link>{' '}
             to learn more about how it works and the applied restrictions.
           </Typography>
@@ -226,9 +224,6 @@ export const EmodeModalContent = ({
               <Box sx={{ display: 'inline-flex', alignItems: 'center', mx: 1 }}>
                 {user.userEmodeCategoryId !== 0 ? (
                   <>
-                    <SvgIcon sx={{ fontSize: '12px' }}>
-                      <LightningBoltGradient />
-                    </SvgIcon>
                     <Typography variant="subheader1">
                       {getEmodeMessage(eModes[user.userEmodeCategoryId].label)}
                     </Typography>
@@ -243,9 +238,6 @@ export const EmodeModalContent = ({
                   <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
                     {selectedEmode.id !== 0 ? (
                       <>
-                        <SvgIcon sx={{ fontSize: '12px', mr: 0.5 }}>
-                          <LightningBoltGradient />
-                        </SvgIcon>
                         <Typography variant="subheader1">
                           {getEmodeMessage(eModes[selectedEmode.id].label)}
                         </Typography>

@@ -25,6 +25,11 @@ export const VaultManagementBundleButton = () => {
             p: '8px 12px',
             minWidth: 'unset',
             ml: 2,
+            bgcolor: 'background.surface',
+            '&:hover': {
+              bgcolor: 'background.surface3',
+            },
+            color: 'text.primary',
           }}
         >
           <Badge

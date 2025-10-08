@@ -60,8 +60,11 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(function Link
 
   const router = useRouter();
   const pathname = typeof href === 'string' ? href : href.pathname;
+  const isActive =
+    router?.pathname === pathname ||
+    (router?.pathname === '/' && pathname === ROUTES.vaults);
   const className = clsx(classNameProps, {
-    active: router?.pathname === pathname,
+    active: isActive,
   });
   if (isExternal) {
     if (noLinkStyle) {
@@ -114,11 +117,12 @@ export const ROUTES = {
   dashboard: '/',
   markets: '/markets',
   vaults: '/vaults',
-  vaultDetail: (vaultId: string) =>
-    `/vault-detail?vaultId=${vaultId}`,
+  vaultDetail: (vaultId: string) => `/vaults/${vaultId}`,
   faucet: '/faucet',
-  reserveOverview: (underlyingAsset: string, marketName: ExtendedMarket) =>
-    `/reserve-overview/?underlyingAsset=${underlyingAsset}&marketName=${marketName}`,
+  reserveOverview: (underlyingAsset: string, _market?: ExtendedMarket) => {
+    void _market;
+    return `/markets/${underlyingAsset}`;
+  },
   bridge: '/bridge',
 
   migrationTool: '/v3-migration',

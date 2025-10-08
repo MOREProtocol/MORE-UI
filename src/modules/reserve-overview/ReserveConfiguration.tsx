@@ -14,7 +14,6 @@ import {
 import { ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { useAssetCaps } from 'src/hooks/useAssetCaps';
 import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
-import { BROKEN_ASSETS } from 'src/hooks/useReservesHistory';
 import { useRootStore } from 'src/store/root';
 import { GENERAL } from 'src/utils/mixPanelEvents';
 
@@ -30,12 +29,6 @@ type ReserveConfigurationProps = {
 
 export const ReserveConfiguration: React.FC<ReserveConfigurationProps> = ({ reserve }) => {
   const { currentNetworkConfig, currentMarketData, currentMarket } = useProtocolDataContext();
-  const reserveId =
-    reserve.underlyingAsset + currentMarketData.addresses.LENDING_POOL_ADDRESS_PROVIDER;
-  const renderCharts =
-    !!currentNetworkConfig.ratesHistoryApiUrl &&
-    !currentMarketData.disableCharts &&
-    !BROKEN_ASSETS.includes(reserveId);
   const { supplyCap, borrowCap, debtCeiling } = useAssetCaps();
   const showSupplyCapStatus: boolean = reserve.supplyCap !== '0';
   const showBorrowCapStatus: boolean = reserve.borrowCap !== '0';
@@ -95,7 +88,6 @@ export const ReserveConfiguration: React.FC<ReserveConfigurationProps> = ({ rese
         <SupplyInfo
           reserve={reserve}
           currentMarketData={currentMarketData}
-          renderCharts={renderCharts}
           showSupplyCapStatus={showSupplyCapStatus}
           supplyCap={supplyCap}
           debtCeiling={debtCeiling}
@@ -118,7 +110,6 @@ export const ReserveConfiguration: React.FC<ReserveConfigurationProps> = ({ rese
                   reserve={reserve}
                   currentMarketData={currentMarketData}
                   currentNetworkConfig={currentNetworkConfig}
-                  renderCharts={renderCharts}
                   showBorrowCapStatus={showBorrowCapStatus}
                   borrowCap={borrowCap}
                 />

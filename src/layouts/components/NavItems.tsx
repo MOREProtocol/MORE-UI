@@ -2,7 +2,6 @@ import { Button, List, ListItem, Typography, useMediaQuery, useTheme } from '@mu
 import * as React from 'react';
 import { useRootStore } from 'src/store/root';
 import { MarketDataType } from 'src/ui-config/marketsConfig';
-import { ENABLE_TESTNET } from 'src/utils/marketsAndNetworksConfig';
 import { NAV_BAR } from 'src/utils/mixPanelEvents';
 
 import { Link, ROUTES } from '../../components/primitives/Link';
@@ -26,10 +25,10 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
 
   const navigation: Navigation[] = [
     {
-      link: ROUTES.dashboard,
-      title: 'Dashboard',
-      visibleTitle: 'Dashboard',
-      dataCy: 'menuDashboard',
+      link: ROUTES.vaults || ROUTES.dashboard,
+      title: 'Vaults',
+      visibleTitle: 'Vaults',
+      dataCy: 'menuVaults',
     },
     {
       link: ROUTES.markets,
@@ -38,43 +37,16 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
       dataCy: 'menuMarkets',
     },
     {
-      link: ROUTES.vaults,
-      title: 'Vaults',
-      visibleTitle: 'Vaults',
-      dataCy: 'menuVaults',
-      isVisible: () => process.env.NEXT_PUBLIC_VAULTS_ENABLED === 'true',
-    },
-    {
       link: ROUTES.bridge,
       title: 'Bridge',
       visibleTitle: 'Bridge',
       dataCy: 'menuBridge',
     },
-    {
-      link: ROUTES.faucet,
-      title: 'Faucet',
-      visibleTitle: 'Faucet',
-      isVisible: () => process.env.NEXT_PUBLIC_ENV === 'staging' || ENABLE_TESTNET,
-    },
     // {
-    //   link: ROUTES.staking,
-    //   title: 'Stake',
-    //   visibleTitle: 'Stake',
-    //   dataCy: 'menuStake',
-    //   isVisible: () =>
-    //     process.env.NEXT_PUBLIC_ENABLE_STAKING === 'true' &&
-    //     process.env.NEXT_PUBLIC_ENV === 'prod' &&
-    //     !ENABLE_TESTNET,
-    // },
-    // {
-    //   link: ROUTES.governance,
-    //   title: 'Governance',
-    //   visibleTitle: 'Governance',
-    //   dataCy: 'menuGovernance',
-    //   isVisible: () =>
-    //     process.env.NEXT_PUBLIC_ENABLE_GOVERNANCE === 'true' &&
-    //     process.env.NEXT_PUBLIC_ENV === 'prod' &&
-    //     !ENABLE_TESTNET,
+    //   link: ROUTES.faucet,
+    //   title: 'Faucet',
+    //   visibleTitle: 'Faucet',
+    //   isVisible: () => process.env.NEXT_PUBLIC_ENV === 'staging' || ENABLE_TESTNET,
     // },
   ];
 
@@ -115,7 +87,7 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
                 component={Link}
                 href={item.link}
                 variant="h2"
-                color="#F1F1F3"
+                color="primary.main"
                 sx={{ width: '100%', p: 4 }}
                 onClick={() => handleClick(item.title, true)}
               >
@@ -127,7 +99,7 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
                 onClick={() => handleClick(item.title, false)}
                 href={item.link}
                 sx={(theme) => ({
-                  color: '#F1F1F3',
+                  color: theme.palette.primary.main,
                   p: '6px 8px',
                   position: 'relative',
                   '.active&:after, &:hover&:after': {
