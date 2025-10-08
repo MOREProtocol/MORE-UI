@@ -1,4 +1,4 @@
-import { Box, Typography, Skeleton, useTheme, useMediaQuery, Button, Alert } from '@mui/material';
+import { Box, Typography, Skeleton, useTheme, useMediaQuery, Button } from '@mui/material';
 import { useRouter } from 'next/router';
 import { BigNumber } from 'bignumber.js';
 import { formatUnits } from 'ethers/lib/utils';
@@ -273,7 +273,12 @@ export const VaultAssetsList = () => {
   const userColumns = getUserVaultColumns(isMobile);
 
   const depositActionColumn = {
-    render: (row: VaultGridRow) => <DepositActionCell onDeposit={() => handleVaultClick(row)} />,
+    render: (row: VaultGridRow) => (
+      <DepositActionCell
+        onDeposit={() => handleVaultClick(row)}
+        disabled={!accountAddress}
+      />
+    ),
     skeletonRender: () => <Skeleton variant="rectangular" width={80} height={32} sx={{ borderRadius: 1 }} />,
   };
 
@@ -290,12 +295,6 @@ export const VaultAssetsList = () => {
         pb: { xs: 4, md: 8 }
       }}
     >
-      <Alert severity="warning" sx={{ mb: 3 }}>
-        <Typography variant="main14">
-          MORE is currently investigating an issue affecting metric calculations. APY and share price calculations may be incorrect.
-        </Typography>
-      </Alert>
-
       {/* Portfolio Charts Section - Only show when user is connected and has data */}
       {accountAddress && vaultsWithDeposits.length > 0 && (
         <Box sx={{ mb: { xs: 4, md: 6 } }}>

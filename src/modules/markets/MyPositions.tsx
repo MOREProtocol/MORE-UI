@@ -1,4 +1,4 @@
-import { Box, Button, IconButton, Typography, Collapse, Switch } from '@mui/material';
+import { Box, Button, IconButton, Typography, Collapse, Switch, Tooltip } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useMemo, useState } from 'react';
@@ -169,7 +169,7 @@ export function MyPositions() {
   }, [user, reserveByUnderlying, rewardsByAddress]);
 
   const eligibilityByAsset = useMemo(() => {
-    const map = new Map<string, { disableSupply: boolean; disableBorrow: boolean }>();
+    const map = new Map<string, { disableSupply: boolean; disableBorrow: boolean; eModeBorrowDisabled?: boolean }>();
     (reserves || []).forEach((r) => {
       const asset = (r.underlyingAsset || '').toLowerCase();
       const balanceAmount = walletBalances?.[asset]?.amount || '0';
@@ -187,6 +187,7 @@ export function MyPositions() {
       );
       const userHasNoCollateralSupplied = user?.totalCollateralMarketReferenceCurrency === '0';
       const assetBorrowable = user ? assetCanBeBorrowedByUser(r, user) : false;
+      const eModeBorrowDisabled = !!(user?.isInEmode && r.eModeCategoryId !== user.userEmodeCategoryId);
       const maxAmountToBorrow = user
         ? getMaxAmountAvailableToBorrow(r, user, InterestRate.Variable).toString()
         : '0';
@@ -197,7 +198,7 @@ export function MyPositions() {
         isReserveAlreadySupplied ||
         maxAmountToBorrow === '0';
 
-      map.set(r.underlyingAsset, { disableSupply, disableBorrow });
+      map.set(r.underlyingAsset, { disableSupply, disableBorrow, eModeBorrowDisabled });
     });
     return map;
   }, [reserves, walletBalances, user, account, minRemainingBaseTokenBalance]);
@@ -364,7 +365,7 @@ export function MyPositions() {
         }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography sx={{ typography: { xs: 'main16', md: 'main21' }, color: 'primary.main' }}>
-            My positions
+            My Positions
           </Typography>
           <IconButton aria-label="Toggle My Positions" size="small">
             {myPositionsOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
@@ -381,7 +382,7 @@ export function MyPositions() {
             flexWrap: 'wrap'
           }}>
           <Box>
-            <Typography variant="secondary14" color="text.secondary">Net worth</Typography>
+            <Typography variant="secondary14" color="text.secondary">Net Worth</Typography>
             <FormattedNumber
               value={Number(user?.netWorthUSD || 0)}
               symbol="USD"
@@ -404,7 +405,7 @@ export function MyPositions() {
           </Box>
           {user?.healthFactor !== '-1' && (
             <Box>
-              <Typography variant="secondary14" color="text.secondary">Health factor</Typography>
+              <Typography variant="secondary14" color="text.secondary">Health Factor</Typography>
               <FormattedNumber
                 value={Number(user?.healthFactor || 0)}
                 variant="main16"
@@ -416,7 +417,7 @@ export function MyPositions() {
           )}
           {totalClaimableUsd > 0 && (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <Typography variant="secondary14" color="text.secondary">Available rewards</Typography>
+              <Typography variant="secondary14" color="text.secondary">Available Rewards</Typography>
               <Box
                 sx={{
                   display: 'flex',
@@ -456,7 +457,7 @@ export function MyPositions() {
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <Typography variant="secondary14" color="text.secondary">
-                  Accruing rewards
+                  Accruing Rewards
                 </Typography>
                 <TextWithTooltip iconMargin={0.5}>
                   <>
@@ -522,7 +523,7 @@ export function MyPositions() {
                     color: 'primary.main'
                   }}
                 >
-                  My supplies
+                  My Supplies
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: { xs: 2, md: 10 } }}>
@@ -639,7 +640,7 @@ export function MyPositions() {
                     color: 'primary.main'
                   }}
                 >
-                  My borrows
+                  My Borrows
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: { xs: 2, md: 10 } }}>
@@ -725,41 +726,48 @@ export function MyPositions() {
                 defaultSortColumn={'balance'}
                 defaultSortOrder={'desc'}
                 actionColumn={{
-                  render: (row) => (
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'stretch', md: 'flex-end' }, width: '100%' }}>
-                      <Button
-                        size="medium"
-                        variant="gradient"
-                        disabled={
-                          !row.reserve ||
-                          (row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableBorrow) ||
-                          false
-                        }
-                        sx={{ width: { xs: '100%', md: 'auto' } }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (row.reserve) openBorrow(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
-                          trackEvent(GENERAL.OPEN_MODAL, { modal: 'Borrow', assetName: row.assetName });
-                        }}
-                      >
-                        Borrow
-                      </Button>
-                      <Button
-                        size="medium"
-                        variant="outlined"
-                        sx={{ width: { xs: '100%', md: 'auto' } }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (row.reserve) {
-                            openRepay(row.reserve.underlyingAsset, InterestRate.Variable, row.reserve.isFrozen, currentMarket, row.assetName, 'dashboard');
-                          }
-                          trackEvent(GENERAL.OPEN_MODAL, { modal: 'Repay', assetName: row.assetName });
-                        }}
-                      >
-                        Repay
-                      </Button>
-                    </Box>
-                  ),
+                  render: (row) => {
+                    const eModeDisabled = !!(row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.eModeBorrowDisabled);
+                    const isDisabled = !row.reserve || (row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableBorrow) || false;
+                    const title = eModeDisabled
+                      ? 'In E-Mode some assets are not borrowable. Exit MOST Mode to get access to all assets'
+                      : '';
+                    return (
+                      <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'stretch', md: 'flex-end' }, width: '100%' }}>
+                        <Tooltip title={title} disableHoverListener={!eModeDisabled} placement="top">
+                          <span>
+                            <Button
+                              size="medium"
+                              variant="gradient"
+                              disabled={isDisabled}
+                              sx={{ width: { xs: '100%', md: 'auto' } }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (row.reserve) openBorrow(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
+                                trackEvent(GENERAL.OPEN_MODAL, { modal: 'Borrow', assetName: row.assetName });
+                              }}
+                            >
+                              Borrow
+                            </Button>
+                          </span>
+                        </Tooltip>
+                        <Button
+                          size="medium"
+                          variant="outlined"
+                          sx={{ width: { xs: '100%', md: 'auto' } }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (row.reserve) {
+                              openRepay(row.reserve.underlyingAsset, InterestRate.Variable, row.reserve.isFrozen, currentMarket, row.assetName, 'dashboard');
+                            }
+                            trackEvent(GENERAL.OPEN_MODAL, { modal: 'Repay', assetName: row.assetName });
+                          }}
+                        >
+                          Repay
+                        </Button>
+                      </Box>
+                    );
+                  },
                 }}
                 rowIdGetter={(row) => row.id}
                 onRowClick={(row) => {

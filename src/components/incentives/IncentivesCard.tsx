@@ -1,5 +1,5 @@
 import { ReserveIncentiveResponse } from '@aave/math-utils/dist/esm/formatters/incentive/calculate-reserve-incentives';
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { ReactNode } from 'react';
 
 import { FormattedNumber } from '../primitives/FormattedNumber';
@@ -59,7 +59,14 @@ export const IncentivesCard = ({
       )}
 
       <IncentivesButton incentives={incentives} symbol={symbol} />
-      <RewardsButton rewards={rewards} />
+      {rewards && rewards.length > 0 && (
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="main14" color="text.secondary" sx={{ ml: -1, mr: 1 }}>
+            +
+          </Typography>
+          <RewardsButton rewards={rewards} />
+        </Box>
+      )}
     </Box>
   );
 };

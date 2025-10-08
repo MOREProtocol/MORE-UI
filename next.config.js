@@ -45,6 +45,7 @@ module.exports = withBundleAnalyzer({
   pageExtensions,
   async redirects() {
     return [
+      // Legacy vaults routes
       {
         source: '/portfolios',
         destination: '/vaults',
@@ -52,7 +53,49 @@ module.exports = withBundleAnalyzer({
       },
       {
         source: '/portfolio-detail',
-        destination: '/vault-detail',
+        has: [
+          {
+            type: 'query',
+            key: 'vaultId',
+            value: '(?<vaultId>.*)'
+          },
+        ],
+        destination: '/vaults/:vaultId',
+        permanent: true,
+      },
+      {
+        source: '/portfolio-detail',
+        destination: '/vaults',
+        permanent: true,
+      },
+      // Legacy market query-based routes
+      {
+        source: '/vault-detail',
+        has: [
+          {
+            type: 'query',
+            key: 'vaultId',
+            value: '(?<vaultId>.*)'
+          },
+        ],
+        destination: '/vaults/:vaultId',
+        permanent: true,
+      },
+      {
+        source: '/reserve-overview',
+        has: [
+          {
+            type: 'query',
+            key: 'underlyingAsset',
+            value: '(?<underlyingAsset>.*)'
+          },
+          {
+            type: 'query',
+            key: 'marketName',
+            value: 'proto_flow_v3',
+          },
+        ],
+        destination: '/markets/:underlyingAsset',
         permanent: true,
       },
     ];

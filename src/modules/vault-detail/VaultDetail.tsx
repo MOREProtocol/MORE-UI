@@ -199,12 +199,6 @@ export const VaultDetail = () => {
         </Alert>
       )}
 
-      <Alert severity="warning" sx={{ mb: 3 }}>
-        <Typography variant="main14">
-          MORE is currently investigating an issue affecting metric calculations. APY and share price calculations may be incorrect.
-        </Typography>
-      </Alert>
-
       {/* TOP DETAILS */}
       <Box sx={{
         display: 'flex',
@@ -308,7 +302,7 @@ export const VaultDetail = () => {
           gap: 2,
         }}>
           {!isLoading && !(vaultData?.data?.financials?.liquidity?.maxDeposit === '0') && (
-            <Button variant="gradient" color="primary" onClick={handleDepositClick} disabled={isLoading}>
+            <Button variant="gradient" color="primary" onClick={handleDepositClick} disabled={isLoading || !accountAddress}>
               Deposit
             </Button>
           )}

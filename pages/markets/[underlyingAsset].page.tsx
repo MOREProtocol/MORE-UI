@@ -21,7 +21,7 @@ import { CollateralUsageHeader } from 'src/modules/reserve-overview/CollateralUs
 
 export default function ReserveOverview() {
   const router = useRouter();
-  const { reserves } = useAppDataContext();
+  const { reserves, user } = useAppDataContext();
   const { currentMarketData, currentNetworkConfig, currentMarket, currentChainId } = useProtocolDataContext();
   const { currentAccount, addERC20Token, switchNetwork, chainId: connectedChainId } = useWeb3Context();
   const { openSupply, openBorrow } = useModalContext();
@@ -67,7 +67,7 @@ export default function ReserveOverview() {
               connectedChainId={connectedChainId}
             />
             <Box sx={{ display: 'flex', alignItems: 'flex-start', flexDirection: 'column' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Typography variant="main21" sx={{ color: 'primary.main' }}>{reserve.name}</Typography>
                 <Tooltip title="View token contract" placement="top" arrow>
                   <IconButton
@@ -144,15 +144,26 @@ export default function ReserveOverview() {
                 Supply
               </Button>
             )}
-            {reserve.borrowingEnabled && (
-              <Button
-                variant="gradient"
-                color="primary"
-                onClick={() => openBorrow(reserve.underlyingAsset, currentMarket, reserve.name, 'reserve-page', true)}
-              >
-                Borrow
-              </Button>
-            )}
+            {reserve.borrowingEnabled && (() => {
+              const eModeBorrowDisabled = !!(user?.isInEmode && reserve.eModeCategoryId !== (user?.userEmodeCategoryId || 0));
+              const title = eModeBorrowDisabled
+                ? 'In MOST Mode some assets are not borrowable. Exit MOST Mode to get access to all assets'
+                : '';
+              return (
+                <Tooltip title={title} disableHoverListener={!eModeBorrowDisabled} placement="top">
+                  <span>
+                    <Button
+                      variant="gradient"
+                      color="primary"
+                      disabled={eModeBorrowDisabled}
+                      onClick={() => openBorrow(reserve.underlyingAsset, currentMarket, reserve.name, 'reserve-page', true)}
+                    >
+                      Borrow
+                    </Button>
+                  </span>
+                </Tooltip>
+              );
+            })()}
           </>
         )}
       </Box>

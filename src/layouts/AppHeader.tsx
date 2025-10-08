@@ -17,6 +17,8 @@ import { useRootStore } from 'src/store/root';
 import { uiConfig } from '../uiConfig';
 import { NavItems } from './components/NavItems';
 import WalletWidget from './WalletWidget';
+import { useChainId, useSwitchChain } from 'wagmi';
+import { ChainIds } from 'src/utils/const';
 
 export const HEADER_HEIGHT = 48;
 interface Props {
@@ -43,6 +45,8 @@ export function AppHeader() {
   const mobileLogo = uiConfig.appLogoMobile;
   const logo = md ? { src: mobileLogo, width: 30, height: 30 } : { src: desktopLogo, width: 130, height: 30 };
   const router = useRouter();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useRootStore((state) => [
     state.mobileDrawerOpen,
@@ -65,6 +69,20 @@ export function AppHeader() {
     if (md) setMobileDrawerOpen(state);
     setWalletWidgetOpen(state);
   };
+
+  // Ensure Flow EVM is selected on markets routes
+  useEffect(() => {
+    const onMarketsRoute = router.pathname.startsWith('/markets');
+    if (onMarketsRoute) {
+      if (chainId !== ChainIds.flowEVMMainnet && chainId !== ChainIds.flowEVMTestnet) {
+        if (switchChain) {
+          // Fire-and-forget switch to Flow EVM Mainnet
+          switchChain({ chainId: ChainIds.flowEVMMainnet });
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.pathname, chainId]);
 
   const hideNetworkSelector =
     router.pathname === '/markets' || router.pathname === '/markets/[underlyingAsset]';

@@ -84,7 +84,7 @@ export default function NetworkSelector() {
       // Update the market in the store only after successful chain switch
       // and only if it's a market network (not Ethereum)
       if (network.isMarket && network.marketId) {
-        setCurrentMarket(network.marketId);
+        setCurrentMarket(network.marketId, true);
         console.log(`Switched to market: ${network.marketId} on network: ${network.marketData.chainId}`);
       } else {
         console.log(`Switched to non-market network: ${network.marketData.chainId} (${network.networkConfig.name})`);

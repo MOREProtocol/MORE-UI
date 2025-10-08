@@ -253,7 +253,7 @@ export const APYCell: React.FC<{
               >
                 +
               </Typography>
-              <RewardsButton rewards={incentives} rounded={true} />
+              <RewardsButton rewards={incentives} />
             </Box>
           )}
         </Box>
@@ -309,12 +309,13 @@ export const TVMCell: React.FC<{ tvm: string; tvmUsd: number; symbol: string }> 
   );
 };
 
-export const DepositActionCell: React.FC<{ onDeposit: () => void }> = ({ onDeposit }) => {
+export const DepositActionCell: React.FC<{ onDeposit: () => void; disabled?: boolean }> = ({ onDeposit, disabled }) => {
   return (
     <Button
       variant="gradient"
       size="medium"
       sx={{ width: { xs: '100%', md: 'auto' } }}
+      disabled={disabled}
       onClick={(e) => {
         e.stopPropagation();
         onDeposit();

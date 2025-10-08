@@ -89,7 +89,7 @@ export const IncentivesButton = ({ incentives, symbol, displayBlank }: Incentive
   );
 };
 
-export const RewardsButton = ({ rewards, displayBlank, rounded, side }: RewardsButtonProps) => {
+export const RewardsButton = ({ rewards, displayBlank, side }: RewardsButtonProps) => {
   const [open, setOpen] = useState(false);
 
   if (!(rewards && rewards.length > 0)) {
@@ -137,7 +137,6 @@ export const RewardsButton = ({ rewards, displayBlank, rounded, side }: RewardsB
         })) : []}
         incentivesNetAPR={apy}
         displayBlank={displayBlank}
-        rounded={rounded}
       />
     </ContentWithTooltip>
   );
@@ -148,7 +147,6 @@ const Content = ({
   incentivesNetAPR,
   displayBlank,
   plus,
-  rounded,
 }: {
   incentives: ReserveIncentiveResponse[];
   incentivesNetAPR: number | 'Infinity';
@@ -182,7 +180,8 @@ const Content = ({
           value={incentivesNetAPR}
           percent
           variant="secondary12"
-          color="text.secondary"
+          color="common.white"
+          symbolsColor="common.white"
         />
       );
     } else if (incentivesNetAPR !== 'Infinity' && incentivesNetAPR > 9999) {
@@ -192,12 +191,13 @@ const Content = ({
           percent
           compact
           variant="secondary12"
-          color="text.secondary"
+          color="common.white"
+          symbolsColor="common.white"
         />
       );
     } else if (incentivesNetAPR === 'Infinity') {
       return (
-        <Typography variant="main12" color="text.secondary">
+        <Typography variant="main12" color="common.white">
           ∞
         </Typography>
       );
@@ -210,16 +210,17 @@ const Content = ({
     <Box
       sx={(theme) => ({
         p: { xs: '0 4px', xsm: '1px 6px' },
-        border: `1px solid ${open ? theme.palette.action.disabled : theme.palette.divider}`,
-        borderRadius: rounded ? '20px' : '4px',
+        // border: `1px solid ${open ? theme.palette.action.disabled : theme.palette.divider}`,
+        borderRadius: '20px',
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        transition: 'opacity 0.2s ease',
-        bgcolor: open ? 'action.hover' : 'transparent',
+        transition: 'filter 0.2s ease, opacity 0.2s ease',
+        background: theme.palette.gradients.newGradient,
+        filter: open ? 'brightness(0.95)' : 'brightness(1.03)',
         '&:hover': {
-          bgcolor: 'action.hover',
+          filter: 'brightness(0.95)',
           borderColor: 'action.disabled',
         },
       })}
@@ -229,7 +230,7 @@ const Content = ({
         setOpen(!open);
       }}
     >
-      <Box sx={{ mr: 2 }}>
+      <Box sx={{ mr: 2, color: 'common.white' }}>
         {plus ? '+' : ''} {incentivesButtonValue()}
       </Box>
       <Box sx={{ display: 'inline-flex' }}>

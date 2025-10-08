@@ -45,6 +45,7 @@ interface BaseDataGridProps<T> {
   hideActionsWhenOverflow?: boolean;
   mobileCardMode?: boolean;
   mobileRowRender?: (row: T) => React.ReactNode;
+  headerMessage?: React.ReactNode;
 }
 
 type SortOrder = 'asc' | 'desc';
@@ -62,6 +63,7 @@ export function BaseDataGrid<T>({
   hideActionsWhenOverflow = true,
   mobileCardMode,
   mobileRowRender,
+  headerMessage,
 }: BaseDataGridProps<T>) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -331,6 +333,12 @@ export function BaseDataGrid<T>({
           </Box>
         )}
 
+        {headerMessage && (
+          <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, p: 2, mt: -1 }}>
+            {headerMessage}
+          </Box>
+        )}
+
         {sortedData.map((row, index) => {
           const rowId = typeof rowIdGetter === 'function' ? rowIdGetter(row, index) : index;
           return (
@@ -439,6 +447,16 @@ export function BaseDataGrid<T>({
               />
             )}
           </TableRow>
+          {headerMessage && (
+            <TableRow>
+              <TableCell
+                colSpan={columns.length + (actionColumn ? 1 : 0)}
+                sx={{ p: 0, border: 0 }}
+              >
+                {headerMessage}
+              </TableCell>
+            </TableRow>
+          )}
         </TableHead>
         <TableBody>
           {sortedData.map((row, index) => {

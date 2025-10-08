@@ -1,4 +1,4 @@
-import { Box, Button, ButtonGroup, Typography } from '@mui/material';
+import { Box, Button, ButtonGroup, Typography, Tooltip, Alert } from '@mui/material';
 import { valueToBigNumber } from '@aave/math-utils';
 import { API_ETH_MOCK_ADDRESS, InterestRate } from '@aave/contract-helpers';
 import { useMemo, useState } from 'react';
@@ -36,6 +36,27 @@ export function MarketsTable() {
   const usdValue = (amount: string | number, priceInUSD?: string | number) =>
     (Number(amount || 0) * Number(priceInUSD || 0)).toString();
 
+  // Compute wallet balance in USD for a given row id and reserve
+  const getWalletBalanceUsdFor = (rowId: string, reserve?: any): number => {
+    if (!reserve) return 0;
+    const assetKey = (rowId || '').toLowerCase();
+    const baseKey = API_ETH_MOCK_ADDRESS.toLowerCase();
+
+    let balanceAmount = '0';
+    if (reserve.isWrappedBaseAsset) {
+      if (assetKey === baseKey) {
+        balanceAmount = walletBalances?.[baseKey]?.amount || '0';
+      } else {
+        const wrappedKey = (reserve.underlyingAsset || '').toLowerCase();
+        balanceAmount = walletBalances?.[wrappedKey]?.amount || '0';
+      }
+    } else {
+      balanceAmount = walletBalances?.[assetKey]?.amount || '0';
+    }
+
+    return Number(balanceAmount) * Number(reserve.priceInUSD || 0);
+  };
+
   const renderBalanceCell = (row: MarketRow) => {
     const assetKey = row.id.toLowerCase();
     const isWrapped = row.reserve?.isWrappedBaseAsset;
@@ -72,6 +93,59 @@ export function MarketsTable() {
     );
   };
 
+  const renderSupplyAction = (row: MarketRow) => (
+    <Button
+      size="medium"
+      variant="gradient"
+      disabled={!row.reserve || !account || !!eligibilityByAsset.get(row.id)?.disableSupply}
+      sx={{ width: { xs: '100%', md: 'auto' } }}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!row.reserve) return;
+        if (!account) {
+          setWalletModalOpen(true);
+          return;
+        }
+        openSupply(row.id, currentMarket, row.assetName, 'market-list');
+        trackEvent(GENERAL.OPEN_MODAL, { modal: 'Supply', assetName: row.assetName });
+      }}
+    >
+      Supply
+    </Button>
+  );
+
+  const renderBorrowAction = (row: MarketRow) => {
+    const eModeDisabled = !!eligibilityByAsset.get(row.id)?.eModeBorrowDisabled;
+    const isDisabled = !row.reserve || !account || !!eligibilityByAsset.get(row.id)?.disableBorrow;
+    const title = eModeDisabled
+      ? 'In E-Mode some assets are not borrowable. Exit MOST Mode to get access to all assets'
+      : '';
+    return (
+      <Tooltip title={title} disableHoverListener={!eModeDisabled} placement="top">
+        <span>
+          <Button
+            size="medium"
+            variant="gradient"
+            disabled={isDisabled}
+            sx={{ width: { xs: '100%', md: 'auto' } }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!row.reserve) return;
+              if (!account) {
+                setWalletModalOpen(true);
+                return;
+              }
+              openBorrow(row.id, currentMarket, row.assetName, 'market-list');
+              trackEvent(GENERAL.OPEN_MODAL, { modal: 'Borrow', assetName: row.assetName });
+            }}
+          >
+            Borrow
+          </Button>
+        </span>
+      </Tooltip>
+    );
+  };
+
   const buildRowsForMode = (mode: 'supply' | 'borrow'): MarketRow[] => {
     const rows: MarketRow[] = [];
     (reserves || []).forEach((r) => {
@@ -98,6 +172,7 @@ export function MarketsTable() {
         reserve: r,
         rewardsSupply: rewards?.supply,
         rewardsBorrow: rewards?.borrow,
+        balance: getWalletBalanceUsdFor(r.underlyingAsset, r),
       } as MarketRow);
 
       if (r.isWrappedBaseAsset && account) {
@@ -118,6 +193,7 @@ export function MarketsTable() {
           reserve: r,
           rewardsSupply: rewards?.supply,
           rewardsBorrow: rewards?.borrow,
+          balance: getWalletBalanceUsdFor(API_ETH_MOCK_ADDRESS.toLowerCase(), r),
         } as MarketRow);
       }
     });
@@ -125,7 +201,7 @@ export function MarketsTable() {
   };
 
   const eligibilityByAsset = useMemo(() => {
-    const map = new Map<string, { disableSupply: boolean; disableBorrow: boolean; maxBorrow?: string }>();
+    const map = new Map<string, { disableSupply: boolean; disableBorrow: boolean; maxBorrow?: string; eModeBorrowDisabled?: boolean }>();
     (reserves || []).forEach((r) => {
       const asset = r.underlyingAsset?.toLowerCase();
       const balanceAmount = walletBalances?.[asset]?.amount || '0';
@@ -145,6 +221,7 @@ export function MarketsTable() {
       );
       const userHasNoCollateralSupplied = user?.totalCollateralMarketReferenceCurrency === '0';
       const assetBorrowable = user ? assetCanBeBorrowedByUser(r, user) : false;
+      const eModeBorrowDisabled = !!(user?.isInEmode && r.eModeCategoryId !== user.userEmodeCategoryId);
       const maxAmountToBorrow = user
         ? getMaxAmountAvailableToBorrow(r, user, InterestRate.Variable).toString()
         : '0';
@@ -156,7 +233,7 @@ export function MarketsTable() {
         isReserveAlreadySupplied ||
         maxAmountToBorrow === '0';
 
-      map.set(r.underlyingAsset, { disableSupply, disableBorrow, maxBorrow: maxAmountToBorrow });
+      map.set(r.underlyingAsset, { disableSupply, disableBorrow, maxBorrow: maxAmountToBorrow, eModeBorrowDisabled });
 
       // Add synthetic base-asset eligibility for FLOW alongside WFLOW
       if (r.isWrappedBaseAsset) {
@@ -172,7 +249,8 @@ export function MarketsTable() {
         // Borrow eligibility mirrors the wrapped reserve
         const baseDisableBorrow = disableBorrow;
         const baseMaxBorrow = maxAmountToBorrow;
-        map.set(baseKey, { disableSupply: baseDisableSupply, disableBorrow: baseDisableBorrow, maxBorrow: baseMaxBorrow });
+        const baseEmodeBorrowDisabled = eModeBorrowDisabled;
+        map.set(baseKey, { disableSupply: baseDisableSupply, disableBorrow: baseDisableBorrow, maxBorrow: baseMaxBorrow, eModeBorrowDisabled: baseEmodeBorrowDisabled });
       }
     });
     return map;
@@ -243,7 +321,7 @@ export function MarketsTable() {
       supplyColumns.push({
         key: 'balance',
         label: 'Balance',
-        sortable: false,
+        sortable: true,
         render: (row: MarketRow) => renderBalanceCell(row),
       });
     }
@@ -268,7 +346,7 @@ export function MarketsTable() {
     borrowColumns.push({
       key: 'availableLiquidity',
       label: 'Available',
-      sortable: false,
+      sortable: true,
       render: (row: MarketRow) => {
         if (!row.reserve) return null;
         const availableLiquidity = Number(row.reserve.formattedAvailableLiquidity ?? row.reserve.availableLiquidity ?? 0);
@@ -341,7 +419,7 @@ export function MarketsTable() {
       cols.push({
         key: 'balance',
         label: 'Balance',
-        sortable: false,
+        sortable: true,
         render: (row: MarketRow) => renderBalanceCell(row),
       });
     }
@@ -401,7 +479,7 @@ export function MarketsTable() {
     {
       key: 'availableLiquidity',
       label: 'Available',
-      sortable: false,
+      sortable: true,
       render: (row: MarketRow) => {
         if (!row.reserve) return null;
         const availableLiquidity = Number(row.reserve.formattedAvailableLiquidity ?? row.reserve.availableLiquidity ?? 0);
@@ -510,7 +588,7 @@ export function MarketsTable() {
             }}>
               <Box display='flex' flexDirection='column' alignItems='flex-start' sx={{ display: { xs: 'flex', lg: 'none' } }}>
                 <Typography variant="secondary14" color="text.secondary">
-                  Total market size
+                  Total Market Size
                 </Typography>
                 <FormattedNumber
                   value={aggregatedStats.totalLiquidity.toString()}
@@ -524,7 +602,7 @@ export function MarketsTable() {
               </Box>
               <Box display="flex" flexDirection='column' alignItems='flex-start'>
                 <Typography variant="secondary14" color="text.secondary">
-                  Total available
+                  Total Available
                 </Typography>
                 <FormattedNumber
                   value={aggregatedStats.totalAvailable.toString()}
@@ -538,7 +616,7 @@ export function MarketsTable() {
               </Box>
               <Box display="flex" flexDirection='column' alignItems='flex-start' sx={{ display: { xs: 'flex', lg: 'none' } }}>
                 <Typography variant="secondary14" color="text.secondary">
-                  Total borrowed
+                  Total Borrowed
                 </Typography>
                 <FormattedNumber
                   value={aggregatedStats.totalDebt.toString()}
@@ -573,7 +651,7 @@ export function MarketsTable() {
                 </Typography>
                 <Box display="flex" flexDirection='column' alignItems='flex-start' sx={{ display: { xs: 'none', lg: 'flex' } }}>
                   <Typography variant="secondary14" color="text.secondary">
-                    Total market size
+                    Total Market Size
                   </Typography>
                   <FormattedNumber
                     value={aggregatedStats.totalLiquidity.toString()}
@@ -594,26 +672,7 @@ export function MarketsTable() {
                 defaultSortColumn={'effectiveApy'}
                 defaultSortOrder={'desc'}
                 actionColumn={{
-                  render: (row) => (
-                    <Button
-                      size="medium"
-                      variant="gradient"
-                      disabled={!row.reserve || !account || !!eligibilityByAsset.get(row.id)?.disableSupply}
-                      sx={{ width: { xs: '100%', md: 'auto' } }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!row.reserve) return;
-                        if (!account) {
-                          setWalletModalOpen(true);
-                          return;
-                        }
-                        openSupply(row.id, currentMarket, row.assetName, 'market-list');
-                        trackEvent(GENERAL.OPEN_MODAL, { modal: 'Supply', assetName: row.assetName });
-                      }}
-                    >
-                      Supply
-                    </Button>
-                  ),
+                  render: (row) => renderSupplyAction(row),
                 }}
                 rowIdGetter={(row) => row.id}
                 onRowClick={(row) => {
@@ -639,7 +698,7 @@ export function MarketsTable() {
                 </Typography>
                 <Box display="flex" flexDirection='column' alignItems='flex-start' sx={{ display: { xs: 'none', lg: 'flex' } }}>
                   <Typography variant="secondary14" color="text.secondary">
-                    Total borrowed
+                    Total Borrowed
                   </Typography>
                   <FormattedNumber
                     value={aggregatedStats.totalDebt.toString()}
@@ -657,29 +716,15 @@ export function MarketsTable() {
                 columns={borrowColumnsLg}
                 loading={loading}
                 minWidth={500}
-                defaultSortColumn={'effectiveApy'}
+                defaultSortColumn={'availableLiquidity'}
                 defaultSortOrder={'desc'}
+                headerMessage={user?.isInEmode ? (
+                  <Alert severity="info" sx={{ borderRadius: 0 }}>
+                    In MOST Mode some assets are not borrowable. Exit MOST Mode to get access to all assets
+                  </Alert>
+                ) : undefined}
                 actionColumn={{
-                  render: (row) => (
-                    <Button
-                      size="medium"
-                      variant="gradient"
-                      disabled={!row.reserve || !account || !!eligibilityByAsset.get(row.id)?.disableBorrow}
-                      sx={{ width: { xs: '100%', md: 'auto' } }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!row.reserve) return;
-                        if (!account) {
-                          setWalletModalOpen(true);
-                          return;
-                        }
-                        openBorrow(row.id, currentMarket, row.assetName, 'market-list');
-                        trackEvent(GENERAL.OPEN_MODAL, { modal: 'Borrow', assetName: row.assetName });
-                      }}
-                    >
-                      Borrow
-                    </Button>
-                  ),
+                  render: (row) => renderBorrowAction(row),
                 }}
                 rowIdGetter={(row) => row.id}
                 onRowClick={(row) => {
@@ -699,41 +744,15 @@ export function MarketsTable() {
           columns={columns}
           loading={loading}
           minWidth={900}
-          defaultSortColumn={'effectiveApy'}
+          defaultSortColumn={activeTab === 'borrow' ? 'availableLiquidity' : 'effectiveApy'}
           defaultSortOrder={'desc'}
+          headerMessage={user?.isInEmode && activeTab === 'borrow' ? (
+            <Alert severity="info" sx={{ borderRadius: 0 }}>
+              In MOST Mode some assets are not borrowable. Exit MOST Mode to get access to all assets
+            </Alert>
+          ) : undefined}
           actionColumn={{
-            render: (row) => (
-              <Button
-                size="medium"
-                variant="gradient"
-                disabled={
-                  !row.reserve ||
-                    !account ||
-                    (row.reserve && (activeTab === 'supply'
-                      ? eligibilityByAsset.get(row.id)?.disableSupply
-                      : eligibilityByAsset.get(row.id)?.disableBorrow))
-                    ? true
-                    : false
-                }
-                sx={{ width: { xs: '100%', md: 'auto' } }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!row.reserve) return;
-                  if (!account) {
-                    setWalletModalOpen(true);
-                    return;
-                  }
-                  if (activeTab === 'supply') {
-                    openSupply(row.id, currentMarket, row.assetName, 'market-list');
-                  } else {
-                    openBorrow(row.id, currentMarket, row.assetName, 'market-list');
-                  }
-                  trackEvent(GENERAL.OPEN_MODAL, { modal: activeTab === 'supply' ? 'Supply' : 'Borrow', assetName: row.assetName });
-                }}
-              >
-                {activeTab === 'supply' ? 'Supply' : 'Borrow'}
-              </Button>
-            ),
+            render: (row) => (activeTab === 'supply' ? renderSupplyAction(row) : renderBorrowAction(row)),
           }}
           rowIdGetter={(row) => row.id}
           onRowClick={(row) => {
@@ -776,40 +795,10 @@ export function MarketsTable() {
               columns={columns}
               loading={loading}
               minWidth={900}
-              defaultSortColumn={'effectiveApy'}
-              defaultSortOrder={'asc'}
+              defaultSortColumn={activeTab === 'borrow' ? 'availableLiquidity' : 'effectiveApy'}
+              defaultSortOrder={'desc'}
               actionColumn={{
-                render: (row) => (
-                  <Button
-                    size="medium"
-                    variant="gradient"
-                    disabled={
-                      !row.reserve ||
-                        !account ||
-                        (row.reserve && (activeTab === 'supply'
-                          ? eligibilityByAsset.get(row.id)?.disableSupply
-                          : eligibilityByAsset.get(row.id)?.disableBorrow))
-                        ? true
-                        : false
-                    }
-                    sx={{ width: { xs: '100%', md: 'auto' } }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!row.reserve) return;
-                      if (!account) {
-                        setWalletModalOpen(true);
-                        return;
-                      }
-                      if (activeTab === 'supply') {
-                        openSupply(row.id, currentMarket, row.assetName, 'market-list');
-                      } else {
-                        openBorrow(row.id, currentMarket, row.assetName, 'market-list');
-                      }
-                    }}
-                  >
-                    {activeTab === 'supply' ? 'Supply' : 'Borrow'}
-                  </Button>
-                ),
+                render: (row) => (activeTab === 'supply' ? renderSupplyAction(row) : renderBorrowAction(row)),
               }}
               rowIdGetter={(row) => row.id}
               onRowClick={(row) => {
