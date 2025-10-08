@@ -5,7 +5,6 @@ import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { useRootStore } from 'src/store/root';
-// import { ContentContainer } from '../../src/components/ContentContainer';
 import { useAppDataContext, ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { TokenIconAddDropdown } from 'src/modules/reserve-overview/TokenIconAddDropdown';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
@@ -98,7 +97,7 @@ export default function ReserveOverview() {
       </Box>
 
       {/* Right: Actions */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
         {currentAccount && reserve && (
           <>
             {reserve.isWrappedBaseAsset ? (
@@ -179,9 +178,14 @@ export default function ReserveOverview() {
           gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
           gap: 4
         }}>
-          {/* Supply column */}
+          {/* Left column: Supply & Borrow panels */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <SupplyPanel />
+            <BorrowPanel />
+          </Box>
+
+          {/* Right column: Collateral usage & Interest rate model */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Box sx={{
               backgroundColor: 'background.paper',
               borderRadius: 2,
@@ -203,11 +207,7 @@ export default function ReserveOverview() {
               </Box>
               <CollateralUsage reserve={reserve as ComputedReserveData} />
             </Box>
-          </Box>
 
-          {/* Borrow column */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <BorrowPanel />
             <Box sx={{
               backgroundColor: 'background.paper',
               borderRadius: 2,

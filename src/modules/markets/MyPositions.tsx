@@ -296,7 +296,7 @@ export function MyPositions() {
     },
     {
       key: 'effectiveApy',
-      label: 'Borrow Rate',
+      label: 'Borrow APY',
       sortable: true,
       render: (row) => (
         <IncentivesCard
@@ -528,7 +528,7 @@ export function MyPositions() {
               <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: { xs: 2, md: 10 } }}>
                 <Box>
                   <Typography variant="secondary14" color="text.secondary">
-                    Balance
+                    My Total Supply
                   </Typography>
                   <FormattedNumber
                     value={Number(user?.totalLiquidityUSD || 0)}
@@ -678,7 +678,7 @@ export function MyPositions() {
                 </Box>
                 <Box>
                   <Typography variant="secondary14" color="text.secondary">
-                    Balance
+                    My Total Borrow
                   </Typography>
                   <FormattedNumber
                     value={Number(user?.totalBorrowsUSD || 0)}

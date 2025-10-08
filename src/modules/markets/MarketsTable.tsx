@@ -264,31 +264,26 @@ export function MarketsTable() {
       },
     ];
 
-    // Add Available for you column only when a wallet is connected
-    if (account) {
-      borrowColumns.push({
-        key: 'availableForYou',
-        label: 'Available for you',
-        sortable: false,
-        render: (row: MarketRow) => {
-          if (!row.reserve) return null;
-          const key = row.id.toLowerCase();
-          const maxBorrowRaw = Number(eligibilityByAsset.get(key)?.maxBorrow || '0');
-          const availableLiquidity = Number(row.reserve.formattedAvailableLiquidity ?? row.reserve.availableLiquidity ?? 0);
-          const maxBorrow = Math.min(maxBorrowRaw, availableLiquidity);
-          const usd = (maxBorrow * Number(row.reserve.priceInUSD || 0)).toString();
-          return (
-            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
-              <FormattedNumber compact value={maxBorrow} variant="secondary14" />
-              <UsdChip value={usd} textVariant="secondary12" />
-            </Box>
-          );
-        },
-      });
-    }
+    // Add Available column (independent of user collateral or wallet connection)
+    borrowColumns.push({
+      key: 'availableLiquidity',
+      label: 'Available',
+      sortable: false,
+      render: (row: MarketRow) => {
+        if (!row.reserve) return null;
+        const availableLiquidity = Number(row.reserve.formattedAvailableLiquidity ?? row.reserve.availableLiquidity ?? 0);
+        const usd = (availableLiquidity * Number(row.reserve.priceInUSD || 0)).toString();
+        return (
+          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
+            <FormattedNumber compact value={availableLiquidity} variant="secondary14" />
+            <UsdChip value={usd} textVariant="secondary12" />
+          </Box>
+        );
+      },
+    });
 
     return [...baseColumns, ...(activeTab === 'supply' ? supplyColumns : borrowColumns)];
-  }, [activeTab, walletBalances, eligibilityByAsset, account]);
+  }, [activeTab, walletBalances, account]);
 
   // Large-screen specific columns (fixed per table)
   const supplyColumnsLg: ColumnDefinition<MarketRow>[] = useMemo(() => {
@@ -353,8 +348,8 @@ export function MarketsTable() {
     return cols;
   }, [account, walletBalances]);
 
-  const borrowColumnsLg: ColumnDefinition<MarketRow>[] = useMemo(() => {
-    const assetColumn: ColumnDefinition<MarketRow> = {
+  const borrowColumnsLg: ColumnDefinition<MarketRow>[] = [
+    {
       key: 'assetName',
       label: 'Asset',
       sortable: true,
@@ -373,8 +368,8 @@ export function MarketsTable() {
           </Box>
         </Box>
       ),
-    };
-    const apyColumn: ColumnDefinition<MarketRow> = {
+    },
+    {
       key: 'effectiveApy',
       label: 'Borrow Rate',
       sortable: true,
@@ -389,8 +384,8 @@ export function MarketsTable() {
           align="center"
         />
       ),
-    };
-    const totalsColumn: ColumnDefinition<MarketRow> = {
+    },
+    {
       key: 'totalLiquidity',
       label: 'Total Borrowed',
       sortable: true,
@@ -402,31 +397,24 @@ export function MarketsTable() {
           </Box>
         ) : null
       ),
-    };
-    const cols: ColumnDefinition<MarketRow>[] = [assetColumn, apyColumn, totalsColumn];
-    if (account) {
-      cols.push({
-        key: 'availableForYou',
-        label: 'Available for you',
-        sortable: false,
-        render: (row: MarketRow) => {
-          if (!row.reserve) return null;
-          const key = row.id.toLowerCase();
-          const maxBorrowRaw = Number(eligibilityByAsset.get(key)?.maxBorrow || '0');
-          const availableLiquidity = Number(row.reserve.formattedAvailableLiquidity ?? row.reserve.availableLiquidity ?? 0);
-          const maxBorrow = Math.min(maxBorrowRaw, availableLiquidity);
-          const usd = (maxBorrow * Number(row.reserve.priceInUSD || 0)).toString();
-          return (
-            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
-              <FormattedNumber compact value={maxBorrow} variant="secondary14" />
-              <UsdChip value={usd} textVariant="secondary12" />
-            </Box>
-          );
-        },
-      });
-    }
-    return cols;
-  }, [account, eligibilityByAsset]);
+    },
+    {
+      key: 'availableLiquidity',
+      label: 'Available',
+      sortable: false,
+      render: (row: MarketRow) => {
+        if (!row.reserve) return null;
+        const availableLiquidity = Number(row.reserve.formattedAvailableLiquidity ?? row.reserve.availableLiquidity ?? 0);
+        const usd = (availableLiquidity * Number(row.reserve.priceInUSD || 0)).toString();
+        return (
+          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
+            <FormattedNumber compact value={availableLiquidity} variant="secondary14" />
+            <UsdChip value={usd} textVariant="secondary12" />
+          </Box>
+        );
+      },
+    },
+  ];
 
   // Row sets per mode for large screens
   const supplyNonFrozenRows = useMemo(() => (supplyRows || []).filter((r) => !r.reserve || (!r.reserve.isPaused && !r.reserve.isFrozen)), [supplyRows]);

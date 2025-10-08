@@ -13,7 +13,7 @@ export interface MarketRow {
   availableLiquidity: number;
   effectiveApy?: number;
   balance?: number;
-  availableForYou?: number;
+  available?: number;
   reserve?: ComputedReserveDataWithMarket;
   rewardsSupply?: PoolReservesRewardsHumanized[];
   rewardsBorrow?: PoolReservesRewardsHumanized[];

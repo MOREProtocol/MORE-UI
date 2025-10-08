@@ -3,8 +3,8 @@ import { Alert, Box } from '@mui/material';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { useRootStore } from 'src/store/root';
 import { Link } from 'src/components/primitives/Link';
-import { MyPositions } from 'src/modules/markets-revamp/MyPositions';
-import { MarketsTable } from 'src/modules/markets-revamp/MarketsTable';
+import { MyPositions } from 'src/modules/markets/MyPositions';
+import { MarketsTable } from 'src/modules/markets/MarketsTable';
 
 export default function Markets() {
   const trackEvent = useRootStore((store) => store.trackEvent);
