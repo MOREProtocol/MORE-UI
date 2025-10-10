@@ -1,4 +1,4 @@
-import { Alert, Box, useTheme } from '@mui/material';
+import { Box, useTheme } from '@mui/material';
 import { ReactNode } from 'react';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { VaultDetail } from 'src/modules/vault-detail/VaultDetail';
@@ -27,9 +27,6 @@ const ContentContainer = ({ children }: ContentContainerProps) => {
 export default function VaultDetailPage() {
   return (
     <ContentContainer>
-      <Alert severity="warning" sx={{ borderRadius: '18px', m: 2 }}>
-        MORE is currently investigating an issue affecting metric calculations. APY and share price calculations may be incorrect.
-      </Alert>
       <VaultDetail />
     </ContentContainer>
   );

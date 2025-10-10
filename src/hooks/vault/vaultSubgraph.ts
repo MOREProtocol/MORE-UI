@@ -51,16 +51,18 @@ export interface UserVaultTransaction {
 const fetchSubgraphData = async <T>(
   chainId: number,
   query: string,
-  variables?: Record<string, unknown>
+  variables?: Record<string, unknown>,
+  overrideUrl?: string
 ): Promise<T | null> => {
   const config = vaultsConfig[chainId];
-  if (!config || !config.subgraphUrl) {
+  const targetUrl = overrideUrl || config?.subgraphUrl;
+  if (!targetUrl) {
     console.warn(`Subgraph URL not configured for chainId: ${chainId}`);
     return null;
   }
 
   try {
-    const response = await fetch(config.subgraphUrl, {
+    const response = await fetch(targetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -371,7 +373,8 @@ export const fetchVaultHistoricalSnapshots = async (
   const data = await fetchSubgraphData<HistoricalSnapshotsQueryResponse>(
     chainId,
     query,
-    variables
+    variables,
+    vaultsConfig[chainId]?.chartUrl
   );
   return data?.vaultDailySnapshots || null;
 };

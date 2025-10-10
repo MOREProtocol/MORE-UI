@@ -1,4 +1,3 @@
-import { Alert } from '@mui/material';
 import { useEffect } from 'react';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { VaultAssetsListContainer } from 'src/modules/vaults/VaultAssetsListContainer';
@@ -13,12 +12,7 @@ export default function Vaults() {
     });
   }, [trackEvent]);
   return (
-    <>
-      <Alert severity="warning" sx={{ borderRadius: '18px', m: 2 }}>
-        MORE is currently investigating an issue affecting metric calculations. APY and share price calculations may be incorrect.
-      </Alert>
-      <VaultAssetsListContainer />
-    </>
+    <VaultAssetsListContainer />
   );
 }
 

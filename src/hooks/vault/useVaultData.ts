@@ -13,8 +13,6 @@ import { vaultsConfig } from 'src/modules/vault-detail/VaultManagement/facets/va
 import { networkConfigs } from 'src/ui-config/networksConfig';
 import { ChainIds } from 'src/utils/const';
 import { useWalletClient } from 'wagmi';
-// import { useTokensBalance, TokenInfoWithBalance } from 'src/hooks/generic/useTokensBalance';
-// import { TokenInfo } from 'src/ui-config/TokenList';
 
 import { VAULT_ID_TO_CURATOR_INFO, VAULT_ID_TO_NAME, VAULT_ID_TO_MARKDOWN_DESCRIPTION } from './constants';
 import { useVault, VaultData } from './useVault';
@@ -28,8 +26,6 @@ import {
   UserVaultBalance,
   UserVaultTransaction,
   PortfolioMetrics,
-
-
   processPnLEvolution,
   processAmountEvolutionWithInterpolation,
   processDailyPortfolioEvolution,
