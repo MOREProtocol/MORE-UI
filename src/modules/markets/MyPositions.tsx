@@ -473,6 +473,7 @@ export function MyPositions() {
                           <FormattedNumber
                             value={valueToBigNumber(reward.amount_wei_estimated).dividedBy(valueToBigNumber(10).pow(decimals)).toString()}
                             compact
+                            toggleCompactOnClick
                             visibleDecimals={2}
                             symbol={reserve?.symbol || ''}
                             variant="secondary12"
