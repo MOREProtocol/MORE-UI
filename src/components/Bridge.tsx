@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Typography,
   Alert,
@@ -15,6 +15,7 @@ import { debounce } from 'lodash';
 import { BridgeService, RelayToken, BridgeQuote } from '../services/BridgeService';
 import { ChainIds } from '../utils/const';
 import { AssetInput, Asset } from './transactions/AssetInput';
+import { FormattedNumber } from './primitives/FormattedNumber';
 
 export const BridgeContent: React.FC = () => {
   const { address } = useAccount();
@@ -30,24 +31,22 @@ export const BridgeContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [feeLoading, setFeeLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [success, setSuccess] = useState<React.ReactNode | null>(null);
 
   // Token lists and balances
   const [sourceTokens, setSourceTokens] = useState<RelayToken[]>([]);
   const [destinationTokens, setDestinationTokens] = useState<RelayToken[]>([]);
   const [sourceTokenBalance, setSourceTokenBalance] = useState('0');
   const [outputAmount, setOutputAmount] = useState('');
+  const requestIdRef = useRef(0);
 
   const [estimatedFees, setEstimatedFees] = useState<{
-    gasEstimate: string;
-    bridgeFee: string;
-    totalFeeETH: string;
-    gasEstimateETH: string;
-    bridgeFeeETH: string;
-    totalFeeUSD?: string;
-    gasEstimateUSD?: string;
-    bridgeFeeUSD?: string;
+    estimatedTime: string;
+    totalUsd: string;
+    gasFee: { symbol: string; address: string; decimals: number; amountFormatted: string; amountUsd: string };
+    protocolFeesByCurrency: Array<{ symbol: string; address: string; decimals: number; amountFormatted: string; amountUsd: string }>;
     quote?: BridgeQuote;
+    fees?: BridgeQuote['fees'];
   } | null>(null);
 
   // Initialize bridge service
@@ -195,13 +194,18 @@ export const BridgeContent: React.FC = () => {
   // Estimate fees when debounced amount changes
   useEffect(() => {
     const estimateFees = async () => {
-      if (!debouncedAmount || parseFloat(debouncedAmount) <= 0 || !address || !selectedSourceToken || !selectedDestinationToken) {
+      const numericLike = debouncedAmount && /^\d*(?:\.\d+)?$/.test(debouncedAmount.trim());
+      if (!debouncedAmount || debouncedAmount.trim() === '' || !numericLike || parseFloat(debouncedAmount) <= 0 || !address || !selectedSourceToken || !selectedDestinationToken) {
+        // Invalidate any in-flight requests
+        requestIdRef.current++;
         setEstimatedFees(null);
         setOutputAmount('');
+        setError(null);
         return;
       }
 
       try {
+        const myId = ++requestIdRef.current;
         setFeeLoading(true);
         setError(null);
 
@@ -215,19 +219,24 @@ export const BridgeContent: React.FC = () => {
           amount: parseUnits(debouncedAmount, selectedSourceToken.decimals).toString(),
           tradeType: 'EXACT_INPUT',
         });
+        // fees received
 
+        if (requestIdRef.current !== myId) return; // stale
         setEstimatedFees(fees);
 
         // Calculate output amount from quote
         if (fees.quote?.details?.currencyOut) {
           const outputAmountFormatted = fees.quote.details.currencyOut.amountFormatted;
+          if (requestIdRef.current !== myId) return; // stale
           setOutputAmount(outputAmountFormatted || '0');
         }
 
       } catch (err) {
         console.error('Fee estimation error:', err);
+        // Only show error if this is the latest request
         setError('Failed to estimate fees: ' + (err as Error).message);
       } finally {
+        // Ensure we clear loading state for the latest request only
         setFeeLoading(false);
       }
     };
@@ -291,9 +300,21 @@ export const BridgeContent: React.FC = () => {
 
       if (result.success) {
         setSuccess(
-          `Successfully initiated bridge of ${amount} ${selectedSourceToken.symbol} to ${selectedDestinationToken.symbol} on Flow EVM! 
-           ${result.txHash ? `TX: ${result.txHash.substring(0, 10)}...` : ''}
-           ${result.requestId ? `Request ID: ${result.requestId}` : ''}`
+          <Box>
+            <Typography variant="main14" sx={{ display: 'block' }}>
+              Successfully initiated bridge of {amount} {selectedSourceToken.symbol} to {selectedDestinationToken.symbol} on Flow EVM!
+            </Typography>
+            {result.txHash && (
+              <Typography variant="caption" sx={{ display: 'block' }}>
+                TX: <a href={`https://relay.link/transaction/${result.txHash}`} target="_blank" rel="noreferrer">{result.txHash.substring(0, 10)}...</a>
+              </Typography>
+            )}
+            {result.requestId && (
+              <Typography variant="caption" sx={{ display: 'block' }}>
+                Request ID: {result.requestId}
+              </Typography>
+            )}
+          </Box>
         );
         // Clear form
         setAmount('');
@@ -325,6 +346,28 @@ export const BridgeContent: React.FC = () => {
     setEstimatedFees(null);
     setOutputAmount('');
   };
+
+  // Display helpers for fees (new model)
+  const gasSymbol = estimatedFees?.gasFee?.symbol || 'ETH';
+  const protocolFeeList = estimatedFees?.protocolFeesByCurrency || [];
+  const estimatedTime = estimatedFees?.estimatedTime || '—';
+
+  // Minimum received from quote (fallback to 0.5% if not available)
+  const minimumReceived = useMemo(() => {
+    const minStr = estimatedFees?.quote?.details?.currencyOut?.minimumAmount;
+    const decimals = estimatedFees?.quote?.details?.currencyOut?.currency?.decimals ?? selectedDestinationToken?.decimals ?? 18;
+    if (minStr) {
+      try {
+        return formatUnits(BigInt(minStr), decimals);
+      } catch {
+        return undefined;
+      }
+    }
+    if (outputAmount) {
+      return (parseFloat(outputAmount) * 0.995).toFixed(6);
+    }
+    return undefined;
+  }, [estimatedFees, selectedDestinationToken, outputAmount]);
 
   return (
     <Box sx={{
@@ -503,9 +546,13 @@ export const BridgeContent: React.FC = () => {
                   <Typography variant="secondary14" color="text.secondary">
                     Minimum Received
                   </Typography>
-                  <Typography variant="secondary14">
-                    {(parseFloat(outputAmount) * 0.995).toFixed(6)} {selectedDestinationToken?.symbol}
-                  </Typography>
+                  <Box sx={{ typography: 'secondary14' }}>
+                    {minimumReceived ? (
+                      <FormattedNumber value={minimumReceived} symbol={selectedDestinationToken?.symbol} variant="secondary14" />
+                    ) : (
+                      '—'
+                    )}
+                  </Box>
                 </Box>
               )}
 
@@ -525,7 +572,7 @@ export const BridgeContent: React.FC = () => {
                   Estimated Time
                 </Typography>
                 <Typography variant="secondary14">
-                  5-15 minutes
+                  {estimatedTime}
                 </Typography>
               </Box>
 
@@ -540,44 +587,57 @@ export const BridgeContent: React.FC = () => {
                 <Typography variant="caption" color="text.secondary">
                   Network Gas Fee
                 </Typography>
-                <Typography variant="caption">
-                  {estimatedFees.gasEstimateETH} ETH
-                  {estimatedFees.gasEstimateUSD && (
-                    <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                      (${estimatedFees.gasEstimateUSD})
-                    </Typography>
+                <Box sx={{ textAlign: 'right', gap: 3 }}>
+                  <FormattedNumber value={estimatedFees.gasFee.amountFormatted} symbol={gasSymbol} variant="caption" sx={{ mr: 1 }} />
+                  {estimatedFees.gasFee.amountUsd && (
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
+                      <Typography variant="caption">
+                        (
+                      </Typography>
+                      <FormattedNumber value={estimatedFees.gasFee.amountUsd} symbol="USD" variant="caption" />
+                      <Typography variant="caption">
+                        )
+                      </Typography>
+                    </Box>
                   )}
-                </Typography>
+                </Box>
               </Box>
 
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              {/* Bridge Protocol Fees (one per currency) */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                 <Typography variant="caption" color="text.secondary">
-                  Bridge Protocol Fee
+                  Bridge Protocol Fees
                 </Typography>
-                <Typography variant="caption">
-                  {estimatedFees.bridgeFeeETH} ETH
-                  {estimatedFees.bridgeFeeUSD && (
-                    <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                      (${estimatedFees.bridgeFeeUSD})
-                    </Typography>
+                <Box sx={{ textAlign: 'right', gap: 3 }}>
+                  {protocolFeeList.length === 0 && (
+                    <Typography variant="caption">—</Typography>
                   )}
-                </Typography>
+                  {protocolFeeList.map((f, idx) => (
+                    <Box key={`${f.symbol}-${idx}`} sx={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
+                      <FormattedNumber value={f.amountFormatted} symbol={f.symbol} variant="caption" sx={{ mr: 1 }} />
+                      {f.amountUsd && (
+                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
+                          <Typography variant="caption">
+                            (
+                          </Typography>
+                          <FormattedNumber value={f.amountUsd} symbol="USD" variant="caption" />
+                          <Typography variant="caption">
+                            )
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  ))}
+                </Box>
               </Box>
 
               <Divider sx={{ my: 1.5 }} />
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="secondary14" fontWeight={600}>
+                <Typography variant="main14" color="text.secondary">
                   Total Fees
                 </Typography>
-                <Typography variant="secondary14" fontWeight={600}>
-                  {estimatedFees.totalFeeETH} ETH
-                  {estimatedFees.totalFeeUSD && (
-                    <Typography component="span" variant="secondary14" color="text.secondary" sx={{ ml: 1 }}>
-                      (${estimatedFees.totalFeeUSD})
-                    </Typography>
-                  )}
-                </Typography>
+                <FormattedNumber value={estimatedFees?.totalUsd || '0'} symbol="USD" variant="secondary14" />
               </Box>
 
               {/* Price Impact Warning */}

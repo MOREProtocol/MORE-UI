@@ -264,20 +264,42 @@ interface TransactionParams {
 
 export class BridgeService {
   async estimateFees(request: BridgeRequest): Promise<{
-    totalFees: string;
-    gasEstimate: string;
-    bridgeFee: string;
+    estimatedSeconds: number;
     estimatedTime: string;
-    totalFeeETH: string;
-    gasEstimateETH: string;
-    bridgeFeeETH: string;
-    totalFeeUSD: string;
-    gasEstimateUSD: string;
-    bridgeFeeUSD: string;
+    totalUsd: string;
+    gasFee: { symbol: string; address: string; decimals: number; amountFormatted: string; amountUsd: string };
+    protocolFeesByCurrency: Array<{ symbol: string; address: string; decimals: number; amountFormatted: string; amountUsd: string }>;
     fees?: BridgeQuote['fees'];
     quote?: BridgeQuote;
   }> {
     try {
+      // Skip network call if amount is empty/zero/invalid
+      const amountIsValid = (() => {
+        try {
+          const n = BigInt(request.amount || '0');
+          return n > BigInt(0);
+        } catch {
+          return false;
+        }
+      })();
+      if (!amountIsValid) {
+        return {
+          estimatedSeconds: 0,
+          estimatedTime: '—',
+          totalUsd: '0',
+          gasFee: {
+            symbol: 'ETH',
+            address: '0x0000000000000000000000000000000000000000',
+            decimals: 18,
+            amountFormatted: '0',
+            amountUsd: '0',
+          },
+          protocolFeesByCurrency: [],
+          fees: undefined,
+          quote: undefined,
+        };
+      }
+
       const response = await fetch(`${RELAY_API_BASE}/quote`, {
         method: 'POST',
         headers: {
@@ -294,7 +316,7 @@ export class BridgeService {
           tradeType: request.tradeType,
           referrer: request.referrer || 'MORE',
           useExternalLiquidity: request.useExternalLiquidity ?? false,
-          slippageTolerance: request.slippageTolerance || '50', // 0.5%
+          slippageTolerance: request.slippageTolerance || '50',
         }),
       });
 
@@ -305,72 +327,69 @@ export class BridgeService {
 
       const quote: BridgeQuote = await response.json();
 
-      // Calculate fees from ALL fee categories
       const fees = quote.fees || {};
-      const gasAmount = fees.gas?.amount || '0';
-      const relayerAmount = fees.relayer?.amount || '0';
-      const relayerGasAmount = fees.relayerGas?.amount || '0';
-      const relayerServiceAmount = fees.relayerService?.amount || '0';
-      const appAmount = fees.app?.amount || '0';
 
-      // Calculate total fees in wei
-      const totalFeesWei = (
-        BigInt(gasAmount) +
-        BigInt(relayerAmount) +
-        BigInt(relayerGasAmount) +
-        BigInt(relayerServiceAmount) +
-        BigInt(appAmount)
-      ).toString();
+      // Time estimate handling: API returns seconds
+      const timeSecondsRaw = Number(quote.details?.timeEstimate ?? 0);
+      const estimatedSeconds = Number.isFinite(timeSecondsRaw) ? Math.max(0, Math.trunc(timeSecondsRaw)) : 0;
+      const estimatedTime = (() => {
+        if (!estimatedSeconds) return '—';
+        if (estimatedSeconds < 60) return `${estimatedSeconds}s`;
+        const minutes = Math.round(estimatedSeconds / 60);
+        if (minutes < 60) return `${minutes} min`;
+        const hours = Math.floor(minutes / 60);
+        const remMin = minutes % 60;
+        return remMin > 0 ? `${hours}h ${remMin}m` : `${hours}h`;
+      })();
 
-      // Use provided formatted ETH amounts when available
-      const gasEstimateETH = fees.gas?.amountFormatted || (parseFloat(gasAmount) / 1e18).toFixed(6);
-      const relayerETH = fees.relayer?.amountFormatted || (parseFloat(relayerAmount) / 1e18).toFixed(6);
-      const relayerGasETH = fees.relayerGas?.amountFormatted || (parseFloat(relayerGasAmount) / 1e18).toFixed(6);
-      const relayerServiceETH = fees.relayerService?.amountFormatted || (parseFloat(relayerServiceAmount) / 1e18).toFixed(6);
-      const appETH = fees.app?.amountFormatted || (parseFloat(appAmount) / 1e18).toFixed(6);
+      // Gas fee (native currency of origin chain)
+      const gasFee = {
+        symbol: fees.gas?.currency?.symbol || 'ETH',
+        address: fees.gas?.currency?.address || '0x0000000000000000000000000000000000000000',
+        decimals: fees.gas?.currency?.decimals ?? 18,
+        amountFormatted: fees.gas?.amountFormatted || '0',
+        amountUsd: fees.gas?.amountUsd || '0',
+      };
 
-      // Bridge fee is everything except gas
-      const bridgeFeeETH = (
-        parseFloat(relayerETH) +
-        parseFloat(relayerGasETH) +
-        parseFloat(relayerServiceETH) +
-        parseFloat(appETH)
+      // Group protocol fees (non-gas) by currency
+      type FeeItem = { currency?: { symbol?: string; address?: string; decimals?: number }; amountFormatted?: string; amountUsd?: string };
+      const rawProtocol: FeeItem[] = [fees.relayer, fees.relayerGas, fees.relayerService, fees.app].filter(Boolean) as FeeItem[];
+      const byCurrencyMap = new Map<string, { symbol: string; address: string; decimals: number; amount: number; amountUsd: number }>();
+      for (const f of rawProtocol) {
+        const symbol = f.currency?.symbol || 'UNKNOWN';
+        const address = f.currency?.address || '';
+        const decimals = f.currency?.decimals ?? 18;
+        const amount = parseFloat(f.amountFormatted || '0');
+        const amountUsd = parseFloat(f.amountUsd || '0');
+        const key = `${symbol}:${address}:${decimals}`;
+        const prev = byCurrencyMap.get(key) || { symbol, address, decimals, amount: 0, amountUsd: 0 };
+        prev.amount += isFinite(amount) ? amount : 0;
+        prev.amountUsd += isFinite(amountUsd) ? amountUsd : 0;
+        byCurrencyMap.set(key, prev);
+      }
+      const protocolFeesByCurrency = Array.from(byCurrencyMap.values()).map((v) => ({
+        symbol: v.symbol,
+        address: v.address,
+        decimals: v.decimals,
+        amountFormatted: v.amount.toFixed(6),
+        amountUsd: v.amountUsd.toFixed(6),
+      }));
+
+      // Total USD = gas USD + sum(protocol USD)
+      const totalUsd = (
+        parseFloat(gasFee.amountUsd || '0') +
+        protocolFeesByCurrency.reduce((acc, p) => acc + parseFloat(p.amountUsd || '0'), 0)
       ).toFixed(6);
-
-      const totalFeeETH = (parseFloat(gasEstimateETH) + parseFloat(bridgeFeeETH)).toFixed(6);
-
-      // Calculate USD totals from provided USD values
-      const gasEstimateUSD = fees.gas?.amountUsd || '0';
-      const relayerUSD = fees.relayer?.amountUsd || '0';
-      const relayerGasUSD = fees.relayerGas?.amountUsd || '0';
-      const relayerServiceUSD = fees.relayerService?.amountUsd || '0';
-      const appUSD = fees.app?.amountUsd || '0';
-
-      // Bridge fee USD is everything except gas
-      const bridgeFeeUSD = (
-        parseFloat(relayerUSD) +
-        parseFloat(relayerGasUSD) +
-        parseFloat(relayerServiceUSD) +
-        parseFloat(appUSD)
-      ).toFixed(6);
-
-      const totalFeeUSD = (parseFloat(gasEstimateUSD) + parseFloat(bridgeFeeUSD)).toFixed(6);
 
       return {
-        totalFees: totalFeesWei,
-        gasEstimate: gasAmount,
-        bridgeFee: (BigInt(relayerAmount) + BigInt(relayerGasAmount) + BigInt(relayerServiceAmount) + BigInt(appAmount)).toString(),
-        estimatedTime: `${quote.details?.timeEstimate || 10} minutes`,
-        totalFeeETH,
-        gasEstimateETH,
-        bridgeFeeETH,
-        totalFeeUSD,
-        gasEstimateUSD,
-        bridgeFeeUSD,
+        estimatedSeconds,
+        estimatedTime,
+        totalUsd,
+        gasFee,
+        protocolFeesByCurrency,
         fees: quote.fees,
         quote,
       };
-
     } catch (error) {
       console.error('Quote estimation error:', error);
       throw new Error(`Quote failed: ${error instanceof Error ? error.message : String(error)}`);
