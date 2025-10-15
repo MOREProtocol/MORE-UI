@@ -1,4 +1,4 @@
-import { Box, Button, ButtonGroup, Typography, Tooltip, Alert } from '@mui/material';
+import { Box, Button, ButtonGroup, Typography, Tooltip, Alert, Menu, MenuItem } from '@mui/material';
 import { valueToBigNumber } from '@aave/math-utils';
 import { API_ETH_MOCK_ADDRESS, InterestRate } from '@aave/contract-helpers';
 import { useMemo, useState } from 'react';
@@ -18,7 +18,6 @@ import { GENERAL } from 'src/utils/mixPanelEvents';
 import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
 import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableToSupply';
 import { getMaxAmountAvailableToBorrow, assetCanBeBorrowedByUser } from 'src/utils/getMaxAmountAvailableToBorrow';
-import { fetchIconSymbolAndName } from 'src/ui-config/reservePatches';
 
 export function MarketsTable() {
   const { reserves, user, loading } = useAppDataContext();
@@ -32,6 +31,10 @@ export function MarketsTable() {
   const currentNetworkConfig = useRootStore((s) => s.currentNetworkConfig);
   const minRemainingBaseTokenBalance = useRootStore((s) => s.poolComputed.minRemainingBaseTokenBalance);
   const { walletBalances } = useWalletBalances(currentMarketData);
+
+  // Anchors for per-row action dropdowns when dealing with wrapped base assets
+  const [supplyMenuAnchor, setSupplyMenuAnchor] = useState<null | HTMLElement>(null);
+  const [supplyMenuRow, setSupplyMenuRow] = useState<string | null>(null);
 
   // Helpers
   const usdValue = (amount: string | number, priceInUSD?: string | number) =>
@@ -94,26 +97,94 @@ export function MarketsTable() {
     );
   };
 
-  const renderSupplyAction = (row: MarketRow) => (
-    <Button
-      size="medium"
-      variant="gradient"
-      disabled={!row.reserve || !account || !!eligibilityByAsset.get(row.id)?.disableSupply}
-      sx={{ width: { xs: '100%', md: 'auto' } }}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (!row.reserve) return;
-        if (!account) {
-          setWalletModalOpen(true);
-          return;
-        }
-        openSupply(row.id, currentMarket, row.assetName, 'market-list');
-        trackEvent(GENERAL.OPEN_MODAL, { modal: 'Supply', assetName: row.assetName });
-      }}
-    >
-      Supply
-    </Button>
-  );
+  const renderSupplyAction = (row: MarketRow) => {
+    const isWrapped = !!row.reserve?.isWrappedBaseAsset;
+    const baseKey = API_ETH_MOCK_ADDRESS.toLowerCase();
+    if (isWrapped) {
+      const wrappedDisabled = !row.reserve || !account || !!eligibilityByAsset.get(row.id)?.disableSupply;
+      const baseDisabled = !row.reserve || !account || !!eligibilityByAsset.get(baseKey)?.disableSupply;
+      return (
+        <>
+          <Button
+            size="medium"
+            variant="gradient"
+            disabled={wrappedDisabled && baseDisabled}
+            sx={{ width: { xs: '100%', md: 'auto' } }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!row.reserve) return;
+              if (!account) {
+                setWalletModalOpen(true);
+                return;
+              }
+              setSupplyMenuRow(row.id);
+              setSupplyMenuAnchor(e.currentTarget);
+            }}
+          >
+            Supply
+          </Button>
+          <Menu
+            anchorEl={supplyMenuAnchor}
+            open={Boolean(supplyMenuAnchor) && supplyMenuRow === row.id}
+            onClose={() => {
+              setSupplyMenuAnchor(null);
+              setSupplyMenuRow(null);
+            }}
+            PaperProps={{ sx: { minWidth: 'unset', width: 'auto' } }}
+            anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+            transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+          >
+            <MenuItem
+              disabled={baseDisabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!row.reserve) return;
+                openSupply(baseKey, currentMarket, row.assetName, 'market-list');
+                trackEvent(GENERAL.OPEN_MODAL, { modal: 'Supply', assetName: row.assetName });
+                setSupplyMenuAnchor(null);
+                setSupplyMenuRow(null);
+              }}
+            >
+              {`Supply ${currentNetworkConfig.baseAssetSymbol}`}
+            </MenuItem>
+            <MenuItem
+              disabled={wrappedDisabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!row.reserve) return;
+                openSupply(row.id, currentMarket, row.assetName, 'market-list');
+                trackEvent(GENERAL.OPEN_MODAL, { modal: 'Supply', assetName: row.assetName });
+                setSupplyMenuAnchor(null);
+                setSupplyMenuRow(null);
+              }}
+            >
+              {`Supply ${row.assetSymbol}`}
+            </MenuItem>
+          </Menu>
+        </>
+      );
+    }
+    return (
+      <Button
+        size="medium"
+        variant="gradient"
+        disabled={!row.reserve || !account || !!eligibilityByAsset.get(row.id)?.disableSupply}
+        sx={{ width: { xs: '100%', md: 'auto' } }}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!row.reserve) return;
+          if (!account) {
+            setWalletModalOpen(true);
+            return;
+          }
+          openSupply(row.id, currentMarket, row.assetName, 'market-list');
+          trackEvent(GENERAL.OPEN_MODAL, { modal: 'Supply', assetName: row.assetName });
+        }}
+      >
+        Supply
+      </Button>
+    );
+  };
 
   const renderBorrowAction = (row: MarketRow) => {
     const eModeDisabled = !!eligibilityByAsset.get(row.id)?.eModeBorrowDisabled;
@@ -175,28 +246,6 @@ export function MarketsTable() {
         rewardsBorrow: rewards?.borrow,
         balance: getWalletBalanceUsdFor(r.underlyingAsset, r),
       } as MarketRow);
-
-      if (r.isWrappedBaseAsset && account) {
-        const baseDisplay = fetchIconSymbolAndName({
-          symbol: currentNetworkConfig.baseAssetSymbol,
-          underlyingAsset: API_ETH_MOCK_ADDRESS.toLowerCase(),
-          name: currentNetworkConfig.baseAssetSymbol,
-        });
-        rows.push({
-          id: API_ETH_MOCK_ADDRESS.toLowerCase(),
-          assetSymbol: currentNetworkConfig.baseAssetSymbol,
-          assetName: baseDisplay?.name || currentNetworkConfig.baseAssetSymbol,
-          apy: baseApy,
-          variableApy: mode === 'borrow' ? baseApy : undefined,
-          totalLiquidity: Number(r.totalLiquidityUSD || 0),
-          availableLiquidity: Number(r.availableLiquidityUSD || 0),
-          effectiveApy,
-          reserve: r,
-          rewardsSupply: rewards?.supply,
-          rewardsBorrow: rewards?.borrow,
-          balance: getWalletBalanceUsdFor(API_ETH_MOCK_ADDRESS.toLowerCase(), r),
-        } as MarketRow);
-      }
     });
     return rows;
   };
