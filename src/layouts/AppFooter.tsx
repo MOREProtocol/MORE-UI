@@ -85,6 +85,11 @@ export function AppFooter() {
       label: 'Deprecated',
       key: 'Deprecated',
     },
+    {
+      href: 'https://stats.uptimerobot.com/Pb5D28L3Ik',
+      label: 'Status',
+      key: 'Status',
+    },
   ];
 
   return (

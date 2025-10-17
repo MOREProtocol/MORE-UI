@@ -720,7 +720,7 @@ export const VaultDetail = () => {
                 }}>
                 {isLoading ? <Skeleton width={60} height={24} /> : <>
                   <FormattedNumber
-                    value={vaultData.data.overview.sharePrice.toString() || '0'}
+                    value={vaultData?.data?.overview?.sharePrice.toString() || '0'}
                     symbol={vaultData?.data?.overview?.asset?.symbol || ''}
                     variant="main16"
                     sx={{ fontWeight: 800 }}
