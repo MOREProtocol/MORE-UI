@@ -339,8 +339,12 @@ export function MyPositions() {
     },
   ], []);
 
-  const hasPositions = supplies.length > 0 || borrows.length > 0;
-  if (!hasPositions) return null;
+  const hasPositionsOrRewards =
+    supplies.length > 0 ||
+    borrows.length > 0 ||
+    totalClaimableUsd > 0 ||
+    accruingRewardsUsdNew > 0;
+  if (!hasPositionsOrRewards) return null;
 
   return (
     <Box
