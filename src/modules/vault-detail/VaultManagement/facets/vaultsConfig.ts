@@ -1,7 +1,6 @@
 import { ChainIds } from 'src/utils/const';
 
 const flowSubgraphURL = process.env.NEXT_PUBLIC_FLOW_SUBGRAPH_URL || 'https://graph.more.markets/flow/subgraphs/name/flow-vaults'
-const flowChartSubgraphURL = process.env.NEXT_PUBLIC_FLOW_CHART_SUBGRAPH_URL || 'https://graph.more.markets/flow/subgraphs/name/flow-chart'
 const ethereumSubgraphURL = process.env.NEXT_PUBLIC_ETHEREUM_SUBGRAPH_URL || '/api/subgraph/ethereum'
 
 export const vaultsConfig = {
@@ -18,7 +17,6 @@ export const vaultsConfig = {
       ORACLE: '0x7287f12c268d7Dff22AAa5c2AA242D7640041cB1'
     },
     subgraphUrl: flowSubgraphURL,
-    chartUrl: flowChartSubgraphURL,
     helperContract: "0xbCd01024b59a7FbAb76d0c806aB590ABa01F6126"
   },
   [ChainIds.ethereum]: {
@@ -28,7 +26,6 @@ export const vaultsConfig = {
       ORACLE: '0x76DFB167956152620f47334A9E7De06E9bd1A4BC'
     },
     subgraphUrl: ethereumSubgraphURL,
-    chartUrl: ethereumSubgraphURL,
     helperContract: "0x0000000000000000000000000000000000000000"
   },
 };

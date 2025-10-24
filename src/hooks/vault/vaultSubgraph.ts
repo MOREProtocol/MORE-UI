@@ -52,10 +52,9 @@ const fetchSubgraphData = async <T>(
   chainId: number,
   query: string,
   variables?: Record<string, unknown>,
-  overrideUrl?: string
 ): Promise<T | null> => {
   const config = vaultsConfig[chainId];
-  const targetUrl = overrideUrl || config?.subgraphUrl;
+  const targetUrl = config?.subgraphUrl;
   if (!targetUrl) {
     console.warn(`Subgraph URL not configured for chainId: ${chainId}`);
     return null;
@@ -374,7 +373,6 @@ export const fetchVaultHistoricalSnapshots = async (
     chainId,
     query,
     variables,
-    vaultsConfig[chainId]?.chartUrl
   );
   return data?.vaultDailySnapshots || null;
 };
