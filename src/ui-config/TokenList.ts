@@ -155,6 +155,14 @@ export const TOKEN_LIST: TokenList = {
       decimals: 8,
       logoURI: 'https://assets.coingecko.com/coins/images/40143/large/cbbtc.webp',
     },
+    {
+      chainId: ChainIds.flowEVMMainnet,
+      address: '0x717DAE2BaF7656BE9a9B01deE31d571a9d4c9579',
+      name: 'Wrapped BTC',
+      symbol: 'WBTC',
+      decimals: 8,
+      logoURI: 'https://assets.coingecko.com/coins/images/7598/large/wrapped_bitcoin_wbtc.png',
+    },
   ],
 };
 
