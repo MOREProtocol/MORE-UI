@@ -19,6 +19,11 @@ import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances
 import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableToSupply';
 import { getMaxAmountAvailableToBorrow, assetCanBeBorrowedByUser } from 'src/utils/getMaxAmountAvailableToBorrow';
 
+// IDs here should be the reserve underlyingAsset (lowercased) to hide from Markets
+const HIDDEN_MARKET_IDS = new Set<string>([
+  "0x717dae2baf7656be9a9b01dee31d571a9d4c9579" // WBTC as of 18/11/2025
+]);
+
 export function MarketsTable() {
   const { reserves, user, loading } = useAppDataContext();
   const { rewardsByAddress } = useRewardsMaps();
@@ -31,6 +36,11 @@ export function MarketsTable() {
   const currentNetworkConfig = useRootStore((s) => s.currentNetworkConfig);
   const minRemainingBaseTokenBalance = useRootStore((s) => s.poolComputed.minRemainingBaseTokenBalance);
   const { walletBalances } = useWalletBalances(currentMarketData);
+
+  const visibleReserves = useMemo(
+    () => (reserves || []).filter((r) => !HIDDEN_MARKET_IDS.has(r.underlyingAsset.toLowerCase())),
+    [reserves]
+  );
 
   // Anchors for per-row action dropdowns when dealing with wrapped base assets
   const [supplyMenuAnchor, setSupplyMenuAnchor] = useState<null | HTMLElement>(null);
@@ -220,7 +230,7 @@ export function MarketsTable() {
 
   const buildRowsForMode = (mode: 'supply' | 'borrow'): MarketRow[] => {
     const rows: MarketRow[] = [];
-    (reserves || []).forEach((r) => {
+    (visibleReserves || []).forEach((r) => {
       const key = r.underlyingAsset.toLowerCase();
       const rewards = rewardsByAddress.get(key);
       const baseApy =
@@ -252,7 +262,7 @@ export function MarketsTable() {
 
   const eligibilityByAsset = useMemo(() => {
     const map = new Map<string, { disableSupply: boolean; disableBorrow: boolean; maxBorrow?: string; eModeBorrowDisabled?: boolean }>();
-    (reserves || []).forEach((r) => {
+    (visibleReserves || []).forEach((r) => {
       const asset = r.underlyingAsset?.toLowerCase();
       const balanceAmount = walletBalances?.[asset]?.amount || '0';
 
@@ -304,11 +314,11 @@ export function MarketsTable() {
       }
     });
     return map;
-  }, [reserves, walletBalances, user, account, minRemainingBaseTokenBalance]);
+  }, [visibleReserves, walletBalances, user, account, minRemainingBaseTokenBalance]);
 
-  const supplyRows: MarketRow[] = useMemo(() => buildRowsForMode('supply'), [reserves, rewardsByAddress, currentNetworkConfig.baseAssetSymbol, account]);
+  const supplyRows: MarketRow[] = useMemo(() => buildRowsForMode('supply'), [visibleReserves, rewardsByAddress, currentNetworkConfig.baseAssetSymbol, account]);
 
-  const borrowRows: MarketRow[] = useMemo(() => buildRowsForMode('borrow'), [reserves, rewardsByAddress, currentNetworkConfig.baseAssetSymbol, account]);
+  const borrowRows: MarketRow[] = useMemo(() => buildRowsForMode('borrow'), [visibleReserves, rewardsByAddress, currentNetworkConfig.baseAssetSymbol, account]);
 
   const columns: ColumnDefinition<MarketRow>[] = useMemo(() => {
     const baseColumns: ColumnDefinition<MarketRow>[] = [
@@ -561,7 +571,7 @@ export function MarketsTable() {
   }, [user, frozenRows]);
 
   const aggregatedStats = useMemo(() => {
-    const totals = (reserves || []).reduce(
+    const totals = (visibleReserves || []).reduce(
       (acc, reserve) => ({
         totalLiquidity: acc.totalLiquidity.plus(reserve.totalLiquidityUSD || 0),
         totalDebt: acc.totalDebt.plus(reserve.totalDebtUSD || 0),
@@ -570,7 +580,7 @@ export function MarketsTable() {
     );
     const totalAvailable = totals.totalLiquidity.minus(totals.totalDebt);
     return { totalLiquidity: totals.totalLiquidity, totalAvailable, totalDebt: totals.totalDebt };
-  }, [reserves]);
+  }, [visibleReserves]);
 
 
 
