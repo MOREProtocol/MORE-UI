@@ -10,6 +10,7 @@ import { ROUTES } from 'src/components/primitives/Link';
 import { BaseDataGrid } from 'src/components/primitives/DataGrid';
 import { useVault, VaultData } from 'src/hooks/vault/useVault';
 import { useDeployedVaults, useVaultsListData, useUserVaultsData, useAssetsData, useUserData } from 'src/hooks/vault/useVaultData';
+import { getVaultFactoryInfo } from 'src/hooks/vault/factoryRegistry';
 import type { RewardItemEnriched } from 'src/hooks/vault/useVaultData';
 import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
 
@@ -136,8 +137,24 @@ export const VaultAssetsList = () => {
     return [...new Set(addresses)];
   }, [vaults]);
 
-  // Get asset data for all unique assets
-  const assetsDataQuery = useAssetsData(uniqueAssetAddresses);
+  // Prefer factory-specific oracles for assets when available
+  const preferredOracleByAsset = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!vaults) return map;
+    vaults.forEach((v) => {
+      const asset = v?.overview?.asset?.address;
+      if (!asset) return;
+      const info = getVaultFactoryInfo(chainId, v.id);
+      if (info?.oracleAddress) {
+        const key = asset.toLowerCase();
+        if (!map.has(key)) map.set(key, info.oracleAddress);
+      }
+    });
+    return map;
+  }, [vaults, chainId]);
+
+  // Get asset data for all unique assets using preferred oracles
+  const assetsDataQuery = useAssetsData(uniqueAssetAddresses, preferredOracleByAsset);
 
   // Create a map of asset address to price data
   const assetPriceMap = useMemo(() => {

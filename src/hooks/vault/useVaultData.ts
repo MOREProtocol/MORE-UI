@@ -13,7 +13,8 @@ import { vaultsConfig } from 'src/modules/vault-detail/VaultManagement/facets/va
 import { networkConfigs } from 'src/ui-config/networksConfig';
 import { ChainIds } from 'src/utils/const';
 import { useWalletClient } from 'wagmi';
-
+import { getVaultFactoryInfo, registerVaultFactoryInfo } from './factoryRegistry';
+import type { FactoryConfig, NetworkVaultConfig } from './types';
 import { VAULT_ID_TO_CURATOR_INFO, VAULT_ID_TO_NAME, VAULT_ID_TO_MARKDOWN_DESCRIPTION } from './constants';
 import { useVault, VaultData } from './useVault';
 import {
@@ -416,84 +417,101 @@ export const useRewards = <TResult = RewardItem[]>(
   );
 };
 
-// Hook for unified asset data (oracle + fallback to reserve) - handles multiple assets
+// Unified hook for asset data: optional preferred oracle per asset
 export const useAssetsData = <TResult = AssetData[]>(
   assetAddresses: string[],
-  opts?: VaultDataHookOpts<AssetData[], TResult>
+  preferredOraclesOrOptions?: VaultDataHookOpts<AssetData[], TResult> | Record<string, string> | Map<string, string>,
+  explicitOptions?: VaultDataHookOpts<AssetData[], TResult>
 ) => {
   const { chainId } = useVault();
   const provider = useVaultProvider(chainId);
   const { reserves } = useAppDataContext();
 
+  const hasPreferredOracles =
+    preferredOraclesOrOptions &&
+    (preferredOraclesOrOptions instanceof Map ||
+      (typeof preferredOraclesOrOptions === 'object' && !('enabled' in preferredOraclesOrOptions)));
+
+  const preferredOracleByAsset = (hasPreferredOracles ? preferredOraclesOrOptions : undefined) as
+    | Record<string, string>
+    | Map<string, string>
+    | undefined;
+
+  const opts = (hasPreferredOracles ? explicitOptions : preferredOraclesOrOptions) as
+    | VaultDataHookOpts<AssetData[], TResult>
+    | undefined;
+
   const baseQueryIsEnabled = !!provider && (opts?.enabled !== false);
   const reservesAreReady = reserves.length > 0;
 
-  // Create safe asset addresses array for mapping
   const safeAssetAddresses = (!assetAddresses || !Array.isArray(assetAddresses)) ? [] : assetAddresses.filter(Boolean);
+
+  const cfg: NetworkVaultConfig = vaultsConfig[chainId];
+  const chainOracles: string[] = Array.isArray(cfg?.factories)
+    ? (cfg.factories.map((f: FactoryConfig) => f.addresses.ORACLE).filter(Boolean) as string[])
+    : [];
 
   const assetDataQueries = useQueries({
     queries: safeAssetAddresses.map(assetAddress => ({
-      queryKey: vaultQueryKeys.assetData(assetAddress, chainId),
+      queryKey: ['assetData', chainId, (assetAddress || '').toLowerCase(), preferredOracleByAsset instanceof Map ? preferredOracleByAsset.get((assetAddress || '').toLowerCase()) : (preferredOracleByAsset as Record<string, string> | undefined)?.[(assetAddress || '').toLowerCase()] || null, JSON.stringify(chainOracles)],
       queryFn: async (): Promise<AssetData> => {
         if (!provider || !assetAddress) {
           throw new Error('Missing required parameters for asset data');
         }
 
-        // Get oracle address for this chain
-        const oracleAddress = vaultsConfig[chainId]?.addresses?.ORACLE;
+        const preferred = preferredOracleByAsset instanceof Map
+          ? preferredOracleByAsset.get(assetAddress.toLowerCase())
+          : (preferredOracleByAsset as Record<string, string> | undefined)?.[assetAddress.toLowerCase()];
+
+        const orderedOracles: string[] = Array.from(new Set([preferred, ...chainOracles].filter(Boolean))) as string[];
 
         let assetData: AssetData;
-
         try {
-          // Try oracle + asset contract first (if oracle available)
-          if (oracleAddress) {
-            const [oracleContract, assetContract] = [
-              new ethers.Contract(
+          if (!orderedOracles.length) throw new Error('No oracle available, falling back to reserve');
+
+          const assetContract = new ethers.Contract(
+            assetAddress,
+            [
+              'function decimals() external view returns (uint8)',
+              'function symbol() external view returns (string)',
+              'function name() external view returns (string)',
+            ],
+            provider
+          );
+          const [decimals, symbol, name] = await Promise.all([
+            assetContract.decimals().catch(() => 18),
+            assetContract.symbol().catch(() => 'UNKNOWN'),
+            assetContract.name().catch(() => 'Unknown Token'),
+          ]);
+
+          let lastError: unknown = null;
+          for (const oracleAddress of orderedOracles) {
+            try {
+              const oracleContract = new ethers.Contract(
                 oracleAddress,
                 [{ "inputs": [{ "internalType": "address", "name": "asset", "type": "address" }], "name": "getAssetPrice", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }],
                 provider
-              ),
-              new ethers.Contract(
-                assetAddress,
-                [
-                  'function decimals() external view returns (uint8)',
-                  'function symbol() external view returns (string)',
-                  'function name() external view returns (string)',
-                ],
-                provider
-              )
-            ];
-
-            const [priceRaw, decimals, symbol, name] = await Promise.all([
-              oracleContract.getAssetPrice(assetAddress),
-              assetContract.decimals().catch(() => 18),
-              assetContract.symbol().catch(() => 'UNKNOWN'),
-              assetContract.name().catch(() => 'Unknown Token'),
-            ]);
-
-            // Oracle returns USD price with 8 decimals
-            const price = Number(formatUnits(priceRaw, 8));
-
-            assetData = {
-              price,
-              decimals,
-              symbol,
-              name,
-              address: assetAddress,
-              source: 'oracle',
-            };
-          } else {
-            throw new Error('No oracle available, falling back to reserve');
+              );
+              const priceRaw = await oracleContract.getAssetPrice(assetAddress);
+              const price = Number(formatUnits(priceRaw, 8)); // USD with 8 decimals
+              return {
+                price,
+                decimals,
+                symbol,
+                name,
+                address: assetAddress,
+                source: 'oracle',
+              };
+            } catch (err) {
+              lastError = err;
+              continue;
+            }
           }
+          throw lastError || new Error('All oracles failed');
         } catch (error) {
           console.warn(`Oracle failed for asset ${assetAddress}, falling back to reserve:`, error);
-
-          // Fallback to reserve data
           const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === assetAddress.toLowerCase());
           if (!reserve) {
-            console.warn(`No reserve data found for asset ${assetAddress}, using fallback values`);
-
-            // Try to get basic token info from contract as last resort
             try {
               const assetContract = new ethers.Contract(
                 assetAddress,
@@ -504,25 +522,20 @@ export const useAssetsData = <TResult = AssetData[]>(
                 ],
                 provider
               );
-
               const [decimals, symbol, name] = await Promise.all([
                 assetContract.decimals().catch(() => 18),
                 assetContract.symbol().catch(() => 'UNKNOWN'),
                 assetContract.name().catch(() => 'Unknown Token'),
               ]);
-
               assetData = {
-                price: 0, // No price available
+                price: 0,
                 decimals,
                 symbol,
                 name,
                 address: assetAddress,
                 source: 'reserve',
               };
-            } catch (contractError) {
-              console.warn(`Failed to fetch contract info for ${assetAddress}, using minimal fallback:`, contractError);
-
-              // Absolute fallback - return minimal data to prevent query failure
+            } catch {
               assetData = {
                 price: 0,
                 decimals: 18,
@@ -543,18 +556,15 @@ export const useAssetsData = <TResult = AssetData[]>(
             };
           }
         }
-
-        return assetData;
+        return assetData!;
       },
       enabled: baseQueryIsEnabled && !!assetAddress && reservesAreReady,
-      // Cache asset data for 5 minutes
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      cacheTime: 10 * 60 * 1000, // 10 minutes
+      staleTime: 5 * 60 * 1000,
+      cacheTime: 10 * 60 * 1000,
       refetchInterval: POLLING_INTERVAL,
     }))
   });
 
-  // Return structure similar to other vault hooks
   if (!safeAssetAddresses.length) {
     return {
       data: [] as TResult,
@@ -563,7 +573,6 @@ export const useAssetsData = <TResult = AssetData[]>(
       isSuccess: true,
     };
   }
-
   if (baseQueryIsEnabled && !reservesAreReady) {
     return {
       data: undefined,
@@ -572,11 +581,9 @@ export const useAssetsData = <TResult = AssetData[]>(
       isSuccess: false,
     };
   }
-
   const isLoading = assetDataQueries.some(query => query.isLoading);
   const isError = assetDataQueries.some(query => query.isError);
   const allSucceeded = assetDataQueries.every(query => query.isSuccess);
-
   let data: TResult | undefined = undefined;
   if (allSucceeded && !isLoading) {
     const assetDataArray = assetDataQueries
@@ -584,7 +591,6 @@ export const useAssetsData = <TResult = AssetData[]>(
       .filter(Boolean) as AssetData[];
     data = assetDataArray as TResult;
   }
-
   return {
     data,
     isLoading,
@@ -1211,11 +1217,16 @@ export const useVaultData = <TResult = VaultData>(
         throw new Error('Missing vaultId');
       }
 
-      // First, detect which network the vault actually exists on
-      // Pass current chainId to prioritize current wallet network
-      const vaultActualChainId = await detectVaultNetwork(vaultId, chainId);
-      if (!vaultActualChainId) {
-        throw new Error(`Vault ${vaultId} not found on any supported network`);
+      // If we know this vault's factory (via registry), skip network detection
+      let vaultActualChainId = chainId;
+      const reg = getVaultFactoryInfo(chainId, vaultId);
+      if (!reg) {
+        // Fallback: detect across networks
+        const detected = await detectVaultNetwork(vaultId, chainId);
+        if (!detected) {
+          throw new Error(`Vault ${vaultId} not found on any supported network`);
+        }
+        vaultActualChainId = detected;
       }
 
       // Use the correct network's provider for fetching vault data
@@ -1925,13 +1936,49 @@ export const useDeployedVaults = <TResult = string[]>(
         throw new Error('Invalid chainId');
       }
 
-      const vaultFactoryContract = new ethers.Contract(
-        vaultsConfig[chainId].addresses.VAULT_FACTORY,
-        [`function getDeployedVaults() external view returns (address[] memory)`],
-        provider
-      );
+      // factories-only structure
+      const cfg: NetworkVaultConfig = vaultsConfig[chainId];
+      const factories: FactoryConfig[] = Array.isArray(cfg?.factories)
+        ? (cfg.factories as FactoryConfig[])
+        : [];
+      const factoryAddresses: string[] = factories.map((f: FactoryConfig) => f.addresses.VAULT_FACTORY).filter(Boolean) as string[];
 
-      const allVaultIds = await vaultFactoryContract.getDeployedVaults();
+      if (!factoryAddresses.length) {
+        return [];
+      }
+
+      // Fetch from all factories and merge (case-insensitive dedupe)
+      const allIdsNested: string[][] = await Promise.all(
+        factoryAddresses.map(async (addr) => {
+          try {
+            const factory = new ethers.Contract(
+              addr,
+              [`function getDeployedVaults() external view returns (address[] memory)`],
+              provider
+            );
+            const ids: string[] = await factory.getDeployedVaults();
+            const cleanIds = (Array.isArray(ids) ? ids : []).filter(Boolean);
+            // Register mapping vaultId -> factory subgraphUrl to speed up subgraph selection later
+            const thisFactory = factories.find((f: FactoryConfig) => (f.addresses.VAULT_FACTORY || '').toLowerCase() === (addr || '').toLowerCase());
+            const subgraphUrl = thisFactory?.subgraphUrl;
+            const oracleAddress = thisFactory?.addresses?.ORACLE;
+            cleanIds.forEach((id) => registerVaultFactoryInfo(chainId, id, { subgraphUrl, oracleAddress }));
+            return cleanIds;
+          } catch {
+            return [];
+          }
+        })
+      );
+      // Preserve original casing but dedupe by lowercase
+      const seen = new Set<string>();
+      const allVaultIds: string[] = [];
+      allIdsNested.flat().forEach((id) => {
+        const low = (id || '').toLowerCase();
+        if (low && !seen.has(low)) {
+          seen.add(low);
+          allVaultIds.push(id);
+        }
+      });
       const hiddenVaultsEnv = process.env.NEXT_PUBLIC_HIDDEN_VAULT_IDS || '';
       const hiddenVaultIds = hiddenVaultsEnv.split(',').map(id => id.trim().toLowerCase());
 

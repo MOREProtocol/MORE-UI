@@ -1,4 +1,6 @@
 import { vaultsConfig } from "src/modules/vault-detail/VaultManagement/facets/vaultsConfig";
+import { getVaultFactoryInfo } from "./factoryRegistry";
+import { FactoryConfig, NetworkVaultConfig } from "./types";
 
 export interface VaultData {
   apyDailyReturnLast1Day: string;
@@ -48,20 +50,22 @@ export interface UserVaultTransaction {
   assetPriceUSDAtTransaction: string;
 }
 
-const fetchSubgraphData = async <T>(
-  chainId: number,
-  query: string,
-  variables?: Record<string, unknown>,
-): Promise<T | null> => {
-  const config = vaultsConfig[chainId];
-  const targetUrl = config?.subgraphUrl;
-  if (!targetUrl) {
-    console.warn(`Subgraph URL not configured for chainId: ${chainId}`);
-    return null;
-  }
+// Helper: build the list of subgraph URLs for a chain from its factories
+const getChainSubgraphUrls = (chainId: number): string[] => {
+  const cfg: NetworkVaultConfig = vaultsConfig[chainId];
+  return Array.isArray(cfg?.factories)
+    ? (cfg.factories.map((f: FactoryConfig) => f.subgraphUrl).filter(Boolean) as string[])
+    : [];
+};
 
+// Low-level helper to query a specific subgraph URL
+const fetchSubgraphDataAtUrl = async <T>(
+  url: string,
+  query: string,
+  variables?: Record<string, unknown>
+): Promise<T | null> => {
   try {
-    const response = await fetch(targetUrl, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -69,23 +73,67 @@ const fetchSubgraphData = async <T>(
       },
       body: JSON.stringify({ query, variables }),
     });
-
     if (!response.ok) {
       const errorBody = await response.text();
       throw new Error(`Subgraph request failed: ${response.status} ${response.statusText} - ${errorBody}`);
     }
-
     const result = await response.json();
     if (result.errors) {
       console.error('Subgraph query errors:', result.errors);
-      // Optionally, you could throw an error that includes messages from result.errors
-      return null; // Or handle errors more gracefully depending on use case
+      return null;
     }
     return result.data;
   } catch (error) {
-    console.error('Error fetching subgraph data:', error);
+    console.error(`Error fetching subgraph data from ${url}:`, error);
     return null;
   }
+};
+
+const fetchSubgraphData = async <T>(
+  chainId: number,
+  query: string,
+  variables?: Record<string, unknown>,
+): Promise<T | null> => {
+  const config = vaultsConfig[chainId];
+  const cfg: NetworkVaultConfig = config;
+  const urls: string[] = Array.isArray(cfg?.factories)
+    ? (cfg.factories.map((f: FactoryConfig) => f.subgraphUrl).filter(Boolean) as string[])
+    : [];
+  if (!urls.length) {
+    console.warn(`Subgraph URL not configured for chainId: ${chainId}`);
+    return null;
+  }
+
+  for (const targetUrl of urls) {
+    try {
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ query, variables }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Subgraph request failed: ${response.status} ${response.statusText} - ${errorBody}`);
+      }
+
+      const result = await response.json();
+      if (result.errors) {
+        console.error('Subgraph query errors:', result.errors);
+        // Try next URL if any
+        continue;
+      }
+      return result.data;
+    } catch (error) {
+      console.error(`Error fetching subgraph data from ${targetUrl}:`, error);
+      // Try next URL if any
+      continue;
+    }
+  }
+  return null;
 };
 
 interface VaultQueryResponse {
@@ -117,13 +165,29 @@ export const fetchVaultData = async (
   vaultId: string
 ): Promise<VaultData | null> => {
   if (!vaultId) return null;
-  const data = await fetchSubgraphData<VaultQueryResponse>(
-    chainId,
-    GET_VAULT_QUERY,
-    { vaultId: vaultId.toLowerCase() }
-  );
-  if (data && data.vaults && data.vaults.length > 0) {
-    return data.vaults[0];
+  // Prefer the subgraph URL registered for this vault (based on its factory)
+  const info = getVaultFactoryInfo(chainId, vaultId);
+  if (info?.subgraphUrl) {
+    const specific = await fetchSubgraphDataAtUrl<VaultQueryResponse>(
+      info.subgraphUrl,
+      GET_VAULT_QUERY,
+      { vaultId: vaultId.toLowerCase() }
+    );
+    if (specific && Array.isArray(specific.vaults) && specific.vaults.length > 0) {
+      return specific.vaults[0];
+    }
+  }
+  // Fallback: try each factory subgraph until this vault is found
+  const urls = getChainSubgraphUrls(chainId);
+  for (const url of urls) {
+    const data = await fetchSubgraphDataAtUrl<VaultQueryResponse>(
+      url,
+      GET_VAULT_QUERY,
+      { vaultId: vaultId.toLowerCase() }
+    );
+    if (data && Array.isArray(data.vaults) && data.vaults.length > 0) {
+      return data.vaults[0];
+    }
   }
   return null;
 };
@@ -369,12 +433,33 @@ export const fetchVaultHistoricalSnapshots = async (
   const query = useSince ? GET_VAULT_HISTORICAL_SNAPSHOTS_SINCE_QUERY : GET_VAULT_HISTORICAL_SNAPSHOTS_QUERY;
   const variables: Record<string, string> = { vaultId: vaultId.toLowerCase() };
   if (useSince) variables.fromTimestamp = String(fromTimestamp);
-  const data = await fetchSubgraphData<HistoricalSnapshotsQueryResponse>(
-    chainId,
-    query,
-    variables,
-  );
-  return data?.vaultDailySnapshots || null;
+  // Prefer the registered subgraph for this vault
+  const info = getVaultFactoryInfo(chainId, vaultId);
+  if (info?.subgraphUrl) {
+    const d = await fetchSubgraphDataAtUrl<HistoricalSnapshotsQueryResponse>(
+      info.subgraphUrl,
+      query,
+      variables,
+    );
+    const snaps = d?.vaultDailySnapshots || [];
+    if (Array.isArray(snaps) && snaps.length > 0) {
+      return snaps;
+    }
+  }
+  // Fallback: try each factory subgraph until snapshots are found
+  const urls = getChainSubgraphUrls(chainId);
+  for (const url of urls) {
+    const d = await fetchSubgraphDataAtUrl<HistoricalSnapshotsQueryResponse>(
+      url,
+      query,
+      variables,
+    );
+    const snaps = d?.vaultDailySnapshots || [];
+    if (Array.isArray(snaps) && snaps.length > 0) {
+      return snaps;
+    }
+  }
+  return null;
 };
 
 /**
