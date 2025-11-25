@@ -44,6 +44,7 @@ declare module '@mui/material/styles/createPalette' {
     };
     other: {
       standardInputLine: string;
+      chartHighlight: string;
     };
   }
 
@@ -51,6 +52,10 @@ declare module '@mui/material/styles/createPalette' {
     gradients: {
       moreGradient: string;
       newGradient: string;
+    };
+    other?: {
+      standardInputLine?: string;
+      chartHighlight?: string;
     };
   }
 }
@@ -132,11 +137,13 @@ declare module '@mui/material/Button' {
   }
 }
 
-export const getDesignTokens = (mode: 'light' | 'dark') => {
+export type UiThemeName = 'default' | 'flow';
+
+export const getDesignTokens = (mode: 'light' | 'dark', theme: UiThemeName = 'default') => {
   const getColor = (lightColor: string, darkColor: string) =>
     mode === 'dark' ? darkColor : lightColor;
 
-  return {
+  const baseTokens = {
     breakpoints: {
       keys: ['xs', 'xsm', 'sm', 'md', 'lg', 'xl', 'xxl'],
       values: { xs: 0, xsm: 640, sm: 760, md: 960, mdlg: 1125, lg: 1280, xl: 1575, xxl: 1800 },
@@ -219,6 +226,7 @@ export const getDesignTokens = (mode: 'light' | 'dark') => {
       },
       other: {
         standardInputLine: getColor('#383D511F', '#EBEBEF6B'),
+        chartHighlight: getColor('#FF9900', '#FF9900'),
       },
       gradients: {
         moreGradient: 'linear-gradient(248.86deg, #B6509E 10.51%, #2EBAC6 93.41%)',
@@ -408,6 +416,27 @@ export const getDesignTokens = (mode: 'light' | 'dark') => {
       },
     },
   } as ThemeOptions;
+
+  if (theme === 'flow') {
+    const basePalette = (baseTokens.palette ?? {}) as typeof baseTokens.palette;
+
+    return {
+      ...baseTokens,
+      palette: {
+        ...basePalette,
+        other: {
+          ...basePalette.other,
+          chartHighlight: '#02D87E',
+        },
+        gradients: {
+          ...basePalette.gradients,
+          newGradient: 'linear-gradient(120deg, #00EF8B 0%, #02D87E 100%)',
+        },
+      },
+    } as ThemeOptions;
+  }
+
+  return baseTokens;
 };
 
 export function getThemedComponents(theme: Theme) {

@@ -1,4 +1,4 @@
-import { Box, Button, ButtonGroup, Divider, IconButton, Menu, MenuItem, SvgIcon, useTheme } from '@mui/material';
+import { Box, Button, ButtonGroup, Divider, IconButton, Menu, MenuItem, SvgIcon, Typography, useTheme } from '@mui/material';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import XIcon from '@mui/icons-material/X';
 import DiscordIcon from '/public/icons/discord.svg';
@@ -9,6 +9,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { Link } from 'src/components/primitives/Link';
 import { ColorModeContext } from 'src/layouts/AppGlobalStyles';
+import { uiConfig } from 'src/uiConfig';
 
 interface LogoMenuProps {
   logo:
@@ -23,6 +24,12 @@ export const LogoMenu: React.FC<LogoMenuProps> = ({ logo }) => {
   const theme = useTheme();
   const isLight = theme.palette.mode === 'light';
   const logoRef = React.useRef<HTMLButtonElement | null>(null);
+
+  const defaultUi = uiConfig.default;
+  const defaultLogoSrc = isLight ? defaultUi.appLogo : defaultUi.appLogoDark;
+  const showPoweredByMore =
+    process.env.NEXT_PUBLIC_UI_THEME &&
+    process.env.NEXT_PUBLIC_UI_THEME !== 'default';
 
   const handleOpen = () => setAnchorEl(logoRef.current);
   const handleClose = () => setAnchorEl(null);
@@ -56,7 +63,12 @@ export const LogoMenu: React.FC<LogoMenuProps> = ({ logo }) => {
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
       >
         <MenuItem component={Link} href="/vaults" onClick={handleClose}>Vaults</MenuItem>
-        <MenuItem component={Link} href="/markets" onClick={handleClose}>Markets</MenuItem>
+        {(!process.env.NEXT_PUBLIC_UI_THEME ||
+          process.env.NEXT_PUBLIC_UI_THEME === 'default') && (
+            <MenuItem component={Link} href="/markets" onClick={handleClose}>
+              Markets
+            </MenuItem>
+          )}
         <MenuItem component={Link} href="/bridge" onClick={handleClose}>Bridge</MenuItem>
         <Divider />
         <MenuItem component={Link} href="https://docs.more.markets/terms" onClick={handleClose}>Terms</MenuItem>
@@ -94,6 +106,19 @@ export const LogoMenu: React.FC<LogoMenuProps> = ({ logo }) => {
               Dark
             </Button>
           </ButtonGroup>
+          {showPoweredByMore && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+              <Typography variant="caption" color="text.secondary">
+                Powered by
+              </Typography>
+              <Box
+                component="img"
+                src={defaultLogoSrc}
+                alt="MORE"
+                sx={{ height: 18, width: 'auto' }}
+              />
+            </Box>
+          )}
         </Box>
       </Menu>
     </Box>

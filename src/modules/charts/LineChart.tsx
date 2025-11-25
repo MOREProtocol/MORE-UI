@@ -34,7 +34,7 @@ interface BaseChartProps {
 const BaseLightweightChart: React.FC<BaseChartProps> = ({
   data,
   height,
-  lineColor = '#FF9900',
+  lineColor,
   isInteractive = true,
   title,
   isSmall = false,
@@ -44,6 +44,8 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const theme = useTheme(); // used in title color
+
+  const effectiveLineColor = lineColor ?? theme.palette.other.chartHighlight;
 
   useEffect(() => {
     if (!chartContainerRef.current || height <= 0) {
@@ -141,7 +143,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
       chartRef.current = createChart(chartElement, chartOptions);
 
       const seriesOptions: SeriesPartialOptionsMap['Line'] = {
-        color: lineColor,
+        color: effectiveLineColor,
         lineWidth: 2,
         priceLineVisible: false,
         lastValueVisible: false,
@@ -166,7 +168,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
 
       if (seriesRef.current) {
         seriesRef.current.applyOptions({
-          color: lineColor,
+          color: effectiveLineColor,
           priceFormat: yAxisFormat ? {
             type: 'custom',
             formatter: priceFormatter,
@@ -205,7 +207,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
     return () => {
       resizeObserver.unobserve(chartElement);
     };
-  }, [data, height, lineColor, chartContainerRef.current, theme, isInteractive, isSmall, yAxisFormat]);
+  }, [data, height, effectiveLineColor, chartContainerRef.current, theme, isInteractive, isSmall, yAxisFormat]);
 
   useEffect(() => {
     return () => {

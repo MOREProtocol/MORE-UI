@@ -35,6 +35,9 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
       title: 'Markets',
       visibleTitle: 'Markets',
       dataCy: 'menuMarkets',
+      isVisible: () =>
+        !process.env.NEXT_PUBLIC_UI_THEME ||
+        process.env.NEXT_PUBLIC_UI_THEME === 'default',
     },
     {
       link: ROUTES.bridge,

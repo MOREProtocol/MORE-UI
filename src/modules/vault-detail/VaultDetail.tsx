@@ -708,7 +708,11 @@ export const VaultDetail = () => {
                   alignItems: 'center',
                   flexDirection: 'row',
                   gap: 1,
-                  border: isLoading ? 'none' : selectedChartDataKey === 'sharePrice' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
+                  border: isLoading
+                    ? 'none'
+                    : selectedChartDataKey === 'sharePrice'
+                      ? `1.5px solid ${theme.palette.other.chartHighlight}`
+                      : '1.5px solid #E0E0E0',
                   borderRadius: '6px',
                   padding: '2px 6px',
                   width: 'fit-content',
@@ -725,10 +729,14 @@ export const VaultDetail = () => {
                     variant="main16"
                     sx={{ fontWeight: 800 }}
                   />
-                  <SvgIcon sx={{
-                    fontSize: '20px',
-                    color: selectedChartDataKey === 'sharePrice' ? "#FF9900" : theme.palette.text.muted,
-                  }}
+                  <SvgIcon
+                    sx={{
+                      fontSize: '20px',
+                      color:
+                        selectedChartDataKey === 'sharePrice'
+                          ? theme.palette.other.chartHighlight
+                          : theme.palette.text.muted,
+                    }}
                   >
                     <ShowChartIcon />
                   </SvgIcon>
@@ -747,7 +755,11 @@ export const VaultDetail = () => {
                     alignItems: 'center',
                     flexDirection: 'row',
                     gap: 1,
-                    border: isLoading ? 'none' : selectedChartDataKey === 'apy' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
+                    border: isLoading
+                      ? 'none'
+                      : selectedChartDataKey === 'apy'
+                        ? `1.5px solid ${theme.palette.other.chartHighlight}`
+                        : '1.5px solid #E0E0E0',
                     borderRadius: '6px',
                     padding: '2px 6px',
                     width: 'fit-content',
@@ -764,10 +776,14 @@ export const VaultDetail = () => {
                       variant="main16"
                       sx={{ fontWeight: 800 }}
                     />
-                    <SvgIcon sx={{
-                      fontSize: '20px',
-                      color: selectedChartDataKey === 'apy' ? "#FF9900" : theme.palette.text.muted,
-                    }}
+                    <SvgIcon
+                      sx={{
+                        fontSize: '20px',
+                        color:
+                          selectedChartDataKey === 'apy'
+                            ? theme.palette.other.chartHighlight
+                            : theme.palette.text.muted,
+                      }}
                     >
                       <ShowChartIcon />
                     </SvgIcon>
@@ -794,7 +810,11 @@ export const VaultDetail = () => {
                   alignItems: 'center',
                   flexDirection: 'row',
                   gap: 1,
-                  border: isLoading ? 'none' : selectedChartDataKey === 'totalSupply' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
+                    border: isLoading
+                      ? 'none'
+                      : selectedChartDataKey === 'totalSupply'
+                        ? `1.5px solid ${theme.palette.other.chartHighlight}`
+                        : '1.5px solid #E0E0E0',
                   borderRadius: '6px',
                   padding: '2px 6px',
                   width: 'fit-content',
@@ -811,10 +831,14 @@ export const VaultDetail = () => {
                     variant="main16"
                     sx={{ fontWeight: 800 }}
                   />
-                  <SvgIcon sx={{
-                    fontSize: '20px',
-                    color: selectedChartDataKey === 'totalSupply' ? "#FF9900" : theme.palette.text.muted,
-                  }}
+                  <SvgIcon
+                    sx={{
+                      fontSize: '20px',
+                      color:
+                        selectedChartDataKey === 'totalSupply'
+                          ? theme.palette.other.chartHighlight
+                          : theme.palette.text.muted,
+                    }}
                   >
                     <ShowChartIcon />
                   </SvgIcon>
@@ -832,7 +856,11 @@ export const VaultDetail = () => {
                   alignItems: 'center',
                   flexDirection: 'row',
                   gap: 1,
-                  border: isLoading ? 'none' : selectedChartDataKey === 'totalAssets' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
+                  border: isLoading
+                    ? 'none'
+                    : selectedChartDataKey === 'totalAssets'
+                      ? `1.5px solid ${theme.palette.other.chartHighlight}`
+                      : '1.5px solid #E0E0E0',
                   borderRadius: '6px',
                   padding: '2px 6px',
                   width: 'fit-content',
@@ -849,10 +877,14 @@ export const VaultDetail = () => {
                     variant="main16"
                     sx={{ fontWeight: 800 }}
                   />
-                  <SvgIcon sx={{
-                    fontSize: '20px',
-                    color: selectedChartDataKey === 'totalAssets' ? "#FF9900" : theme.palette.text.muted,
-                  }}
+                  <SvgIcon
+                    sx={{
+                      fontSize: '20px',
+                      color:
+                        selectedChartDataKey === 'totalAssets'
+                          ? theme.palette.other.chartHighlight
+                          : theme.palette.text.muted,
+                    }}
                   >
                     <ShowChartIcon />
                   </SvgIcon>

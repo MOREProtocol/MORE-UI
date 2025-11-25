@@ -25,6 +25,12 @@ interface Props {
   children: React.ReactElement;
 }
 
+const getCurrentUiConfig = () => {
+  const envTheme = process.env.NEXT_PUBLIC_UI_THEME;
+  const key: keyof typeof uiConfig = envTheme === 'flow' ? 'flow' : 'default';
+  return uiConfig[key];
+};
+
 function HideOnScroll({ children }: Props) {
   const { breakpoints } = useTheme();
   const md = useMediaQuery(breakpoints.down('md'));
@@ -41,9 +47,10 @@ export function AppHeader() {
   const theme = useTheme();
   const md = useMediaQuery(theme.breakpoints.down('md'));
   const isDark = theme.palette.mode === 'dark';
-  const desktopLogo = isDark ? uiConfig.appLogoDark : uiConfig.appLogo;
-  const mobileLogo = uiConfig.appLogoMobile;
-  const logo = md ? { src: mobileLogo, width: 30, height: 30 } : { src: desktopLogo, width: 130, height: 30 };
+  const currentUi = getCurrentUiConfig();
+  const desktopLogo = isDark ? currentUi.appLogoDark : currentUi.appLogo;
+  const mobileLogo = currentUi.appLogoMobile;
+  const logo = md ? { src: mobileLogo, width: 30, height: 30 } : { src: desktopLogo, width: currentUi.width, height: currentUi.height };
   const router = useRouter();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();

@@ -1,9 +1,10 @@
 import GitHub from '@mui/icons-material/GitHub';
 import X from '@mui/icons-material/X';
-import { Box, styled, SvgIcon, Typography } from '@mui/material';
+import { Box, styled, SvgIcon, Typography, useTheme } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'src/components/primitives/Link';
 import { useRootStore } from 'src/store/root';
+import { uiConfig } from 'src/uiConfig';
 
 import DiscordIcon from '/public/icons/discord.svg';
 
@@ -39,6 +40,7 @@ const FOOTER_ICONS = [
 ];
 
 export function AppFooter() {
+  const theme = useTheme();
   const [setAnalyticsConfigOpen] = useRootStore((store) => [store.setAnalyticsConfigOpen]);
   const [isStatusDown, setIsStatusDown] = useState(false);
 
@@ -150,18 +152,38 @@ export function AppFooter() {
           </StyledLink>
         ))}
       </Box>
-      <Box sx={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-        {FOOTER_ICONS.map((icon) => (
-          <StyledLink href={icon.href} key={icon.title}>
-            <SvgIcon
-              sx={{
-                fontSize: [24, 24, 20],
-              }}
-            >
-              {icon.icon}
-            </SvgIcon>
-          </StyledLink>
-        ))}
+      <Box sx={{ display: 'flex', gap: '16px', alignItems: 'center', justifyContent: ['center', 'center', 'flex-end'] }}>
+        {process.env.NEXT_PUBLIC_UI_THEME &&
+          process.env.NEXT_PUBLIC_UI_THEME !== 'default' && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="caption" color="text.secondary">
+                Powered by
+              </Typography>
+              <Box
+                component="img"
+                src={
+                  theme.palette.mode === 'light'
+                    ? uiConfig.default.appLogo
+                    : uiConfig.default.appLogoDark
+                }
+                alt="MORE"
+                sx={{ height: 18, width: 'auto' }}
+              />
+            </Box>
+          )}
+        <Box sx={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {FOOTER_ICONS.map((icon) => (
+            <StyledLink href={icon.href} key={icon.title}>
+              <SvgIcon
+                sx={{
+                  fontSize: [24, 24, 20],
+                }}
+              >
+                {icon.icon}
+              </SvgIcon>
+            </StyledLink>
+          ))}
+        </Box>
       </Box>
     </Box>
   );

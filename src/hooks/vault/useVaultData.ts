@@ -1979,11 +1979,30 @@ export const useDeployedVaults = <TResult = string[]>(
           allVaultIds.push(id);
         }
       });
-      const hiddenVaultsEnv = process.env.NEXT_PUBLIC_HIDDEN_VAULT_IDS || '';
-      const hiddenVaultIds = hiddenVaultsEnv.split(',').map(id => id.trim().toLowerCase());
+      const visibleVaultsEnv = process.env.NEXT_PUBLIC_VISIBLE_VAULT_IDS || '';
+      const visibleVaultIds = visibleVaultsEnv
+        .split(',')
+        .map((id) => id.trim().toLowerCase())
+        .filter(Boolean);
 
-      const filteredVaultIds = allVaultIds.filter(
-        (vaultId: string) => !hiddenVaultIds.includes(vaultId.toLowerCase())
+      const hiddenVaultsEnv = process.env.NEXT_PUBLIC_HIDDEN_VAULT_IDS || '';
+      const hiddenVaultIds = hiddenVaultsEnv
+        .split(',')
+        .map((id) => id.trim().toLowerCase())
+        .filter(Boolean);
+
+      // If a visible list is provided, treat it as a whitelist (case-insensitive)
+      let candidateVaultIds = allVaultIds;
+      if (visibleVaultIds.length > 0) {
+        const visibleSet = new Set(visibleVaultIds);
+        candidateVaultIds = candidateVaultIds.filter((vaultId: string) =>
+          visibleSet.has((vaultId || '').toLowerCase())
+        );
+      }
+
+      // Always apply hidden list on top, so env can still exclude specific vaults
+      const filteredVaultIds = candidateVaultIds.filter(
+        (vaultId: string) => !hiddenVaultIds.includes((vaultId || '').toLowerCase())
       );
 
       return filteredVaultIds;
