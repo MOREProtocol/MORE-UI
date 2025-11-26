@@ -15,6 +15,7 @@ import type { RewardItemEnriched } from 'src/hooks/vault/useVaultData';
 import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
 
 import { getStandardVaultColumns, getUserVaultColumns, DepositActionCell, ManageActionCell, VaultGridRow } from './VaultDataGridColumns';
+import { FlowVaultsList } from './FlowVaultsList';
 import { valueToBigNumber } from '@aave/math-utils';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 // import { PortfolioChartsSection } from './PortfolioChartsSection';
@@ -312,8 +313,8 @@ export const VaultAssetsList = () => {
         pb: { xs: 4, md: 8 }
       }}
     >
-      {/* Portfolio Charts Section - Only show when user is connected and has data */}
-      {accountAddress && vaultsWithDeposits.length > 0 && (
+      {/* Portfolio Charts Section - Only show when user is connected, has data, and theme is not flow */}
+      {accountAddress && vaultsWithDeposits.length > 0 && process.env.NEXT_PUBLIC_UI_THEME !== 'flow' && (
         <Box sx={{ mb: { xs: 4, md: 6 } }}>
           <Box sx={{
             display: 'flex',
@@ -426,8 +427,8 @@ export const VaultAssetsList = () => {
         </Box>
       ) : (
         <>
-          {/* My Vaults Section (shown only if user has deposits) */}
-          {accountAddress && vaultsWithDeposits.length > 0 && (
+          {/* My Vaults Section (shown only if user has deposits and theme is not flow) */}
+          {accountAddress && vaultsWithDeposits.length > 0 && process.env.NEXT_PUBLIC_UI_THEME !== 'flow' && (
             <Box sx={{ mb: { xs: 4, md: 6 } }}>
               <Box
                 sx={{
@@ -497,16 +498,26 @@ export const VaultAssetsList = () => {
                 }
               }}
             >
-              <BaseDataGrid
-                data={allVaultRows}
-                columns={standardColumns}
-                loading={isLoading}
-                onRowClick={handleVaultClick}
-                defaultSortColumn="tvmUsd"
-                defaultSortOrder="desc"
-                actionColumn={depositActionColumn}
-                rowIdGetter={(row) => row.id}
-              />
+              {process.env.NEXT_PUBLIC_UI_THEME === 'flow' ? (
+                <FlowVaultsList
+                  data={allVaultRows}
+                  loading={isLoading}
+                  onRowClick={handleVaultClick}
+                  defaultSortColumn="tvmUsd"
+                  defaultSortOrder="desc"
+                />
+              ) : (
+                <BaseDataGrid
+                  data={allVaultRows}
+                  columns={standardColumns}
+                  loading={isLoading}
+                  onRowClick={handleVaultClick}
+                  defaultSortColumn="tvmUsd"
+                  defaultSortOrder="desc"
+                  actionColumn={depositActionColumn}
+                  rowIdGetter={(row) => row.id}
+                />
+              )}
             </Box>
           </Box>
         </>

@@ -918,45 +918,49 @@ export const VaultDetail = () => {
       </Box>
 
       {/* BOTTOM TABS */}
-      <Box sx={{
-        display: 'flex', flexDirection: 'column',
-        pb: 10
-      }}>
-        <Tabs
-          value={isLoading ? false : selectedTab}
-          onChange={handleTabChange}
-          aria-label="vault tabs"
-          textColor="inherit"
-          sx={{
-            '& .MuiTab-root': {
-              minWidth: 'auto',
-              marginRight: '24px',
-              padding: '12px 0',
-              fontWeight: '600',
-              fontSize: '14px',
-              textTransform: 'none',
-            },
-            borderBottom: '1px solid #E0E0E0',
-            '& .MuiTabs-indicator': {
-              background: theme.palette.gradients.newGradient,
-            },
-          }}
-        >
-          {hasNotes && <Tab label="Vault Info" value="notes" />}
-          <Tab label="Allocations" value="allocations" />
-          <Tab label="Activity" value="activity" />
-          {canManageVault && <Tab label="Manage" value="manage" />}
-        </Tabs>
+      {process?.env?.NEXT_PUBLIC_UI_THEME && process.env.NEXT_PUBLIC_UI_THEME === 'flow' ? (
+        <></>
+      ) : (
+        <Box sx={{
+          display: 'flex', flexDirection: 'column',
+          pb: 10
+        }}>
+          <Tabs
+            value={isLoading ? false : selectedTab}
+            onChange={handleTabChange}
+            aria-label="vault tabs"
+            textColor="inherit"
+            sx={{
+              '& .MuiTab-root': {
+                minWidth: 'auto',
+                marginRight: '24px',
+                padding: '12px 0',
+                fontWeight: '600',
+                fontSize: '14px',
+                textTransform: 'none',
+              },
+              borderBottom: '1px solid #E0E0E0',
+              '& .MuiTabs-indicator': {
+                background: theme.palette.gradients.newGradient,
+              },
+            }}
+          >
+            {hasNotes && <Tab label="Vault Info" value="notes" />}
+            <Tab label="Allocations" value="allocations" />
+            <Tab label="Activity" value="activity" />
+            {canManageVault && <Tab label="Manage" value="manage" />}
+          </Tabs>
 
-        <Box sx={{ height: '100%' }}>
-          <div className="vault-tab-content">
-            {selectedTab === 'notes' && hasNotes && <VaultNotes />}
-            {selectedTab === 'allocations' && <VaultAllocations />}
-            {selectedTab === 'activity' && <VaultActivity />}
-            {selectedTab === 'manage' && <VaultManagement />}
-          </div>
+          <Box sx={{ height: '100%' }}>
+            <div className="vault-tab-content">
+              {selectedTab === 'notes' && hasNotes && <VaultNotes />}
+              {selectedTab === 'allocations' && <VaultAllocations />}
+              {selectedTab === 'activity' && <VaultActivity />}
+              {selectedTab === 'manage' && <VaultManagement />}
+            </div>
+          </Box>
         </Box>
-      </Box>
+      )}
 
       {/* MODALS */}
       <VaultDepositModal
