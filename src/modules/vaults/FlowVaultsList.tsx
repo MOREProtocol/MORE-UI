@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Box, Skeleton, Typography, useTheme } from '@mui/material';
 
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
+import { UsdChip } from 'src/components/primitives/UsdChip';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import type { VaultGridRow } from './VaultDataGridColumns';
 
@@ -178,25 +179,82 @@ export const FlowVaultsList: React.FC<FlowVaultsListProps> = ({
               </Box>
             </Box>
 
-            {/* Main APY - vertically centered, left-aligned */}
+            {/* Main APY + My Deposits + TVM - vertically centered, left-aligned */}
             <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {typeof apyValue === 'number' ? (
-                  <FormattedNumber
-                    value={apyValue}
-                    percent
-                    coloredPercent
-                    variant="main25"
-                    sx={{ fontWeight: 800 }}
-                  />
-                ) : (
-                  <Typography variant="main25" sx={{ fontWeight: 800 }}>
-                    –
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, width: '100%' }}>
+                {/* APY */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, pb: 2 }}>
+                  {typeof apyValue === 'number' ? (
+                    <FormattedNumber
+                      value={apyValue}
+                      percent
+                      coloredPercent
+                      variant="main25"
+                      sx={{ fontWeight: 800 }}
+                    />
+                  ) : (
+                    <Typography variant="main25" sx={{ fontWeight: 800 }}>
+                      –
+                    </Typography>
+                  )}
+                  <Typography variant="secondary14" color="text.muted">
+                    7 Days APY
                   </Typography>
-                )}
-                <Typography variant="secondary14" color="text.muted">
-                  APY
-                </Typography>
+                </Box>
+
+                {/* My Deposits */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Typography variant="secondary12" color="text.secondary">
+                    My Deposits
+                  </Typography>
+                  {row.myDeposit && row.myDepositUsd ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <FormattedNumber
+                        value={row.myDeposit}
+                        symbol={row.depositTokenSymbol}
+                        compact
+                        variant="main12"
+                        symbolsVariant="secondary12"
+                        symbolsColor="text.secondary"
+                        sx={{ fontWeight: 600 }}
+                      />
+                      <UsdChip value={row.myDepositUsd} textVariant="secondary12" />
+                    </Box>
+                  ) : (
+                    <Typography variant="main12">–</Typography>
+                  )}
+                </Box>
+
+                {/* TVM */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Typography variant="secondary12" color="text.secondary">
+                    TVM
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <FormattedNumber
+                      value={row.tvm}
+                      symbol={row.depositTokenSymbol}
+                      compact
+                      variant="main12"
+                      symbolsVariant="secondary12"
+                      symbolsColor="text.secondary"
+                      sx={{ fontWeight: 600 }}
+                    />
+                    <UsdChip value={row.tvmUsd} textVariant="secondary12" />
+                  </Box>
+                </Box>
               </Box>
             </Box>
 
@@ -220,7 +278,7 @@ export const FlowVaultsList: React.FC<FlowVaultsListProps> = ({
                   color: 'common.white',
                   typography: 'buttonM',
                   textAlign: 'center',
-                  mt: 1.5,
+                  mt: 3,
                   '&:hover': {
                     // background: theme.palette.gradients.newGradient,
                     background: theme.palette.background.header,
