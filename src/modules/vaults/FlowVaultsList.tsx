@@ -1,9 +1,7 @@
 import React, { useMemo } from 'react';
-import { Box, Skeleton, Typography, useMediaQuery, useTheme } from '@mui/material';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import { Box, Skeleton, Typography, useTheme } from '@mui/material';
 
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
-import { UsdChip } from 'src/components/primitives/UsdChip';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import type { VaultGridRow } from './VaultDataGridColumns';
 
@@ -61,90 +59,92 @@ export const FlowVaultsList: React.FC<FlowVaultsListProps> = ({
   defaultSortOrder = 'desc',
 }) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const sortedData = useMemo(
     () => sortVaultRows(data, defaultSortColumn, defaultSortOrder),
     [data, defaultSortColumn, defaultSortOrder]
   );
 
-  if (loading) {
-    // Skeleton cards
-    return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {[1, 2, 3].map((index) => (
-          <Box
-            key={`flow-vaults-skel-${index}`}
-            sx={{
-              display: 'flex',
-              flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: { xs: 'flex-start', sm: 'center' },
-              justifyContent: 'space-between',
-              gap: { xs: 2, md: 4 },
-              p: { xs: 2, md: 3 },
-              borderRadius: 2,
-              backgroundColor: 'background.paper',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, md: 2.5 } }}>
-              <Skeleton variant="circular" width={40} height={40} />
-              <Box>
-                <Skeleton variant="text" width={120} height={24} />
-                <Skeleton variant="text" width={100} height={18} />
-              </Box>
-            </Box>
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr)) 32px' },
-                columnGap: { xs: 1.5, md: 4 },
-                rowGap: { xs: 1, sm: 0 },
-                width: { xs: '100%', sm: 'auto' },
-                flex: '1 1 auto',
-                ml: { xs: 0, sm: 2, md: 4 },
-                alignItems: 'center',
-              }}
-            >
-              <Box sx={{ textAlign: 'right' }}>
-                <Skeleton variant="text" width={80} height={20} />
-              </Box>
-              <Box sx={{ textAlign: 'right' }}>
-                <Skeleton variant="text" width={70} height={20} />
-              </Box>
-              <Box sx={{ textAlign: 'right' }}>
-                <Skeleton variant="text" width={90} height={20} />
-              </Box>
-              <Box sx={{ width: 32, minWidth: 32, display: 'flex', justifyContent: 'center' }}>
-                <Skeleton variant="text" width={12} height={20} />
-              </Box>
+  const renderSkeletonCards = () => (
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(3, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' },
+        gap: 3,
+      }}
+    >
+      {[1, 2, 3].map((index) => (
+        <Box
+          key={`flow-vaults-skel-${index}`}
+          sx={{
+            p: 3,
+            borderRadius: 3,
+            bgcolor: 'background.paper',
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 200,
+          }}
+        >
+          {/* Header */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Skeleton variant="circular" width={42} height={42} />
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Skeleton variant="text" width="60%" height={22} />
+              <Skeleton variant="text" width="40%" height={18} />
             </Box>
           </Box>
-        ))}
-      </Box>
-    );
+
+          {/* APY centered vertically, left-aligned horizontally */}
+          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Skeleton variant="text" width={64} height={32} />
+              <Skeleton variant="text" width={32} height={18} />
+            </Box>
+          </Box>
+
+          {/* Button */}
+          <Box sx={{ mt: 'auto' }}>
+            <Skeleton variant="rectangular" width="60%" height={36} sx={{ borderRadius: 999, mx: 'auto' }} />
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
+
+  if (loading) {
+    return renderSkeletonCards();
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(3, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' },
+        gap: { xs: 3, sm: 3, md: 4, lg: 5 },
+      }}
+    >
       {sortedData.map((row) => {
         const handleClick = () => {
           if (onRowClick) onRowClick(row);
         };
+
+        const apyValue = typeof row.apy7Days === 'number' ? row.apy7Days : row.apy;
 
         return (
           <Box
             key={row.id}
             onClick={handleClick}
             sx={{
-              display: 'flex',
-              flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: { xs: 'flex-start', sm: 'center' },
-              justifyContent: 'space-between',
-              gap: { xs: 2, md: 4 },
-              p: { xs: 2, md: 3 },
-              borderRadius: 2,
-              backgroundColor: 'background.paper',
+              p: 3,
+              borderRadius: 3,
+              bgcolor: 'background.paper',
               cursor: onRowClick ? 'pointer' : 'default',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-start',
+              minHeight: 200,
+              position: 'relative',
+              transition: 'background-color 0.15s ease',
               '&:hover': onRowClick
                 ? {
                   backgroundColor: theme.palette.action.hover,
@@ -152,30 +152,21 @@ export const FlowVaultsList: React.FC<FlowVaultsListProps> = ({
                 : {},
             }}
           >
-            {/* Left side: token icon + names */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                gap: { xs: 1.5, md: 2.5 },
-                minWidth: 0,
-                width: '100%',
-                flex: { xs: '1 1 auto', sm: '0 0 20%' },
-              }}
-            >
+            {/* Header: token icon + name */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
               <TokenIcon
                 symbol={row.depositTokenSymbol}
                 sx={{
-                  fontSize: { xs: '32px', md: '40px' },
+                  fontSize: 42,
                   flexShrink: 0,
                 }}
               />
-              <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Box sx={{ minWidth: 0 }}>
                 <Typography
-                  variant={isMobile ? 'main16' : 'main19'}
+                  variant="main16"
+                  className="flow-vault-asset-name"
                   sx={{
-                    fontWeight: 800,
+                    fontWeight: 700,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -184,194 +175,60 @@ export const FlowVaultsList: React.FC<FlowVaultsListProps> = ({
                 >
                   {row.depositToken}
                 </Typography>
-                {/* HIDDEN FOR NOW */}
-                {/* <Typography
-                  variant="secondary14"
-                  sx={{
-                    color: 'text.secondary',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {row.vaultName}
-                </Typography> */}
-              </Box>
-              {/* Arrow on mobile, next to asset/vault name */}
-              <Box
-                sx={{
-                  display: { xs: 'flex', sm: 'none' },
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  ml: 'auto',
-                }}
-              >
-                <KeyboardArrowRightIcon
-                  sx={{
-                    fontSize: 20,
-                    color: 'text.secondary',
-                  }}
-                />
               </Box>
             </Box>
 
-            {/* Right side: metrics + action */}
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr)) 50px' },
-                columnGap: { xs: 1.5, md: 4 },
-                rowGap: { xs: 1, sm: 0 },
-                width: { xs: '100%', sm: '80%' },
-                flex: { xs: '1 1 auto', sm: '0 0 80%' },
-                ml: { xs: 0, sm: 2, md: 4 },
-                alignItems: 'center',
-              }}
-            >
-              {/* My Deposits */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: { xs: 'row', sm: 'column' },
-                  alignItems: { xs: 'center', sm: 'flex-end' },
-                  justifyContent: { xs: 'space-between', sm: 'flex-start' },
-                  textAlign: 'right',
-                  gap: { xs: 1, sm: 0 },
-                }}
-              >
-                <Typography
-                  variant="secondary12"
-                  color="text.secondary"
-                  sx={{
-                    mb: { xs: 0, sm: 0.5 },
-                    mr: { xs: 1, sm: 0 },
-                    textAlign: 'left',
-                  }}
-                >
-                  My Deposits
-                </Typography>
-                {row.myDeposit && row.myDepositUsd ? (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: { xs: 'row', md: 'row' },
-                      alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      gap: 1,
-                    }}
-                  >
-                    <FormattedNumber
-                      value={row.myDeposit}
-                      symbol={row.depositTokenSymbol}
-                      compact
-                      variant={isMobile ? 'main14' : 'main19'}
-                      symbolsVariant={isMobile ? 'secondary14' : 'secondary19'}
-                      symbolsColor="text.secondary"
-                      sx={{ fontWeight: 800 }}
-                    />
-                    <UsdChip value={row.myDepositUsd} />
-                  </Box>
-                ) : (
-                  <Typography variant={isMobile ? 'main14' : 'main19'}>–</Typography>
-                )}
-              </Box>
-
-              {/* 7d APY */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: { xs: 'row', sm: 'column' },
-                  alignItems: { xs: 'center', sm: 'flex-end' },
-                  justifyContent: { xs: 'space-between', sm: 'flex-start' },
-                  textAlign: 'right',
-                  gap: { xs: 1, sm: 0 },
-                }}
-              >
-                <Typography
-                  variant="secondary12"
-                  color="text.secondary"
-                  sx={{
-                    mb: { xs: 0, sm: 0.5 },
-                    mr: { xs: 1, sm: 0 },
-                    textAlign: 'left',
-                  }}
-                >
-                  7D APY
-                </Typography>
-                {typeof row.apy7Days === 'number' ? (
+            {/* Main APY - vertically centered, left-aligned */}
+            <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {typeof apyValue === 'number' ? (
                   <FormattedNumber
-                    value={row.apy7Days}
+                    value={apyValue}
                     percent
                     coloredPercent
-                    variant={isMobile ? 'main14' : 'main19'}
+                    variant="main25"
                     sx={{ fontWeight: 800 }}
                   />
                 ) : (
-                  <Typography variant={isMobile ? 'main14' : 'main19'}>–</Typography>
+                  <Typography variant="main25" sx={{ fontWeight: 800 }}>
+                    –
+                  </Typography>
                 )}
-              </Box>
-
-              {/* TVM */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: { xs: 'row', sm: 'column' },
-                  alignItems: { xs: 'center', sm: 'flex-end' },
-                  justifyContent: { xs: 'space-between', sm: 'flex-start' },
-                  textAlign: 'right',
-                  gap: { xs: 1, sm: 0 },
-                }}
-              >
-                <Typography
-                  variant="secondary12"
-                  color="text.secondary"
-                  sx={{
-                    mb: { xs: 0, sm: 0.5 },
-                    mr: { xs: 1, sm: 0 },
-                    textAlign: 'left',
-                  }}
-                >
-                  TVM
+                <Typography variant="secondary14" color="text.muted">
+                  APY
                 </Typography>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: { xs: 'row', md: 'row' },
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    gap: 1,
-                  }}
-                >
-                  <FormattedNumber
-                    value={row.tvm}
-                    symbol={row.depositTokenSymbol}
-                    compact
-                    variant={isMobile ? 'main14' : 'main19'}
-                    symbolsVariant={isMobile ? 'secondary14' : 'secondary19'}
-                    symbolsColor="text.secondary"
-                    sx={{ fontWeight: 800 }}
-                  />
-                  <UsdChip value={row.tvmUsd} />
-                </Box>
               </Box>
+            </Box>
 
-              {/* Row arrow on desktop/tablet only */}
+            {/* Deposit button */}
+            <Box sx={{ mt: 'auto' }}>
               <Box
+                component="button"
+                onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                  e.stopPropagation();
+                  if (onRowClick) onRowClick(row);
+                }}
                 sx={{
-                  width: 32,
-                  minWidth: 32,
-                  display: { xs: 'none', sm: 'flex' },
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  alignSelf: { xs: 'center', sm: 'center' },
+                  width: '100%',
+                  border: 'none',
+                  borderRadius: 999,
+                  py: 1.25,
+                  px: 2,
+                  cursor: 'pointer',
+                  // background: theme.palette.gradients.newGradient,
+                  background: theme.palette.background.header,
+                  color: 'common.white',
+                  typography: 'buttonM',
+                  textAlign: 'center',
+                  mt: 1.5,
+                  '&:hover': {
+                    // background: theme.palette.gradients.newGradient,
+                    background: theme.palette.background.header,
+                    opacity: 0.9,
+                  },
                 }}
               >
-                <KeyboardArrowRightIcon
-                  sx={{
-                    fontSize: 22,
-                    color: 'text.secondary',
-                  }}
-                />
+                {`Deposit ${row.depositTokenSymbol}`}
               </Box>
             </Box>
           </Box>
