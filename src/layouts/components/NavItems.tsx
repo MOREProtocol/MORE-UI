@@ -44,6 +44,9 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
       title: 'Bridge',
       visibleTitle: 'Bridge',
       dataCy: 'menuBridge',
+      isVisible: () =>
+        !process.env.NEXT_PUBLIC_UI_THEME ||
+        process.env.NEXT_PUBLIC_UI_THEME === 'default',
     },
     // {
     //   link: ROUTES.faucet,

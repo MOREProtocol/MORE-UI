@@ -54,6 +54,7 @@ export function AppHeader() {
   const router = useRouter();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
+  const isFlowTheme = process.env.NEXT_PUBLIC_UI_THEME === 'flow';
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useRootStore((state) => [
     state.mobileDrawerOpen,
@@ -77,22 +78,25 @@ export function AppHeader() {
     setWalletWidgetOpen(state);
   };
 
-  // Ensure Flow EVM is selected on markets routes
+  // Ensure Flow EVM is selected when required
   useEffect(() => {
     const onMarketsRoute = router.pathname.startsWith('/markets');
-    if (onMarketsRoute) {
-      if (chainId !== ChainIds.flowEVMMainnet && chainId !== ChainIds.flowEVMTestnet) {
-        if (switchChain) {
-          // Fire-and-forget switch to Flow EVM Mainnet
-          switchChain({ chainId: ChainIds.flowEVMMainnet });
-        }
+    const shouldForceFlow = isFlowTheme || onMarketsRoute;
+    if (!shouldForceFlow) return;
+
+    if (chainId !== ChainIds.flowEVMMainnet && chainId !== ChainIds.flowEVMTestnet) {
+      if (switchChain) {
+        // Fire-and-forget switch to Flow EVM Mainnet
+        switchChain({ chainId: ChainIds.flowEVMMainnet });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.pathname, chainId]);
+  }, [router.pathname, chainId, isFlowTheme]);
 
   const hideNetworkSelector =
-    router.pathname === '/markets' || router.pathname === '/markets/[underlyingAsset]';
+    isFlowTheme ||
+    router.pathname === '/markets' ||
+    router.pathname === '/markets/[underlyingAsset]';
 
   return (
     <HideOnScroll>
