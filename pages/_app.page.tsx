@@ -14,7 +14,8 @@ import dynamic from 'next/dynamic';
 import { ReactNode, useEffect, useState } from 'react';
 import { AddressBlocked } from 'src/components/AddressBlocked';
 import { SanctionRegion } from "src/components/SanctionRegion";
-import { Meta } from 'src/components/Meta';
+import { Meta as DefaultMeta } from 'src/components/Meta/Meta';
+import { Meta as FlowMeta } from 'src/components/Meta/MetaFlow';
 import { TransactionEventHandler } from 'src/components/TransactionEventHandler';
 import { GasStationProvider } from 'src/components/transactions/GasStation/GasStationProvider';
 import { AppDataProvider } from 'src/hooks/app-data-provider/useAppDataProvider';
@@ -126,7 +127,7 @@ export default function MyApp(props: MyAppProps) {
 
   return (
     <CacheProvider value={emotionCache}>
-      <Meta />
+      {process.env.NEXT_PUBLIC_UI_THEME === 'flow' ? <FlowMeta /> : <DefaultMeta />}
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider>
