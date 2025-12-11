@@ -9,16 +9,24 @@ import { AppHeader } from './AppHeader';
 
 export function MainLayout({ children }: { children: ReactNode }) {
   return (
-    <Box sx={{ bgcolor: 'background.bg' }}>
-      <AppHeader />
-      <Box component="main" sx={{
+    <Box
+      sx={{
+        minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        flex: 1,
-      }}>
+      }}
+    >
+      <AppHeader />
+      <Box
+        component="main"
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+        }}
+      >
         {children}
       </Box>
-
       <AppFooter />
       <FeedbackModal />
       {FORK_ENABLED ? null : <AnalyticsConsent />}

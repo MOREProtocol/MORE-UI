@@ -45,6 +45,7 @@ export default function WalletWidget({ open, setOpen }: WalletWidgetProps) {
   const xsm = useMediaQuery(breakpoints.down('xsm'));
   const md = useMediaQuery(breakpoints.down('md'));
   const trackEvent = useRootStore((store) => store.trackEvent);
+  const isFlowTheme = process.env.NEXT_PUBLIC_UI_THEME === 'flow';
 
   const [anchorEl, setAnchorEl] = useState<Element | null>(null);
 
@@ -292,7 +293,7 @@ export default function WalletWidget({ open, setOpen }: WalletWidgetProps) {
         />
       ) : (
         <Button
-          variant={connected ? 'surface' : 'gradient'}
+          variant={connected || isFlowTheme ? 'surface' : 'gradient'}
           aria-label="wallet"
           id="wallet-button"
           aria-controls={open ? 'wallet-button' : undefined}
@@ -307,7 +308,8 @@ export default function WalletWidget({ open, setOpen }: WalletWidgetProps) {
             '&:hover': {
               bgcolor: 'background.surface3',
             },
-            color: connected ? 'text.primary' : null,
+            borderRadius: isFlowTheme ? '999px' : undefined,
+            color: connected ? 'text.primary' : isFlowTheme ? '#00ef8b' : null,
           }}
           endIcon={
             connected &&

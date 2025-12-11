@@ -1,8 +1,7 @@
-import { Box, styled, Typography, useTheme } from '@mui/material';
+import { Box, styled, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'src/components/primitives/Link';
 import { useRootStore } from 'src/store/root';
-import { uiConfig } from 'src/uiConfig';
 import { getSocialLinks } from './socialLinks';
 
 interface StyledLinkProps {
@@ -19,9 +18,9 @@ const StyledLink = styled(Link)<StyledLinkProps>(({ theme }) => ({
 }));
 
 export function AppFooter() {
-  const theme = useTheme();
   const [setAnalyticsConfigOpen] = useRootStore((store) => [store.setAnalyticsConfigOpen]);
   const [isStatusDown, setIsStatusDown] = useState(false);
+  const isFlowTheme = process.env.NEXT_PUBLIC_UI_THEME === 'flow';
 
   useEffect(() => {
     let mounted = true;
@@ -45,59 +44,69 @@ export function AppFooter() {
   }, []);
 
   const FOOTER_LINKS = useMemo(
-    () => [
-      {
-        href: 'https://docs.more.markets/terms',
-        label: 'Terms',
-        key: 'Terms',
-      },
-      {
-        href: 'https://docs.more.markets/privacy',
-        label: 'Privacy',
-        key: 'Privacy',
-      },
-      {
-        href: 'https://docs.more.markets/',
-        label: 'Docs',
-        key: 'Docs',
-      },
-      {
-        href: '/attributions',
-        label: 'Attributions',
-        key: 'Attributions',
-      },
-      {
-        href: 'https://discord.gg/XnU7hHQgYF',
-        label: 'Send feedback',
-        key: 'Send feedback',
-      },
-      {
-        href: '/',
-        label: 'Manage analytics',
-        key: 'Manage analytics',
-        onClick: (event: React.MouseEvent) => {
-          event.preventDefault();
-          setAnalyticsConfigOpen(true);
+    () => {
+      const links = [
+        {
+          href: 'https://docs.more.markets/terms',
+          label: 'Terms',
+          key: 'Terms',
         },
-      },
-      {
-        href: 'https://deprecated.more.markets/',
-        label: 'Deprecated',
-        key: 'Deprecated',
-      },
-      {
-        href: 'https://stats.uptimerobot.com/Pb5D28L3Ik',
-        label: 'Status',
-        key: 'Status',
-        sx: isStatusDown
+        {
+          href: 'https://docs.more.markets/privacy',
+          label: 'Privacy',
+          key: 'Privacy',
+        },
+        {
+          href: 'https://docs.more.markets/',
+          label: 'Docs',
+          key: 'Docs',
+        },
+        {
+          href: '/attributions',
+          label: 'Attributions',
+          key: 'Attributions',
+        },
+        // Send feedback (hidden on Flow theme)
+        !isFlowTheme
           ? {
-            color: (theme) => theme.palette.error.main,
-            '&:hover': { color: (theme) => theme.palette.error.main },
+            href: 'https://discord.gg/XnU7hHQgYF',
+            label: 'Send feedback',
+            key: 'Send feedback',
           }
-          : undefined,
-      },
-    ],
-    [isStatusDown, setAnalyticsConfigOpen]
+          : null,
+        {
+          href: '/',
+          label: 'Manage analytics',
+          key: 'Manage analytics',
+          onClick: (event: React.MouseEvent) => {
+            event.preventDefault();
+            setAnalyticsConfigOpen(true);
+          },
+        },
+        // Deprecated (hidden on Flow theme)
+        !isFlowTheme
+          ? {
+            href: 'https://deprecated.more.markets/',
+            label: 'Deprecated',
+            key: 'Deprecated',
+          }
+          : null,
+        {
+          href: 'https://stats.uptimerobot.com/Pb5D28L3Ik',
+          label: 'Status',
+          key: 'Status',
+          sx: isStatusDown
+            ? {
+              color: (theme) => theme.palette.error.main,
+              '&:hover': { color: (theme) => theme.palette.error.main },
+            }
+            : undefined,
+        },
+      ];
+
+      return links.filter(Boolean) as typeof links[number][];
+    },
+    [isStatusDown, setAnalyticsConfigOpen, isFlowTheme]
   );
 
   return (
@@ -132,24 +141,6 @@ export function AppFooter() {
         ))}
       </Box>
       <Box sx={{ display: 'flex', gap: '16px', alignItems: 'center', justifyContent: ['center', 'center', 'flex-end'] }}>
-        {process.env.NEXT_PUBLIC_UI_THEME &&
-          process.env.NEXT_PUBLIC_UI_THEME !== 'default' && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="caption" color="text.secondary">
-                Powered by
-              </Typography>
-              <Box
-                component="img"
-                src={
-                  theme.palette.mode === 'light'
-                    ? uiConfig.default.appLogo
-                    : uiConfig.default.appLogoDark
-                }
-                alt="MORE"
-                sx={{ height: 18, width: 'auto' }}
-              />
-            </Box>
-          )}
         <Box sx={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           {getSocialLinks().map((icon) => (
             <StyledLink href={icon.href} key={icon.title} aria-label={icon.title}>

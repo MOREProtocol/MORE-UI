@@ -1,4 +1,4 @@
-import { Box, Button, ButtonGroup, Divider, IconButton, Menu, MenuItem, SvgIcon, Typography, useTheme } from '@mui/material';
+import { Box, Button, ButtonGroup, Divider, IconButton, Menu, MenuItem, SvgIcon, useTheme } from '@mui/material';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import React from 'react';
@@ -6,7 +6,6 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { Link } from 'src/components/primitives/Link';
 import { ColorModeContext } from 'src/layouts/AppGlobalStyles';
-import { uiConfig } from 'src/uiConfig';
 import { getSocialLinks } from '../socialLinks';
 
 interface LogoMenuProps {
@@ -22,12 +21,6 @@ export const LogoMenu: React.FC<LogoMenuProps> = ({ logo }) => {
   const theme = useTheme();
   const isLight = theme.palette.mode === 'light';
   const logoRef = React.useRef<HTMLButtonElement | null>(null);
-
-  const defaultUi = uiConfig.default;
-  const defaultLogoSrc = isLight ? defaultUi.appLogo : defaultUi.appLogoDark;
-  const showPoweredByMore =
-    process.env.NEXT_PUBLIC_UI_THEME &&
-    process.env.NEXT_PUBLIC_UI_THEME !== 'default';
 
   const handleOpen = () => setAnchorEl(logoRef.current);
   const handleClose = () => setAnchorEl(null);
@@ -109,19 +102,6 @@ export const LogoMenu: React.FC<LogoMenuProps> = ({ logo }) => {
               Dark
             </Button>
           </ButtonGroup>
-          {showPoweredByMore && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-              <Typography variant="caption" color="text.secondary">
-                Powered by
-              </Typography>
-              <Box
-                component="img"
-                src={defaultLogoSrc}
-                alt="MORE"
-                sx={{ height: 18, width: 'auto' }}
-              />
-            </Box>
-          )}
         </Box>
       </Menu>
     </Box>

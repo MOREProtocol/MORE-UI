@@ -41,6 +41,8 @@ declare module '@mui/material/styles/createPalette' {
     gradients: {
       moreGradient: string;
       newGradient: string;
+      flowBackgroundLight: string;
+      flowBackgroundDark: string;
     };
     other: {
       standardInputLine: string;
@@ -49,13 +51,15 @@ declare module '@mui/material/styles/createPalette' {
   }
 
   interface PaletteOptions {
-    gradients: {
-      moreGradient: string;
-      newGradient: string;
-    };
     other?: {
       standardInputLine?: string;
       chartHighlight?: string;
+    };
+    gradients?: {
+      moreGradient?: string;
+      newGradient?: string;
+      flowBackgroundLight?: string;
+      flowBackgroundDark?: string;
     };
   }
 }
@@ -235,6 +239,9 @@ export const getDesignTokens = (mode: 'light' | 'dark', theme: UiThemeName = 'de
       gradients: {
         moreGradient: 'linear-gradient(248.86deg, #B6509E 10.51%, #2EBAC6 93.41%)',
         newGradient: 'linear-gradient(79.67deg, #F58420 0%, #F58420 6%, #FCB319 100%)',
+        // Flow background gradients
+        flowBackgroundLight: 'radial-gradient(circle at left top, rgb(252, 233, 254) 0%, transparent 50%), radial-gradient(circle at right bottom, rgb(252, 233, 254) 0%, transparent 50%), rgb(191, 246, 247) !important',
+        flowBackgroundDark: 'radial-gradient(circle at left top, rgb(0, 76, 55) 0%, transparent 50%), radial-gradient(circle at right bottom, rgb(0, 30, 49) 0%, transparent 50%), rgb(0, 30, 49) !important',
       },
     },
     spacing: 4,
@@ -448,6 +455,15 @@ export const getDesignTokens = (mode: 'light' | 'dark', theme: UiThemeName = 'de
           ...basePalette.gradients,
           newGradient: 'linear-gradient(120deg, #00EF8B 0%, #02D87E 100%)',
         },
+        background: {
+          surface: getColor('rgba(245, 245, 248, 0.7)', 'rgba(50, 59, 74, 0.7)'),
+          surface2: getColor('rgba(235, 235, 240, 0.7)', 'rgba(45, 51, 65, 0.7)'),
+          surface3: getColor('rgba(224, 224, 234, 0.7)', 'rgba(37, 43, 56, 0.7)'),
+          paper: getColor('rgba(255, 255, 255, 0.7)', 'rgba(41, 46, 65, 0.7)'),
+        },
+        action: {
+          hover: getColor('rgba(241, 241, 243, 0.7)', 'rgba(73, 82, 99, 0.7)'),
+        },
       },
     } as ThemeOptions;
   }
@@ -456,6 +472,8 @@ export const getDesignTokens = (mode: 'light' | 'dark', theme: UiThemeName = 'de
 };
 
 export function getThemedComponents(theme: Theme) {
+  const isFlowUiTheme = process.env.NEXT_PUBLIC_UI_THEME === 'flow';
+
   return {
     components: {
       MuiSkeleton: {
@@ -968,6 +986,17 @@ export function getThemedComponents(theme: Theme) {
             fontWeight: 400,
             fontSize: pxToRem(14),
             minWidth: '375px',
+            ...(isFlowUiTheme
+              ? {
+                background:
+                  theme.palette.mode === 'light'
+                    ? theme.palette.gradients.flowBackgroundLight
+                    : theme.palette.gradients.flowBackgroundDark,
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'cover',
+                backgroundAttachment: 'fixed',
+              }
+              : {}),
             '> div:first-of-type': {
               minHeight: '100vh',
               display: 'flex',

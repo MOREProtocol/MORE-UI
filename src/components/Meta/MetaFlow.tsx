@@ -2,13 +2,13 @@ import Head from 'next/head';
 import React from 'react';
 
 export function Meta() {
-  const title = 'Flow Earn Powered by MORE';
+  const title = 'Flow Earn';
   const description =
     'Flow Earn makes it easy for you to earn yield on stablecoins and native crypto assets. Powered by professional curators and MORE Vaults, Flow Earn offers you a gateway to passive yield on your deposits.';
 
   return (
     <Head>
-      <title>Flow Earn Powered by MORE</title>
+      <title>Flow Earn</title>
       <meta name="viewport" content="initial-scale=1, width=device-width" />
       <meta name="description" content={description} key="description" />
       <meta property="og:title" content={`Flow - ${title}`} key="title" />

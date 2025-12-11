@@ -149,6 +149,8 @@ export const VaultDetail = () => {
   const currentChartLabel = chartDataOptions[selectedChartDataKey]?.label || '';
   const currentChartData = chartDataOptions[selectedChartDataKey]?.data;
 
+  const isFlowTheme = process.env.NEXT_PUBLIC_UI_THEME === 'flow';
+
   const handleDepositClick = () => {
     // If whitelisting is not enabled, allow direct deposit
     if (!isWhitelistEnabled) {
@@ -217,13 +219,29 @@ export const VaultDetail = () => {
             <Skeleton width={150} height={40} sx={{ my: 2 }} />
           ) : (
             <>
-              {selectedVault?.overview?.curatorLogo && (
-                <Avatar
-                  src={selectedVault.overview.curatorLogo}
-                  sx={{ width: 35, height: 35 }}
-                />
+              {isFlowTheme ? (
+                <>
+                  <TokenIcon
+                    symbol={selectedVault?.overview?.asset?.symbol || ''}
+                    fontSize="large"
+                  />
+                  <Typography variant="main21" sx={{ color: 'primary.main' }}>
+                    {`${selectedVault?.overview?.asset?.symbol || selectedVault?.overview?.name || ''} Vault`}
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  {selectedVault?.overview?.curatorLogo && (
+                    <Avatar
+                      src={selectedVault.overview.curatorLogo}
+                      sx={{ width: 35, height: 35 }}
+                    />
+                  )}
+                  <Typography variant="main21" sx={{ color: 'primary.main' }}>
+                    {selectedVault?.overview?.name}
+                  </Typography>
+                </>
               )}
-              <Typography variant="main21" sx={{ color: 'primary.main' }}>{selectedVault?.overview?.name}</Typography>
               <IconButton
                 size="small"
                 onClick={() => {

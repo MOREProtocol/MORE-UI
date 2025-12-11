@@ -7,10 +7,10 @@ export const uiConfig = {
     height: 30,
   },
   flow: {
-    appLogo: '/flow/flow_white.png',
-    appLogoDark: '/flow/flow_dark.png',
+    appLogo: '/flow/flow_white.svg',
+    appLogoDark: '/flow/flow_dark.svg',
     appLogoMobile: '/icons/networks/flow.svg',
-    width: 115,
+    width: 80,
     height: 30,
   }
 };

@@ -273,15 +273,13 @@ export const FlowVaultsList: React.FC<FlowVaultsListProps> = ({
                   py: 1.25,
                   px: 2,
                   cursor: 'pointer',
-                  // background: theme.palette.gradients.newGradient,
-                  background: theme.palette.background.header,
-                  color: 'common.white',
+                  background: theme.palette.background.surface,
+                  color: 'text.primary',
                   typography: 'buttonM',
                   textAlign: 'center',
                   mt: 3,
                   '&:hover': {
-                    // background: theme.palette.gradients.newGradient,
-                    background: theme.palette.background.header,
+                    background: theme.palette.background.surface2,
                     opacity: 0.9,
                   },
                 }}
