@@ -767,25 +767,13 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
       }
 
       try {
-        const [gasLimit, feeData] = await Promise.all([
-          signer.estimateGas(tx),
-          signer.getFeeData()
-        ]);
+        // Only estimate and buffer gas limit; let the connected wallet choose gas price / fees.
+        const gasLimit = await signer.estimateGas(tx);
 
-        const enhancedTx = {
+        return {
           ...tx,
           gasLimit: gasLimit.mul(115).div(100), // Add 15% buffer
         };
-
-        // Add EIP-1559 fields if available
-        if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
-          enhancedTx.maxFeePerGas = feeData.maxFeePerGas;
-          enhancedTx.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas;
-        } else if (feeData.gasPrice) {
-          enhancedTx.gasPrice = feeData.gasPrice;
-        }
-
-        return enhancedTx;
       } catch (gasError) {
         console.warn('Gas estimation failed, proceeding with original transaction:', gasError);
         return tx; // Fallback to original transaction
