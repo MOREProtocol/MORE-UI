@@ -1,4 +1,4 @@
-import { useTheme } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import { createChart, IChartApi, ISeriesApi, LineData, SeriesPartialOptionsMap, Time, UTCTimestamp, BusinessDay, LineSeries } from 'lightweight-charts';
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Typography } from '@mui/material';
@@ -46,6 +46,17 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
   const theme = useTheme(); // used in title color
 
   const effectiveLineColor = lineColor ?? theme.palette.other.chartHighlight;
+
+  const isChartStale = useMemo(() => {
+    if (!data?.length) return false;
+
+    const latestSeconds = Math.max(...data.map((d) => (d.time as number)));
+    if (!Number.isFinite(latestSeconds)) return false;
+
+    const latestMs = latestSeconds * 1000;
+    const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+    return Date.now() - latestMs > TWO_DAYS_MS;
+  }, [data]);
 
   useEffect(() => {
     if (!chartContainerRef.current || height <= 0) {
@@ -230,6 +241,37 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
       WebkitMaskComposite: 'intersect',
       maskComposite: 'intersect',
     }}>
+      {isChartStale && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 15,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            padding: '12px',
+          }}
+        >
+          <Typography
+            variant={isSmall ? 'secondary12' : 'secondary14'}
+            sx={{
+              color: theme.palette.text.secondary,
+              backgroundColor: alpha(theme.palette.background.paper, 0.72),
+              border: `1px solid ${alpha(theme.palette.text.secondary, 0.16)}`,
+              borderRadius: 1,
+              px: 1.5,
+              py: 0.75,
+              maxWidth: '90%',
+              textAlign: 'center',
+              backdropFilter: 'blur(4px)',
+            }}
+          >
+            ⚠️ Chart data is not up to date
+          </Typography>
+        </div>
+      )}
       {title && (
         <Typography
           variant="caption"
