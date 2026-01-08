@@ -923,6 +923,7 @@ export const VaultDetail = () => {
               <LineChart
                 height={300}
                 data={currentChartData}
+                chainId={vaultData?.data?.chainId}
                 yAxisFormat={vaultData?.data?.overview?.asset?.symbol}
                 showTimePeriodSelector={true}
               />

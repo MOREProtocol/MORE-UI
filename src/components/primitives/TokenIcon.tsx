@@ -36,18 +36,21 @@ export function Base64Token({
   const aRef = useRef<SVGSVGElement>(null);
 
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     if (!loading && ref.current && ref.current?.contentDocument) {
       if (mToken) {
-        // eslint-disable-next-line
-        const inner = ref.current?.contentDocument?.childNodes?.[0] as any;
+        const doc = ref.current.contentDocument;
+        const inner = (doc.querySelector('svg') ?? doc.documentElement) as unknown;
+        if (!(inner instanceof SVGSVGElement)) return;
+
         const oldWidth = inner.getAttribute('width');
         const oldHeight = inner.getAttribute('height');
         const vb = inner.getAttribute('viewBox');
-        inner.setAttribute('x', 25);
-        inner.setAttribute('width', 206);
-        inner.setAttribute('y', 25);
-        inner.setAttribute('height', 206);
+        inner.setAttribute('x', '25');
+        inner.setAttribute('width', '206');
+        inner.setAttribute('y', '25');
+        inner.setAttribute('height', '206');
         if (!vb) {
           inner.setAttribute('viewBox', `0 0 ${oldWidth} ${oldHeight}`);
         }
