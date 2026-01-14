@@ -1,11 +1,11 @@
-import { Box, Button, IconButton, Skeleton, SvgIcon, Tooltip, Typography, Menu, MenuItem } from '@mui/material';
+import { Box, Button, IconButton, Skeleton, SvgIcon, Tooltip, Typography, Menu, MenuItem, Switch } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { useRootStore } from 'src/store/root';
-import { useAppDataContext, ComputedReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { useAppDataContext, ComputedReserveData, ComputedUserReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { TokenIconAddDropdown } from 'src/modules/reserve-overview/TokenIconAddDropdown';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useModalContext } from 'src/hooks/useModal';
@@ -24,7 +24,7 @@ export default function ReserveOverview() {
   const { reserves, user } = useAppDataContext();
   const { currentMarketData, currentNetworkConfig, currentMarket, currentChainId } = useProtocolDataContext();
   const { currentAccount, addERC20Token, switchNetwork, chainId: connectedChainId } = useWeb3Context();
-  const { openSupply, openBorrow } = useModalContext();
+  const { openSupply, openBorrow, openCollateralChange } = useModalContext();
   const trackEvent = useRootStore((store) => store.trackEvent);
   const [supplyMenuAnchor, setSupplyMenuAnchor] = useState<null | HTMLElement>(null);
 
@@ -197,27 +197,7 @@ export default function ReserveOverview() {
 
           {/* Right column: Collateral usage & Interest rate model */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <Box sx={{
-              backgroundColor: 'background.paper',
-              borderRadius: 2,
-              p: 3
-            }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                <Typography sx={{
-                  typography: { xs: 'main16', md: 'main19' }
-                }}>
-                  Collateral usage
-                </Typography>
-                <CollateralUsageHeader reserve={reserve} />
-              </Box>
-              <CollateralUsage reserve={reserve as ComputedReserveData} />
-            </Box>
+            <CollateralUsageCard />
 
             <Box sx={{
               backgroundColor: 'background.paper',
@@ -282,6 +262,81 @@ export default function ReserveOverview() {
           showBorrowCapStatus={(reserve as ComputedReserveData).borrowCap !== '0'}
           borrowCap={borrowCap}
         />
+      </Box>
+    );
+  }
+
+  function CollateralUsageCard() {
+    const { debtCeiling } = useAssetCaps();
+
+    const userReserve = user?.userReservesData?.find(
+      (r: ComputedUserReserveData) =>
+        r.reserve.underlyingAsset.toLowerCase() === reserve.underlyingAsset.toLowerCase()
+    );
+
+    const usageAsCollateralEnabledOnUser = !!userReserve?.usageAsCollateralEnabledOnUser;
+    const hasSupply = !!userReserve && userReserve.underlyingBalance !== '0';
+    const canBeCollateral = reserve.reserveLiquidationThreshold !== '0';
+
+    // Match the eligibility rules already used on dashboard lists, but also require the user to have supplied this asset.
+    const canEnableAsCollateral = user
+      ? hasSupply &&
+      !debtCeiling.isMaxed &&
+      canBeCollateral &&
+      ((!reserve.isIsolated && !user.isInIsolationMode) ||
+        user.isolatedReserve?.underlyingAsset === reserve.underlyingAsset ||
+        (reserve.isIsolated && user.totalCollateralMarketReferenceCurrency === '0'))
+      : false;
+
+    // "Smart" visibility:
+    // - Hide when it can never be collateral (protocol setting) or the user has no supply to act on.
+    // - Otherwise show it (it may be disabled depending on current constraints).
+    const shouldShowToggle = canBeCollateral && hasSupply;
+
+    // Allow disabling collateral even when it can't be enabled (e.g. debt ceiling maxed),
+    // but block toggling entirely if the user has no supplies.
+    const disableToggle =
+      !currentAccount ||
+      !hasSupply ||
+      reserve.isPaused ||
+      (!usageAsCollateralEnabledOnUser && !canEnableAsCollateral);
+
+    return (
+      <Box sx={{ backgroundColor: 'background.paper', borderRadius: 2, p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography sx={{ typography: { xs: 'main16', md: 'main19' } }}>
+              Collateral usage
+            </Typography>
+            <CollateralUsageHeader reserve={reserve} />
+          </Box>
+
+          {/* Same control type as the "MOST Mode" toggle (MUI Switch). */}
+          {shouldShowToggle && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="secondary14" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                Use as collateral
+              </Typography>
+              <Switch
+                size="small"
+                checked={usageAsCollateralEnabledOnUser}
+                disabled={disableToggle}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openCollateralChange(
+                    reserve.underlyingAsset,
+                    currentMarket,
+                    reserve.name,
+                    'reserve-page',
+                    usageAsCollateralEnabledOnUser
+                  );
+                }}
+              />
+            </Box>
+          )}
+        </Box>
+
+        <CollateralUsage reserve={reserve as ComputedReserveData} />
       </Box>
     );
   }
