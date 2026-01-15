@@ -8,7 +8,8 @@ import type {
 } from '@mui/material/Typography/Typography';
 import type { OverridableStringUnion } from '@mui/types';
 import type React from 'react';
-import { useState, type ElementType } from 'react';
+import { type ElementType } from 'react';
+import { useRootStore } from 'src/store/root';
 
 interface CompactNumberProps {
   value: string | number;
@@ -119,8 +120,10 @@ export function FormattedNumber({
 }: FormattedNumberProps) {
   const theme = useTheme();
   const number = percent || coloredPercent ? Number(value) * 100 : Number(value);
-
-  const [manualCompact, setManualCompact] = useState<boolean | undefined>(undefined);
+  const compactNumbers = useRootStore((state) =>
+    toggleCompactOnClick ? state.compactNumbers : undefined
+  );
+  const setCompactNumbers = useRootStore((state) => state.setCompactNumbers);
 
   let decimals: number = visibleDecimals ?? 0;
   if (number === 0) {
@@ -136,8 +139,14 @@ export function FormattedNumber({
   const minValue = 10 ** -(decimals as number);
   const isSmallerThanMin = number !== 0 && Math.abs(number) < Math.abs(minValue);
   let formattedNumber = isSmallerThanMin ? minValue : number;
-  const compactInput = toggleCompactOnClick ? (manualCompact ?? compact) : compact;
-  const forceCompact = compactInput !== false && (Boolean(compactInput) || number > 99_999);
+  const compactInput =
+    toggleCompactOnClick && typeof compactNumbers === 'boolean'
+      ? compactNumbers
+      : compact;
+  const forceCompact =
+    toggleCompactOnClick && typeof compactNumbers === 'boolean'
+      ? compactNumbers
+      : compactInput !== false && (Boolean(compactInput) || number > 99_999);
   const percentColor = coloredPercent
     ? number > 0
       ? theme.palette.success.main
@@ -164,10 +173,11 @@ export function FormattedNumber({
       title={toggleCompactOnClick ? (rest.title ?? 'Click to toggle compact formatting') : rest.title}
       onClick={(e: React.MouseEvent<HTMLElement>) => {
         if (toggleCompactOnClick) {
-          setManualCompact((prev) => {
-            const currentCompact = (prev ?? (compact !== false && (Boolean(compact) || number > 99_999)));
-            return !currentCompact;
-          });
+          const currentCompact =
+            typeof compactNumbers === 'boolean'
+              ? compactNumbers
+              : compact !== false && (Boolean(compact) || number > 99_999);
+          setCompactNumbers(!currentCompact);
         }
         if (rest.onClick) rest.onClick(e);
       }}
