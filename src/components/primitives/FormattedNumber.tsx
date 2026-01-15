@@ -31,26 +31,49 @@ export const compactNumber = ({
   if (compactThreshold && Number(value) <= compactThreshold) {
     integerPlaces = 0;
   }
-  const significantDigitsGroup = Math.min(
+  let significantDigitsGroup = Math.min(
     Math.floor(integerPlaces ? (integerPlaces - 1) / 3 : 0),
     POSTFIXES.length - 1
   );
-  const postfix = POSTFIXES[significantDigitsGroup];
-  let formattedValue = normalizeBN(bnValue, 3 * significantDigitsGroup).toNumber();
-  if (roundDown) {
-    // Truncates decimals after the visible decimal point, i.e. 10.237 with 2 decimals becomes 10.23
-    formattedValue =
-      Math.trunc(Number(formattedValue) * 10 ** visibleDecimals) / 10 ** visibleDecimals;
+  let postfix = POSTFIXES[significantDigitsGroup];
+
+  const computeRoundedForDisplay = (rawValue: number) => {
+    if (roundDown) {
+      // Truncates decimals after the visible decimal point, i.e. 10.237 with 2 decimals becomes 10.23
+      const truncated = Math.trunc(Number(rawValue) * 10 ** visibleDecimals) / 10 ** visibleDecimals;
+      const hasNonZeroDecimals = truncated % 1 !== 0;
+      return {
+        rounded: truncated,
+        actualDecimals: hasNonZeroDecimals ? visibleDecimals : 0,
+      };
+    }
+
+    // Round first, then decide whether decimals should be shown (prevents e.g. 0.999999 -> 1.00)
+    const roundedWithVisibleDecimals = Number(rawValue.toFixed(visibleDecimals));
+    const hasNonZeroDecimals = roundedWithVisibleDecimals % 1 !== 0;
+    return {
+      rounded: roundedWithVisibleDecimals,
+      actualDecimals: hasNonZeroDecimals ? visibleDecimals : 0,
+    };
+  };
+
+  // Avoid displaying "1,000.00K" (or "1,000.00M", etc.) caused by rounding at boundaries.
+  // If rounding pushes the value to 1000 in the current postfix, bump the postfix and recompute.
+  while (!roundDown && significantDigitsGroup < POSTFIXES.length - 1) {
+    const rawValue = normalizeBN(bnValue, 3 * significantDigitsGroup).toNumber();
+    const { rounded } = computeRoundedForDisplay(rawValue);
+    if (Math.abs(rounded) < 1000) break;
+    significantDigitsGroup += 1;
+    postfix = POSTFIXES[significantDigitsGroup];
   }
 
-  // Check if the decimal part is zero
-  const hasNonZeroDecimals = formattedValue % 1 !== 0;
-  const actualDecimals = hasNonZeroDecimals ? visibleDecimals : 0;
+  const finalRawValue = normalizeBN(bnValue, 3 * significantDigitsGroup).toNumber();
+  const { rounded: finalValue, actualDecimals } = computeRoundedForDisplay(finalRawValue);
 
   const prefix = new Intl.NumberFormat('en-US', {
     maximumFractionDigits: actualDecimals,
     minimumFractionDigits: actualDecimals,
-  }).format(formattedValue);
+  }).format(finalValue);
 
   return { prefix, postfix };
 };

@@ -656,6 +656,7 @@ export function MarketsTable() {
                   variant="main16"
                   visibleDecimals={2}
                   compact
+                  toggleCompactOnClick
                   symbolsVariant="secondary16"
                   sx={{ fontWeight: 800 }}
                 />
@@ -670,6 +671,7 @@ export function MarketsTable() {
                   variant="main16"
                   visibleDecimals={2}
                   compact
+                  toggleCompactOnClick
                   symbolsVariant="secondary16"
                   sx={{ fontWeight: 800 }}
                 />
@@ -684,6 +686,7 @@ export function MarketsTable() {
                   variant="main16"
                   visibleDecimals={2}
                   compact
+                  toggleCompactOnClick
                   symbolsVariant="secondary16"
                   sx={{ fontWeight: 800 }}
                 />
@@ -719,6 +722,7 @@ export function MarketsTable() {
                     variant="main16"
                     visibleDecimals={2}
                     compact
+                    toggleCompactOnClick
                     symbolsVariant="secondary16"
                     sx={{ fontWeight: 800 }}
                   />
@@ -766,6 +770,7 @@ export function MarketsTable() {
                     variant="main16"
                     visibleDecimals={2}
                     compact
+                    toggleCompactOnClick
                     symbolsVariant="secondary16"
                     sx={{ fontWeight: 800 }}
                   />
