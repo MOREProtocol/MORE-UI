@@ -54,14 +54,22 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   );
   const selectedAssetData = useAssetData(selectedAssetAddress || '');
 
-  // Wallet balances for all depositable assets via shared hook
+  // Wallet balances for all depositable assets via shared hook (uses public RPC with backup rotation)
   const depositableBalancesQuery = useDepositableAssetsBalances(selectedVaultId, accountAddress);
 
-  // Use wagmi's useBalance hook for wallet balance (network-agnostic)
+  // Use wagmi's useBalance hook for wallet balance (wallet/provider-native).
   const { data: walletBalanceData } = useBalance({
     address: accountAddress as `0x${string}`,
     token: (selectedAssetAddress || primaryAssetAddress) as `0x${string}`,
   });
+
+  const assetBalances = depositableBalancesQuery.balances;
+
+  // Prefer the wallet's own provider balance when available,
+  // but fall back to our JSON-RPC-based balance if wagmi cannot fetch.
+  const fallbackWalletBalance =
+    assetBalances[(selectedAssetAddress || primaryAssetAddress).toLowerCase()] ?? '0';
+  const walletBalance = walletBalanceData?.formatted || fallbackWalletBalance || '0';
 
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -73,7 +81,6 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const [addTokenSuccess, setAddTokenSuccess] = useState(false);
 
   const amountInUsd = new BigNumber(amount).multipliedBy(selectedAssetData.data?.price || 0);
-  const walletBalance = walletBalanceData?.formatted || '0';
 
   // Check if user has vault tokens
   const userVaultBalance = userVaultData?.[0]?.data?.maxWithdraw?.toString() || '0';
@@ -192,8 +199,6 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     const firstSymbol = depositableAssets?.[0]?.symbol || '';
     setSelectedAssetSymbol(firstSymbol || selectedAssetData.data?.symbol || '');
   }, [primaryAssetAddress, selectedVault?.overview?.depositableAssets]);
-
-  const assetBalances = depositableBalancesQuery.balances;
 
   useEffect(() => {
     const updateButtonActionState = async () => {

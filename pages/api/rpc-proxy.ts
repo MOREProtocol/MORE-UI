@@ -2,9 +2,15 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 
 // Rate limiting: 100 requests per minute per IP
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_REQUESTS = 100;
+const RATE_LIMIT_REQUESTS = 200;
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute in milliseconds
-const ALLOWED_ORIGINS = ['http://localhost:3000', 'https://localhost:3000', 'https://app.more.markets', 'https://testnet.more.markets'];
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'https://localhost:3000',
+  'https://app.more.markets',
+];
+
+type SupportedNetwork = 'eth-mainnet' | 'flow-mainnet';
 
 function getRateLimitKey(req: NextApiRequest): string {
   // Get IP address, handling proxies
@@ -72,6 +78,19 @@ function isRateLimited(req: NextApiRequest): boolean {
   return false;
 }
 
+function getAlchemyUrlForNetwork(network: SupportedNetwork, apiKey: string): string {
+  switch (network) {
+    case 'eth-mainnet':
+      return `https://eth-mainnet.g.alchemy.com/v2/${apiKey}`;
+    case 'flow-mainnet':
+      return `https://flow-mainnet.g.alchemy.com/v2/${apiKey}`;
+    default: {
+      // This should be unreachable because of typing, but keep a guard.
+      throw new Error(`Unsupported network: ${network}`);
+    }
+  }
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -81,7 +100,7 @@ export default async function handler(
     console.log('Unauthorized origin blocked:', {
       origin: req.headers.origin,
       referer: req.headers.referer,
-      userAgent: req.headers['user-agent']
+      userAgent: req.headers['user-agent'],
     });
 
     const errorResponse = {
@@ -90,8 +109,8 @@ export default async function handler(
       error: {
         code: -32403,
         message: 'Forbidden',
-        data: 'Origin not allowed'
-      }
+        data: 'Origin not allowed',
+      },
     };
 
     res.setHeader('Content-Type', 'application/json');
@@ -127,21 +146,41 @@ export default async function handler(
       error: {
         code: -32429,
         message: 'Too many requests',
-        data: 'Rate limit: 100 requests per minute exceeded'
-      }
+        data: 'Rate limit: 100 requests per minute exceeded',
+      },
     };
 
     res.setHeader('Content-Type', 'application/json');
     return res.status(429).json(errorResponse);
   }
 
-  try {
-    // The private Alchemy URL - kept server-side
-    const ALCHEMY_URL = process.env.ALCHEMY_URL;
+  const networkParam = req.query.network;
+  const network =
+    typeof networkParam === 'string' ? (networkParam as SupportedNetwork) : undefined;
 
-    if (!ALCHEMY_URL) {
-      throw new Error('ALCHEMY_URL environment variable is not configured');
+  if (!network) {
+    const errorResponse = {
+      jsonrpc: '2.0',
+      id: req.body?.id || null,
+      error: {
+        code: -32602,
+        message: 'Invalid params',
+        data: 'Missing "network" query parameter (e.g. ?network=eth-mainnet)',
+      },
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(400).json(errorResponse);
+  }
+
+  try {
+    const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
+
+    if (!ALCHEMY_API_KEY) {
+      throw new Error('ALCHEMY_API_KEY environment variable is not configured');
     }
+
+    const targetUrl = getAlchemyUrlForNetwork(network, ALCHEMY_API_KEY);
 
     const clientIP = getRateLimitKey(req);
     const clientStats = rateLimitMap.get(clientIP);
@@ -152,12 +191,16 @@ export default async function handler(
       clientIP,
       origin: req.headers.origin,
       referer: req.headers.referer,
+      network,
       requestCount: clientStats?.count || 0,
-      rateLimitRemaining: Math.max(0, RATE_LIMIT_REQUESTS - (clientStats?.count || 0))
+      rateLimitRemaining: Math.max(
+        0,
+        RATE_LIMIT_REQUESTS - (clientStats?.count || 0)
+      ),
     });
 
     // Forward the request to Alchemy
-    const response = await fetch(ALCHEMY_URL, {
+    const response = await fetch(targetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -166,8 +209,14 @@ export default async function handler(
     });
 
     if (!response.ok) {
-      console.error('Alchemy response not ok:', response.status, response.statusText);
-      throw new Error(`Alchemy RPC error: ${response.status} ${response.statusText}`);
+      console.error(
+        'Alchemy response not ok:',
+        response.status,
+        response.statusText
+      );
+      throw new Error(
+        `Alchemy RPC error: ${response.status} ${response.statusText}`
+      );
     }
 
     const data = await response.json();
@@ -175,14 +224,15 @@ export default async function handler(
     console.log('Alchemy response received:', {
       hasResult: !!data.result,
       hasError: !!data.error,
-      id: data.id
+      id: data.id,
+      network,
     });
 
     // Return the response from Alchemy with proper headers
     res.setHeader('Content-Type', 'application/json');
     res.status(200).json(data);
   } catch (error) {
-    console.error('Ethereum RPC proxy error:', error);
+    console.error('RPC proxy error:', error);
 
     // Return a proper JSON-RPC error response
     const errorResponse = {
@@ -191,11 +241,13 @@ export default async function handler(
       error: {
         code: -32603,
         message: 'Internal error',
-        data: error instanceof Error ? error.message : 'Unknown error'
-      }
+        data: error instanceof Error ? error.message : 'Unknown error',
+      },
     };
 
     res.setHeader('Content-Type', 'application/json');
     res.status(500).json(errorResponse);
   }
-} 
+}
+
+

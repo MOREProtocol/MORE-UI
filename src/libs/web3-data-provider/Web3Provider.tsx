@@ -9,8 +9,9 @@ import { WalletType } from 'src/helpers/types';
 import { Web3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
 import { hexToAscii } from 'src/utils/utils';
-import { config as wagmiConfig } from 'src/utils/wagmi';
 import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
+import { config as wagmiConfig } from 'src/utils/wagmi';
+import { RotationProvider } from 'src/utils/rotationProvider';
 import {
   useAccount,
   useChainId,
@@ -52,6 +53,21 @@ export type Web3Data = {
   readOnlyMode: boolean;
 };
 
+const PUBLIC_CONFIRMATION_TIMEOUT_MS = 15_000; // 15 seconds
+
+// Helper: wait for public RPC confirmation with a hard timeout
+async function waitForPublicConfirmation(txHash: `0x${string}`) {
+  return Promise.race([
+    waitForTransactionReceipt(wagmiConfig, { hash: txHash }),
+    new Promise((_, reject) =>
+      setTimeout(
+        () => reject(new Error('Public RPC confirmation timeout')),
+        PUBLIC_CONFIRMATION_TIMEOUT_MS
+      )
+    ),
+  ]);
+}
+
 export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ children }) => {
   const chainId = useChainId();
   const { connectAsync } = useConnect();
@@ -78,15 +94,25 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
         const effectiveChainId = chainId || 747; // Fallback to Flow EVM Mainnet
         const networkConfig = getNetworkConfig(effectiveChainId);
 
-        let rpcUrl: string;
-
-        if (isConnected && address) {
-          rpcUrl = networkConfig.publicJsonRPCUrl[0];
-        } else {
-          rpcUrl = networkConfig.privateJsonRPCUrl || networkConfig.publicJsonRPCUrl[0];
+        const rpcUrls: string[] = [];
+        if (Array.isArray(networkConfig.publicJsonRPCUrl) && networkConfig.publicJsonRPCUrl.length) {
+          rpcUrls.push(...networkConfig.publicJsonRPCUrl);
+        }
+        if (networkConfig.privateJsonRPCUrl) {
+          rpcUrls.push(networkConfig.privateJsonRPCUrl);
         }
 
-        return new providers.JsonRpcProvider(rpcUrl, effectiveChainId);
+        if (!rpcUrls.length) {
+          // Fallback to Flow EVM Mainnet if no RPCs are configured
+          return new providers.JsonRpcProvider('https://mainnet.evm.nodes.onflow.org', 747);
+        }
+
+        if (rpcUrls.length === 1) {
+          return new providers.JsonRpcProvider(rpcUrls[0], effectiveChainId);
+        }
+
+        // Use rotation provider so backup RPC is only used when public RPCs fail
+        return new RotationProvider(rpcUrls, effectiveChainId);
       } catch (error) {
         console.error('Provider configuration error:', error);
         // Fallback to Flow EVM Mainnet if config fails
@@ -94,7 +120,7 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
       }
     }
     return undefined;
-  }, [publicClient, chainId, isConnected, address]);
+  }, [publicClient, chainId]);
 
   // TODO: we use from instead of currentAccount because of the mock wallet.
   // If we used current account then the tx could get executed
@@ -102,15 +128,59 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
     if (isConnected && address) {
       setLoading(true);
       const { from, ...data } = txData;
-      const txHash = await sendTransactionAsync({
-        ...data,
-        value: data.value ? BigNumber.from(data.value) : undefined,
-      });
-      await waitForTransactionReceipt(wagmiConfig, {
-        hash: txHash,
-      });
-      setLoading(false);
-      return txHash;
+      try {
+        const txHash = await sendTransactionAsync({
+          ...data,
+          value: data.value ? BigNumber.from(data.value) : undefined,
+        });
+
+        // 1) Primary confirmation: wagmi public client (public RPCs only), with an explicit timeout.
+        try {
+          await waitForPublicConfirmation(txHash);
+        } catch (confirmationErr) {
+          console.warn(
+            'Public RPC confirmation failed, falling back to private/backup RPC for confirmation',
+            confirmationErr
+          );
+
+          // 2) Fallback confirmation: our private backup RPC.
+          try {
+            const effectiveChainId = chainId || 747;
+            const networkConfig = getNetworkConfig(effectiveChainId);
+
+            const confirmationUrls: string[] = [];
+            // For fallback confirmations, prefer the private backup RPC first
+            if (networkConfig.privateJsonRPCUrl) {
+              confirmationUrls.push(networkConfig.privateJsonRPCUrl);
+            }
+            if (
+              Array.isArray(networkConfig.publicJsonRPCUrl) &&
+              networkConfig.publicJsonRPCUrl.length
+            ) {
+              confirmationUrls.push(...networkConfig.publicJsonRPCUrl);
+            }
+
+            if (confirmationUrls.length) {
+              const confirmationProvider =
+                confirmationUrls.length === 1
+                  ? new providers.JsonRpcProvider(confirmationUrls[0], effectiveChainId)
+                  : new RotationProvider(confirmationUrls, effectiveChainId);
+
+              await confirmationProvider.waitForTransaction(txHash);
+            }
+          } catch (fallbackErr) {
+            console.warn(
+              'Fallback confirmation via private/backup RPC also failed; tx may still be confirmed.',
+              fallbackErr
+            );
+            // Do not rethrow: tx was accepted by the wallet; only confirmation tracking failed.
+          }
+        }
+
+        return txHash;
+      } finally {
+        setLoading(false);
+      }
     }
     throw new Error('Error sending transaction. Provider not found');
   };

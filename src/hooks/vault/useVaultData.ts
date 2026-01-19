@@ -13,6 +13,7 @@ import { vaultsConfig } from 'src/modules/vault-detail/VaultManagement/facets/va
 import { networkConfigs } from 'src/ui-config/networksConfig';
 import { ChainIds } from 'src/utils/const';
 import { useWalletClient } from 'wagmi';
+import { RotationProvider } from 'src/utils/rotationProvider';
 import { getVaultFactoryInfo, registerVaultFactoryInfo } from './factoryRegistry';
 import type { FactoryConfig, NetworkVaultConfig } from './types';
 import { VAULT_ID_TO_CURATOR_INFO, VAULT_ID_TO_NAME, VAULT_ID_TO_MARKDOWN_DESCRIPTION } from './constants';
@@ -157,13 +158,21 @@ export const useVaultProvider = (chainIdParam?: number) => {
     // Get chainId from wallet or use provided parameter
     const chainId = chainIdParam || ChainIds.flowEVMMainnet;
 
-    // If no wallet is connected, create a fallback provider using the network's RPC URL
+    // If no wallet is connected, create a provider using the network's RPC URL with backup rotation
     const networkConfig = networkConfigs[chainId];
     if (networkConfig) {
-      // Use private RPC URL if available, otherwise use the first public RPC URL
-      const rpcUrl = networkConfig.privateJsonRPCUrl || networkConfig.publicJsonRPCUrl[0];
-      if (rpcUrl) {
-        return new ethers.providers.JsonRpcProvider(rpcUrl);
+      const rpcUrls: string[] = [];
+      if (Array.isArray(networkConfig.publicJsonRPCUrl) && networkConfig.publicJsonRPCUrl.length) {
+        rpcUrls.push(...networkConfig.publicJsonRPCUrl);
+      }
+      if (networkConfig.privateJsonRPCUrl) {
+        rpcUrls.push(networkConfig.privateJsonRPCUrl);
+      }
+      if (rpcUrls.length === 1) {
+        return new ethers.providers.JsonRpcProvider(rpcUrls[0]);
+      }
+      if (rpcUrls.length > 1) {
+        return new RotationProvider(rpcUrls, chainId);
       }
     }
 
@@ -629,19 +638,30 @@ const detectVaultNetwork = async (vaultId: string, currentChainId?: number): Pro
   const supportedChainIds = Object.keys(vaultsConfig).map(Number);
 
   // Prioritize current wallet network if provided
-  const orderedChainIds = currentChainId && supportedChainIds.includes(currentChainId)
-    ? [currentChainId, ...supportedChainIds.filter(id => id !== currentChainId)]
-    : supportedChainIds;
+  const orderedChainIds =
+    currentChainId && supportedChainIds.includes(currentChainId)
+      ? [currentChainId, ...supportedChainIds.filter((id) => id !== currentChainId)]
+      : supportedChainIds;
 
   for (const chainId of orderedChainIds) {
     try {
       const networkConfig = networkConfigs[chainId];
       if (!networkConfig) continue;
 
-      const rpcUrl = networkConfig.privateJsonRPCUrl || networkConfig.publicJsonRPCUrl[0];
-      if (!rpcUrl) continue;
+      // For detection, try public RPCs first, then fallback to private via rotation
+      const rpcUrls: string[] = [];
+      if (Array.isArray(networkConfig.publicJsonRPCUrl) && networkConfig.publicJsonRPCUrl.length) {
+        rpcUrls.push(...networkConfig.publicJsonRPCUrl);
+      }
+      if (networkConfig.privateJsonRPCUrl) {
+        rpcUrls.push(networkConfig.privateJsonRPCUrl);
+      }
+      if (!rpcUrls.length) continue;
 
-      const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+      const provider =
+        rpcUrls.length === 1
+          ? new ethers.providers.JsonRpcProvider(rpcUrls[0])
+          : new RotationProvider(rpcUrls, chainId);
       const vaultContract = new ethers.Contract(
         vaultId,
         ['function name() external view returns (string)'],
@@ -1231,8 +1251,21 @@ export const useVaultData = <TResult = VaultData>(
 
       // Use the correct network's provider for fetching vault data
       const actualNetworkConfig = networkConfigs[vaultActualChainId];
-      const actualRpcUrl = actualNetworkConfig.privateJsonRPCUrl || actualNetworkConfig.publicJsonRPCUrl[0];
-      const actualProvider = new ethers.providers.JsonRpcProvider(actualRpcUrl);
+      const rpcUrls: string[] = [];
+      if (Array.isArray(actualNetworkConfig.publicJsonRPCUrl) && actualNetworkConfig.publicJsonRPCUrl.length) {
+        rpcUrls.push(...actualNetworkConfig.publicJsonRPCUrl);
+      }
+      if (actualNetworkConfig.privateJsonRPCUrl) {
+        rpcUrls.push(actualNetworkConfig.privateJsonRPCUrl);
+      }
+      if (!rpcUrls.length) {
+        throw new Error(`No RPC URL configured for chainId ${vaultActualChainId}`);
+      }
+
+      const actualProvider =
+        rpcUrls.length === 1
+          ? new ethers.providers.JsonRpcProvider(rpcUrls[0])
+          : new RotationProvider(rpcUrls, vaultActualChainId);
 
       if (!Object.values(ChainIds).includes(vaultActualChainId)) {
         throw new Error('Invalid chainId');
@@ -1508,13 +1541,22 @@ export const useDepositableAssetsBalances = (
       try {
         setLoading(true);
         const netCfg = networkConfigs[targetChainId];
-        const rpcUrl = netCfg?.privateJsonRPCUrl || netCfg?.publicJsonRPCUrl?.[0];
-        if (!rpcUrl) {
+        const rpcUrls: string[] = [];
+        if (Array.isArray(netCfg?.publicJsonRPCUrl) && netCfg?.publicJsonRPCUrl.length) {
+          rpcUrls.push(...netCfg.publicJsonRPCUrl);
+        }
+        if (netCfg?.privateJsonRPCUrl) {
+          rpcUrls.push(netCfg.privateJsonRPCUrl);
+        }
+        if (!rpcUrls.length) {
           setBalances({});
           setLoading(false);
           return;
         }
-        const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+        const provider =
+          rpcUrls.length === 1
+            ? new ethers.providers.JsonRpcProvider(rpcUrls[0])
+            : new RotationProvider(rpcUrls, targetChainId);
         const entries = await Promise.all(
           assets.map(async (a) => {
             const addr = (a.address as string).toLowerCase();

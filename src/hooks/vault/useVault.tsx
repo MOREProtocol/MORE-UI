@@ -230,11 +230,15 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
 
   const provider = useVaultProvider(chainId);
   const signer = useMemo(() => {
-    if (walletClient && provider) {
-      return provider.getSigner();
+    // When a wallet is connected, derive the signer directly from the wallet client
+    // instead of the read-only provider (which may be a RotationProvider without getSigner).
+    if (walletClient) {
+      return new ethers.providers.Web3Provider(
+        walletClient as unknown as ethers.providers.ExternalProvider
+      ).getSigner();
     }
     return null;
-  }, [provider, walletClient]);
+  }, [walletClient]);
   const network = useMemo(() => {
     if (chainId === ChainIds.flowEVMMainnet) {
       return 'mainnet';

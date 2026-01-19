@@ -69,6 +69,11 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
   [ChainIds.flowEVMMainnet]: {
     name: 'EVM on Flow',
     publicJsonRPCUrl: ['https://mainnet.evm.nodes.onflow.org'],
+    get privateJsonRPCUrl() {
+      return typeof window !== 'undefined'
+        ? `${window.location.origin}/api/rpc-proxy/?network=flow-mainnet`
+        : 'https://app.more.markets/api/rpc-proxy/?network=flow-mainnet';
+    },
     baseUniswapAdapter: '0x0',
     baseAssetSymbol: 'FLOW',
     wrappedBaseAssetSymbol: 'WFLOW',
@@ -80,11 +85,11 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
   [ChainIds.ethereum]: {
     name: 'Ethereum',
     displayName: 'Ethereum',
-    // get privateJsonRPCUrl() {
-    //   return typeof window !== 'undefined'
-    //     ? `${window.location.origin}/api/ethereum-rpc`
-    //     : 'https://app.more.markets/api/ethereum-rpc';
-    // },
+    get privateJsonRPCUrl() {
+      return typeof window !== 'undefined'
+        ? `${window.location.origin}/api/rpc-proxy/?network=eth-mainnet`
+        : 'https://app.more.markets/api/rpc-proxy/?network=eth-mainnet';
+    },
     publicJsonRPCUrl: [
       'https://eth.merkle.io',
       'https://ethereum.publicnode.com',
