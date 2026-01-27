@@ -456,10 +456,10 @@ export const getDesignTokens = (mode: 'light' | 'dark', theme: UiThemeName = 'de
           newGradient: 'linear-gradient(120deg, #00EF8B 0%, #02D87E 100%)',
         },
         background: {
+          ...basePalette.background,
           surface: getColor('rgba(245, 245, 248, 0.7)', 'rgba(50, 59, 74, 0.7)'),
           surface2: getColor('rgba(235, 235, 240, 0.7)', 'rgba(45, 51, 65, 0.7)'),
           surface3: getColor('rgba(224, 224, 234, 0.7)', 'rgba(37, 43, 56, 0.7)'),
-          paper: getColor('rgba(255, 255, 255, 0.7)', 'rgba(41, 46, 65, 0.7)'),
         },
         action: {
           hover: getColor('rgba(241, 241, 243, 0.7)', 'rgba(73, 82, 99, 0.7)'),
