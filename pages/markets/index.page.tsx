@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { Alert, Box } from '@mui/material';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { useRootStore } from 'src/store/root';
-import { Link } from 'src/components/primitives/Link';
 import { MyPositions } from 'src/modules/markets/MyPositions';
 import { MarketsTable } from 'src/modules/markets/MarketsTable';
 
@@ -15,11 +14,7 @@ export default function Markets() {
   return (
     <>
       <Alert severity="warning" sx={{ borderRadius: '18px', m: 2 }}>
-        MORE incentives have moved to a new system. Claims will now be available on a weekly basis, but you&apos;ll still see them accrue in real-time.
-        <Link href="https://docs.more.markets/resources/incentives" sx={{ pl: 0.5 }} target="_blank">
-          Read more
-        </Link>
-        .
+        The USDF market will soon be frozen. Migrate to PYUSD0 for long-term support.
       </Alert>
 
       <Box sx={{
