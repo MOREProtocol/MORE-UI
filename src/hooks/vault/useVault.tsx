@@ -218,6 +218,8 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     const idFromUrl = selectedVaultIdFromUrl || selectedPortfolioIdFromUrl;
     if (idFromUrl) {
       setSelectedVaultId(idFromUrl as string);
+    } else if (process.env.NEXT_PUBLIC_ONEPAGE_VAULT_ID) {
+      setSelectedVaultId(process.env.NEXT_PUBLIC_ONEPAGE_VAULT_ID);
     }
   }, [selectedVaultIdFromUrl, selectedPortfolioIdFromUrl]);
 

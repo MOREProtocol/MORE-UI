@@ -122,12 +122,20 @@ export function AppHeader() {
         })}
       >
         <Box sx={{ mr: 3 }}>
-          <LogoMenu logo={logo} />
+          {process.env.NEXT_PUBLIC_ONEPAGE_VAULT_ID ? (
+            <Box sx={{ lineHeight: 0 }}>
+              {'node' in logo ? logo.node : <img src={logo.src} alt="MORE" width={logo.width} height={logo.height} />}
+            </Box>
+          ) : (
+            <LogoMenu logo={logo} />
+          )}
         </Box>
 
-        <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-          <NavItems />
-        </Box>
+        {!process.env.NEXT_PUBLIC_ONEPAGE_VAULT_ID && (
+          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+            <NavItems />
+          </Box>
+        )}
 
         <Box sx={{ flexGrow: 1 }} />
 

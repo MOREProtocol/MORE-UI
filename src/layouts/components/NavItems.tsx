@@ -23,6 +23,10 @@ interface Navigation {
 export const NavItems = ({ setOpen }: NavItemsProps) => {
   const { currentMarketData } = useProtocolDataContext();
 
+  if (process.env.NEXT_PUBLIC_ONEPAGE_VAULT_ID) {
+    return null;
+  }
+
   const navigation: Navigation[] = [
     {
       link: ROUTES.vaults || ROUTES.dashboard,

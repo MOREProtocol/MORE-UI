@@ -212,9 +212,11 @@ export const VaultDetail = () => {
         borderRadius: 2,
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <SvgIcon sx={{ fontSize: '20px', cursor: 'pointer', color: 'primary.main', '&:hover': { color: 'primary.light' } }} onClick={() => router.push('/vaults')}>
-            <ArrowBackRoundedIcon />
-          </SvgIcon>
+          {!process.env.NEXT_PUBLIC_ONEPAGE_VAULT_ID && (
+            <SvgIcon sx={{ fontSize: '20px', cursor: 'pointer', color: 'primary.main', '&:hover': { color: 'primary.light' } }} onClick={() => router.push('/vaults')}>
+              <ArrowBackRoundedIcon />
+            </SvgIcon>
+          )}
           {isLoading ? (
             <Skeleton width={150} height={40} sx={{ my: 2 }} />
           ) : (
