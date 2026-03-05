@@ -2,6 +2,7 @@ import {
   Avatar,
   Box,
   Button,
+  Chip,
   Skeleton,
   Typography,
 } from '@mui/material';
@@ -361,6 +362,7 @@ export interface VaultGridRow {
   incentives?: PoolReservesRewardsHumanized[];
   tvm: string;
   tvmUsd: number;
+  isOmniHub?: boolean;
 }
 
 // Column Definitions
@@ -407,7 +409,14 @@ export const getStandardVaultColumns = (isMobile = false): ColumnDefinition<Vaul
     key: 'network',
     label: 'Networks',
     sortable: true,
-    render: (row) => <NetworkCell network={row.network} icon={row.networkIcon} />,
+    render: (row) => (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <NetworkCell network={row.network} icon={row.networkIcon} />
+        {row.isOmniHub && (
+          <Chip label="Omni-Chain Hub" size="small" color="primary" variant="outlined" sx={{ fontSize: '10px', height: 18 }} />
+        )}
+      </Box>
+    ),
     skeletonRender: () => (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Skeleton variant="circular" width={20} height={20} />
@@ -490,7 +499,14 @@ export const getUserVaultColumns = (isMobile = false): ColumnDefinition<VaultGri
     key: 'network',
     label: isMobile ? 'Network' : 'Networks',
     sortable: true,
-    render: (row) => <NetworkCell network={row.network} icon={row.networkIcon} />,
+    render: (row) => (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <NetworkCell network={row.network} icon={row.networkIcon} />
+        {row.isOmniHub && (
+          <Chip label="Omni-Chain Hub" size="small" color="primary" variant="outlined" sx={{ fontSize: '10px', height: 18 }} />
+        )}
+      </Box>
+    ),
     skeletonRender: () => (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Skeleton variant="circular" width={20} height={20} />

@@ -9,8 +9,8 @@ import { ethers } from 'ethers';
 import { ROUTES } from 'src/components/primitives/Link';
 import { BaseDataGrid } from 'src/components/primitives/DataGrid';
 import { useVault, VaultData } from 'src/hooks/vault/useVault';
-import { useDeployedVaults, useVaultsListData, useUserVaultsData, useAssetsData, useUserData } from 'src/hooks/vault/useVaultData';
-import { getVaultFactoryInfo } from 'src/hooks/vault/factoryRegistry';
+import { useDeployedVaults, useVaultsListData, useUserVaultsData, useAssetsData, useUserData, useOmniDeployedVaults } from 'src/hooks/vault/useVaultData';
+import { getVaultFactoryInfo, isOmniHubVault } from 'src/hooks/vault/factoryRegistry';
 import type { RewardItemEnriched } from 'src/hooks/vault/useVaultData';
 import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
 
@@ -79,6 +79,12 @@ const transformVaultsToGridRows = (
     const tvmUsd = tvmAsset.multipliedBy(assetPrice);
     const tvmValue = tvmAsset.toString();
 
+    // Use vault-specific network info if the vault has a chainId
+    const vaultChainId = vault.chainId;
+    const rowNetworkInfo = vaultChainId ? (() => {
+      try { return getNetworkInfo(vaultChainId); } catch { return networkInfo; }
+    })() : networkInfo;
+
     return {
       id: vault.id,
       vaultName: vault.overview?.name || 'Unnamed Vault',
@@ -96,13 +102,14 @@ const transformVaultsToGridRows = (
       ),
       depositTokenSymbol: vault.overview?.asset?.symbol || 'UNKNOWN',
       depositTokenAddress: vault.overview?.asset?.address || '',
-      network: networkInfo.name,
-      networkIcon: networkInfo.icon,
+      network: rowNetworkInfo.name,
+      networkIcon: rowNetworkInfo.icon,
       apy: vault.overview?.apy,
       apy7Days: vault.overview?.apy7Days,
       incentives: vault.incentives,
       tvm: tvmValue,
       tvmUsd: tvmUsd.toNumber(),
+      isOmniHub: vault.omni?.isHub,
     };
   });
 };
@@ -117,9 +124,13 @@ export const VaultAssetsList = () => {
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const deployedVaultsQuery = useDeployedVaults();
-  const rawVaultIds = deployedVaultsQuery?.data || [];
-  const vaultIds = Array.from(new Set(rawVaultIds));
-  const isLoadingVaultIds = deployedVaultsQuery?.isLoading;
+  const omniVaultsQuery = useOmniDeployedVaults();
+  const rawVaultIds = [
+    ...(deployedVaultsQuery?.data ?? []),
+    ...(omniVaultsQuery?.data ?? []),
+  ];
+  const vaultIds = Array.from(new Set(rawVaultIds.map(v => v.toLowerCase())));
+  const isLoadingVaultIds = deployedVaultsQuery?.isLoading || omniVaultsQuery?.isLoading;
 
   // Only query vaults if vaultIds are available
   const vaultsQuery = useVaultsListData(vaultIds);

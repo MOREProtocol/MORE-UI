@@ -2,7 +2,37 @@ export const ChainIds = {
   ethereum: 1,
   flowEVMTestnet: 545,
   flowEVMMainnet: 747,
+  base: 8453,
+  arbitrum: 42161,
 };
+
+// LayerZero Endpoint IDs
+export const LZ_EIDS = {
+  base: 30184,
+  ethereum: 30101,
+  arbitrum: 30110,
+  flowMainnet: 30336,
+};
+
+// Reverse lookup: EID → chainId
+export const EID_TO_CHAIN_ID: Record<number, number> = {
+  [LZ_EIDS.base]: ChainIds.base,
+  [LZ_EIDS.ethereum]: ChainIds.ethereum,
+  [LZ_EIDS.arbitrum]: ChainIds.arbitrum,
+  [LZ_EIDS.flowMainnet]: ChainIds.flowEVMMainnet,
+};
+
+// Forward lookup: chainId → LZ EID
+export const CHAIN_ID_TO_LZ_EID: Record<number, number> = {
+  [ChainIds.base]: LZ_EIDS.base,
+  [ChainIds.ethereum]: LZ_EIDS.ethereum,
+  [ChainIds.arbitrum]: LZ_EIDS.arbitrum,
+  [ChainIds.flowEVMMainnet]: LZ_EIDS.flowMainnet,
+};
+
+export const OMNI_FACTORY_ADDRESS = '0x7bDB8B17604b03125eFAED33cA0c55FBf856BB0C';
+export const OMNI_REGISTRY_ADDRESS = '0x6a0B3724AF49Ce6f14669D07823650Ec26553890';
+export const OMNI_EXTRA_OPTIONS = '0x0003';
 
 export const feeClaimer = '';
 

@@ -5,12 +5,12 @@ import {
   walletConnectWallet,
   safeWallet
 } from "@rainbow-me/rainbowkit/wallets";
-import { flowMainnet, flowTestnet, mainnet } from 'viem/chains';
+import { flowMainnet, flowTestnet, mainnet, base, arbitrum } from 'viem/chains';
 
 export const config = getDefaultConfig({
   appName: 'MORE Markets',
   projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID,
-  chains: [flowMainnet, mainnet, flowTestnet],
+  chains: [flowMainnet, flowTestnet, mainnet, base, arbitrum],
   wallets: [
     {
       groupName: "Suggested",

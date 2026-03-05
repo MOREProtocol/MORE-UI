@@ -91,9 +91,7 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
         : 'https://app.more.markets/api/rpc-proxy/?network=eth-mainnet';
     },
     publicJsonRPCUrl: [
-      'https://eth.merkle.io',
-      'https://ethereum.publicnode.com',
-      'https://rpc.ankr.com/eth'
+      'https://ethereum.publicnode.com'
     ],
     baseUniswapAdapter: '0x0',
     baseAssetSymbol: 'ETH',
@@ -102,6 +100,44 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
     explorerLink: 'https://etherscan.io',
     explorerName: 'Etherscan',
     networkLogoPath: 'https://assets.relay.link/icons/1/light.png',
+  },
+  [ChainIds.base]: {
+    name: 'Base',
+    displayName: 'Base',
+    get privateJsonRPCUrl() {
+      return typeof window !== 'undefined'
+        ? `${window.location.origin}/api/rpc-proxy/?network=base-mainnet`
+        : 'https://app.more.markets/api/rpc-proxy/?network=base-mainnet';
+    },
+    publicJsonRPCUrl: [
+      'https://base.publicnode.com'
+    ],
+    baseUniswapAdapter: '0x0',
+    baseAssetSymbol: 'ETH',
+    wrappedBaseAssetSymbol: 'WETH',
+    baseAssetDecimals: 18,
+    explorerLink: 'https://basescan.org',
+    explorerName: 'Basescan',
+    networkLogoPath: 'https://assets.relay.link/icons/8453/light.png',
+  },
+  [ChainIds.arbitrum]: {
+    name: 'Arbitrum One',
+    displayName: 'Arbitrum',
+    get privateJsonRPCUrl() {
+      return typeof window !== 'undefined'
+        ? `${window.location.origin}/api/rpc-proxy/?network=arb-mainnet`
+        : 'https://app.more.markets/api/rpc-proxy/?network=arb-mainnet';
+    },
+    publicJsonRPCUrl: [
+      'https://arbitrum.publicnode.com'
+    ],
+    baseUniswapAdapter: '0x0',
+    baseAssetSymbol: 'ETH',
+    wrappedBaseAssetSymbol: 'WETH',
+    baseAssetDecimals: 18,
+    explorerLink: 'https://arbiscan.io',
+    explorerName: 'Arbiscan',
+    networkLogoPath: 'https://assets.relay.link/icons/42161/light.png',
   },
 
 } as const;

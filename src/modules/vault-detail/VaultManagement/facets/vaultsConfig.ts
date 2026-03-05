@@ -1,4 +1,4 @@
-import { ChainIds } from 'src/utils/const';
+import { ChainIds, OMNI_FACTORY_ADDRESS } from 'src/utils/const';
 
 const flowSubgraphURL = process.env.NEXT_PUBLIC_FLOW_SUBGRAPH_URL
 const crosschainFlowSubgraphURL = process.env.NEXT_PUBLIC_CROSSCHAIN_FLOW_SUBGRAPH_URL
@@ -44,6 +44,28 @@ export const vaultsConfig = {
           ORACLE: '0x76DFB167956152620f47334A9E7De06E9bd1A4BC'
         },
         subgraphUrl: ethereumSubgraphURL,
+      }
+    ],
+    helperContract: "0x0000000000000000000000000000000000000000"
+  },
+  [ChainIds.base]: {
+    isTestnet: false,
+    factories: [
+      {
+        addresses: {
+          VAULT_FACTORY: OMNI_FACTORY_ADDRESS,
+        },
+      }
+    ],
+    helperContract: "0x0000000000000000000000000000000000000000"
+  },
+  [ChainIds.arbitrum]: {
+    isTestnet: false,
+    factories: [
+      {
+        addresses: {
+          VAULT_FACTORY: OMNI_FACTORY_ADDRESS,
+        },
       }
     ],
     helperContract: "0x0000000000000000000000000000000000000000"

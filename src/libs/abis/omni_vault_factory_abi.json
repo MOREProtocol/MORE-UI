@@ -1,0 +1,52 @@
+[
+  {
+    "inputs": [],
+    "name": "getDeployedVaults",
+    "outputs": [{ "internalType": "address[]", "name": "", "type": "address[]" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint32", "name": "chainId", "type": "uint32" },
+      { "internalType": "address", "name": "hubVault", "type": "address" }
+    ],
+    "name": "hubToSpokes",
+    "outputs": [
+      { "internalType": "uint32[]", "name": "eids", "type": "uint32[]" },
+      { "internalType": "address[]", "name": "vaults", "type": "address[]" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint32", "name": "chainId", "type": "uint32" },
+      { "internalType": "address", "name": "spokeVault", "type": "address" }
+    ],
+    "name": "spokeToHub",
+    "outputs": [
+      { "internalType": "uint32", "name": "eid", "type": "uint32" },
+      { "internalType": "address", "name": "vault", "type": "address" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "vault", "type": "address" }],
+    "name": "isFactoryVault",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint32", "name": "__eid", "type": "uint32" },
+      { "internalType": "address", "name": "_vault", "type": "address" }
+    ],
+    "name": "isCrossChainVault",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

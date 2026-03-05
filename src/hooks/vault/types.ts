@@ -1,3 +1,9 @@
+export interface SpokeVaultInfo {
+  eid: number;
+  chainId: number;
+  address: string;
+}
+
 export interface FactoryAddresses {
   VAULT_FACTORY: string;
   ORACLE?: string;

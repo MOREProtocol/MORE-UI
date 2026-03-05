@@ -11,6 +11,7 @@ export const VAULT_ID_TO_CURATOR_INFO = {
   '0xcbf9a7753f9d2d0e8141ebb36d99f87acef98597': { logo: '/icons/curators/alphayields.svg', name: 'AlphaYields' },
 
   // Omni-chain vaults
+  '0xaf46a54208ce9924b7577aff146dfd65eb193861': { logo: '/icons/curators/alphayields.svg', name: 'AlphaYields' },
   '0xa5d82762d2fa600c612be3cceefbf1bd7a27c332': { logo: '/icons/curators/tau.svg', name: 'Tau Labs' },
   '0x942abe15dc3713d55f082f0498c640c0286949af': { logo: '/icons/curators/termfinance.png', name: 'Term Finance' },
   '0xe8730abe1c2b72a401f9ee8018304cf86603acc1': { logo: '/icons/curators/more.svg', name: 'MORE' },

@@ -63,7 +63,29 @@ export default function NetworkSelector() {
     isMarket: false,
   };
 
-  const availableNetworks = [ethereumNetwork, ...marketNetworks];
+  // Add Base for omni-chain vault deposits
+  const baseNetwork = {
+    marketId: null,
+    marketData: {
+      chainId: ChainIds.base,
+      marketTitle: 'Base',
+    },
+    networkConfig: getNetworkConfig(ChainIds.base),
+    isMarket: false,
+  };
+
+  // Add Arbitrum for omni-chain vault spoke access
+  const arbitrumNetwork = {
+    marketId: null,
+    marketData: {
+      chainId: ChainIds.arbitrum,
+      marketTitle: 'Arbitrum',
+    },
+    networkConfig: getNetworkConfig(ChainIds.arbitrum),
+    isMarket: false,
+  };
+
+  const availableNetworks = [ethereumNetwork, baseNetwork, arbitrumNetwork, ...marketNetworks];
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);

@@ -76,7 +76,10 @@ export class RotationProvider extends BaseProvider {
 
   constructor(urls: string[], chainId: number, config?: RotationProviderConfig) {
     super(chainId);
-    this.providers = urls.map((url) => new StaticJsonRpcProvider(url, chainId));
+    // throttleLimit: 1 limits ethers.js's built-in 429 retry to a single attempt.
+    // The default is 12, meaning ethers silently retries the same URL 12 times before throwing,
+    // which prevents RotationProvider from catching the error and rotating to the next URL.
+    this.providers = urls.map((url) => new StaticJsonRpcProvider({ url, throttleLimit: 1 }, chainId));
 
     this.maxRetries = config?.maxRetries || MAX_RETRIES;
     this.fallForwardDelay = config?.fallFowardDelay || DEFAULT_FALL_FORWARD_DELAY;

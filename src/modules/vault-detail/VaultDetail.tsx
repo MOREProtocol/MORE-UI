@@ -1,4 +1,4 @@
-import { Avatar, Box, Button, Skeleton, SvgIcon, Tab, Tabs, Typography, useMediaQuery, useTheme, Tooltip, IconButton, Alert } from '@mui/material';
+import { Avatar, Box, Button, Chip, Skeleton, SvgIcon, Tab, Tabs, Typography, useMediaQuery, useTheme, Tooltip, IconButton, Alert } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import InfoIcon from '@mui/icons-material/InfoOutlined';
@@ -30,10 +30,12 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { ChainIds } from 'src/utils/const';
+import { isOmniSpokeVault } from 'src/hooks/vault/factoryRegistry';
 
 export const VaultDetail = () => {
   const router = useRouter();
-  const { selectedVaultId, accountAddress, chainId } = useVault();
+  const { selectedVaultId, accountAddress, chainId, isOmniHub } = useVault();
+  const isOmniSpoke = isOmniSpokeVault(chainId, selectedVaultId ?? '');
   const { address } = useAccount();
   const wagmiChainId = useChainId();
   const { switchChain } = useSwitchChain();
@@ -242,6 +244,9 @@ export const VaultDetail = () => {
                   </Typography>
                 </>
               )}
+              {isOmniHub && (
+                <Chip label="Omni-Chain Hub" size="small" color="primary" variant="outlined" sx={{ ml: 0.5 }} />
+              )}
               <IconButton
                 size="small"
                 onClick={() => {
@@ -319,20 +324,28 @@ export const VaultDetail = () => {
           flexDirection: downToMdLg ? 'column' : 'row',
           gap: 2,
         }}>
-          {!isLoading && !(vaultData?.data?.financials?.liquidity?.maxDeposit === '0') && (
-            <Button variant="gradient" color="primary" onClick={handleDepositClick} disabled={isLoading || !accountAddress}>
-              Deposit
-            </Button>
+          {!isLoading && (isOmniHub || !(vaultData?.data?.financials?.liquidity?.maxDeposit === '0')) && (
+            <Tooltip title={isOmniSpoke ? "Deposits and redeems are done on the hub chain (Base)" : ""} disableHoverListener={!isOmniSpoke}>
+              <span>
+                <Button variant="gradient" color="primary" onClick={handleDepositClick} disabled={isLoading || !accountAddress || isOmniSpoke}>
+                  Deposit
+                </Button>
+              </span>
+            </Tooltip>
           )}
-          {!isLoading && !isUserVaultDataLoading && (maxWithdraw && maxWithdraw.gt(0)) && accountAddress &&
-            <Button
-              variant="gradient"
-              size="medium"
-              onClick={() => setIsRedeemModalOpen(true)}
-              disabled={isLoading || isUserVaultDataLoading}
-            >
-              Withdraw
-            </Button>
+          {!isLoading && !isUserVaultDataLoading && accountAddress && ((isOmniHub && shares > 0) || (maxWithdraw && maxWithdraw.gt(0))) &&
+            <Tooltip title={isOmniSpoke ? "Deposits and redeems are done on the hub chain (Base)" : ""} disableHoverListener={!isOmniSpoke}>
+              <span>
+                <Button
+                  variant="gradient"
+                  size="medium"
+                  onClick={() => setIsRedeemModalOpen(true)}
+                  disabled={isLoading || isUserVaultDataLoading || isOmniSpoke}
+                >
+                  Withdraw
+                </Button>
+              </span>
+            </Tooltip>
           }
         </Box>
       </Box>
@@ -529,6 +542,34 @@ export const VaultDetail = () => {
               </Box>
             </Box>
 
+            {/* Spoke Chains - only shown for omni hub vaults */}
+            {/* {isOmniHub && vaultData?.data?.omni?.spokeVaults && vaultData.data.omni.spokeVaults.length > 0 && (
+              <Box>
+                <Typography variant="secondary14" color="text.secondary">
+                  Spoke Chains
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {vaultData.data.omni.spokeVaults.map((spoke) => {
+                    const spokeNetwork = networkConfigs[spoke.chainId];
+                    const spokeExplorer = spokeNetwork?.explorerLink;
+                    return (
+                      <Box key={spoke.chainId} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <MarketLogo size={20} logo={spokeNetwork?.networkLogoPath} />
+                        <Typography variant="main14">{spokeNetwork?.name || `Chain ${spoke.chainId}`}</Typography>
+                        <Address
+                          address={spoke.address}
+                          link={spokeExplorer ? `${spokeExplorer}/address/${spoke.address}` : undefined}
+                          variant="secondary12"
+                          compactMode={CompactMode.SM}
+                          sx={{ color: 'text.secondary' }}
+                        />
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+            )} */}
+
             {/* Row 3 - Remaining Capacity */}
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -573,7 +614,10 @@ export const VaultDetail = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   {isLoading ? <Skeleton width={80} height={24} /> : <FormattedNumber
                     value={formatUnits(
-                      BigInt(vaultData?.data?.financials?.liquidity?.maxDeposit || '0'),
+                      // Omni hub vaults return 0 for maxDeposit (bridge routing); use depositCapacity - totalAssets instead
+                      isOmniHub
+                        ? BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0') - BigInt(vaultData?.data?.financials?.liquidity?.totalAssets || '0')
+                        : BigInt(vaultData?.data?.financials?.liquidity?.maxDeposit || '0'),
                       vaultData?.data?.overview?.asset?.decimals || 18
                     ) || ''}
                     symbol={vaultData?.data?.overview?.asset?.symbol || ''}
@@ -584,7 +628,9 @@ export const VaultDetail = () => {
                 {!isLoading && (
                   <UsdChip
                     value={new BigNumber(formatUnits(
-                      BigInt(vaultData?.data?.financials?.liquidity?.maxDeposit || '0'),
+                      isOmniHub
+                        ? BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0') - BigInt(vaultData?.data?.financials?.liquidity?.totalAssets || '0')
+                        : BigInt(vaultData?.data?.financials?.liquidity?.maxDeposit || '0'),
                       vaultData?.data?.overview?.asset?.decimals || 18
                     ) || '0').multipliedBy(
                       assetData.data?.price || 0
@@ -923,7 +969,7 @@ export const VaultDetail = () => {
               <LineChart
                 height={300}
                 data={currentChartData}
-                chainId={vaultData?.data?.chainId}
+
                 yAxisFormat={vaultData?.data?.overview?.asset?.symbol}
                 showTimePeriodSelector={true}
               />

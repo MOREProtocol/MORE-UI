@@ -15,10 +15,15 @@ import {
   Facet,
   TransactionInput,
 } from 'src/modules/vault-detail/VaultManagement/facets/types';
-import { ChainIds } from 'src/utils/const';
+import { useQuery } from '@tanstack/react-query';
+import { ChainIds, OMNI_FACTORY_ADDRESS, CHAIN_ID_TO_LZ_EID, EID_TO_CHAIN_ID } from 'src/utils/const';
 import { useWalletClient, useChainId } from 'wagmi';
+import type { SpokeVaultInfo } from './types';
+import { isOmniHubVault, getVaultFactoryInfo, markVaultAsOmniHub } from './factoryRegistry';
+import omniVaultFactoryAbi from 'src/libs/abis/omni_vault_factory_abi.json';
 
-import { useVaultProvider } from './useVaultData';
+import { useVaultProvider, useOmniDeployedVaults } from './useVaultData';
+import { useOmniVaultActions } from './useOmniVaultActions';
 
 // Define standardized types for monetary values
 export interface MonetaryValue {
@@ -117,6 +122,11 @@ export interface VaultData {
     reward_token_symbol: string;
     emission_wei_per_second: string;
   }[];
+  omni?: {
+    isHub: boolean;
+    hubChainId?: number;
+    spokeVaults?: SpokeVaultInfo[];
+  };
 }
 
 // Define the tabs for your vault page
@@ -194,6 +204,19 @@ export interface VaultContextData {
   submitAndExecuteActions: () => Promise<ethers.providers.TransactionReceipt | undefined>;
   operationsLoading: boolean;
   operationsError: Error | null;
+  isOmniHub: boolean;
+  omniDeposit?: (amountInWei: string) => Promise<{
+    tx: ethers.providers.TransactionRequest;
+    action: 'approve' | 'omni-deposit';
+    nativeFee?: ethers.BigNumber;
+  }>;
+  omniRedeem?: (sharesInWei: string) => Promise<{
+    tx: ethers.providers.TransactionRequest;
+    action: 'approve' | 'omni-redeem';
+    nativeFee?: ethers.BigNumber;
+  }>;
+  checkOmniDepositAction?: (amountInWei: string) => Promise<'approve' | 'omni-deposit'>;
+  checkOmniRedeemAction?: (sharesInWei: string) => Promise<'approve' | 'omni-redeem'>;
 }
 
 // Create the context
@@ -935,6 +958,59 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     }
   }, [submitActions, executeActions]);
 
+  const omniVaultsQuery = useOmniDeployedVaults();
+
+  // Directly check isCrossChainVault for the selected vault so isOmniHub is reactive.
+  // The in-memory registry (isOmniHubVault) is not React state, so it won't trigger a
+  // re-render when populated by useDeployedVaults. This query is the source of truth.
+  const { data: isCrossChainHub = false } = useQuery({
+    queryKey: ['isCrossChainVault', chainId, selectedVaultId],
+    queryFn: async (): Promise<boolean> => {
+      if (!selectedVaultId || !provider) return false;
+      const localEid = CHAIN_ID_TO_LZ_EID[chainId];
+      if (!localEid) return false;
+      try {
+        const factory = new ethers.Contract(OMNI_FACTORY_ADDRESS, omniVaultFactoryAbi, provider);
+        const result: boolean = await factory.isCrossChainVault(localEid, selectedVaultId);
+        if (result) {
+          // Also populate the registry so spoke info is available downstream
+          try {
+            const [eids, spokeAddresses]: [number[], string[]] = await factory.hubToSpokes(localEid, selectedVaultId);
+            const spokeVaults = eids.map((eid, i) => ({
+              eid,
+              chainId: EID_TO_CHAIN_ID[eid] ?? 0,
+              address: spokeAddresses[i],
+            })).filter((s) => s.chainId !== 0);
+            markVaultAsOmniHub(chainId, selectedVaultId, spokeVaults);
+          } catch {
+            markVaultAsOmniHub(chainId, selectedVaultId, []);
+          }
+        }
+        return result;
+      } catch {
+        return false;
+      }
+    },
+    enabled: !!selectedVaultId && !!provider,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const isOmniHub = useMemo(
+    () =>
+      !!(selectedVaultId && (
+        isCrossChainHub ||
+        omniVaultsQuery.data?.some(addr => addr.toLowerCase() === selectedVaultId.toLowerCase()) ||
+        isOmniHubVault(ChainIds.base, selectedVaultId) ||
+        isOmniHubVault(chainId, selectedVaultId)
+      )),
+    [isCrossChainHub, omniVaultsQuery.data, selectedVaultId, chainId]
+  );
+
+  const { omniDeposit, omniRedeem, checkOmniDepositAction, checkOmniRedeemAction } = useOmniVaultActions(
+    isOmniHub ? selectedVaultId : null,
+    chainId
+  );
+
   const contextValue: VaultContextData = {
     // Network context
     chainId,
@@ -972,6 +1048,11 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     submitAndExecuteActions,
     operationsLoading,
     operationsError,
+    isOmniHub,
+    omniDeposit,
+    omniRedeem,
+    checkOmniDepositAction,
+    checkOmniRedeemAction,
   };
 
   return <VaultContext.Provider value={contextValue}>{children}</VaultContext.Provider>;

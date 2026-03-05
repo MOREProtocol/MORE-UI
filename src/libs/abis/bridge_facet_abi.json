@@ -1,0 +1,21 @@
+[
+  {
+    "inputs": [
+      { "internalType": "uint8", "name": "actionType", "type": "uint8" },
+      { "internalType": "bytes", "name": "actionCallData", "type": "bytes" },
+      { "internalType": "uint256", "name": "amountLimit", "type": "uint256" },
+      { "internalType": "bytes", "name": "extraOptions", "type": "bytes" }
+    ],
+    "name": "initVaultActionRequest",
+    "outputs": [{ "internalType": "bytes32", "name": "guid", "type": "bytes32" }],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes", "name": "extraOptions", "type": "bytes" }],
+    "name": "quoteAccountingFee",
+    "outputs": [{ "internalType": "uint256", "name": "nativeFee", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 
 // Rate limiting: 100 requests per minute per IP
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_REQUESTS = 200;
+const RATE_LIMIT_REQUESTS = 500;
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute in milliseconds
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -10,7 +10,7 @@ const ALLOWED_ORIGINS = [
   'https://app.more.markets',
 ];
 
-type SupportedNetwork = 'eth-mainnet' | 'flow-mainnet';
+type SupportedNetwork = 'eth-mainnet' | 'flow-mainnet' | 'base-mainnet' | 'arb-mainnet';
 
 function getRateLimitKey(req: NextApiRequest): string {
   // Get IP address, handling proxies
@@ -84,6 +84,10 @@ function getAlchemyUrlForNetwork(network: SupportedNetwork, apiKey: string): str
       return `https://eth-mainnet.g.alchemy.com/v2/${apiKey}`;
     case 'flow-mainnet':
       return `https://flow-mainnet.g.alchemy.com/v2/${apiKey}`;
+    case 'base-mainnet':
+      return `https://base-mainnet.g.alchemy.com/v2/${apiKey}`;
+    case 'arb-mainnet':
+      return `https://arb-mainnet.g.alchemy.com/v2/${apiKey}`;
     default: {
       // This should be unreachable because of typing, but keep a guard.
       throw new Error(`Unsupported network: ${network}`);
