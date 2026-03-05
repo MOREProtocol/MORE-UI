@@ -16,6 +16,7 @@ import { useRouter } from 'next/router';
 import { useRootStore } from '../store/root';
 import { availableMarkets, marketsData, getNetworkConfig, ENABLE_TESTNET, NetworkConfig } from '../utils/marketsAndNetworksConfig';
 import { ROUTES } from './primitives/Link';
+import { ChainIds } from 'src/utils/const';
 
 export default function NetworkSelector() {
   const chainId = useChainId();

@@ -206,6 +206,7 @@ export interface VaultContextData {
   operationsLoading: boolean;
   operationsError: Error | null;
   isOmniHub: boolean;
+  spokeVaults?: SpokeVaultInfo[];
   omniDeposit?: (amountInWei: string) => Promise<{
     tx: ethers.providers.TransactionRequest;
     action: 'approve' | 'omni-deposit';
@@ -251,8 +252,22 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   const { data: walletClient } = useWalletClient();
   const wagmiChainId = useChainId();
 
+  // Freeze the data-fetching chain to the wallet chain at the time a vault is selected.
+  // This prevents transient wallet chain switches (e.g., during spoke deposits) from
+  // invalidating query caches and causing vault detail page flicker.
+  const [frozenVaultChainId, setFrozenVaultChainId] = useState<number | null>(null);
+  useEffect(() => {
+    if (selectedVaultId) {
+      setFrozenVaultChainId(wagmiChainId || ChainIds.flowEVMMainnet);
+    } else {
+      setFrozenVaultChainId(null);
+    }
+  // wagmiChainId intentionally excluded: only re-capture when vault selection changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedVaultId]);
+
   // Use wagmi chainId (reacts to network changes) with fallback to Flow EVM Mainnet
-  const chainId = wagmiChainId || ChainIds.flowEVMMainnet;
+  const chainId = frozenVaultChainId ?? (wagmiChainId || ChainIds.flowEVMMainnet);
 
   const provider = useVaultProvider(chainId);
   const signer = useMemo(() => {
@@ -965,13 +980,13 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
 
   // Directly check isCrossChainVault for the selected vault so isOmniHub is reactive.
   // The in-memory registry (isOmniHubVault) is not React state, so it won't trigger a
-  // re-render when populated by useDeployedVaults. This query is the source of truth.
-  const { data: isCrossChainHub = false } = useQuery({
+  // re-render when populated by useDeployedVaults. This query returns both hub flag and spoke vaults.
+  const { data: crossChainHubData = { isHub: false, spokeVaults: [] as SpokeVaultInfo[] } } = useQuery({
     queryKey: ['isCrossChainVault', chainId, selectedVaultId],
-    queryFn: async (): Promise<boolean> => {
-      if (!selectedVaultId || !provider) return false;
+    queryFn: async (): Promise<{ isHub: boolean; spokeVaults: SpokeVaultInfo[] }> => {
+      if (!selectedVaultId || !provider) return { isHub: false, spokeVaults: [] };
       const localEid = CHAIN_ID_TO_LZ_EID[chainId];
-      if (!localEid) return false;
+      if (!localEid) return { isHub: false, spokeVaults: [] };
       try {
         const factory = new ethers.Contract(OMNI_FACTORY_ADDRESS, omniVaultFactoryAbi, provider);
         const result: boolean = await factory.isCrossChainVault(localEid, selectedVaultId);
@@ -980,14 +995,15 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
           try {
             const bridge = new ethers.Contract(selectedVaultId, bridgeFacetAbi, provider);
             const isOracleMode: boolean = await bridge.oraclesCrossChainAccounting();
-            if (isOracleMode) return false;
+            if (isOracleMode) return { isHub: false, spokeVaults: [] };
           } catch {
             // Function not present — assume async mode, continue
           }
-          // Also populate the registry so spoke info is available downstream
+          // Populate the registry and collect spoke vaults for context
+          let spokeVaults: SpokeVaultInfo[] = [];
           try {
             const [eids, spokeAddresses]: [number[], string[]] = await factory.hubToSpokes(localEid, selectedVaultId);
-            const spokeVaults = eids.map((eid, i) => ({
+            spokeVaults = eids.map((eid, i) => ({
               eid,
               chainId: EID_TO_CHAIN_ID[eid] ?? 0,
               address: spokeAddresses[i],
@@ -996,15 +1012,19 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
           } catch {
             markVaultAsOmniHub(chainId, selectedVaultId, []);
           }
+          return { isHub: true, spokeVaults };
         }
-        return result;
+        return { isHub: false, spokeVaults: [] };
       } catch {
-        return false;
+        return { isHub: false, spokeVaults: [] };
       }
     },
     enabled: !!selectedVaultId && !!provider,
     staleTime: 5 * 60 * 1000,
   });
+
+  const isCrossChainHub = crossChainHubData.isHub;
+  const queriedSpokeVaults = crossChainHubData.spokeVaults;
 
   const isOmniHub = useMemo(
     () =>
@@ -1060,6 +1080,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     operationsLoading,
     operationsError,
     isOmniHub,
+    spokeVaults: queriedSpokeVaults.length > 0 ? queriedSpokeVaults : undefined,
     omniDeposit,
     omniRedeem,
     checkOmniDepositAction,

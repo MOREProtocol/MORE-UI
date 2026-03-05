@@ -8,6 +8,8 @@ export interface BasicModalProps {
   setOpen: (value: boolean) => void;
   withCloseButton?: boolean;
   contentMaxWidth?: number;
+  /** Apply a blur filter to the page content behind the modal backdrop */
+  backdropBlur?: boolean;
 }
 
 export const BasicModal = ({
@@ -15,6 +17,7 @@ export const BasicModal = ({
   setOpen,
   withCloseButton = true,
   contentMaxWidth = 420,
+  backdropBlur = false,
   children,
   ...props
 }: BasicModalProps) => {
@@ -24,6 +27,7 @@ export const BasicModal = ({
     <Modal
       open={open}
       onClose={handleClose}
+      slotProps={backdropBlur ? { backdrop: { sx: { backdropFilter: 'blur(4px)' } } } : undefined}
       sx={{
         display: 'flex',
         flexDirection: 'column',
