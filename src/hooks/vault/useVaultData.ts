@@ -2181,7 +2181,26 @@ export const useOmniDeployedVaults = () => {
         })
       );
 
-      return hubVaults;
+      const visibleVaultsEnv = process.env.NEXT_PUBLIC_VISIBLE_VAULT_IDS || '';
+      const visibleVaultIds = visibleVaultsEnv
+        .split(',')
+        .map((id) => id.trim().toLowerCase())
+        .filter(Boolean);
+
+      const hiddenVaultsEnv = process.env.NEXT_PUBLIC_HIDDEN_VAULT_IDS || '';
+      const hiddenVaultIds = hiddenVaultsEnv
+        .split(',')
+        .map((id) => id.trim().toLowerCase())
+        .filter(Boolean);
+
+      let filteredHubVaults = hubVaults;
+      if (visibleVaultIds.length > 0) {
+        const visibleSet = new Set(visibleVaultIds);
+        filteredHubVaults = filteredHubVaults.filter((v) => visibleSet.has(v.toLowerCase()));
+      }
+      filteredHubVaults = filteredHubVaults.filter((v) => !hiddenVaultIds.includes(v.toLowerCase()));
+
+      return filteredHubVaults;
     },
     enabled: !!baseProvider,
     staleTime: 5 * 60 * 1000,
