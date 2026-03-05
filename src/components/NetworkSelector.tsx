@@ -15,7 +15,6 @@ import { useChainId, useSwitchChain } from 'wagmi';
 import { useRouter } from 'next/router';
 import { useRootStore } from '../store/root';
 import { availableMarkets, marketsData, getNetworkConfig, ENABLE_TESTNET, NetworkConfig } from '../utils/marketsAndNetworksConfig';
-import { ChainIds } from '../utils/const';
 import { ROUTES } from './primitives/Link';
 
 export default function NetworkSelector() {
@@ -52,6 +51,7 @@ export default function NetworkSelector() {
     (ENABLE_TESTNET || !network.networkConfig.isTestnet)
   );
 
+  /* DISABLED FOR NOW
   // Add Ethereum mainnet for bridging (even though it's not a market)
   const ethereumNetwork = {
     marketId: null,
@@ -84,8 +84,9 @@ export default function NetworkSelector() {
     networkConfig: getNetworkConfig(ChainIds.arbitrum),
     isMarket: false,
   };
+  */
 
-  const availableNetworks = [ethereumNetwork, baseNetwork, arbitrumNetwork, ...marketNetworks];
+  const availableNetworks = [...marketNetworks];
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);

@@ -10,7 +10,7 @@ import { ROUTES } from 'src/components/primitives/Link';
 import { BaseDataGrid } from 'src/components/primitives/DataGrid';
 import { useVault, VaultData } from 'src/hooks/vault/useVault';
 import { useDeployedVaults, useVaultsListData, useUserVaultsData, useAssetsData, useUserData, useOmniDeployedVaults } from 'src/hooks/vault/useVaultData';
-import { getVaultFactoryInfo, isOmniHubVault } from 'src/hooks/vault/factoryRegistry';
+import { getVaultFactoryInfo } from 'src/hooks/vault/factoryRegistry';
 import type { RewardItemEnriched } from 'src/hooks/vault/useVaultData';
 import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
 

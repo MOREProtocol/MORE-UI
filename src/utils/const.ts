@@ -32,7 +32,7 @@ export const CHAIN_ID_TO_LZ_EID: Record<number, number> = {
 
 export const OMNI_FACTORY_ADDRESS = '0x7bDB8B17604b03125eFAED33cA0c55FBf856BB0C';
 export const OMNI_REGISTRY_ADDRESS = '0x6a0B3724AF49Ce6f14669D07823650Ec26553890';
-export const OMNI_EXTRA_OPTIONS = '0x0003';
+export const OMNI_EXTRA_OPTIONS = '0x';
 
 export const feeClaimer = '';
 

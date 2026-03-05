@@ -47,6 +47,7 @@ export const useOmniVaultActions = (
       tx: ethers.providers.TransactionRequest;
       action: 'approve' | 'omni-deposit';
       nativeFee?: ethers.BigNumber;
+      guid?: string;
     }> => {
       if (!vaultAddress) throw new Error('No vault address');
       if (!signer) throw new Error('No signer available');
@@ -87,7 +88,18 @@ export const useOmniVaultActions = (
         value: feeWithBuffer,
       };
 
-      return { tx, action: 'omni-deposit', nativeFee: feeWithBuffer };
+      // Capture GUID via callStatic before broadcasting (best-effort)
+      let guid: string | undefined;
+      try {
+        const bridgeFacetSigner = new ethers.Contract(vaultAddress, bridgeFacetAbi, signer);
+        guid = await bridgeFacetSigner.callStatic.initVaultActionRequest(
+          0, calldata, amountLimit, OMNI_EXTRA_OPTIONS, { value: feeWithBuffer }
+        );
+      } catch {
+        // GUID unavailable — proceed without it
+      }
+
+      return { tx, action: 'omni-deposit', nativeFee: feeWithBuffer, guid };
     },
     [vaultAddress, signer, accountAddress, provider]
   );
@@ -99,6 +111,7 @@ export const useOmniVaultActions = (
       tx: ethers.providers.TransactionRequest;
       action: 'approve' | 'omni-redeem';
       nativeFee?: ethers.BigNumber;
+      guid?: string;
     }> => {
       if (!vaultAddress) throw new Error('No vault address');
       if (!signer) throw new Error('No signer available');
@@ -140,7 +153,18 @@ export const useOmniVaultActions = (
         value: feeWithBuffer,
       };
 
-      return { tx, action: 'omni-redeem', nativeFee: feeWithBuffer };
+      // Capture GUID via callStatic before broadcasting (best-effort)
+      let guid: string | undefined;
+      try {
+        const bridgeFacetSigner = new ethers.Contract(vaultAddress, bridgeFacetAbi, signer);
+        guid = await bridgeFacetSigner.callStatic.initVaultActionRequest(
+          3, calldata, amountLimit, OMNI_EXTRA_OPTIONS, { value: feeWithBuffer }
+        );
+      } catch {
+        // GUID unavailable — proceed without it
+      }
+
+      return { tx, action: 'omni-redeem', nativeFee: feeWithBuffer, guid };
     },
     [vaultAddress, signer, accountAddress, provider]
   );

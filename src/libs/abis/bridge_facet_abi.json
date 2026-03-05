@@ -17,5 +17,37 @@
     "outputs": [{ "internalType": "uint256", "name": "nativeFee", "type": "uint256" }],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "guid", "type": "bytes32" }],
+    "name": "getRequestInfo",
+    "outputs": [
+      {
+        "internalType": "struct BridgeFacet.RequestInfo",
+        "name": "",
+        "type": "tuple",
+        "components": [
+          { "internalType": "address", "name": "initiator", "type": "address" },
+          { "internalType": "uint64", "name": "timestamp", "type": "uint64" },
+          { "internalType": "uint8", "name": "actionType", "type": "uint8" },
+          { "internalType": "bytes", "name": "actionCallData", "type": "bytes" },
+          { "internalType": "bool", "name": "fulfilled", "type": "bool" },
+          { "internalType": "bool", "name": "finalized", "type": "bool" },
+          { "internalType": "bool", "name": "refunded", "type": "bool" },
+          { "internalType": "uint256", "name": "totalAssets", "type": "uint256" },
+          { "internalType": "uint256", "name": "finalizationResult", "type": "uint256" },
+          { "internalType": "uint256", "name": "amountLimit", "type": "uint256" }
+        ]
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "oraclesCrossChainAccounting",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
   }
 ]

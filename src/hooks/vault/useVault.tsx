@@ -19,11 +19,12 @@ import { useQuery } from '@tanstack/react-query';
 import { ChainIds, OMNI_FACTORY_ADDRESS, CHAIN_ID_TO_LZ_EID, EID_TO_CHAIN_ID } from 'src/utils/const';
 import { useWalletClient, useChainId } from 'wagmi';
 import type { SpokeVaultInfo } from './types';
-import { isOmniHubVault, getVaultFactoryInfo, markVaultAsOmniHub } from './factoryRegistry';
+import { isOmniHubVault, markVaultAsOmniHub } from './factoryRegistry';
 import omniVaultFactoryAbi from 'src/libs/abis/omni_vault_factory_abi.json';
 
 import { useVaultProvider, useOmniDeployedVaults } from './useVaultData';
 import { useOmniVaultActions } from './useOmniVaultActions';
+import bridgeFacetAbi from 'src/libs/abis/bridge_facet_abi.json';
 
 // Define standardized types for monetary values
 export interface MonetaryValue {
@@ -209,11 +210,13 @@ export interface VaultContextData {
     tx: ethers.providers.TransactionRequest;
     action: 'approve' | 'omni-deposit';
     nativeFee?: ethers.BigNumber;
+    guid?: string;
   }>;
   omniRedeem?: (sharesInWei: string) => Promise<{
     tx: ethers.providers.TransactionRequest;
     action: 'approve' | 'omni-redeem';
     nativeFee?: ethers.BigNumber;
+    guid?: string;
   }>;
   checkOmniDepositAction?: (amountInWei: string) => Promise<'approve' | 'omni-deposit'>;
   checkOmniRedeemAction?: (sharesInWei: string) => Promise<'approve' | 'omni-redeem'>;
@@ -973,6 +976,14 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
         const factory = new ethers.Contract(OMNI_FACTORY_ADDRESS, omniVaultFactoryAbi, provider);
         const result: boolean = await factory.isCrossChainVault(localEid, selectedVaultId);
         if (result) {
+          // Check if vault is in oracle mode — oracle mode uses standard ERC4626, not BridgeFacet
+          try {
+            const bridge = new ethers.Contract(selectedVaultId, bridgeFacetAbi, provider);
+            const isOracleMode: boolean = await bridge.oraclesCrossChainAccounting();
+            if (isOracleMode) return false;
+          } catch {
+            // Function not present — assume async mode, continue
+          }
           // Also populate the registry so spoke info is available downstream
           try {
             const [eids, spokeAddresses]: [number[], string[]] = await factory.hubToSpokes(localEid, selectedVaultId);

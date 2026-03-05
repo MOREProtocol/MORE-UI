@@ -1,8 +1,8 @@
-import { Alert, Box, Button, CircularProgress, Typography, Checkbox, FormControlLabel, Collapse, Tooltip } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Collapse, FormControlLabel, Checkbox, Link, Tooltip, Typography } from '@mui/material';
 import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
 import { parseUnits } from 'ethers/lib/utils';
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { AssetInput, Asset } from 'src/components/transactions/AssetInput';
@@ -14,6 +14,8 @@ import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useBalance, useChainId, useSendTransaction, useSwitchChain } from 'wagmi';
 import { networkConfigs } from 'src/ui-config/networksConfig';
 import { quoteOmniFee } from 'src/hooks/vault/useOmniVaultActions';
+import configurationFacetAbi from 'src/libs/abis/configuration_facet_abi.json';
+import bridgeFacetAbi from 'src/libs/abis/bridge_facet_abi.json';
 
 interface VaultDepositModalProps {
   isOpen: boolean;
@@ -36,12 +38,9 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   ]);
   const { addERC20Token } = useWeb3Context();
 
-  // Use the new asset data hook instead of reserves lookup
-  // Primary vault asset (used for actual deposit flow)
   const primaryAssetAddress = selectedVault?.overview?.asset?.address || '';
   const primaryAssetData = useAssetData(primaryAssetAddress || '');
 
-  // Depositable assets from vault
   const depositableAssets = (selectedVault?.overview?.depositableAssets && selectedVault.overview.depositableAssets.length > 0
     ? selectedVault.overview.depositableAssets
     : [
@@ -53,26 +52,19 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     ]
   );
 
-  // Selected asset for input display/balance
   const [selectedAssetAddress, setSelectedAssetAddress] = useState<string>(depositableAssets?.[0]?.address || primaryAssetAddress);
   const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string>(
     (depositableAssets?.[0]?.symbol || '') || ''
   );
   const selectedAssetData = useAssetData(selectedAssetAddress || '');
 
-  // Wallet balances for all depositable assets via shared hook (uses public RPC with backup rotation)
   const depositableBalancesQuery = useDepositableAssetsBalances(selectedVaultId, accountAddress);
-
-  // Use wagmi's useBalance hook for wallet balance (wallet/provider-native).
   const { data: walletBalanceData } = useBalance({
     address: accountAddress as `0x${string}`,
     token: (selectedAssetAddress || primaryAssetAddress) as `0x${string}`,
   });
 
   const assetBalances = depositableBalancesQuery.balances;
-
-  // Prefer the wallet's own provider balance when available,
-  // but fall back to our JSON-RPC-based balance if wagmi cannot fetch.
   const fallbackWalletBalance =
     assetBalances[(selectedAssetAddress || primaryAssetAddress).toLowerCase()] ?? '0';
   const walletBalance = walletBalanceData?.formatted || fallbackWalletBalance || '0';
@@ -89,20 +81,21 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   // Omni vault state
   const [estimatedFee, setEstimatedFee] = useState<string | null>(null);
   const [isFeeLoading, setIsFeeLoading] = useState(false);
+  const [omniGuid, setOmniGuid] = useState<string | null>(null);
+  const [omniStatus, setOmniStatus] = useState<'pending' | 'fulfilled' | 'finalized'>('pending');
+  const [omniFinalizationResult, setOmniFinalizationResult] = useState<string | null>(null);
+  const [preflight, setPreflight] = useState<{ paused: boolean; escrowMissing: boolean } | null>(null);
 
   const amountInUsd = new BigNumber(amount).multipliedBy(selectedAssetData.data?.price || 0);
 
-  // Check if user has vault tokens
   const userVaultBalance = userVaultData?.[0]?.data?.maxWithdraw?.toString() || '0';
   const hasVaultTokens = new BigNumber(userVaultBalance).isGreaterThan(0);
 
-  // Handle adding vault token to wallet when curator icon is clicked
   const handleCuratorIconClick = async () => {
     if (!selectedVaultId || !selectedVault || !signer || (!txHash && !hasVaultTokens)) return;
 
     setAddTokenLoading(true);
     try {
-      // Get the actual ERC20 symbol from the vault contract
       const vaultContract = new ethers.Contract(
         selectedVaultId,
         [
@@ -140,16 +133,12 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     }
   };
 
-  // Calculate max amount considering both wallet balance and whitelist limits
   const maxAmountToSupply = useMemo(() => {
     if (!selectedAssetData.data?.decimals) return '0';
 
-    // Start with wallet balance
     let effectiveMaxAmount = walletBalance;
 
-    // Apply whitelist limit if provided
     if (whitelistAmount && whitelistAmount !== '0') {
-      // Convert whitelist amount from wei to readable format
       const whitelistAmountFormatted = roundToTokenDecimals(
         new BigNumber(whitelistAmount)
           .dividedBy(new BigNumber(10).pow(selectedAssetData.data.decimals))
@@ -157,17 +146,14 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
         selectedAssetData.data.decimals
       );
 
-      // Take the minimum between wallet balance and whitelist amount
       effectiveMaxAmount = new BigNumber(walletBalance).isLessThan(whitelistAmountFormatted)
         ? walletBalance
         : whitelistAmountFormatted;
     }
 
-    // Return effective max amount (protocol limits don't apply to non-Flow networks)
     return effectiveMaxAmount || '0';
   }, [walletBalance, whitelistAmount, selectedAssetData.data]);
 
-  // Determine which balance and text to show in AssetInput
   const assetInputConfig = useMemo(() => {
     if (!selectedAssetData.data?.decimals || !whitelistAmount || whitelistAmount === '0') {
       return {
@@ -188,13 +174,34 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     };
   }, [walletBalance, whitelistAmount, selectedAssetData.data?.decimals]);
 
-  // Omni: estimate bridge fee when amount changes
+  // On open, verify vault is not paused and escrow is configured before allowing deposit
   useEffect(() => {
-    if (!isOmniHub || !selectedVaultId || !vaultProvider) return;
-    if (!amount || amount === '0') {
-      setEstimatedFee(null);
-      return;
-    }
+    if (!isOmniHub || !isOpen || !selectedVaultId || !vaultProvider) return;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const configFacet = new ethers.Contract(selectedVaultId, configurationFacetAbi, vaultProvider);
+        const [isPaused, escrow] = await Promise.all([
+          configFacet.paused().catch(() => false),
+          configFacet.getEscrow().catch(() => ethers.constants.AddressZero),
+        ]);
+        if (!cancelled) {
+          setPreflight({
+            paused: !!isPaused,
+            escrowMissing: escrow === ethers.constants.AddressZero,
+          });
+        }
+      } catch {
+        if (!cancelled) setPreflight(null);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [isOmniHub, isOpen, selectedVaultId, vaultProvider]);
+
+  // Estimate bridge fee once when modal opens — fee is amount-independent
+  useEffect(() => {
+    if (!isOmniHub || !isOpen || !selectedVaultId || !vaultProvider) return;
     let cancelled = false;
     const run = async () => {
       setIsFeeLoading(true);
@@ -209,14 +216,37 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
         if (!cancelled) setIsFeeLoading(false);
       }
     };
-    const timer = setTimeout(run, 400);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [isOmniHub, selectedVaultId, amount, vaultProvider]);
+    run();
+    return () => { cancelled = true; };
+  }, [isOmniHub, isOpen, selectedVaultId, vaultProvider]);
 
-  // Effect to reset state when modal is closed
+  // Poll cross-chain request status after tx submission until finalized
+  useEffect(() => {
+    if (!omniGuid || !selectedVaultId || !vaultProvider || omniStatus === 'finalized') return;
+    let cancelled = false;
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        const bridge = new ethers.Contract(selectedVaultId, bridgeFacetAbi, vaultProvider);
+        const info = await bridge.getRequestInfo(omniGuid);
+        if (!cancelled) {
+          if (info.finalized) {
+            setOmniStatus('finalized');
+            setOmniFinalizationResult(info.finalizationResult.toString());
+          } else if (info.fulfilled) {
+            setOmniStatus('fulfilled');
+          }
+        }
+      } catch {
+        // Silently ignore polling errors
+      }
+    };
+    poll();
+    const interval = setInterval(poll, 15000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [omniGuid, selectedVaultId, vaultProvider, omniStatus]);
+
+  // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
       setAmount('');
@@ -228,6 +258,10 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       setAddTokenLoading(false);
       setAddTokenSuccess(false);
       setEstimatedFee(null);
+      setOmniGuid(null);
+      setOmniStatus('pending');
+      setOmniFinalizationResult(null);
+      setPreflight(null);
     }
   }, [isOpen]);
 
@@ -269,7 +303,6 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   }, [amount, selectedAssetData.data?.decimals, selectedAssetAddress, primaryAssetAddress, txHash, depositInVault, depositInVaultFromToken, isOmniHub, checkOmniDepositAction]);
 
   const handleChange = (value: string) => {
-    // Clear any previous errors when user changes amount
     if (txError) {
       setTxError(null);
     }
@@ -292,13 +325,12 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     }
 
     if (isOmniHub && omniDeposit) {
-      // Omni deposit path
       if (!amount || amount === '0' || !selectedAssetData.data || selectedAssetData.data.decimals == null || !signer || !txAction) return;
       setIsLoading(true);
       setTxError(null);
       try {
         const parsedAmount = parseUnits(amount, selectedAssetData.data.decimals).toString();
-        const { tx, action: determinedAction } = await omniDeposit(parsedAmount);
+        const { tx, action: determinedAction, guid: capturedGuid } = await omniDeposit(parsedAmount);
 
         if (txAction !== determinedAction) {
           setTxAction(determinedAction);
@@ -320,12 +352,16 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
           const hash = await sendTransactionAsync({
             to: tx.to as `0x${string}`,
             data: tx.data as `0x${string}`,
-            value: tx.value ? BigInt(tx.value.toString()) : 0n,
+            value: tx.value ? BigInt(tx.value.toString()) : BigInt(0),
             chainId: vaultChainId,
           });
           const receipt = await vaultProvider?.waitForTransaction(hash);
           if (receipt && receipt.status === 1) {
             setTxHash(hash);
+            if (capturedGuid) {
+              setOmniGuid(capturedGuid);
+              setOmniStatus('pending');
+            }
             if (refreshUserVaultData) refreshUserVaultData();
           } else {
             setTxError('Deposit transaction failed or was rejected.');
@@ -359,7 +395,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     }
 
     setIsLoading(true);
-    setTxError(null); // Clear any previous errors
+    setTxError(null);
 
     try {
       const parsedAmount = parseUnits(amount, selectedAssetData.data.decimals).toString();
@@ -398,7 +434,6 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
         if (depositReceipt && depositReceipt.status === 1) {
           setTxHash(depositReceipt.transactionHash);
 
-          // Refresh user vault data after successful deposit
           if (refreshUserVaultData) {
             refreshUserVaultData();
           }
@@ -440,7 +475,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     if (isLoading) {
       if (txAction === 'approve') return 'Approving...';
       if (txAction === 'deposit') return 'Depositing...';
-      if (txAction === 'omni-deposit') return 'Depositing via Bridge...';
+      if (txAction === 'omni-deposit') return 'Depositing...';
       return 'Processing...';
     }
 
@@ -457,13 +492,13 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       return 'Deposit into the vault';
     }
     if (txAction === 'omni-deposit') {
-      return 'Deposit via Bridge';
+      return 'Deposit into the vault';
     }
 
     return 'Deposit into the vault';
   }, [amount, primaryAssetData.data, txHash, txAction, isLoading, currentNetworkConfig.explorerName, isOmniHub]);
 
-  // Can deposit from any selected asset via multi-asset deposit path
+  const preflightBlocked = isOmniHub && preflight && (preflight.paused || preflight.escrowMissing);
 
   return (
     <BasicModal open={isOpen} setOpen={setIsOpen}>
@@ -582,6 +617,19 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
                 </Box>
               </Box>
             </Box>
+
+            {/* Preflight warnings */}
+            {isOmniHub && preflight?.paused && (
+              <Alert severity="error">
+                This vault is currently paused. Deposits are temporarily disabled.
+              </Alert>
+            )}
+            {isOmniHub && preflight?.escrowMissing && (
+              <Alert severity="error">
+                This vault&apos;s escrow is not configured. Deposits are disabled.
+              </Alert>
+            )}
+
             <AssetInput
               value={amount}
               onChange={handleChange}
@@ -655,10 +703,31 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
               </Box>
             )}
 
+            {/* Cross-chain request status tracker — shown after bridge tx confirms */}
+            {isOmniHub && txHash && (
+              <Box sx={{ p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography variant="secondary14">
+                  {omniStatus === 'pending' && '⏳ Waiting for cross-chain accounting (~2 min)…'}
+                  {omniStatus === 'fulfilled' && '⏳ Accounting resolved, finalising…'}
+                  {omniStatus === 'finalized' && `✅ Complete — ${omniFinalizationResult && selectedVault?.overview?.decimals ? parseFloat(ethers.utils.formatUnits(omniFinalizationResult, selectedVault.overview.decimals)).toFixed(6) : '?'} shares minted`}
+                </Typography>
+                {omniGuid && (
+                  <Link
+                    href={`https://layerzeroscan.com/tx/${omniGuid}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="secondary14"
+                  >
+                    Track on LayerZero Scan ↗
+                  </Link>
+                )}
+              </Box>
+            )}
+
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Button
                 variant={txHash ? 'contained' : 'gradient'}
-                disabled={!amount || amount === '0' || (isOmniHub && wagmiChainId !== vaultChainId)}
+                disabled={!amount || amount === '0' || (isOmniHub && wagmiChainId !== vaultChainId) || !!preflightBlocked}
                 onClick={handleClick}
                 size="large"
                 sx={{ minHeight: '44px' }}

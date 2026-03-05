@@ -1,5 +1,6 @@
-import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Link, Typography } from '@mui/material';
 import BigNumber from 'bignumber.js';
+import { ethers } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import { useMemo, useState, useEffect } from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
@@ -15,7 +16,12 @@ import { formatTimeRemaining } from 'src/helpers/timeHelper';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { useChainId, useSendTransaction, useSwitchChain } from 'wagmi';
 import { quoteOmniFee } from 'src/hooks/vault/useOmniVaultActions';
-import { ethers } from 'ethers';
+import configurationFacetAbi from 'src/libs/abis/configuration_facet_abi.json';
+import bridgeFacetAbi from 'src/libs/abis/bridge_facet_abi.json';
+
+const WITHDRAWAL_REQUEST_ABI = [
+  'function getWithdrawalRequest(address owner) external view returns (uint256 shares, uint256 timeLockEndsAt)',
+];
 
 interface VaultRedeemModalProps {
   isOpen: boolean;
@@ -56,7 +62,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
 
-  // Use the new asset data hook instead of reserves lookup
   const assetData = useAssetData(selectedVault?.overview?.asset?.address || '');
 
   const [amount, setAmount] = useState('');
@@ -77,6 +82,12 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
   // Omni vault state
   const [estimatedFee, setEstimatedFee] = useState<string | null>(null);
   const [isFeeLoading, setIsFeeLoading] = useState(false);
+  const [omniGuid, setOmniGuid] = useState<string | null>(null);
+  const [omniStatus, setOmniStatus] = useState<'pending' | 'fulfilled' | 'finalized'>('pending');
+  const [omniFinalizationResult, setOmniFinalizationResult] = useState<string | null>(null);
+
+  // Finding 6: Hub vault withdrawal queue state
+  const [omniHasQueue, setOmniHasQueue] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -88,16 +99,16 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
       setTxError(null);
       setConvertedAssets('0');
       setEstimatedFee(null);
+      setOmniGuid(null);
+      setOmniStatus('pending');
+      setOmniFinalizationResult(null);
+      setOmniHasQueue(false);
     }
   }, [isOpen]);
 
-  // Omni: estimate bridge fee when amount changes
+  // Estimate bridge fee once when modal opens — fee is amount-independent
   useEffect(() => {
-    if (!isOmniHub || !selectedVaultId || !vaultProvider) return;
-    if (!amount || parseFloat(amount) <= 0) {
-      setEstimatedFee(null);
-      return;
-    }
+    if (!isOmniHub || !isOpen || !selectedVaultId || !vaultProvider) return;
     let cancelled = false;
     const run = async () => {
       setIsFeeLoading(true);
@@ -110,9 +121,70 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
         if (!cancelled) setIsFeeLoading(false);
       }
     };
-    const timer = setTimeout(run, 400);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [isOmniHub, selectedVaultId, amount, vaultProvider]);
+    run();
+    return () => { cancelled = true; };
+  }, [isOmniHub, isOpen, selectedVaultId, vaultProvider]);
+
+  // Load withdrawal queue status and any pending request for omni hub vaults
+  useEffect(() => {
+    if (!isOmniHub || !isOpen || !selectedVaultId || !vaultProvider) return;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const configFacet = new ethers.Contract(selectedVaultId, configurationFacetAbi, vaultProvider);
+        const hasQueue = await configFacet.getWithdrawalQueueStatus().catch(() => false);
+        if (cancelled) return;
+        setOmniHasQueue(!!hasQueue);
+
+        if (hasQueue && accountAddress) {
+          const vaultContract = new ethers.Contract(selectedVaultId, WITHDRAWAL_REQUEST_ABI, vaultProvider);
+          const [reqData, timelockSecs] = await Promise.all([
+            vaultContract.getWithdrawalRequest(accountAddress).catch(() => null),
+            configFacet.getWithdrawalTimelock().catch(() => 0),
+          ]);
+          if (!cancelled) {
+            if (reqData && reqData.shares.gt(0)) {
+              setWithdrawalRequest({
+                shares: reqData.shares.toString(),
+                timeLockEndsAt: reqData.timeLockEndsAt.toString(),
+              });
+            }
+            setTimelock(timelockSecs.toString());
+          }
+        }
+      } catch {
+        if (!cancelled) setOmniHasQueue(false);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [isOmniHub, isOpen, selectedVaultId, vaultProvider, accountAddress]);
+
+  // Poll cross-chain request status after tx submission until finalized
+  useEffect(() => {
+    if (!omniGuid || !selectedVaultId || !vaultProvider || omniStatus === 'finalized') return;
+    let cancelled = false;
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        const bridge = new ethers.Contract(selectedVaultId, bridgeFacetAbi, vaultProvider);
+        const info = await bridge.getRequestInfo(omniGuid);
+        if (!cancelled) {
+          if (info.finalized) {
+            setOmniStatus('finalized');
+            setOmniFinalizationResult(info.finalizationResult.toString());
+          } else if (info.fulfilled) {
+            setOmniStatus('fulfilled');
+          }
+        }
+      } catch {
+        // Silently ignore polling errors
+      }
+    };
+    poll();
+    const interval = setInterval(poll, 15000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [omniGuid, selectedVaultId, vaultProvider, omniStatus]);
 
   // Load max redeem amount when modal opens
   useEffect(() => {
@@ -132,9 +204,30 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
     loadMaxRedeem();
   }, [isOpen, accountAddress, selectedVaultId, maxRedeem, selectedVault?.overview?.decimals]);
 
-  // For omni vaults, determine txAction without timelock logic
+  // Determine txAction for omni vaults (with or without queue)
   useEffect(() => {
-    if (!isOmniHub || !checkOmniRedeemAction) return;
+    if (!isOmniHub) return;
+    if (txHash) return; // bridge tx already submitted — don't override txAction
+
+    if (omniHasQueue) {
+      // Queue enabled: request → wait for timelock → bridge redeem
+      if (withdrawalRequest && withdrawalRequest.shares !== '0') {
+        const timeLockEndsAt = parseInt(withdrawalRequest.timeLockEndsAt);
+        if (currentTime >= timeLockEndsAt) {
+          setTxAction('omni-redeem');
+        } else {
+          setTxAction('waiting');
+        }
+      } else if (amount && parseFloat(amount) > 0) {
+        setTxAction('request');
+      } else {
+        setTxAction(null);
+      }
+      return;
+    }
+
+    // No queue: check approve vs omni-redeem
+    if (!checkOmniRedeemAction) return;
     if (!amount || parseFloat(amount) <= 0) {
       setTxAction(null);
       return;
@@ -150,12 +243,12 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
       }
     };
     run();
-  }, [isOmniHub, checkOmniRedeemAction, amount, selectedVault?.overview?.decimals]);
+  }, [isOmniHub, checkOmniRedeemAction, amount, selectedVault?.overview?.decimals, omniHasQueue, withdrawalRequest, currentTime, txHash]);
 
-  // Load withdrawal request data when modal opens
+  // Load withdrawal request data when modal opens (mono-chain vaults only)
   useEffect(() => {
     const loadWithdrawalData = async () => {
-      if (isOmniHub) return; // No timelock for omni vaults
+      if (isOmniHub) return; // Handled by omni-specific effect above
       if (isOpen && accountAddress && selectedVaultId) {
         try {
           const [request, timelockDuration] = await Promise.all([
@@ -163,7 +256,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
             getWithdrawalTimelock(),
           ]);
 
-          // Only set withdrawal request if shares > 0
           if (request.shares !== '0') {
             setWithdrawalRequest(request);
           } else {
@@ -172,7 +264,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
           setTimelock(timelockDuration);
         } catch (error) {
           console.error('Error loading withdrawal data:', error);
-          // Reset withdrawal request if there's an error (likely no request exists)
           setWithdrawalRequest(null);
         }
       }
@@ -210,15 +301,15 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Auto-hide transaction hash when timelock expires
+  // Auto-hide transaction hash when timelock expires (mono-chain)
   useEffect(() => {
-    if (withdrawalRequest && txHash) {
+    if (!isOmniHub && withdrawalRequest && txHash) {
       const timeLockEndsAt = parseInt(withdrawalRequest.timeLockEndsAt);
       if (currentTime >= timeLockEndsAt) {
         setTxHash(null);
       }
     }
-  }, [withdrawalRequest, txHash, currentTime]);
+  }, [isOmniHub, withdrawalRequest, txHash, currentTime]);
 
   // Pre-fill amount when withdrawal request is loaded
   useEffect(() => {
@@ -228,14 +319,14 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
     }
   }, [withdrawalRequest, selectedVault?.overview?.decimals]);
 
+  // txAction state machine for mono-chain vaults
   useEffect(() => {
-    if (isOmniHub) return; // Omni vaults have no timelock; action is set by the omni-specific effect above
+    if (isOmniHub) return;
     if (withdrawalRequest && selectedVault?.overview?.decimals) {
       const timeLockEndsAt = parseInt(withdrawalRequest.timeLockEndsAt);
       const canWithdraw = currentTime >= timeLockEndsAt;
       const requestedAmount = formatUnits(withdrawalRequest.shares, selectedVault.overview.decimals);
 
-      // Check if amount is effectively zero (handles '0', '0.0', '0.00', etc.)
       const isAmountZero = !amount || parseFloat(amount) === 0;
       const enteredAmount = parseFloat(amount || '0');
       const requestedAmountNum = parseFloat(requestedAmount);
@@ -244,9 +335,7 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
       if (canWithdraw && (isAmountZero || enteredAmount <= requestedAmountNum)) {
         setTxAction('redeem');
       } else if (hasAmountGreaterThanRequested) {
-        // Allow new request if user entered a larger amount than requested
         setTxAction('request');
-        // Clear previous transaction hash when user wants to make a new request
         if (txHash) {
           setTxHash(null);
         }
@@ -260,15 +349,13 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
     } else {
       setTxAction(null);
     }
-  }, [amount, withdrawalRequest, currentTime, selectedVault?.overview?.decimals]);
+  }, [amount, withdrawalRequest, currentTime, selectedVault?.overview?.decimals, isOmniHub]);
 
-  // Calculate converted assets in USD
   const convertedAssetsFormatted = assetData.data ?
     formatUnits(convertedAssets, assetData.data.decimals) : '0';
   const convertedAssetsInUsd = new BigNumber(convertedAssetsFormatted).multipliedBy(assetData.data?.price || 0);
 
   const handleChange = (value: string) => {
-    // Clear any previous errors when user changes amount
     if (txError) {
       setTxError(null);
     }
@@ -284,21 +371,65 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
   const handleClick = async () => {
     // Omni redeem path
     if (isOmniHub && omniRedeem) {
-      if (txHash) {
+      // If bridge tx is done (txAction null), open the explorer
+      if (txHash && txAction === null) {
         window.open(`${networkConfigs[chainId]?.explorerLink}/tx/${txHash}`, '_blank');
         return;
       }
       if (!txAction || !selectedVault?.overview?.decimals || !signer) return;
+
       setIsLoading(true);
       setTxError(null);
+
       try {
-        const sharesInWei = parseUnits(amount, selectedVault.overview.decimals).toString();
-        const { tx, action: determinedAction } = await omniRedeem(sharesInWei);
+        // Two-step path: standard requestRedeem first, then bridge redeem after timelock
+        if (txAction === 'request') {
+          const sharesInWei = parseUnits(amount, selectedVault.overview.decimals).toString();
+          const { tx } = await requestRedeem(sharesInWei);
+          const enhancedTx = await enhanceTransactionWithGas(tx);
+          const response = await signer.sendTransaction(enhancedTx);
+          const receipt = await response.wait();
+
+          if (receipt && receipt.status === 1) {
+            // Reload withdrawal request after successful request
+            if (selectedVaultId && vaultProvider && accountAddress) {
+              try {
+                const vaultContract = new ethers.Contract(selectedVaultId, WITHDRAWAL_REQUEST_ABI, vaultProvider);
+                const configFacet = new ethers.Contract(selectedVaultId, configurationFacetAbi, vaultProvider);
+                const [reqData, timelockSecs] = await Promise.all([
+                  vaultContract.getWithdrawalRequest(accountAddress),
+                  configFacet.getWithdrawalTimelock().catch(() => 0),
+                ]);
+                if (reqData && reqData.shares.gt(0)) {
+                  setWithdrawalRequest({
+                    shares: reqData.shares.toString(),
+                    timeLockEndsAt: reqData.timeLockEndsAt.toString(),
+                  });
+                  setTimelock(timelockSecs.toString());
+                }
+              } catch { }
+            }
+            if (refreshUserVaultData) refreshUserVaultData();
+          } else {
+            setTxError('Request redeem transaction failed or was rejected.');
+          }
+          return;
+        }
+
+        // Bridge path: 'approve' or 'omni-redeem'
+        // Use withdrawalRequest.shares if queue is enabled and request is present
+        const sharesInWei = (omniHasQueue && withdrawalRequest)
+          ? withdrawalRequest.shares
+          : parseUnits(amount, selectedVault.overview.decimals).toString();
+
+        const { tx, action: determinedAction, guid: capturedGuid } = await omniRedeem(sharesInWei);
+
         if (txAction !== determinedAction) {
           setTxAction(determinedAction);
           setIsLoading(false);
           return;
         }
+
         if (txAction === 'approve') {
           const enhancedTx = await enhanceTransactionWithGas(tx);
           const approveResponse = await signer.sendTransaction(enhancedTx);
@@ -313,12 +444,18 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
           const hash = await sendTransactionAsync({
             to: tx.to as `0x${string}`,
             data: tx.data as `0x${string}`,
-            value: tx.value ? BigInt(tx.value.toString()) : 0n,
+            value: tx.value ? BigInt(tx.value.toString()) : BigInt(0),
             chainId: vaultChainId,
           });
           const receipt = await vaultProvider?.waitForTransaction(hash);
           if (receipt && receipt.status === 1) {
             setTxHash(hash);
+            setTxAction(null);
+            setWithdrawalRequest(null);
+            if (capturedGuid) {
+              setOmniGuid(capturedGuid);
+              setOmniStatus('pending');
+            }
             if (refreshUserVaultData) refreshUserVaultData();
           } else {
             setTxError('Redeem transaction failed or was rejected.');
@@ -334,7 +471,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
     }
 
     // Standard redeem path
-    // Only open transaction link when specifically in waiting state or when showing transaction link
     if (txHash && (txAction === 'waiting' || !withdrawalRequest)) {
       const explorerLink = currentNetworkConfig?.explorerLinkBuilder?.({ tx: txHash })
         || `${networkConfigs[chainId].explorerLink}/tx/${txHash}`;
@@ -347,7 +483,7 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
     }
 
     setIsLoading(true);
-    setTxError(null); // Clear any previous errors
+    setTxError(null);
     try {
       if (txAction === 'request') {
         const { tx } = await requestRedeem(parseUnits(amount, selectedVault.overview.decimals).toString());
@@ -356,7 +492,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
         const receipt = await response.wait();
 
         if (receipt && receipt.status === 1) {
-          // Reload withdrawal request data immediately after successful request
           try {
             const [request, timelockDuration] = await Promise.all([
               getWithdrawalRequest(accountAddress),
@@ -366,16 +501,13 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
             if (request.shares !== '0') {
               setWithdrawalRequest(request);
 
-              // Check if timelock is zero or if we can withdraw immediately
               const timeLockEndsAt = parseInt(request.timeLockEndsAt);
               const currentTimestamp = Date.now() / 1000;
 
               if (parseInt(timelockDuration) === 0 || currentTimestamp >= timeLockEndsAt) {
-                // No timelock or timelock finished - don't show transaction link, go straight to redeem
                 setTxHash(null);
                 setTxAction('redeem');
               } else {
-                // Show transaction link and set waiting state
                 setTxHash(receipt.transactionHash);
                 setTxAction('waiting');
               }
@@ -385,16 +517,13 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
               setTxAction(null);
             }
 
-            // Refresh user vault data after successful request
             if (refreshUserVaultData) {
               refreshUserVaultData();
             }
           } catch (error) {
             console.error('Error reloading withdrawal request:', error);
-            // Fallback to showing transaction link
             setTxHash(receipt.transactionHash);
             setTxAction(null);
-            // Still refresh user vault data even if request reload fails
             if (refreshUserVaultData) {
               refreshUserVaultData();
             }
@@ -404,7 +533,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
           setTxError('Request redeem transaction failed or was rejected.');
         }
       } else if (txAction === 'redeem') {
-        // For redeem, use the shares amount from withdrawal request or input amount
         const sharesToRedeem = withdrawalRequest
           ? withdrawalRequest.shares
           : parseUnits(amount, selectedVault.overview.decimals).toString();
@@ -417,9 +545,8 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
         if (receipt && receipt.status === 1) {
           setTxHash(receipt.transactionHash);
           setTxAction(null);
-          setWithdrawalRequest(null); // Clear the withdrawal request after successful redemption
+          setWithdrawalRequest(null);
 
-          // Refresh user vault data after successful redemption
           if (refreshUserVaultData) {
             refreshUserVaultData();
           }
@@ -440,15 +567,22 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
   const buttonContent = useMemo(() => {
     // Omni path
     if (isOmniHub) {
-      if (txHash) return `See transaction on ${networkConfigs[chainId]?.explorerName || 'explorer'}`;
+      if (txHash && txAction === null) return `See transaction on ${networkConfigs[chainId]?.explorerName || 'explorer'}`;
       if (isLoading) {
         if (txAction === 'approve') return 'Approving...';
-        if (txAction === 'omni-redeem') return 'Withdrawing via Bridge...';
+        if (txAction === 'request') return 'Requesting withdrawal...';
+        if (txAction === 'omni-redeem') return 'Withdrawing...';
         return 'Processing...';
       }
       if (!amount || parseFloat(amount) <= 0) return 'Enter an amount';
       if (txAction === 'approve') return 'Approve token spend';
-      if (txAction === 'omni-redeem') return 'Withdraw via Bridge';
+      if (txAction === 'request') return 'Request withdrawal';
+      if (txAction === 'waiting') {
+        const timeLockEndsAt = parseInt(withdrawalRequest?.timeLockEndsAt || '0');
+        const timeRemaining = timeLockEndsAt - currentTime;
+        return `Timelock: ${formatTimeRemaining(timeRemaining)} remaining`;
+      }
+      if (txAction === 'omni-redeem') return omniHasQueue ? 'Complete' : 'Withdraw';
       return 'Enter an amount';
     }
 
@@ -472,7 +606,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
       const requestedAmountNum = parseFloat(requestedAmount);
       const hasAmountGreaterThanRequested = enteredAmount > requestedAmountNum;
 
-      // If timelock is finished or zero, prioritize action over showing transaction
       if (canWithdraw && (!amount || amount === '0' || enteredAmount <= requestedAmountNum)) {
         return 'Complete withdrawal';
       } else if (hasAmountGreaterThanRequested) {
@@ -480,7 +613,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
       } else if (canWithdraw) {
         return 'Complete withdrawal';
       } else {
-        // Only show transaction link if we're in waiting state and there's a txHash
         if (txHash && txAction === 'waiting') {
           return `See transaction on ${currentNetworkConfig?.explorerName}`;
         }
@@ -489,7 +621,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
       }
     }
 
-    // Show transaction link only if no withdrawal request exists
     if (txHash && !withdrawalRequest) {
       return `See transaction on ${currentNetworkConfig?.explorerName}`;
     }
@@ -503,7 +634,7 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
     }
 
     return 'Enter an amount';
-  }, [amount, selectedVault?.overview?.decimals, txHash, isLoading, txAction, withdrawalRequest, currentTime, currentNetworkConfig?.explorerName]);
+  }, [amount, selectedVault?.overview?.decimals, txHash, isLoading, txAction, withdrawalRequest, currentTime, currentNetworkConfig?.explorerName, isOmniHub, omniHasQueue]);
 
   return (
     <BasicModal open={isOpen} setOpen={setIsOpen}>
@@ -528,40 +659,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
           )}
         </Box>
 
-        {/* Blue banner with link to old withdraw modal */}
-        {/* <Alert
-          severity="info"
-          sx={{
-            alignItems: 'center',
-            '& .MuiAlert-message': {
-              width: '100%'
-            }
-          }}
-        >
-          <Typography variant="main14">
-            Looking for asset-based{' '}
-            <Link
-              component="button"
-              variant="main14"
-              onClick={() => {
-                setIsOpen(false);
-                onOpenWithdrawModal?.();
-              }}
-              sx={{
-                textDecoration: 'underline',
-                pb: 0.5,
-                cursor: 'pointer',
-                '&:hover': {
-                  color: 'primary.dark',
-                },
-              }}
-            >
-              withdrawal
-            </Link>
-            ?
-          </Typography>
-        </Alert> */}
-
         <Box
           sx={{
             display: 'flex',
@@ -584,6 +681,7 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
           </Box>
         </Box>
 
+        {/* Withdrawal request info for mono-chain */}
         {!isOmniHub && withdrawalRequest && (
           <Box sx={{ mb: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
             <Typography variant="subheader1" sx={{ mb: 1 }}>
@@ -596,6 +694,25 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
             <Typography variant="secondary14">
               {currentTime >= parseInt(withdrawalRequest.timeLockEndsAt)
                 ? 'Timelock completed - you can now redeem'
+                : `Timelock ends in ${formatTimeRemaining(parseInt(withdrawalRequest.timeLockEndsAt) - currentTime)} (${new Date(parseInt(withdrawalRequest.timeLockEndsAt) * 1000).toLocaleString()})`
+              }
+            </Typography>
+          </Box>
+        )}
+
+        {/* Omni hub: pending withdrawal request info with timelock countdown */}
+        {isOmniHub && omniHasQueue && withdrawalRequest && (
+          <Box sx={{ mb: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+            <Typography variant="subheader1" sx={{ mb: 1 }}>
+              Current Withdrawal Request
+            </Typography>
+            <Typography variant="secondary14" sx={{ mb: 1 }}>
+              Requested shares: {selectedVault?.overview?.decimals ?
+                formatUnits(withdrawalRequest.shares, selectedVault.overview.decimals) : '0'} {selectedVault?.overview?.symbol}
+            </Typography>
+            <Typography variant="secondary14">
+              {currentTime >= parseInt(withdrawalRequest.timeLockEndsAt)
+                ? 'Timelock completed — ready to complete'
                 : `Timelock ends in ${formatTimeRemaining(parseInt(withdrawalRequest.timeLockEndsAt) - currentTime)} (${new Date(parseInt(withdrawalRequest.timeLockEndsAt) * 1000).toLocaleString()})`
               }
             </Typography>
@@ -658,16 +775,34 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
                 You must be on the vault&apos;s hub network to withdraw.
               </Alert>
             )}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography variant="secondary14" color="text.secondary">Bridge fee</Typography>
-              {isFeeLoading ? (
-                <CircularProgress size={14} />
-              ) : estimatedFee ? (
-                <Typography variant="secondary14">~{parseFloat(estimatedFee).toFixed(6)} {networkConfigs[chainId]?.baseAssetSymbol || 'ETH'}</Typography>
-              ) : (
-                <Typography variant="secondary14" color="text.secondary">—</Typography>
-              )}
-            </Box>
+            {/* Only show bridge fee when not in queue-request step */}
+            {txAction !== 'request' && (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="secondary14" color="text.secondary">Bridge fee</Typography>
+                {isFeeLoading ? (
+                  <CircularProgress size={14} />
+                ) : estimatedFee ? (
+                  <Typography variant="secondary14">~{parseFloat(estimatedFee).toFixed(6)} {networkConfigs[chainId]?.baseAssetSymbol || 'ETH'}</Typography>
+                ) : (
+                  <Typography variant="secondary14" color="text.secondary">—</Typography>
+                )}
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {/* Omni hub with queue: explain two-step withdrawal process */}
+        {isOmniHub && omniHasQueue && !withdrawalRequest && (
+          <Box sx={{ mb: 2, p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
+              <strong>Withdrawal process:</strong>
+              <span> This vault requires a two-step withdrawal. First request your withdrawal and wait for the timelock, then complete it.</span>
+            </Typography>
+            {txAction === 'request' && timelock && parseInt(timelock) > 0 && (
+              <Typography variant="secondary14" sx={{ color: 'warning.main', mt: 1, fontWeight: 'bold' }}>
+                ⏱️ Timelock duration: {formatTimeRemaining(parseInt(timelock))}
+              </Typography>
+            )}
           </Box>
         )}
 
@@ -682,11 +817,31 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
               )}
             </Typography>
 
-            {/* Show timelock duration when user is about to make a request */}
             {txAction === 'request' && timelock && parseInt(timelock) > 0 && (
               <Typography variant="secondary14" sx={{ color: 'warning.main', mt: 1, fontWeight: 'bold' }}>
                 ⏱️ Timelock duration: {formatTimeRemaining(parseInt(timelock))}
               </Typography>
+            )}
+          </Box>
+        )}
+
+        {/* Cross-chain request status tracker — shown after bridge tx confirms */}
+        {isOmniHub && txHash && txAction === null && (
+          <Box sx={{ p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography variant="secondary14">
+              {omniStatus === 'pending' && '⏳ Waiting for cross-chain accounting (~2 min)…'}
+              {omniStatus === 'fulfilled' && '⏳ Accounting resolved, finalising…'}
+              {omniStatus === 'finalized' && `✅ Complete — ${omniFinalizationResult && assetData.data?.decimals ? parseFloat(ethers.utils.formatUnits(omniFinalizationResult, assetData.data.decimals)).toFixed(6) : '?'} ${assetData.data?.symbol || ''} received`}
+            </Typography>
+            {omniGuid && (
+              <Link
+                href={`https://layerzeroscan.com/tx/${omniGuid}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="secondary14"
+              >
+                Track on LayerZero Scan ↗
+              </Link>
             )}
           </Box>
         )}
@@ -718,7 +873,8 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
             disabled={
               isLoading ||
               (isOmniHub && wagmiChainId !== vaultChainId) ||
-              (isOmniHub && (!amount || amount === '0')) ||
+              (isOmniHub && txAction === 'waiting') ||
+              (isOmniHub && !txAction && (!amount || amount === '0') && !withdrawalRequest) ||
               (!isOmniHub && (txAction === 'waiting' && !(txHash && txAction === 'waiting'))) ||
               (!isOmniHub && !withdrawalRequest && (!amount || amount === '0'))
             }
@@ -734,4 +890,4 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
       </Box>
     </BasicModal>
   );
-}; 
+};
