@@ -206,20 +206,8 @@ export interface VaultContextData {
   operationsLoading: boolean;
   operationsError: Error | null;
   isOmniHub: boolean;
-  omniDeposit?: (amountInWei: string) => Promise<{
-    tx: ethers.providers.TransactionRequest;
-    action: 'approve' | 'omni-deposit';
-    nativeFee?: ethers.BigNumber;
-    guid?: string;
-  }>;
-  omniRedeem?: (sharesInWei: string) => Promise<{
-    tx: ethers.providers.TransactionRequest;
-    action: 'approve' | 'omni-redeem';
-    nativeFee?: ethers.BigNumber;
-    guid?: string;
-  }>;
-  checkOmniDepositAction?: (amountInWei: string) => Promise<'approve' | 'omni-deposit'>;
-  checkOmniRedeemAction?: (sharesInWei: string) => Promise<'approve' | 'omni-redeem'>;
+  omniDeposit?: (amountInWei: string) => Promise<{ txHash: string; guid?: string }>;
+  omniRedeem?: (sharesInWei: string) => Promise<{ txHash: string; guid?: string }>;
 }
 
 // Create the context
@@ -1017,7 +1005,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     [isCrossChainHub, omniVaultsQuery.data, selectedVaultId, chainId]
   );
 
-  const { omniDeposit, omniRedeem, checkOmniDepositAction, checkOmniRedeemAction } = useOmniVaultActions(
+  const { omniDeposit, omniRedeem } = useOmniVaultActions(
     isOmniHub ? selectedVaultId : null,
     chainId
   );
@@ -1062,8 +1050,6 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     isOmniHub,
     omniDeposit,
     omniRedeem,
-    checkOmniDepositAction,
-    checkOmniRedeemAction,
   };
 
   return <VaultContext.Provider value={contextValue}>{children}</VaultContext.Provider>;

@@ -6,7 +6,7 @@
     "jsx": "preserve",
     "allowJs": false,
     "strict": false,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
