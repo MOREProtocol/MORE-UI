@@ -14,7 +14,7 @@ import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useBalance, useChainId, usePublicClient, useSwitchChain } from 'wagmi';
 import { formatEther } from 'viem';
 import { networkConfigs } from 'src/ui-config/networksConfig';
-import { asSdkClient, getAsyncRequestStatus, getVaultStatus, quoteLzFee } from '@oydual31/more-vaults-sdk/viem';
+import { asSdkClient, getAsyncRequestStatusLabel, getVaultStatus, quoteLzFee } from '@oydual31/more-vaults-sdk/viem';
 
 interface VaultDepositModalProps {
   isOpen: boolean;
@@ -80,7 +80,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const [estimatedFee, setEstimatedFee] = useState<string | null>(null);
   const [isFeeLoading, setIsFeeLoading] = useState(false);
   const [omniGuid, setOmniGuid] = useState<string | null>(null);
-  const [omniStatus, setOmniStatus] = useState<'pending' | 'fulfilled' | 'finalized'>('pending');
+  const [omniStatus, setOmniStatus] = useState<'pending' | 'ready-to-execute' | 'completed' | 'refunded'>('pending');
   const [omniFinalizationResult, setOmniFinalizationResult] = useState<string | null>(null);
   const [preflight, setPreflight] = useState<{ paused: boolean; escrowMissing: boolean } | null>(null);
 
@@ -214,24 +214,22 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     return () => { cancelled = true; };
   }, [isOmniHub, isOpen, selectedVaultId, publicClient]);
 
-  // Poll cross-chain request status after tx submission until finalized
+  // Poll cross-chain request status after tx submission until completed or refunded
   useEffect(() => {
-    if (!omniGuid || !selectedVaultId || !publicClient || omniStatus === 'finalized') return;
+    if (!omniGuid || !selectedVaultId || !publicClient || omniStatus === 'completed' || omniStatus === 'refunded') return;
     let cancelled = false;
     const poll = async () => {
       if (cancelled) return;
       try {
-        const info = await getAsyncRequestStatus(
+        const label = await getAsyncRequestStatusLabel(
           asSdkClient(publicClient),
           selectedVaultId as `0x${string}`,
           omniGuid as `0x${string}`
         );
         if (!cancelled) {
-          if (info.finalized) {
-            setOmniStatus('finalized');
-            setOmniFinalizationResult(info.result.toString());
-          } else if (info.fulfilled) {
-            setOmniStatus('fulfilled');
+          setOmniStatus(label);
+          if (label === 'completed' || label === 'refunded') {
+            setOmniFinalizationResult(label);
           }
         }
       } catch {
@@ -667,8 +665,9 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
               <Box sx={{ p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Typography variant="secondary14">
                   {omniStatus === 'pending' && '⏳ Waiting for cross-chain accounting (~2 min)…'}
-                  {omniStatus === 'fulfilled' && '⏳ Accounting resolved, finalising…'}
-                  {omniStatus === 'finalized' && `✅ Complete — ${omniFinalizationResult && selectedVault?.overview?.decimals ? parseFloat(ethers.utils.formatUnits(omniFinalizationResult, selectedVault.overview.decimals)).toFixed(6) : '?'} shares minted`}
+                  {omniStatus === 'ready-to-execute' && '⏳ Accounting resolved, finalising…'}
+                  {omniStatus === 'completed' && '✅ Deposit complete — shares minted'}
+                  {omniStatus === 'refunded' && '↩️ Deposit refunded — funds returned to your wallet'}
                 </Typography>
                 {omniGuid && (
                   <Link
