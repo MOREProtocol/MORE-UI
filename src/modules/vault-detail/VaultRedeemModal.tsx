@@ -18,7 +18,7 @@ import { useChainId, usePublicClient, useSwitchChain } from 'wagmi';
 import { formatEther } from 'viem';
 import {
   asSdkClient,
-  getAsyncRequestStatus,
+  getAsyncRequestStatusLabel,
   getVaultStatus,
   getWithdrawalRequest as sdkGetWithdrawalRequest,
   quoteLzFee,
@@ -82,7 +82,7 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
   const [estimatedFee, setEstimatedFee] = useState<string | null>(null);
   const [isFeeLoading, setIsFeeLoading] = useState(false);
   const [omniGuid, setOmniGuid] = useState<string | null>(null);
-  const [omniStatus, setOmniStatus] = useState<'pending' | 'fulfilled' | 'finalized'>('pending');
+  const [omniStatus, setOmniStatus] = useState<'pending' | 'ready-to-execute' | 'completed' | 'refunded'>('pending');
   const [omniFinalizationResult, setOmniFinalizationResult] = useState<string | null>(null);
 
   // Finding 6: Hub vault withdrawal queue state
@@ -158,24 +158,22 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
     return () => { cancelled = true; };
   }, [isOmniHub, isOpen, selectedVaultId, publicClient, accountAddress]);
 
-  // Poll cross-chain request status after tx submission until finalized
+  // Poll cross-chain request status after tx submission until completed or refunded
   useEffect(() => {
-    if (!omniGuid || !selectedVaultId || !publicClient || omniStatus === 'finalized') return;
+    if (!omniGuid || !selectedVaultId || !publicClient || omniStatus === 'completed' || omniStatus === 'refunded') return;
     let cancelled = false;
     const poll = async () => {
       if (cancelled) return;
       try {
-        const info = await getAsyncRequestStatus(
+        const label = await getAsyncRequestStatusLabel(
           asSdkClient(publicClient),
           selectedVaultId as `0x${string}`,
           omniGuid as `0x${string}`
         );
         if (!cancelled) {
-          if (info.finalized) {
-            setOmniStatus('finalized');
-            setOmniFinalizationResult(info.result.toString());
-          } else if (info.fulfilled) {
-            setOmniStatus('fulfilled');
+          setOmniStatus(label);
+          if (label === 'completed' || label === 'refunded') {
+            setOmniFinalizationResult(label);
           }
         }
       } catch {
@@ -790,8 +788,9 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
           <Box sx={{ p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="secondary14">
               {omniStatus === 'pending' && '⏳ Waiting for cross-chain accounting (~2 min)…'}
-              {omniStatus === 'fulfilled' && '⏳ Accounting resolved, finalising…'}
-              {omniStatus === 'finalized' && `✅ Complete — ${omniFinalizationResult && assetData.data?.decimals ? parseFloat(ethers.utils.formatUnits(omniFinalizationResult, assetData.data.decimals)).toFixed(6) : '?'} ${assetData.data?.symbol || ''} received`}
+              {omniStatus === 'ready-to-execute' && '⏳ Accounting resolved, finalising…'}
+              {omniStatus === 'completed' && `✅ Redeem complete — assets returned to your wallet`}
+              {omniStatus === 'refunded' && '↩️ Redeem refunded — shares returned to your wallet'}
             </Typography>
             {omniGuid && (
               <Link
