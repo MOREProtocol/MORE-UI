@@ -14,9 +14,7 @@ import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useBalance, useChainId, usePublicClient, useSwitchChain } from 'wagmi';
 import { formatEther } from 'viem';
 import { networkConfigs } from 'src/ui-config/networksConfig';
-import { getAsyncRequestStatus, getVaultStatus, quoteLzFee } from '@oydual31/more-vaults-sdk/viem';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const asSdkPublicClient = (c: unknown) => c as any;
+import { asSdkClient, getAsyncRequestStatus, getVaultStatus, quoteLzFee } from '@oydual31/more-vaults-sdk/viem';
 
 interface VaultDepositModalProps {
   isOpen: boolean;
@@ -180,7 +178,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     let cancelled = false;
     const run = async () => {
       try {
-        const status = await getVaultStatus(asSdkPublicClient(publicClient), selectedVaultId as `0x${string}`);
+        const status = await getVaultStatus(asSdkClient(publicClient), selectedVaultId as `0x${string}`);
         if (!cancelled) {
           setPreflight({
             paused: status.isPaused,
@@ -202,7 +200,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     const run = async () => {
       setIsFeeLoading(true);
       try {
-        const fee = await quoteLzFee(asSdkPublicClient(publicClient), selectedVaultId as `0x${string}`);
+        const fee = await quoteLzFee(asSdkClient(publicClient), selectedVaultId as `0x${string}`);
         if (!cancelled) {
           setEstimatedFee(formatEther((fee * BigInt(101)) / BigInt(100)));
         }
@@ -224,7 +222,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       if (cancelled) return;
       try {
         const info = await getAsyncRequestStatus(
-          asSdkPublicClient(publicClient),
+          asSdkClient(publicClient),
           selectedVaultId as `0x${string}`,
           omniGuid as `0x${string}`
         );

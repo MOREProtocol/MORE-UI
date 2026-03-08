@@ -17,13 +17,12 @@ import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { useChainId, usePublicClient, useSwitchChain } from 'wagmi';
 import { formatEther } from 'viem';
 import {
+  asSdkClient,
   getAsyncRequestStatus,
   getVaultStatus,
   getWithdrawalRequest as sdkGetWithdrawalRequest,
   quoteLzFee,
 } from '@oydual31/more-vaults-sdk/viem';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const asSdkPublicClient = (c: unknown) => c as any;
 
 interface VaultRedeemModalProps {
   isOpen: boolean;
@@ -113,7 +112,7 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
     const run = async () => {
       setIsFeeLoading(true);
       try {
-        const fee = await quoteLzFee(asSdkPublicClient(publicClient), selectedVaultId as `0x${string}`);
+        const fee = await quoteLzFee(asSdkClient(publicClient), selectedVaultId as `0x${string}`);
         if (!cancelled) setEstimatedFee(formatEther((fee * BigInt(101)) / BigInt(100)));
       } catch {
         if (!cancelled) setEstimatedFee(null);
@@ -131,13 +130,13 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
     let cancelled = false;
     const run = async () => {
       try {
-        const status = await getVaultStatus(asSdkPublicClient(publicClient), selectedVaultId as `0x${string}`);
+        const status = await getVaultStatus(asSdkClient(publicClient), selectedVaultId as `0x${string}`);
         if (cancelled) return;
         setOmniHasQueue(status.withdrawalQueueEnabled);
 
         if (status.withdrawalQueueEnabled && accountAddress) {
           const reqData = await sdkGetWithdrawalRequest(
-            asSdkPublicClient(publicClient),
+            asSdkClient(publicClient),
             selectedVaultId as `0x${string}`,
             accountAddress as `0x${string}`
           );
@@ -167,7 +166,7 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
       if (cancelled) return;
       try {
         const info = await getAsyncRequestStatus(
-          asSdkPublicClient(publicClient),
+          asSdkClient(publicClient),
           selectedVaultId as `0x${string}`,
           omniGuid as `0x${string}`
         );
@@ -387,11 +386,11 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
               try {
                 const [reqData, status] = await Promise.all([
                   sdkGetWithdrawalRequest(
-                    asSdkPublicClient(publicClient),
+                    asSdkClient(publicClient),
                     selectedVaultId as `0x${string}`,
                     accountAddress as `0x${string}`
                   ),
-                  getVaultStatus(asSdkPublicClient(publicClient), selectedVaultId as `0x${string}`),
+                  getVaultStatus(asSdkClient(publicClient), selectedVaultId as `0x${string}`),
                 ]);
                 if (reqData && reqData.shares > BigInt(0)) {
                   setWithdrawalRequest({

@@ -1,20 +1,18 @@
 import { useCallback } from 'react';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import {
+  asSdkClient,
   depositAsync,
   getVaultStatus,
   quoteLzFee,
   redeemAsync,
 } from '@oydual31/more-vaults-sdk/viem';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const asSdkClient = (c: unknown) => c as any;
-
 export const useOmniVaultActions = (
   vaultAddress: string | null,
   hubChainId: number
 ) => {
-  const { data: walletClient } = useWalletClient();
+  const { data: walletClient } = useWalletClient({ chainId: hubChainId });
   const publicClient = usePublicClient({ chainId: hubChainId });
 
   const omniDeposit = useCallback(
@@ -25,7 +23,8 @@ export const useOmniVaultActions = (
 
       const vault = vaultAddress as `0x${string}`;
       const pc = asSdkClient(publicClient);
-      const wc = asSdkClient(walletClient);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const wc = walletClient as any;
       const status = await getVaultStatus(pc, vault);
       const lzFee = await quoteLzFee(pc, vault);
       const feeWithBuffer = (lzFee * BigInt(101)) / BigInt(100);
@@ -33,7 +32,7 @@ export const useOmniVaultActions = (
       const { txHash, guid } = await depositAsync(
         wc,
         pc,
-        { vault, escrow: status.escrow },
+        { vault, escrow: status.escrow, hubChainId },
         BigInt(amountInWei),
         walletClient.account.address,
         feeWithBuffer,
@@ -41,7 +40,7 @@ export const useOmniVaultActions = (
 
       return { txHash, guid };
     },
-    [vaultAddress, walletClient, publicClient]
+    [vaultAddress, walletClient, publicClient, hubChainId]
   );
 
   const omniRedeem = useCallback(
@@ -52,7 +51,8 @@ export const useOmniVaultActions = (
 
       const vault = vaultAddress as `0x${string}`;
       const pc = asSdkClient(publicClient);
-      const wc = asSdkClient(walletClient);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const wc = walletClient as any;
       const status = await getVaultStatus(pc, vault);
       const lzFee = await quoteLzFee(pc, vault);
       const feeWithBuffer = (lzFee * BigInt(101)) / BigInt(100);
@@ -61,7 +61,7 @@ export const useOmniVaultActions = (
       const { txHash, guid } = await redeemAsync(
         wc,
         pc,
-        { vault, escrow: status.escrow },
+        { vault, escrow: status.escrow, hubChainId },
         BigInt(sharesInWei),
         owner,
         owner,
@@ -70,7 +70,7 @@ export const useOmniVaultActions = (
 
       return { txHash, guid };
     },
-    [vaultAddress, walletClient, publicClient]
+    [vaultAddress, walletClient, publicClient, hubChainId]
   );
 
   return { omniDeposit, omniRedeem };
