@@ -1,6 +1,5 @@
 import { Alert, Box, Button, CircularProgress, Link, Typography } from '@mui/material';
 import BigNumber from 'bignumber.js';
-import { ethers } from 'ethers';
 import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import { useMemo, useState, useEffect } from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
