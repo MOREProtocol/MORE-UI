@@ -83,7 +83,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
   const [isFeeLoading, setIsFeeLoading] = useState(false);
   const [omniGuid, setOmniGuid] = useState<string | null>(null);
   const [omniStatus, setOmniStatus] = useState<'pending' | 'ready-to-execute' | 'completed' | 'refunded'>('pending');
-  const [omniFinalizationResult, setOmniFinalizationResult] = useState<string | null>(null);
 
   // Finding 6: Hub vault withdrawal queue state
   const [omniHasQueue, setOmniHasQueue] = useState<boolean>(false);
@@ -100,7 +99,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
       setEstimatedFee(null);
       setOmniGuid(null);
       setOmniStatus('pending');
-      setOmniFinalizationResult(null);
       setOmniHasQueue(false);
     }
   }, [isOpen]);
@@ -172,9 +170,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
         );
         if (!cancelled) {
           setOmniStatus(label);
-          if (label === 'completed' || label === 'refunded') {
-            setOmniFinalizationResult(label);
-          }
         }
       } catch {
         // Silently ignore polling errors

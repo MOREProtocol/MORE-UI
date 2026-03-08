@@ -81,7 +81,6 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const [isFeeLoading, setIsFeeLoading] = useState(false);
   const [omniGuid, setOmniGuid] = useState<string | null>(null);
   const [omniStatus, setOmniStatus] = useState<'pending' | 'ready-to-execute' | 'completed' | 'refunded'>('pending');
-  const [omniFinalizationResult, setOmniFinalizationResult] = useState<string | null>(null);
   const [preflight, setPreflight] = useState<{ paused: boolean; escrowMissing: boolean } | null>(null);
 
   const amountInUsd = new BigNumber(amount).multipliedBy(selectedAssetData.data?.price || 0);
@@ -228,9 +227,6 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
         );
         if (!cancelled) {
           setOmniStatus(label);
-          if (label === 'completed' || label === 'refunded') {
-            setOmniFinalizationResult(label);
-          }
         }
       } catch {
         // Silently ignore polling errors
@@ -255,7 +251,6 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       setEstimatedFee(null);
       setOmniGuid(null);
       setOmniStatus('pending');
-      setOmniFinalizationResult(null);
       setPreflight(null);
     }
   }, [isOpen]);
