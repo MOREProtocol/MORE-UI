@@ -169,7 +169,7 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
           omniGuid as `0x${string}`
         );
         if (!cancelled) {
-          setOmniStatus(label);
+          setOmniStatus(label.status);
         }
       } catch {
         // Silently ignore polling errors
