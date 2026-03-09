@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import { createPublicClient, http } from 'viem';
 import { asSdkClient, getAsyncRequestStatusLabel } from '@oydual31/more-vaults-sdk/viem';
-import { useOmniRequestStore } from 'src/store/omniRequestStore';
-import { OmniRequestStatus } from 'src/store/omniRequestStore';
+import { OmniRequestStatus, useOmniRequestStore } from 'src/store/omniRequestStore';
 import { networkConfigs } from 'src/ui-config/networksConfig';
 
 const TERMINAL: OmniRequestStatus[] = ['completed', 'refunded'];
