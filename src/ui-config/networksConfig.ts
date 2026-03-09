@@ -91,7 +91,12 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
         : 'https://app.more.markets/api/rpc-proxy/?network=eth-mainnet';
     },
     publicJsonRPCUrl: [
-      'https://ethereum.publicnode.com'
+      'https://eth.llamarpc.com',
+      'https://0xrpc.io/eth',
+      'https://eth-mainnet.public.blastapi.io',
+      'https://mainnet.gateway.tenderly.co',
+      'https://eth.drpc.org',
+      'https://ethereum.publicnode.com',
     ],
     baseUniswapAdapter: '0x0',
     baseAssetSymbol: 'ETH',
