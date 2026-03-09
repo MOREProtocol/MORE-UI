@@ -2622,10 +2622,10 @@
   resolved "https://registry.yarnpkg.com/@nolyfill/is-core-module/-/is-core-module-1.0.39.tgz#3dc35ba0f1e66b403c00b39344f870298ebb1c8e"
   integrity sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==
 
-"@oydual31/more-vaults-sdk@^0.1.3":
-  version "0.1.5"
-  resolved "https://registry.yarnpkg.com/@oydual31/more-vaults-sdk/-/more-vaults-sdk-0.1.5.tgz#498438b38cf7895e087afa868feec00dc5ab7a55"
-  integrity sha512-WlJ7zHqmAVftYzVOZbZs39Fki9Ag+vNNUL6OWwkBNU2vw4tu7mb/JNG5L+DdWm85MFqAoWerXuzo3bZ+gskh+w==
+"@oydual31/more-vaults-sdk@0.1.6":
+  version "0.1.6"
+  resolved "https://registry.yarnpkg.com/@oydual31/more-vaults-sdk/-/more-vaults-sdk-0.1.6.tgz#1b2ed891b912c1e7ff606d97b44bbca0ba05e1db"
+  integrity sha512-T4c6QuRkUxtQu8JtIK2ER4S+Sdc1kad5qlUruyae1cvMgMUvrLWBNr+v5u1qFXXCJ++EREbichk/uV1qz2Q4FQ==
   dependencies:
     ethers ">=6.0.0"
     viem ">=2.0.0"
