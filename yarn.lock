@@ -2623,9 +2623,9 @@
   integrity sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==
 
 "@oydual31/more-vaults-sdk@^0.1.3":
-  version "0.1.4"
-  resolved "https://registry.yarnpkg.com/@oydual31/more-vaults-sdk/-/more-vaults-sdk-0.1.4.tgz#7d0238d6d6221c376a77c19fd97edd09aa5f43be"
-  integrity sha512-jBpu1fkGN9wm21YY15/QftOG//XelAEVUfIgQZwlkf0/dsn6sCaAOHJJMEi6Gh1BD8ViSLajrYcr6cV54+lU1g==
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/@oydual31/more-vaults-sdk/-/more-vaults-sdk-0.1.5.tgz#498438b38cf7895e087afa868feec00dc5ab7a55"
+  integrity sha512-WlJ7zHqmAVftYzVOZbZs39Fki9Ag+vNNUL6OWwkBNU2vw4tu7mb/JNG5L+DdWm85MFqAoWerXuzo3bZ+gskh+w==
   dependencies:
     ethers ">=6.0.0"
     viem ">=2.0.0"
