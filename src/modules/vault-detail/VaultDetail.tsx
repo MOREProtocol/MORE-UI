@@ -31,6 +31,7 @@ import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { ChainIds } from 'src/utils/const';
 import { isOmniSpokeVault } from 'src/hooks/vault/factoryRegistry';
+import { useVaultTopology } from '@oydual31/more-vaults-sdk/react';
 
 export const VaultDetail = () => {
   const router = useRouter();
@@ -39,6 +40,9 @@ export const VaultDetail = () => {
   const { address } = useAccount();
   const wagmiChainId = useChainId();
   const { switchChain } = useSwitchChain();
+  const { topology, needsNetworkSwitch } = useVaultTopology(
+    selectedVaultId as `0x${string}` | undefined
+  );
 
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId], { enabled: !!selectedVaultId && !!accountAddress });
   const vaultData = useVaultData(selectedVaultId);
@@ -180,7 +184,26 @@ export const VaultDetail = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5, pt: 4, pb: 7, px: xPadding }}>
 
       {/* Network Status Check */}
-      {shouldShowNetworkBanner && (
+      {needsNetworkSwitch && topology && address && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 1 }}
+          action={
+            <Button
+              size="small"
+              variant="contained"
+              color="warning"
+              onClick={() => switchChain?.({ chainId: topology.hubChainId })}
+            >
+              Switch to {networkConfigs[topology.hubChainId]?.name || `Chain ${topology.hubChainId}`}
+            </Button>
+          }
+        >
+          You are on a spoke chain. Deposits and redeems must be done on the hub:{' '}
+          <strong>{networkConfigs[topology.hubChainId]?.name || `Chain ${topology.hubChainId}`}</strong>
+        </Alert>
+      )}
+      {!needsNetworkSwitch && shouldShowNetworkBanner && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           <Typography variant="main14">
             Wrong Network:{' '}
@@ -188,13 +211,7 @@ export const VaultDetail = () => {
               component="span"
               variant="main14"
               onClick={() => switchChain?.({ chainId: vaultNetwork || ChainIds.flowEVMMainnet })}
-              sx={{
-                textDecoration: 'underline',
-                cursor: 'pointer',
-                '&:hover': {
-                  color: 'primary.dark',
-                },
-              }}
+              sx={{ textDecoration: 'underline', cursor: 'pointer', '&:hover': { color: 'primary.dark' } }}
             >
               Please switch to {networkConfigs[vaultNetwork || ChainIds.flowEVMMainnet]?.name || 'the correct network'}
             </Typography>
@@ -527,48 +544,55 @@ export const VaultDetail = () => {
             {/* Row 2 - Networks */}
             <Box>
               <Typography variant="secondary14" color="text.secondary">
-                Network
+                Hub Network
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-                {isLoading ? <Skeleton width={80} height={24} /> :
-                  <>
-                    <MarketLogo
-                      size={24}
-                      logo={networkConfigs[chainId]?.networkLogoPath}
-                    />
-                    <Typography variant="main16">{networkConfigs[chainId]?.name || 'Unknown Network'}</Typography>
-                  </>
-                }
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {isLoading ? <Skeleton width={80} height={24} /> : (() => {
+                  const hubChainId = topology?.hubChainId ?? chainId;
+                  const hubCfg = networkConfigs[hubChainId];
+                  return (
+                    <>
+                      <MarketLogo size={24} logo={hubCfg?.networkLogoPath} />
+                      <Typography variant="main16">{hubCfg?.name || `Chain ${hubChainId}`}</Typography>
+                      {needsNetworkSwitch && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => switchChain?.({ chainId: hubChainId })}
+                          sx={{ ml: 1, py: 0, fontSize: '0.7rem' }}
+                        >
+                          Switch
+                        </Button>
+                      )}
+                    </>
+                  );
+                })()}
               </Box>
             </Box>
 
-            {/* Spoke Chains - only shown for omni hub vaults */}
-            {/* {isOmniHub && vaultData?.data?.omni?.spokeVaults && vaultData.data.omni.spokeVaults.length > 0 && (
+            {/* Spoke Chains */}
+            {topology && topology.spokeChainIds.length > 0 && (
               <Box>
                 <Typography variant="secondary14" color="text.secondary">
                   Spoke Chains
                 </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {vaultData.data.omni.spokeVaults.map((spoke) => {
-                    const spokeNetwork = networkConfigs[spoke.chainId];
-                    const spokeExplorer = spokeNetwork?.explorerLink;
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  {topology.spokeChainIds.map((spokeChainId) => {
+                    const spokeCfg = networkConfigs[spokeChainId];
+                    const isCurrentChain = wagmiChainId === spokeChainId;
                     return (
-                      <Box key={spoke.chainId} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <MarketLogo size={20} logo={spokeNetwork?.networkLogoPath} />
-                        <Typography variant="main14">{spokeNetwork?.name || `Chain ${spoke.chainId}`}</Typography>
-                        <Address
-                          address={spoke.address}
-                          link={spokeExplorer ? `${spokeExplorer}/address/${spoke.address}` : undefined}
-                          variant="secondary12"
-                          compactMode={CompactMode.SM}
-                          sx={{ color: 'text.secondary' }}
-                        />
+                      <Box key={spokeChainId} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <MarketLogo size={20} logo={spokeCfg?.networkLogoPath} />
+                        <Typography variant="main14">{spokeCfg?.name || `Chain ${spokeChainId}`}</Typography>
+                        {isCurrentChain && (
+                          <Chip label="You are here" size="small" color="warning" sx={{ fontSize: '0.65rem', height: 18 }} />
+                        )}
                       </Box>
                     );
                   })}
                 </Box>
               </Box>
-            )} */}
+            )}
 
             {/* Row 3 - Remaining Capacity */}
             <Box>
