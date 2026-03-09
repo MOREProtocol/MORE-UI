@@ -24,7 +24,7 @@ export function useGlobalOmniPolling() {
           try {
             const netConfig = networkConfigs[req.chainId];
             if (!netConfig) return;
-            const rpcUrl = netConfig.privateJsonRPCUrl || netConfig.publicJsonRPCUrl[0];
+            const rpcUrl = netConfig.publicJsonRPCUrl[0];
             const client = createPublicClient({ transport: http(rpcUrl) });
             const label = await getAsyncRequestStatusLabel(
               asSdkClient(client),
