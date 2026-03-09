@@ -32,8 +32,8 @@ export function useGlobalOmniPolling() {
               req.guid as `0x${string}`
             );
             if (!cancelled) updateOmniRequestStatus(req.guid, label.status);
-          } catch {
-            // ignore transient errors
+          } catch (e) {
+            console.warn('[OmniPolling] poll error for guid', req.guid, e);
           }
         })
       );
