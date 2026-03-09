@@ -17,7 +17,6 @@ import { useChainId, usePublicClient, useSwitchChain } from 'wagmi';
 import { formatEther } from 'viem';
 import {
   asSdkClient,
-  getAsyncRequestStatusLabel,
   getVaultStatus,
   getWithdrawalRequest as sdkGetWithdrawalRequest,
   quoteLzFee,
@@ -81,7 +80,8 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
   const [estimatedFee, setEstimatedFee] = useState<string | null>(null);
   const [isFeeLoading, setIsFeeLoading] = useState(false);
   const [omniGuid, setOmniGuid] = useState<string | null>(null);
-  const [omniStatus, setOmniStatus] = useState<'pending' | 'ready-to-execute' | 'completed' | 'refunded'>('pending');
+  const addOmniRequest = useRootStore((s) => s.addOmniRequest);
+  const omniStatus = useRootStore((s) => omniGuid ? s.omniRequests[omniGuid]?.status ?? 'pending' : 'pending');
 
   // Finding 6: Hub vault withdrawal queue state
   const [omniHasQueue, setOmniHasQueue] = useState<boolean>(false);
@@ -97,7 +97,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
       setConvertedAssets('0');
       setEstimatedFee(null);
       setOmniGuid(null);
-      setOmniStatus('pending');
       setOmniHasQueue(false);
     }
   }, [isOpen]);
@@ -155,29 +154,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
     return () => { cancelled = true; };
   }, [isOmniHub, isOpen, selectedVaultId, publicClient, accountAddress]);
 
-  // Poll cross-chain request status after tx submission until completed or refunded
-  useEffect(() => {
-    if (!omniGuid || !selectedVaultId || !publicClient || omniStatus === 'completed' || omniStatus === 'refunded') return;
-    let cancelled = false;
-    const poll = async () => {
-      if (cancelled) return;
-      try {
-        const label = await getAsyncRequestStatusLabel(
-          asSdkClient(publicClient),
-          selectedVaultId as `0x${string}`,
-          omniGuid as `0x${string}`
-        );
-        if (!cancelled) {
-          setOmniStatus(label.status);
-        }
-      } catch {
-        // Silently ignore polling errors
-      }
-    };
-    poll();
-    const interval = setInterval(poll, 15000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [omniGuid, selectedVaultId, publicClient, omniStatus]);
 
   // Load max redeem amount when modal opens
   useEffect(() => {
@@ -412,7 +388,15 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
         setWithdrawalRequest(null);
         if (capturedGuid) {
           setOmniGuid(capturedGuid);
-          setOmniStatus('pending');
+          addOmniRequest({
+            guid: capturedGuid,
+            vaultId: selectedVaultId!,
+            chainId: vaultChainId,
+            type: 'redeem',
+            status: 'pending',
+            txHash: hash,
+            vaultName: selectedVault?.overview?.name,
+          });
         }
         if (refreshUserVaultData) refreshUserVaultData();
       } catch (error) {

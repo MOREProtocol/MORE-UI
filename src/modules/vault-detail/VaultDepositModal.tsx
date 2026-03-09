@@ -14,7 +14,7 @@ import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useBalance, useChainId, usePublicClient, useSwitchChain } from 'wagmi';
 import { formatEther } from 'viem';
 import { networkConfigs } from 'src/ui-config/networksConfig';
-import { asSdkClient, getAsyncRequestStatusLabel, getVaultStatus, quoteLzFee } from '@oydual31/more-vaults-sdk/viem';
+import { asSdkClient, getVaultStatus, quoteLzFee } from '@oydual31/more-vaults-sdk/viem';
 
 interface VaultDepositModalProps {
   isOpen: boolean;
@@ -80,8 +80,9 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const [estimatedFee, setEstimatedFee] = useState<string | null>(null);
   const [isFeeLoading, setIsFeeLoading] = useState(false);
   const [omniGuid, setOmniGuid] = useState<string | null>(null);
-  const [omniStatus, setOmniStatus] = useState<'pending' | 'ready-to-execute' | 'completed' | 'refunded'>('pending');
   const [preflight, setPreflight] = useState<{ paused: boolean; escrowMissing: boolean } | null>(null);
+  const addOmniRequest = useRootStore((s) => s.addOmniRequest);
+  const omniStatus = useRootStore((s) => omniGuid ? s.omniRequests[omniGuid]?.status ?? 'pending' : 'pending');
 
   const amountInUsd = new BigNumber(amount).multipliedBy(selectedAssetData.data?.price || 0);
 
@@ -213,29 +214,6 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     return () => { cancelled = true; };
   }, [isOmniHub, isOpen, selectedVaultId, publicClient]);
 
-  // Poll cross-chain request status after tx submission until completed or refunded
-  useEffect(() => {
-    if (!omniGuid || !selectedVaultId || !publicClient || omniStatus === 'completed' || omniStatus === 'refunded') return;
-    let cancelled = false;
-    const poll = async () => {
-      if (cancelled) return;
-      try {
-        const label = await getAsyncRequestStatusLabel(
-          asSdkClient(publicClient),
-          selectedVaultId as `0x${string}`,
-          omniGuid as `0x${string}`
-        );
-        if (!cancelled) {
-          setOmniStatus(label.status);
-        }
-      } catch {
-        // Silently ignore polling errors
-      }
-    };
-    poll();
-    const interval = setInterval(poll, 15000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [omniGuid, selectedVaultId, publicClient, omniStatus]);
 
   // Reset state when modal closes
   useEffect(() => {
@@ -250,7 +228,6 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       setAddTokenSuccess(false);
       setEstimatedFee(null);
       setOmniGuid(null);
-      setOmniStatus('pending');
       setPreflight(null);
     }
   }, [isOpen]);
@@ -323,7 +300,15 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
         setTxHash(hash);
         if (capturedGuid) {
           setOmniGuid(capturedGuid);
-          setOmniStatus('pending');
+          addOmniRequest({
+            guid: capturedGuid,
+            vaultId: selectedVaultId!,
+            chainId: vaultChainId,
+            type: 'deposit',
+            status: 'pending',
+            txHash: hash,
+            vaultName: selectedVault?.overview?.name,
+          });
         }
         if (refreshUserVaultData) refreshUserVaultData();
       } catch (error) {
