@@ -136,7 +136,10 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
         : 'https://app.more.markets/api/rpc-proxy/?network=arb-mainnet';
     },
     publicJsonRPCUrl: [
-      'https://arbitrum.publicnode.com'
+      'https://arbitrum.public.blockpi.network/v1/rpc/public',
+      'https://public-arb-mainnet.fastnode.io',
+      'https://arbitrum-one-rpc.publicnode.com',
+      'https://arbitrum.publicnode.com',
     ],
     baseUniswapAdapter: '0x0',
     baseAssetSymbol: 'ETH',
