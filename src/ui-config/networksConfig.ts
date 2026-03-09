@@ -110,7 +110,14 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
         : 'https://app.more.markets/api/rpc-proxy/?network=base-mainnet';
     },
     publicJsonRPCUrl: [
-      'https://base.publicnode.com'
+      'https://base.rpc.subquery.network/public',
+      'https://base.rpc.blxrbdn.com',
+      'https://gateway.tenderly.co/public/base',
+      'https://1rpc.io/base',
+      'https://base-rpc.publicnode.com',
+      'https://base.llamarpc.com',
+      'https://base.drpc.org',
+      'https://mainnet.base.org',
     ],
     baseUniswapAdapter: '0x0',
     baseAssetSymbol: 'ETH',
