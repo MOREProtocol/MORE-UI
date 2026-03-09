@@ -11,6 +11,7 @@ import { networkConfigs } from 'src/ui-config/networksConfig';
 import { roundToTokenDecimals } from 'src/utils/utils';
 import { ChainIds } from 'src/utils/const';
 import { useRootStore } from 'src/store/root';
+import { useOmniRequestStore } from 'src/store/omniRequestStore';
 import { formatTimeRemaining } from 'src/helpers/timeHelper';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { useChainId, usePublicClient, useSwitchChain } from 'wagmi';
@@ -80,8 +81,8 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
   const [estimatedFee, setEstimatedFee] = useState<string | null>(null);
   const [isFeeLoading, setIsFeeLoading] = useState(false);
   const [omniGuid, setOmniGuid] = useState<string | null>(null);
-  const addOmniRequest = useRootStore((s) => s.addOmniRequest);
-  const omniStatus = useRootStore((s) => omniGuid ? s.omniRequests[omniGuid]?.status ?? 'pending' : 'pending');
+  const addOmniRequest = useOmniRequestStore((s) => s.addOmniRequest);
+  const omniStatus = useOmniRequestStore((s) => omniGuid ? s.omniRequests[omniGuid]?.status ?? 'pending' : 'pending');
 
   // Finding 6: Hub vault withdrawal queue state
   const [omniHasQueue, setOmniHasQueue] = useState<boolean>(false);

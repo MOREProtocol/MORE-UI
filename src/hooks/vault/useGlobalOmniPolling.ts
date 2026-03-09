@@ -1,16 +1,16 @@
 import { useEffect } from 'react';
 import { createPublicClient, http } from 'viem';
 import { asSdkClient, getAsyncRequestStatusLabel } from '@oydual31/more-vaults-sdk/viem';
-import { useRootStore } from 'src/store/root';
-import { OmniRequestStatus } from 'src/store/omniRequestSlice';
+import { useOmniRequestStore } from 'src/store/omniRequestStore';
+import { OmniRequestStatus } from 'src/store/omniRequestStore';
 import { networkConfigs } from 'src/ui-config/networksConfig';
 
 const TERMINAL: OmniRequestStatus[] = ['completed', 'refunded'];
 const POLL_INTERVAL_MS = 15000;
 
 export function useGlobalOmniPolling() {
-  const omniRequests = useRootStore((s) => s.omniRequests);
-  const updateOmniRequestStatus = useRootStore((s) => s.updateOmniRequestStatus);
+  const omniRequests = useOmniRequestStore((s) => s.omniRequests);
+  const updateOmniRequestStatus = useOmniRequestStore((s) => s.updateOmniRequestStatus);
 
   const active = Object.values(omniRequests).filter((r) => !TERMINAL.includes(r.status));
 

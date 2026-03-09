@@ -9,6 +9,7 @@ import { AssetInput, Asset } from 'src/components/transactions/AssetInput';
 import { useVault } from 'src/hooks/vault/useVault';
 import { useVaultData, useUserVaultsData, useAssetData, useDepositableAssetsBalances } from 'src/hooks/vault/useVaultData';
 import { useRootStore } from 'src/store/root';
+import { useOmniRequestStore } from 'src/store/omniRequestStore';
 import { roundToTokenDecimals } from 'src/utils/utils';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useBalance, useChainId, usePublicClient, useSwitchChain } from 'wagmi';
@@ -81,8 +82,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const [isFeeLoading, setIsFeeLoading] = useState(false);
   const [omniGuid, setOmniGuid] = useState<string | null>(null);
   const [preflight, setPreflight] = useState<{ paused: boolean; escrowMissing: boolean } | null>(null);
-  const addOmniRequest = useRootStore((s) => s.addOmniRequest);
-  const omniStatus = useRootStore((s) => omniGuid ? s.omniRequests[omniGuid]?.status ?? 'pending' : 'pending');
+  const addOmniRequest = useOmniRequestStore((s) => s.addOmniRequest);
+  const omniStatus = useOmniRequestStore((s) => omniGuid ? s.omniRequests[omniGuid]?.status ?? 'pending' : 'pending');
 
   const amountInUsd = new BigNumber(amount).multipliedBy(selectedAssetData.data?.price || 0);
 

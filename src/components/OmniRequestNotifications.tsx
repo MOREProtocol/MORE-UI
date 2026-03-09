@@ -1,8 +1,7 @@
 import { Box, CircularProgress, IconButton, Typography } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CloseIcon from '@mui/icons-material/Close';
-import { useRootStore } from 'src/store/root';
-import { OmniRequest } from 'src/store/omniRequestSlice';
+import { useOmniRequestStore, OmniRequest } from 'src/store/omniRequestStore';
 
 const STATUS_LABEL: Record<OmniRequest['status'], string> = {
   pending: 'Sending cross-chain…',
@@ -12,7 +11,7 @@ const STATUS_LABEL: Record<OmniRequest['status'], string> = {
 };
 
 function RequestCard({ req }: { req: OmniRequest }) {
-  const removeOmniRequest = useRootStore((s) => s.removeOmniRequest);
+  const removeOmniRequest = useOmniRequestStore((s) => s.removeOmniRequest);
   const isDone = req.status === 'completed' || req.status === 'refunded';
 
   return (
@@ -53,7 +52,7 @@ function RequestCard({ req }: { req: OmniRequest }) {
 }
 
 export function OmniRequestNotifications() {
-  const omniRequests = useRootStore((s) => s.omniRequests);
+  const omniRequests = useOmniRequestStore((s) => s.omniRequests);
   const requests = Object.values(omniRequests);
 
   if (requests.length === 0) return null;
