@@ -29,7 +29,7 @@ import { VaultNotes } from './VaultNotes';
 import { RewardsButton } from 'src/components/incentives/IncentivesButton';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
-import { useAccount, useChainId, useSwitchChain } from 'wagmi';
+import { useAccount, useChainId, useReadContract, useSwitchChain } from 'wagmi';
 import { ChainIds } from 'src/utils/const';
 import { isOmniSpokeVault } from 'src/hooks/vault/factoryRegistry';
 import {
@@ -57,10 +57,22 @@ export const VaultDetail = () => {
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId], { enabled: !!selectedVaultId && !!accountAddress });
   const vaultData = useVaultData(selectedVaultId);
   const vaultAssetAddress = vaultData?.data?.overview?.asset?.address;
+
+  // Read vaultAsset on-chain in parallel with useVaultData so useInboundRoutes
+  // doesn't have to wait for the full subgraph response (~2.5 s waterfall).
+  const { data: vaultAssetOnChain } = useReadContract({
+    address: isOmniHub ? (selectedVaultId as `0x${string}`) : undefined,
+    abi: [{ name: 'asset', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'address' }] }],
+    functionName: 'asset',
+    chainId: topology?.hubChainId ?? chainId,
+    query: { enabled: !!selectedVaultId && isOmniHub, staleTime: 5 * 60 * 1000 },
+  });
+  const routeVaultAsset = (vaultAssetOnChain ?? vaultAssetAddress) as `0x${string}` | undefined;
+
   const { routes: inboundRoutes, isLoading: isRoutesLoading } = useInboundRoutes(
     isOmniHub ? topology?.hubChainId : undefined,
     isOmniHub ? selectedVaultId as `0x${string}` : undefined,
-    isOmniHub ? vaultAssetAddress as `0x${string}` : undefined,
+    isOmniHub ? routeVaultAsset : undefined,
     isOmniHub ? accountAddress as `0x${string}` : undefined
   );
   const userVaultBalances = useUserVaultBalances(accountAddress, { enabled: !!accountAddress });
