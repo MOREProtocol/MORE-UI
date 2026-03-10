@@ -31,7 +31,8 @@ import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { ChainIds } from 'src/utils/const';
 import { isOmniSpokeVault } from 'src/hooks/vault/factoryRegistry';
-import { useVaultTopology } from '@oydual31/more-vaults-sdk/react';
+import { useVaultTopology, useVaultDistribution } from '@oydual31/more-vaults-sdk/react';
+import { useInboundRoutes, getRouteTokenDecimals } from 'src/hooks/vault/useInboundRoutes';
 
 export const VaultDetail = () => {
   const router = useRouter();
@@ -43,9 +44,19 @@ export const VaultDetail = () => {
   const { topology, needsNetworkSwitch } = useVaultTopology(
     selectedVaultId as `0x${string}` | undefined
   );
+  const { distribution, isLoading: isDistributionLoading } = useVaultDistribution(
+    selectedVaultId as `0x${string}` | undefined
+  );
 
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId], { enabled: !!selectedVaultId && !!accountAddress });
   const vaultData = useVaultData(selectedVaultId);
+  const vaultAssetAddress = vaultData?.data?.overview?.asset?.address;
+  const { data: inboundRoutes, isLoading: isRoutesLoading } = useInboundRoutes(
+    isOmniHub ? topology?.hubChainId : undefined,
+    isOmniHub ? selectedVaultId : undefined,
+    isOmniHub ? vaultAssetAddress : undefined,
+    isOmniHub ? accountAddress : undefined
+  );
   const userVaultBalances = useUserVaultBalances(accountAddress, { enabled: !!accountAddress });
   const theme = useTheme();
   const downToMd = useMediaQuery(theme.breakpoints.down('md'));
@@ -541,6 +552,80 @@ export const VaultDetail = () => {
               </Box>
             </Box>
 
+            {/* Deposit Routes (cross-chain OFT) */}
+            {isOmniHub && (
+              <Box sx={{ gridColumn: { xsm: '1 / -1' } }}>
+                <Typography variant="secondary14" color="text.secondary" sx={{ mb: 1 }}>
+                  Deposit Routes
+                </Typography>
+                {isRoutesLoading ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                    {[0, 1, 2].map((i) => <Skeleton key={i} width="100%" height={28} />)}
+                  </Box>
+                ) : inboundRoutes && inboundRoutes.length > 0 ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                    {inboundRoutes.map((route, idx) => {
+                      const chainCfg = networkConfigs[route.spokeChainId];
+                      const decimals = getRouteTokenDecimals(route.symbol);
+                      const hasBalance = route.userBalance > BigInt(0);
+                      const formattedBalance = parseFloat(formatUnits(route.userBalance, decimals)).toLocaleString(undefined, { maximumFractionDigits: 4 });
+                      const lzFeeEth = route.depositType === 'oft-compose'
+                        ? parseFloat(formatUnits(route.lzFeeEstimate, 18)).toFixed(5)
+                        : null;
+                      return (
+                        <Box
+                          key={idx}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 1,
+                            opacity: hasBalance ? 1 : 0.4,
+                            py: 0.5,
+                            px: 1,
+                            borderRadius: 1,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                          }}
+                        >
+                          {/* Left: token + chain */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <TokenIcon symbol={route.symbol} fontSize="small" />
+                            <Box>
+                              <Typography variant="secondary12" fontWeight={600}>{route.symbol}</Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                {chainCfg && <MarketLogo size={14} logo={chainCfg.networkLogoPath} />}
+                                <Typography variant="secondary12" color="text.secondary">
+                                  {chainCfg?.name || `Chain ${route.spokeChainId}`}
+                                </Typography>
+                                {route.depositType === 'direct' && (
+                                  <Chip label="Direct" size="small" color="success" sx={{ fontSize: '0.6rem', height: 16, ml: 0.5 }} />
+                                )}
+                              </Box>
+                            </Box>
+                          </Box>
+
+                          {/* Right: balance + fee */}
+                          <Box sx={{ textAlign: 'right' }}>
+                            <Typography variant="secondary12" fontWeight={hasBalance ? 600 : 400}>
+                              {hasBalance ? `${formattedBalance} ${route.symbol}` : 'No balance'}
+                            </Typography>
+                            {lzFeeEth && (
+                              <Typography variant="secondary12" color="text.secondary">
+                                ~{lzFeeEth} {route.nativeSymbol} fee
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                ) : !isRoutesLoading && accountAddress ? (
+                  <Typography variant="secondary12" color="text.secondary">No routes available</Typography>
+                ) : null}
+              </Box>
+            )}
+
             {/* Row 2 - Networks */}
             <Box>
               <Typography variant="secondary14" color="text.secondary">
@@ -580,10 +665,17 @@ export const VaultDetail = () => {
                   {topology.spokeChainIds.map((spokeChainId) => {
                     const spokeCfg = networkConfigs[spokeChainId];
                     const isCurrentChain = wagmiChainId === spokeChainId;
+                    const spokeBalance = distribution?.spokeBalances.find(s => s.chainId === spokeChainId);
+                    const isUnreachable = spokeBalance ? !spokeBalance.isReachable : false;
                     return (
-                      <Box key={spokeChainId} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box key={spokeChainId} sx={{ display: 'flex', alignItems: 'center', gap: 1, opacity: isUnreachable ? 0.5 : 1 }}>
                         <MarketLogo size={20} logo={spokeCfg?.networkLogoPath} />
-                        <Typography variant="main14">{spokeCfg?.name || `Chain ${spokeChainId}`}</Typography>
+                        <Typography variant="main14" sx={{ color: isUnreachable ? 'text.disabled' : undefined }}>
+                          {spokeCfg?.name || `Chain ${spokeChainId}`}
+                        </Typography>
+                        {isUnreachable && (
+                          <Chip label="Unreachable" size="small" sx={{ fontSize: '0.6rem', height: 18, bgcolor: 'action.disabledBackground', color: 'text.disabled' }} />
+                        )}
                         {isCurrentChain && (
                           <Chip label="You are here" size="small" color="warning" sx={{ fontSize: '0.65rem', height: 18 }} />
                         )}
@@ -591,6 +683,148 @@ export const VaultDetail = () => {
                     );
                   })}
                 </Box>
+              </Box>
+            )}
+
+            {/* Asset Distribution (cross-chain) */}
+            {isOmniHub && (
+              <Box sx={{ gridColumn: { xsm: '1 / -1' } }}>
+                <Typography variant="secondary14" color="text.secondary" sx={{ mb: 1 }}>
+                  Asset Distribution
+                </Typography>
+                {isDistributionLoading ? (
+                  <Skeleton width="100%" height={60} />
+                ) : distribution ? (() => {
+                  const decimals = selectedVault?.overview?.asset?.decimals || 18;
+                  const assetSymbol = selectedVault?.overview?.asset?.symbol || '';
+                  const totalActual = distribution.totalActual;
+                  const ZERO = BigInt(0);
+                  const SCALE = BigInt(10000);
+                  const hubLiquidPct = totalActual > ZERO
+                    ? Number((distribution.hubLiquidBalance * SCALE) / totalActual) / 100
+                    : 0;
+                  const hubStrategyPct = totalActual > ZERO
+                    ? Number((distribution.hubStrategyBalance * SCALE) / totalActual) / 100
+                    : 0;
+
+                  return (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      {/* Stacked bar */}
+                      <Box sx={{ display: 'flex', width: '100%', height: 8, borderRadius: 1, overflow: 'hidden' }}>
+                        <Box sx={{ width: `${hubLiquidPct}%`, bgcolor: 'primary.main' }} />
+                        <Box sx={{ width: `${hubStrategyPct}%`, bgcolor: 'primary.dark' }} />
+                        {distribution.spokeBalances.map((spoke) => {
+                          const spokePct = totalActual > ZERO
+                            ? Number((spoke.totalAssets * SCALE) / totalActual) / 100
+                            : 0;
+                          return (
+                            <Box
+                              key={spoke.chainId}
+                              sx={{
+                                width: `${spokePct}%`,
+                                bgcolor: spoke.isReachable ? 'warning.main' : 'action.disabled',
+                              }}
+                            />
+                          );
+                        })}
+                      </Box>
+
+                      {/* Hub breakdown */}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'primary.main' }} />
+                          <Typography variant="secondary12">Hub Liquid</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <FormattedNumber
+                            value={formatUnits(distribution.hubLiquidBalance, decimals)}
+                            symbol={assetSymbol}
+                            variant="secondary12"
+                            compact
+                          />
+                          <Typography variant="secondary12" color="text.secondary">
+                            ({hubLiquidPct.toFixed(1)}%)
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'primary.dark' }} />
+                          <Typography variant="secondary12">Hub Strategies</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <FormattedNumber
+                            value={formatUnits(distribution.hubStrategyBalance, decimals)}
+                            symbol={assetSymbol}
+                            variant="secondary12"
+                            compact
+                          />
+                          <Typography variant="secondary12" color="text.secondary">
+                            ({hubStrategyPct.toFixed(1)}%)
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {/* Spoke breakdown */}
+                      {distribution.spokeBalances.map((spoke) => {
+                        const spokeCfg = networkConfigs[spoke.chainId];
+                        const spokePct = totalActual > ZERO
+                          ? Number((spoke.totalAssets * SCALE) / totalActual) / 100
+                          : 0;
+                        return (
+                          <Box key={spoke.chainId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: spoke.isReachable ? 1 : 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: spoke.isReachable ? 'warning.main' : 'action.disabled' }} />
+                              <Typography variant="secondary12" sx={{ color: spoke.isReachable ? undefined : 'text.disabled' }}>
+                                {spokeCfg?.name || `Chain ${spoke.chainId}`}
+                                {!spoke.isReachable && ' (Unreachable)'}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              {spoke.isReachable ? (
+                                <>
+                                  <FormattedNumber
+                                    value={formatUnits(spoke.totalAssets, decimals)}
+                                    symbol={assetSymbol}
+                                    variant="secondary12"
+                                    compact
+                                  />
+                                  <Typography variant="secondary12" color="text.secondary">
+                                    ({spokePct.toFixed(1)}%)
+                                  </Typography>
+                                </>
+                              ) : (
+                                <Typography variant="secondary12" color="text.disabled">N/A</Typography>
+                              )}
+                            </Box>
+                          </Box>
+                        );
+                      })}
+
+                      {/* Total */}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid', borderColor: 'divider', pt: 1 }}>
+                        <Typography variant="secondary12" fontWeight={600}>Total</Typography>
+                        <FormattedNumber
+                          value={formatUnits(distribution.totalActual, decimals)}
+                          symbol={assetSymbol}
+                          variant="secondary12"
+                          compact
+                          sx={{ fontWeight: 600 }}
+                        />
+                      </Box>
+                    </Box>
+                  );
+                })() : null}
+              </Box>
+            )}
+
+            {/* Oracle Accounting Warning */}
+            {isOmniHub && distribution && !distribution.oracleAccountingEnabled && (
+              <Box sx={{ gridColumn: { xsm: '1 / -1' } }}>
+                <Alert severity="warning" sx={{ py: 0.5 }}>
+                  Oracle accounting is disabled — spoke yield is not reflected in share price
+                </Alert>
               </Box>
             )}
 
