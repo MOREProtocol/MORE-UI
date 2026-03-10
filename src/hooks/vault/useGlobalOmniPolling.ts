@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { createPublicClient, http } from 'viem';
+import { createPublicClient, fallback, http } from 'viem';
 import { asSdkClient, getAsyncRequestStatusLabel } from '@oydual31/more-vaults-sdk/viem';
 import { OmniRequestStatus, useOmniRequestStore } from 'src/store/omniRequestStore';
 import { networkConfigs } from 'src/ui-config/networksConfig';
@@ -24,8 +24,9 @@ export function useGlobalOmniPolling() {
           try {
             const netConfig = networkConfigs[req.chainId];
             if (!netConfig) return;
-            const rpcUrl = netConfig.publicJsonRPCUrl[0];
-            const client = createPublicClient({ transport: http(rpcUrl) });
+            const client = createPublicClient({
+              transport: fallback(netConfig.publicJsonRPCUrl.map((url) => http(url))),
+            });
             const label = await getAsyncRequestStatusLabel(
               asSdkClient(client),
               req.vaultId as `0x${string}`,
