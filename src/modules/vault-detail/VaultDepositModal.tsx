@@ -88,7 +88,11 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const [estimatedFee, setEstimatedFee] = useState<string | null>(null);
   const [isFeeLoading, setIsFeeLoading] = useState(false);
   const [omniGuid, setOmniGuid] = useState<string | null>(null);
-  const [preflight, setPreflight] = useState<{ paused: boolean; escrowMissing: boolean } | null>(null);
+  const [preflight, setPreflight] = useState<{
+    paused: boolean;
+    escrowMissing: boolean;
+    recommendedDepositFlow: 'depositSimple' | 'depositAsync' | 'mintAsync' | 'none' | null;
+  } | null>(null);
   const addOmniRequest = useOmniRequestStore((s) => s.addOmniRequest);
   const omniStatus = useOmniRequestStore((s) => omniGuid ? s.omniRequests[omniGuid]?.status ?? 'pending' : 'pending');
 
@@ -218,6 +222,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
           setPreflight({
             paused: status.isPaused,
             escrowMissing: !status.escrow || status.escrow === '0x0000000000000000000000000000000000000000',
+            recommendedDepositFlow: status.recommendedDepositFlow,
           });
         }
       } catch {
@@ -291,7 +296,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
         try {
           if (isOftCompose) {
             setTxAction('oft-compose-deposit');
-          } else if (isOmniHub) {
+          } else if (isOmniHub && preflight?.recommendedDepositFlow !== 'depositSimple') {
+            // async hub vault (or still loading — default to async as safe fallback)
             setTxAction('omni-deposit');
           } else if (selectedAssetData.data?.decimals != null) {
             const isPrimary = (selectedAssetAddress || '').toLowerCase() === (primaryAssetAddress || '').toLowerCase();
@@ -309,7 +315,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       }
     };
     updateButtonActionState();
-  }, [amount, selectedAssetData.data?.decimals, selectedAssetAddress, primaryAssetAddress, txHash, depositInVault, depositInVaultFromToken, isOmniHub, isOftCompose]);
+  }, [amount, selectedAssetData.data?.decimals, selectedAssetAddress, primaryAssetAddress, txHash, depositInVault, depositInVaultFromToken, isOmniHub, isOftCompose, preflight]);
 
   const handleChange = (value: string) => {
     if (txError) {
@@ -369,7 +375,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       return;
     }
 
-    if (isOmniHub && omniDeposit) {
+    if (isOmniHub && omniDeposit && preflight?.recommendedDepositFlow !== 'depositSimple') {
       if (!amount || amount === '0' || !selectedAssetData.data || selectedAssetData.data.decimals == null) return;
       setIsLoading(true);
       setTxError(null);
@@ -705,7 +711,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
               </Box>
             )}
 
-            {(isOmniHub || isOftCompose) && (
+            {(isOftCompose || (isOmniHub && preflight?.recommendedDepositFlow !== 'depositSimple')) && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {isOnWrongChain && (
                   <Alert

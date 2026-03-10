@@ -85,8 +85,9 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
   const addOmniRequest = useOmniRequestStore((s) => s.addOmniRequest);
   const omniStatus = useOmniRequestStore((s) => omniGuid ? s.omniRequests[omniGuid]?.status ?? 'pending' : 'pending');
 
-  // Finding 6: Hub vault withdrawal queue state
+  // Hub vault withdrawal queue and redeem flow type
   const [omniHasQueue, setOmniHasQueue] = useState<boolean>(false);
+  const [vaultRedeemFlow, setVaultRedeemFlow] = useState<'redeemShares' | 'redeemAsync' | 'none' | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -100,6 +101,7 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
       setEstimatedFee(null);
       setOmniGuid(null);
       setOmniHasQueue(false);
+      setVaultRedeemFlow(null);
     }
   }, [isOpen]);
 
@@ -131,6 +133,7 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
         const status = await getVaultStatus(asSdkClient(publicClient), selectedVaultId as `0x${string}`);
         if (cancelled) return;
         setOmniHasQueue(status.withdrawalQueueEnabled);
+        setVaultRedeemFlow(status.recommendedRedeemFlow as 'redeemShares' | 'redeemAsync' | 'none');
 
         if (status.withdrawalQueueEnabled && accountAddress) {
           const reqData = await sdkGetWithdrawalRequest(
@@ -378,29 +381,45 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
           return;
         }
 
-        // Bridge path: SDK handles approve + omni-redeem in one call
-        // Use withdrawalRequest.shares if queue is enabled and request is present
+        // Sync or async path — determined by vault mode
         const sharesInWei = (omniHasQueue && withdrawalRequest)
           ? withdrawalRequest.shares
           : parseUnits(amount, selectedVault.overview.decimals).toString();
 
-        const { txHash: hash, guid: capturedGuid } = await omniRedeem(sharesInWei);
-        setTxHash(hash);
-        setTxAction(null);
-        setWithdrawalRequest(null);
-        if (capturedGuid) {
-          setOmniGuid(capturedGuid);
-          addOmniRequest({
-            guid: capturedGuid,
-            vaultId: selectedVaultId!,
-            chainId: vaultChainId,
-            type: 'redeem',
-            status: 'pending',
-            txHash: hash,
-            vaultName: selectedVault?.overview?.name,
-          });
+        if (vaultRedeemFlow === 'redeemShares') {
+          // cross-chain-oracle (or local hub): standard sync redeem — no LZ fee
+          const { tx } = await redeemFromVault(sharesInWei);
+          const enhancedTx = await enhanceTransactionWithGas(tx);
+          const response = await signer.sendTransaction(enhancedTx);
+          const receipt = await response.wait();
+          if (receipt?.status === 1) {
+            setTxHash(receipt.transactionHash);
+            setTxAction(null);
+            setWithdrawalRequest(null);
+            if (refreshUserVaultData) refreshUserVaultData();
+          } else {
+            setTxError('Redeem transaction failed or was rejected.');
+          }
+        } else {
+          // cross-chain-async: bridge redeem via LayerZero
+          const { txHash: hash, guid: capturedGuid } = await omniRedeem(sharesInWei);
+          setTxHash(hash);
+          setTxAction(null);
+          setWithdrawalRequest(null);
+          if (capturedGuid) {
+            setOmniGuid(capturedGuid);
+            addOmniRequest({
+              guid: capturedGuid,
+              vaultId: selectedVaultId!,
+              chainId: vaultChainId,
+              type: 'redeem',
+              status: 'pending',
+              txHash: hash,
+              vaultName: selectedVault?.overview?.name,
+            });
+          }
+          if (refreshUserVaultData) refreshUserVaultData();
         }
-        if (refreshUserVaultData) refreshUserVaultData();
       } catch (error) {
         if (error instanceof InsufficientLiquidityError) {
           const underlyingDecimals = assetData.data?.decimals ?? 6;
@@ -723,8 +742,8 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
                 You must be on the vault&apos;s hub network to withdraw.
               </Alert>
             )}
-            {/* Only show bridge fee when not in queue-request step */}
-            {txAction !== 'request' && (
+            {/* Only show bridge fee for async redeems and not in queue-request step */}
+            {txAction !== 'request' && vaultRedeemFlow !== 'redeemShares' && (
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Typography variant="secondary14" color="text.secondary">Bridge fee</Typography>
                 {isFeeLoading ? (
@@ -773,8 +792,8 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
           </Box>
         )}
 
-        {/* Cross-chain request status tracker — shown after bridge tx confirms */}
-        {isOmniHub && txHash && txAction === null && (
+        {/* Cross-chain request status tracker — shown after bridge tx confirms (async only) */}
+        {isOmniHub && vaultRedeemFlow === 'redeemAsync' && txHash && txAction === null && (
           <Box sx={{ p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="secondary14">
               {omniStatus === 'pending' && '⏳ Waiting for cross-chain accounting (~2 min)…'}
