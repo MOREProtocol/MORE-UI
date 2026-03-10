@@ -620,9 +620,9 @@ export const VaultDetail = () => {
                         >
                           {/* Left: token + chain */}
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <TokenIcon symbol={route.symbol} fontSize="small" />
+                            <TokenIcon symbol={route.sourceTokenSymbol} fontSize="small" />
                             <Box>
-                              <Typography variant="secondary12" fontWeight={600}>{route.symbol}</Typography>
+                              <Typography variant="secondary12" fontWeight={600}>{route.sourceTokenSymbol}</Typography>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                 {chainCfg && <MarketLogo size={14} logo={chainCfg.networkLogoPath} />}
                                 <Typography variant="secondary12" color="text.secondary">
@@ -638,7 +638,7 @@ export const VaultDetail = () => {
                           {/* Right: balance + fee */}
                           <Box sx={{ textAlign: 'right' }}>
                             <Typography variant="secondary12" fontWeight={hasBalance ? 600 : 400}>
-                              {hasBalance ? `${formattedBalance} ${route.symbol}` : 'No balance'}
+                              {hasBalance ? `${formattedBalance} ${route.sourceTokenSymbol}` : 'No balance'}
                             </Typography>
                             {lzFeeEth && (
                               <Typography variant="secondary12" color="text.secondary">
