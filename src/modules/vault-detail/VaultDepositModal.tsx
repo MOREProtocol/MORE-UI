@@ -660,10 +660,10 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
               value={amount}
               onChange={handleChange}
               usdValue={amountInUsd.toString(10)}
-              symbol={isOftCompose ? route!.symbol : (selectedAssetSymbol || '')}
+              symbol={isOftCompose ? route!.sourceTokenSymbol : (selectedAssetSymbol || '')}
               assets={isOftCompose ? [{
                 address: route!.spokeToken,
-                symbol: route!.symbol,
+                symbol: route!.sourceTokenSymbol,
                 balance: routeBalance ?? '0',
                 decimals: routeTokenDecimals,
               } as Asset] : depositableAssets.map((a) => ({
