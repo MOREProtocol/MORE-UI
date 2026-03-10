@@ -27,6 +27,7 @@ import { VaultAllocations } from './VaultAllocations';
 import { VaultManagement } from './VaultManagement/VaultManagement';
 import { VaultNotes } from './VaultNotes';
 import { RewardsButton } from 'src/components/incentives/IncentivesButton';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import { useAccount, useChainId, useReadContract, useSwitchChain } from 'wagmi';
@@ -91,6 +92,7 @@ export const VaultDetail = () => {
   const [isWhitelistModalOpen, setIsWhitelistModalOpen] = useState(false);
   const [isBridgeModalOpen, setIsBridgeModalOpen] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<InboundRouteWithBalance | null>(null);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [selectedChartDataKey, setSelectedChartDataKey] = useState<'sharePrice' | 'totalAssets'>('sharePrice');
 
   // Get whitelist data from smart contract
@@ -630,6 +632,40 @@ export const VaultDetail = () => {
                                 </Typography>
                                 {route.depositType === 'direct' && (
                                   <Chip label="Direct" size="small" color="success" sx={{ fontSize: '0.6rem', height: 16, ml: 0.5 }} />
+                                )}
+                              </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Typography variant="secondary12" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                                  {route.spokeToken.slice(0, 6)}…{route.spokeToken.slice(-4)}
+                                </Typography>
+                                <Tooltip title={copiedToken === route.spokeToken ? 'Copied!' : 'Copy address'} placement="top">
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(route.spokeToken);
+                                      setCopiedToken(route.spokeToken);
+                                      setTimeout(() => setCopiedToken(null), 1500);
+                                    }}
+                                    sx={{ p: 0.25 }}
+                                  >
+                                    <ContentCopyIcon sx={{ fontSize: 11 }} />
+                                  </IconButton>
+                                </Tooltip>
+                                {chainCfg?.explorerLink && (
+                                  <Tooltip title="View on explorer" placement="top">
+                                    <IconButton
+                                      size="small"
+                                      component="a"
+                                      href={`${chainCfg.explorerLink}/address/${route.spokeToken}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                      sx={{ p: 0.25 }}
+                                    >
+                                      <OpenInNewIcon sx={{ fontSize: 11 }} />
+                                    </IconButton>
+                                  </Tooltip>
                                 )}
                               </Box>
                             </Box>
