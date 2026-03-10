@@ -12,6 +12,7 @@ import { useDepositWhitelist } from 'src/hooks/vault/useDepositWhitelist';
 import { VaultWhitelistModal } from './VaultWhitelistModal';
 import { VaultDepositModal } from './VaultDepositModal';
 import { VaultRedeemModal } from './VaultRedeemModal';
+import { VaultBridgeSharesToHubModal } from './VaultBridgeSharesToHubModal';
 import { LineChart } from '../charts/LineChart';
 import { MarketLogo } from 'src/components/MarketSwitcher';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
@@ -32,7 +33,8 @@ import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { ChainIds } from 'src/utils/const';
 import { isOmniSpokeVault } from 'src/hooks/vault/factoryRegistry';
 import { useVaultTopology, useVaultDistribution } from '@oydual31/more-vaults-sdk/react';
-import { useInboundRoutes, getRouteTokenDecimals } from 'src/hooks/vault/useInboundRoutes';
+import type { InboundRouteWithBalance } from '@oydual31/more-vaults-sdk/viem';
+import { useInboundRoutes, getRouteTokenDecimals } from '@oydual31/more-vaults-sdk/react';
 
 export const VaultDetail = () => {
   const router = useRouter();
@@ -51,11 +53,11 @@ export const VaultDetail = () => {
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId], { enabled: !!selectedVaultId && !!accountAddress });
   const vaultData = useVaultData(selectedVaultId);
   const vaultAssetAddress = vaultData?.data?.overview?.asset?.address;
-  const { data: inboundRoutes, isLoading: isRoutesLoading } = useInboundRoutes(
+  const { routes: inboundRoutes, isLoading: isRoutesLoading } = useInboundRoutes(
     isOmniHub ? topology?.hubChainId : undefined,
-    isOmniHub ? selectedVaultId : undefined,
-    isOmniHub ? vaultAssetAddress : undefined,
-    isOmniHub ? accountAddress : undefined
+    isOmniHub ? selectedVaultId as `0x${string}` : undefined,
+    isOmniHub ? vaultAssetAddress as `0x${string}` : undefined,
+    isOmniHub ? accountAddress as `0x${string}` : undefined
   );
   const userVaultBalances = useUserVaultBalances(accountAddress, { enabled: !!accountAddress });
   const theme = useTheme();
@@ -71,6 +73,8 @@ export const VaultDetail = () => {
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [isWhitelistModalOpen, setIsWhitelistModalOpen] = useState(false);
+  const [isBridgeModalOpen, setIsBridgeModalOpen] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState<InboundRouteWithBalance | null>(null);
   const [selectedChartDataKey, setSelectedChartDataKey] = useState<'sharePrice' | 'totalAssets'>('sharePrice');
 
   // Get whitelist data from smart contract
@@ -169,14 +173,12 @@ export const VaultDetail = () => {
   const isFlowTheme = process.env.NEXT_PUBLIC_UI_THEME === 'flow';
 
   const handleDepositClick = () => {
-    // If whitelisting is not enabled, allow direct deposit
+    setSelectedRoute(null);
     if (!isWhitelistEnabled) {
       setIsDepositModalOpen(true);
     } else if (isWhitelisted) {
-      // If whitelisting is enabled and user is whitelisted, allow deposit
       setIsDepositModalOpen(true);
     } else {
-      // If whitelisting is enabled but user is not whitelisted, show whitelist modal
       setIsWhitelistModalOpen(true);
     }
   };
@@ -361,20 +363,25 @@ export const VaultDetail = () => {
               </span>
             </Tooltip>
           )}
-          {!isLoading && !isUserVaultDataLoading && accountAddress && ((isOmniHub && shares > 0) || (maxWithdraw && maxWithdraw.gt(0))) &&
-            <Tooltip title={isOmniSpoke ? "Deposits and redeems are done on the hub chain (Base)" : ""} disableHoverListener={!isOmniSpoke}>
-              <span>
-                <Button
-                  variant="gradient"
-                  size="medium"
-                  onClick={() => setIsRedeemModalOpen(true)}
-                  disabled={isLoading || isUserVaultDataLoading || isOmniSpoke}
-                >
-                  Withdraw
-                </Button>
-              </span>
-            </Tooltip>
-          }
+          {!isLoading && !isUserVaultDataLoading && accountAddress && isOmniSpoke && (
+            <Button
+              variant="gradient"
+              size="medium"
+              onClick={() => setIsBridgeModalOpen(true)}
+            >
+              Bridge shares to hub
+            </Button>
+          )}
+          {!isLoading && !isUserVaultDataLoading && accountAddress && !isOmniSpoke && ((isOmniHub && shares > 0) || (maxWithdraw && maxWithdraw.gt(0))) && (
+            <Button
+              variant="gradient"
+              size="medium"
+              onClick={() => setIsRedeemModalOpen(true)}
+              disabled={isLoading || isUserVaultDataLoading}
+            >
+              Withdraw
+            </Button>
+          )}
         </Box>
       </Box>
 
@@ -575,6 +582,11 @@ export const VaultDetail = () => {
                       return (
                         <Box
                           key={idx}
+                          onClick={() => {
+                            if (!hasBalance || !accountAddress) return;
+                            setSelectedRoute(route);
+                            setIsDepositModalOpen(true);
+                          }}
                           sx={{
                             display: 'flex',
                             alignItems: 'center',
@@ -585,7 +597,9 @@ export const VaultDetail = () => {
                             px: 1,
                             borderRadius: 1,
                             border: '1px solid',
-                            borderColor: 'divider',
+                            borderColor: selectedRoute === route ? 'primary.main' : 'divider',
+                            cursor: hasBalance && accountAddress ? 'pointer' : 'default',
+                            '&:hover': hasBalance && accountAddress ? { borderColor: 'primary.light', bgcolor: 'action.hover' } : {},
                           }}
                         >
                           {/* Left: token + chain */}
@@ -1288,14 +1302,16 @@ export const VaultDetail = () => {
       {/* MODALS */}
       <VaultDepositModal
         isOpen={isDepositModalOpen}
-        setIsOpen={setIsDepositModalOpen}
+        setIsOpen={(open) => { setIsDepositModalOpen(open); if (!open) setSelectedRoute(null); }}
         whitelistAmount={whitelistAmount}
+        route={selectedRoute ?? undefined}
       />
       <VaultRedeemModal
         isOpen={isRedeemModalOpen}
         setIsOpen={setIsRedeemModalOpen}
       />
       <VaultWhitelistModal isOpen={isWhitelistModalOpen} setIsOpen={setIsWhitelistModalOpen} />
+      <VaultBridgeSharesToHubModal isOpen={isBridgeModalOpen} setIsOpen={setIsBridgeModalOpen} />
     </Box>
   );
 };

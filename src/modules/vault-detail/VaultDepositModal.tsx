@@ -12,22 +12,29 @@ import { useRootStore } from 'src/store/root';
 import { useOmniRequestStore } from 'src/store/omniRequestStore';
 import { roundToTokenDecimals } from 'src/utils/utils';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
-import { useBalance, useChainId, usePublicClient, useSwitchChain } from 'wagmi';
-import { formatEther } from 'viem';
+import { useBalance, useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
+import { formatEther, formatUnits } from 'viem';
 import { networkConfigs } from 'src/ui-config/networksConfig';
-import { asSdkClient, getVaultStatus, quoteLzFee } from '@oydual31/more-vaults-sdk/viem';
+import { asSdkClient, getVaultStatus, quoteLzFee, depositFromSpoke, CHAIN_ID_TO_EID, quoteRouteDepositFee, type InboundRouteWithBalance } from '@oydual31/more-vaults-sdk/viem';
+import { getRouteTokenDecimals } from '@oydual31/more-vaults-sdk/react';
 
 interface VaultDepositModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   whitelistAmount?: string;
+  route?: InboundRouteWithBalance;
 }
 
-export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, setIsOpen, whitelistAmount }) => {
+export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, setIsOpen, whitelistAmount, route }) => {
   const { signer, selectedVaultId, chainId: vaultChainId, depositInVault, depositInVaultFromToken, accountAddress, enhanceTransactionWithGas, isOmniHub, omniDeposit } = useVault();
   const wagmiChainId = useChainId();
   const { switchChain } = useSwitchChain();
   const publicClient = usePublicClient({ chainId: vaultChainId });
+
+  // Spoke chain clients for oft-compose deposits
+  const isOftCompose = !!route && route.depositType === 'oft-compose';
+  const spokePublicClient = usePublicClient({ chainId: route?.spokeChainId });
+  const { data: spokeWalletClient } = useWalletClient({ chainId: route?.spokeChainId });
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
@@ -85,6 +92,28 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const addOmniRequest = useOmniRequestStore((s) => s.addOmniRequest);
   const omniStatus = useOmniRequestStore((s) => omniGuid ? s.omniRequests[omniGuid]?.status ?? 'pending' : 'pending');
 
+  // Real fee for oft-compose: re-quoted on each amount change (debounced 500ms)
+  const [realFee, setRealFee] = useState<bigint>(route?.lzFeeEstimate ?? BigInt(0));
+  useEffect(() => {
+    if (!route || route.depositType !== 'oft-compose' || !amount || amount === '0') return;
+    const decimals = getRouteTokenDecimals(route.symbol);
+    let parsedAmount: bigint;
+    try { parsedAmount = BigInt(parseUnits(amount, decimals).toString()); } catch { return; }
+    if (parsedAmount === BigInt(0)) return;
+    const t = setTimeout(async () => {
+      try {
+        const fee = await quoteRouteDepositFee(route, vaultChainId, parsedAmount, accountAddress as `0x${string}`);
+        setRealFee(fee);
+      } catch {
+        setRealFee(route.lzFeeEstimate);
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [route, amount, vaultChainId, accountAddress]);
+
+  // Reset realFee when route changes
+  useEffect(() => { setRealFee(route?.lzFeeEstimate ?? BigInt(0)); }, [route]);
+
   const amountInUsd = new BigNumber(amount).multipliedBy(selectedAssetData.data?.price || 0);
 
   const userVaultBalance = userVaultData?.[0]?.data?.maxWithdraw?.toString() || '0';
@@ -132,7 +161,12 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     }
   };
 
+  // Balances/decimals override for oft-compose routes
+  const routeTokenDecimals = route ? getRouteTokenDecimals(route.symbol) : 18;
+  const routeBalance = route ? formatUnits(route.userBalance, routeTokenDecimals) : null;
+
   const maxAmountToSupply = useMemo(() => {
+    if (isOftCompose && routeBalance != null) return routeBalance;
     if (!selectedAssetData.data?.decimals) return '0';
 
     let effectiveMaxAmount = walletBalance;
@@ -175,7 +209,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
 
   // On open, verify vault is not paused and escrow is configured before allowing deposit
   useEffect(() => {
-    if (!isOmniHub || !isOpen || !selectedVaultId || !publicClient) return;
+    if (!isOmniHub || isOftCompose || !isOpen || !selectedVaultId || !publicClient) return;
     let cancelled = false;
     const run = async () => {
       try {
@@ -196,7 +230,13 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
 
   // Estimate bridge fee once when modal opens — fee is amount-independent
   useEffect(() => {
-    if (!isOmniHub || !isOpen || !selectedVaultId || !publicClient) return;
+    if (!isOpen) return;
+    // oft-compose: display from realFee state (updated via debounced quoteRouteDepositFee)
+    if (isOftCompose && route) {
+      setEstimatedFee(formatUnits(route.lzFeeEstimate, 18)); // initial display; realFee updates it
+      return;
+    }
+    if (!isOmniHub || !selectedVaultId || !publicClient) return;
     let cancelled = false;
     const run = async () => {
       setIsFeeLoading(true);
@@ -213,7 +253,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     };
     run();
     return () => { cancelled = true; };
-  }, [isOmniHub, isOpen, selectedVaultId, publicClient]);
+  }, [isOmniHub, isOftCompose, isOpen, selectedVaultId, publicClient, route]);
 
 
   // Reset state when modal closes
@@ -247,11 +287,13 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
         setTxAction(null);
         return;
       }
-      if (amount && amount !== '0' && selectedAssetData.data?.decimals != null) {
+      if (amount && amount !== '0') {
         try {
-          if (isOmniHub) {
+          if (isOftCompose) {
+            setTxAction('oft-compose-deposit');
+          } else if (isOmniHub) {
             setTxAction('omni-deposit');
-          } else {
+          } else if (selectedAssetData.data?.decimals != null) {
             const isPrimary = (selectedAssetAddress || '').toLowerCase() === (primaryAssetAddress || '').toLowerCase();
             const { action } = isPrimary
               ? await depositInVault(parseUnits(amount, selectedAssetData.data.decimals).toString())
@@ -267,7 +309,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       }
     };
     updateButtonActionState();
-  }, [amount, selectedAssetData.data?.decimals, selectedAssetAddress, primaryAssetAddress, txHash, depositInVault, depositInVaultFromToken, isOmniHub]);
+  }, [amount, selectedAssetData.data?.decimals, selectedAssetAddress, primaryAssetAddress, txHash, depositInVault, depositInVaultFromToken, isOmniHub, isOftCompose]);
 
   const handleChange = (value: string) => {
     if (txError) {
@@ -288,6 +330,42 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
         ? `${networkConfigs[vaultChainId].explorerLink}/tx/${txHash}`
         : currentNetworkConfig.explorerLinkBuilder({ tx: txHash });
       window.open(explorerUrl, '_blank');
+      return;
+    }
+
+    // oft-compose: cross-chain deposit via OFT from spoke chain
+    if (isOftCompose && route) {
+      if (!amount || amount === '0') return;
+      if (!route.spokeOft) { setTxError('Route configuration error: missing spoke OFT address'); return; }
+      if (!spokeWalletClient || !spokePublicClient) { setTxError('Wallet not connected to the spoke chain'); return; }
+      const hubEid = CHAIN_ID_TO_EID[vaultChainId];
+      const spokeEid = CHAIN_ID_TO_EID[route.spokeChainId];
+      if (!hubEid || !spokeEid) { setTxError('Unsupported chain EID'); return; }
+
+      setIsLoading(true);
+      setTxError(null);
+      try {
+        const parsedAmount = BigInt(parseUnits(amount, routeTokenDecimals).toString());
+        const feeWithBuffer = (realFee * BigInt(101)) / BigInt(100);
+        const { txHash: hash } = await depositFromSpoke(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          spokeWalletClient as any,
+          asSdkClient(spokePublicClient),
+          route.spokeOft,
+          hubEid,
+          spokeEid,
+          parsedAmount,
+          accountAddress as `0x${string}`,
+          feeWithBuffer,
+        );
+        setTxHash(hash);
+        if (refreshUserVaultData) refreshUserVaultData();
+      } catch (error) {
+        console.error('Error during spoke deposit:', error);
+        setTxError(error instanceof Error ? error.message : 'An unexpected error occurred.');
+      } finally {
+        setIsLoading(false);
+      }
       return;
     }
 
@@ -432,17 +510,27 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     if (txAction === 'omni-deposit') {
       return 'Deposit into the vault';
     }
+    if (txAction === 'oft-compose-deposit') {
+      return `Bridge & deposit from ${networkConfigs[route?.spokeChainId ?? 0]?.name || 'spoke chain'}`;
+    }
 
     return 'Deposit into the vault';
   }, [amount, primaryAssetData.data, txHash, txAction, isLoading, currentNetworkConfig.explorerName, isOmniHub]);
 
-  const preflightBlocked = isOmniHub && preflight && (preflight.paused || preflight.escrowMissing);
+  const preflightBlocked = !isOftCompose && isOmniHub && preflight && (preflight.paused || preflight.escrowMissing);
+  const isOnWrongChain = isOftCompose
+    ? wagmiChainId !== route!.spokeChainId
+    : isOmniHub && wagmiChainId !== vaultChainId;
 
   return (
     <BasicModal open={isOpen} setOpen={setIsOpen}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Typography variant="h2">Deposit into the vault</Typography>
+          <Typography variant="h2">
+            {isOftCompose
+              ? `Deposit from ${networkConfigs[route!.spokeChainId]?.name || 'spoke chain'}`
+              : 'Deposit into the vault'}
+          </Typography>
         </Box>
         {/* Risk Disclosure Section */}
         <Collapse in={!riskAccepted}>
@@ -572,8 +660,13 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
               value={amount}
               onChange={handleChange}
               usdValue={amountInUsd.toString(10)}
-              symbol={selectedAssetSymbol || ''}
-              assets={depositableAssets.map((a) => ({
+              symbol={isOftCompose ? route!.symbol : (selectedAssetSymbol || '')}
+              assets={isOftCompose ? [{
+                address: route!.spokeToken,
+                symbol: route!.symbol,
+                balance: routeBalance ?? '0',
+                decimals: routeTokenDecimals,
+              } as Asset] : depositableAssets.map((a) => ({
                 address: a.address,
                 symbol: a.symbol || ((a.address || '').slice(0, 6) || 'TOKEN'),
                 balance: ((a.address || '').toLowerCase() === (selectedAssetAddress || '').toLowerCase())
@@ -582,12 +675,14 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
                 decimals: a.decimals,
               }) as Asset)}
               onSelect={(asset) => {
-                setSelectedAssetAddress(asset.address || '');
-                setSelectedAssetSymbol(asset.symbol || ((asset.address || '').slice(0, 6) || 'TOKEN'));
+                if (!isOftCompose) {
+                  setSelectedAssetAddress(asset.address || '');
+                  setSelectedAssetSymbol(asset.symbol || ((asset.address || '').slice(0, 6) || 'TOKEN'));
+                }
               }}
               maxValue={maxAmountToSupply}
               isMaxSelected={amount === maxAmountToSupply}
-              balanceText={assetInputConfig.balanceText}
+              balanceText={isOftCompose ? 'Balance on spoke' : assetInputConfig.balanceText}
             />
             {txError && (
               <Box
@@ -610,30 +705,38 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
               </Box>
             )}
 
-            {isOmniHub && (
+            {(isOmniHub || isOftCompose) && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {wagmiChainId !== vaultChainId && (
+                {isOnWrongChain && (
                   <Alert
                     severity="warning"
                     action={
                       <Button
                         color="inherit"
                         size="small"
-                        onClick={() => switchChain({ chainId: vaultChainId })}
+                        onClick={() => switchChain({ chainId: isOftCompose ? route!.spokeChainId : vaultChainId })}
                       >
                         Switch network
                       </Button>
                     }
                   >
-                    You must be on the vault&apos;s hub network to deposit.
+                    {isOftCompose
+                      ? `Switch to ${networkConfigs[route!.spokeChainId]?.name || 'spoke chain'} to use this route.`
+                      : 'You must be on the vault\'s hub network to deposit.'}
                   </Alert>
                 )}
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Typography variant="secondary14" color="text.secondary">Bridge fee (est.)</Typography>
                   {isFeeLoading ? (
                     <CircularProgress size={14} />
+                  ) : isOftCompose ? (
+                    <Typography variant="secondary14">
+                      ~{parseFloat(formatUnits(realFee, 18)).toFixed(6)} {route!.nativeSymbol} (excess refunded)
+                    </Typography>
                   ) : estimatedFee ? (
-                    <Typography variant="secondary14">~{parseFloat(estimatedFee).toFixed(6)} {networkConfigs[vaultChainId]?.baseAssetSymbol || 'ETH'} (excess refunded)</Typography>
+                    <Typography variant="secondary14">
+                      ~{parseFloat(estimatedFee).toFixed(6)} {networkConfigs[vaultChainId]?.baseAssetSymbol || 'ETH'} (excess refunded)
+                    </Typography>
                   ) : (
                     <Typography variant="secondary14" color="text.secondary">—</Typography>
                   )}
@@ -641,8 +744,25 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
               </Box>
             )}
 
+            {/* oft-compose: show spoke tx link after confirmation */}
+            {isOftCompose && txHash && (
+              <Box sx={{ p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography variant="secondary14">✅ Bridge transaction sent — tokens are on their way to the hub</Typography>
+                {networkConfigs[route!.spokeChainId]?.explorerLink && (
+                  <Link
+                    href={`${networkConfigs[route!.spokeChainId].explorerLink}/tx/${txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="secondary14"
+                  >
+                    View on {networkConfigs[route!.spokeChainId]?.explorerName || 'explorer'} ↗
+                  </Link>
+                )}
+              </Box>
+            )}
+
             {/* Cross-chain request status tracker — shown after bridge tx confirms */}
-            {isOmniHub && txHash && (
+            {isOmniHub && !isOftCompose && txHash && (
               <Box sx={{ p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Typography variant="secondary14">
                   {omniStatus === 'pending' && '⏳ Waiting for cross-chain accounting (~2 min)…'}
@@ -666,7 +786,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Button
                 variant={txHash ? 'contained' : 'gradient'}
-                disabled={!amount || amount === '0' || (isOmniHub && wagmiChainId !== vaultChainId) || !!preflightBlocked}
+                disabled={!amount || amount === '0' || isOnWrongChain || !!preflightBlocked}
                 onClick={handleClick}
                 size="large"
                 sx={{ minHeight: '44px' }}
