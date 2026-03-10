@@ -32,9 +32,13 @@ import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { ChainIds } from 'src/utils/const';
 import { isOmniSpokeVault } from 'src/hooks/vault/factoryRegistry';
-import { useVaultTopology, useVaultDistribution } from '@oydual31/more-vaults-sdk/react';
+import {
+  getRouteTokenDecimals,
+  useInboundRoutes,
+  useVaultDistribution,
+  useVaultTopology,
+} from '@oydual31/more-vaults-sdk/react';
 import type { InboundRouteWithBalance } from '@oydual31/more-vaults-sdk/viem';
-import { useInboundRoutes, getRouteTokenDecimals } from '@oydual31/more-vaults-sdk/react';
 
 export const VaultDetail = () => {
   const router = useRouter();
