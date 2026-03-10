@@ -853,7 +853,7 @@ export const VaultDetail = () => {
             {isOmniHub && distribution && !distribution.oracleAccountingEnabled && (
               <Box sx={{ gridColumn: { xsm: '1 / -1' } }}>
                 <Alert severity="warning" sx={{ py: 0.5 }}>
-                  Oracle accounting is disabled — spoke yield is not reflected in share price
+                  Share price may be slightly understated — spoke yields are synced on deposit/redeem activity, not continuously.
                 </Alert>
               </Box>
             )}
