@@ -1,4 +1,4 @@
-import { Avatar, Box, Button, Chip, Skeleton, SvgIcon, Tab, Tabs, Typography, useMediaQuery, useTheme, Tooltip, IconButton, Alert } from '@mui/material';
+import { Avatar, Box, Button, Chip, Dialog, DialogContent, DialogTitle, Skeleton, SvgIcon, Tab, Tabs, Typography, useMediaQuery, useTheme, Tooltip, IconButton, Alert } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import InfoIcon from '@mui/icons-material/InfoOutlined';
@@ -91,6 +91,7 @@ export const VaultDetail = () => {
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [isWhitelistModalOpen, setIsWhitelistModalOpen] = useState(false);
   const [isBridgeModalOpen, setIsBridgeModalOpen] = useState(false);
+  const [isRoutePickerOpen, setIsRoutePickerOpen] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<InboundRouteWithBalance | null>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [selectedChartDataKey, setSelectedChartDataKey] = useState<'sharePrice' | 'totalAssets'>('sharePrice');
@@ -192,12 +193,14 @@ export const VaultDetail = () => {
 
   const handleDepositClick = () => {
     setSelectedRoute(null);
-    if (!isWhitelistEnabled) {
-      setIsDepositModalOpen(true);
-    } else if (isWhitelisted) {
-      setIsDepositModalOpen(true);
-    } else {
+    if (isWhitelistEnabled && !isWhitelisted) {
       setIsWhitelistModalOpen(true);
+      return;
+    }
+    if (isOmniHub && inboundRoutes && inboundRoutes.length > 0) {
+      setIsRoutePickerOpen(true);
+    } else {
+      setIsDepositModalOpen(true);
     }
   };
 
@@ -1364,6 +1367,71 @@ export const VaultDetail = () => {
       />
       <VaultWhitelistModal isOpen={isWhitelistModalOpen} setIsOpen={setIsWhitelistModalOpen} />
       <VaultBridgeSharesToHubModal isOpen={isBridgeModalOpen} setIsOpen={setIsBridgeModalOpen} />
+
+      {/* Route picker — shown when user clicks top Deposit button on an omni-hub vault */}
+      <Dialog open={isRoutePickerOpen} onClose={() => setIsRoutePickerOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ pb: 1 }}>Select deposit route</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, pb: 2 }}>
+          {inboundRoutes?.map((route, idx) => {
+            const chainCfg = networkConfigs[route.spokeChainId];
+            const decimals = getRouteTokenDecimals(route.symbol);
+            const hasBalance = route.userBalance > BigInt(0);
+            const formattedBalance = parseFloat(formatUnits(route.userBalance, decimals)).toLocaleString(undefined, { maximumFractionDigits: 4 });
+            const lzFeeEth = route.depositType === 'oft-compose'
+              ? parseFloat(formatUnits(route.lzFeeEstimate, 18)).toFixed(5)
+              : null;
+            return (
+              <Box
+                key={idx}
+                onClick={() => {
+                  setIsRoutePickerOpen(false);
+                  setSelectedRoute(route);
+                  setIsDepositModalOpen(true);
+                }}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 1,
+                  py: 0.75,
+                  px: 1.5,
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  cursor: 'pointer',
+                  '&:hover': { borderColor: 'primary.light', bgcolor: 'action.hover' },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <TokenIcon symbol={route.sourceTokenSymbol} fontSize="small" />
+                  <Box>
+                    <Typography variant="secondary12" fontWeight={600}>{route.sourceTokenSymbol}</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {chainCfg && <MarketLogo size={14} logo={chainCfg.networkLogoPath} />}
+                      <Typography variant="secondary12" color="text.secondary">
+                        {chainCfg?.name || `Chain ${route.spokeChainId}`}
+                      </Typography>
+                      {route.depositType === 'direct' && (
+                        <Chip label="Direct" size="small" color="success" sx={{ fontSize: '0.6rem', height: 16, ml: 0.5 }} />
+                      )}
+                    </Box>
+                  </Box>
+                </Box>
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography variant="secondary12" fontWeight={hasBalance ? 600 : 400} color={hasBalance ? 'text.primary' : 'text.secondary'}>
+                    {hasBalance ? `${formattedBalance} ${route.sourceTokenSymbol}` : 'No balance'}
+                  </Typography>
+                  {lzFeeEth && (
+                    <Typography variant="secondary12" color="text.secondary">
+                      ~{lzFeeEth} {route.nativeSymbol} fee
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            );
+          })}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };
