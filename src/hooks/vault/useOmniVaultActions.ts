@@ -3,7 +3,6 @@ import { usePublicClient, useWalletClient } from 'wagmi';
 import {
   asSdkClient,
   depositAsync,
-  getVaultStatus,
   quoteLzFee,
   redeemAsync,
 } from '@oydual31/more-vaults-sdk/viem';
@@ -25,14 +24,13 @@ export const useOmniVaultActions = (
       const pc = asSdkClient(publicClient);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const wc = walletClient as any;
-      const status = await getVaultStatus(pc, vault);
       const lzFee = await quoteLzFee(pc, vault);
       const feeWithBuffer = (lzFee * BigInt(101)) / BigInt(100);
 
       const { txHash, guid } = await depositAsync(
         wc,
         pc,
-        { vault, escrow: status.escrow, hubChainId },
+        { vault, hubChainId },
         BigInt(amountInWei),
         walletClient.account.address,
         feeWithBuffer,
@@ -53,7 +51,6 @@ export const useOmniVaultActions = (
       const pc = asSdkClient(publicClient);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const wc = walletClient as any;
-      const status = await getVaultStatus(pc, vault);
       const lzFee = await quoteLzFee(pc, vault);
       const feeWithBuffer = (lzFee * BigInt(101)) / BigInt(100);
 
@@ -61,7 +58,7 @@ export const useOmniVaultActions = (
       const { txHash, guid } = await redeemAsync(
         wc,
         pc,
-        { vault, escrow: status.escrow, hubChainId },
+        { vault, hubChainId },
         BigInt(sharesInWei),
         owner,
         owner,
