@@ -1370,8 +1370,13 @@ export const VaultDetail = () => {
 
       {/* Route picker — shown when user clicks top Deposit button on an omni-hub vault */}
       <Dialog open={isRoutePickerOpen} onClose={() => setIsRoutePickerOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ pb: 1 }}>Select deposit route</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, pb: 2 }}>
+        <DialogTitle sx={{ pb: 0.5 }}>
+          Deposit from
+          <Typography variant="secondary14" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+            Choose the token and network you want to deposit from.
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1, pb: 2.5, pt: '12px !important' }}>
           {inboundRoutes?.map((route, idx) => {
             const chainCfg = networkConfigs[route.spokeChainId];
             const decimals = getRouteTokenDecimals(route.symbol);
@@ -1381,53 +1386,74 @@ export const VaultDetail = () => {
               ? parseFloat(formatUnits(route.lzFeeEstimate, 18)).toFixed(5)
               : null;
             return (
-              <Box
+              <Tooltip
                 key={idx}
-                onClick={() => {
-                  setIsRoutePickerOpen(false);
-                  setSelectedRoute(route);
-                  setIsDepositModalOpen(true);
-                }}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 1,
-                  py: 0.75,
-                  px: 1.5,
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  cursor: 'pointer',
-                  '&:hover': { borderColor: 'primary.light', bgcolor: 'action.hover' },
-                }}
+                title={!hasBalance ? `No ${route.sourceTokenSymbol} balance on ${chainCfg?.name ?? `chain ${route.spokeChainId}`}` : ''}
+                placement="top"
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <TokenIcon symbol={route.sourceTokenSymbol} fontSize="small" />
-                  <Box>
-                    <Typography variant="secondary12" fontWeight={600}>{route.sourceTokenSymbol}</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      {chainCfg && <MarketLogo size={14} logo={chainCfg.networkLogoPath} />}
-                      <Typography variant="secondary12" color="text.secondary">
-                        {chainCfg?.name || `Chain ${route.spokeChainId}`}
-                      </Typography>
-                      {route.depositType === 'direct' && (
-                        <Chip label="Direct" size="small" color="success" sx={{ fontSize: '0.6rem', height: 16, ml: 0.5 }} />
-                      )}
+                <Box
+                  onClick={() => {
+                    setIsRoutePickerOpen(false);
+                    setSelectedRoute(route);
+                    setIsDepositModalOpen(true);
+                  }}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 2,
+                    py: 1.5,
+                    px: 2,
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    cursor: 'pointer',
+                    opacity: hasBalance ? 1 : 0.45,
+                    transition: 'border-color 0.15s, background 0.15s',
+                    '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+                  }}
+                >
+                  {/* Left: icon + name + chain */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <TokenIcon symbol={route.sourceTokenSymbol} sx={{ fontSize: 36 }} />
+                    <Box>
+                      <Typography variant="h4" sx={{ lineHeight: 1.2 }}>{route.sourceTokenSymbol}</Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                        {chainCfg && <MarketLogo size={14} logo={chainCfg.networkLogoPath} />}
+                        <Typography variant="secondary12" color="text.secondary">
+                          {chainCfg?.name || `Chain ${route.spokeChainId}`}
+                        </Typography>
+                        {route.depositType === 'direct' && (
+                          <Chip label="Direct" size="small" color="success" sx={{ fontSize: '0.6rem', height: 16, ml: 0.5 }} />
+                        )}
+                      </Box>
                     </Box>
                   </Box>
-                </Box>
-                <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant="secondary12" fontWeight={hasBalance ? 600 : 400} color={hasBalance ? 'text.primary' : 'text.secondary'}>
-                    {hasBalance ? `${formattedBalance} ${route.sourceTokenSymbol}` : 'No balance'}
-                  </Typography>
-                  {lzFeeEth && (
-                    <Typography variant="secondary12" color="text.secondary">
-                      ~{lzFeeEth} {route.nativeSymbol} fee
+
+                  {/* Right: balance + fee badge */}
+                  <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                    <Typography
+                      variant="secondary14"
+                      fontWeight={600}
+                      color={hasBalance ? 'success.main' : 'text.secondary'}
+                    >
+                      {hasBalance ? `${formattedBalance}` : '—'}
                     </Typography>
-                  )}
+                    {hasBalance && (
+                      <Typography variant="secondary12" color="text.secondary" sx={{ display: 'block' }}>
+                        {route.sourceTokenSymbol}
+                      </Typography>
+                    )}
+                    {lzFeeEth && (
+                      <Chip
+                        label={`~${lzFeeEth} ${route.nativeSymbol}`}
+                        size="small"
+                        sx={{ fontSize: '0.6rem', height: 16, mt: 0.5, opacity: 0.7 }}
+                      />
+                    )}
+                  </Box>
                 </Box>
-              </Box>
+              </Tooltip>
             );
           })}
         </DialogContent>
