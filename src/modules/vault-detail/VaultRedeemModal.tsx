@@ -15,12 +15,13 @@ import { useOmniRequestStore } from 'src/store/omniRequestStore';
 import { formatTimeRemaining } from 'src/helpers/timeHelper';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { useChainId, usePublicClient, useSwitchChain } from 'wagmi';
-import { formatEther } from 'viem';
+import { formatEther, formatUnits as viemFormatUnits } from 'viem';
 import {
   asSdkClient,
   getVaultStatus,
   getWithdrawalRequest as sdkGetWithdrawalRequest,
   quoteLzFee,
+  InsufficientLiquidityError,
 } from '@oydual31/more-vaults-sdk/viem';
 
 interface VaultRedeemModalProps {
@@ -401,8 +402,18 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({
         }
         if (refreshUserVaultData) refreshUserVaultData();
       } catch (error) {
-        console.error('Error during omni redeem:', error);
-        setTxError(error instanceof Error ? error.message : 'An unexpected error occurred.');
+        if (error instanceof InsufficientLiquidityError) {
+          const underlyingDecimals = assetData.data?.decimals ?? 6;
+          const available = viemFormatUnits(error.hubLiquid, underlyingDecimals);
+          const needed = viemFormatUnits(error.required, underlyingDecimals);
+          const symbol = assetData.data?.symbol ?? 'tokens';
+          setTxError(
+            `Hub doesn't have enough liquidity. Available: ${available} ${symbol} — needed: ${needed} ${symbol}. Try a smaller amount or wait for funds to be repatriated from spoke chains.`
+          );
+        } else {
+          console.error('Error during omni redeem:', error);
+          setTxError(error instanceof Error ? error.message : 'An unexpected error occurred.');
+        }
       } finally {
         setIsLoading(false);
       }
