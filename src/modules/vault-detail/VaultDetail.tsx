@@ -67,7 +67,7 @@ import { VaultWhitelistModal } from './VaultWhitelistModal';
 
 export const VaultDetail = () => {
   const router = useRouter();
-  const { selectedVaultId, accountAddress, chainId, isOmniHub } = useVault();
+  const { selectedVaultId, accountAddress, chainId, isChainDetected, isOmniHub } = useVault();
   const isOmniSpoke = isOmniSpokeVault(chainId, selectedVaultId ?? '');
   const { address } = useAccount();
   const wagmiChainId = useChainId();
@@ -176,12 +176,11 @@ export const VaultDetail = () => {
     });
   }, [inboundRoutes]);
 
-  // Check if user is on the correct network for this specific vault
   const vaultNetwork = selectedVault?.chainId;
   const isOnCorrectNetwork = wagmiChainId === vaultNetwork;
-  const shouldShowNetworkBanner = address && vaultNetwork && !isOnCorrectNetwork;
-  // Keep loading state active when on wrong network
-  const isLoading = vaultData?.isLoading || shouldShowNetworkBanner;
+  // Omni vaults work cross-chain — don't block loading for wrong network
+  const shouldShowNetworkBanner = address && vaultNetwork && !isOnCorrectNetwork && !isOmniHub && !isOmniSpoke;
+  const isLoading = !isChainDetected || vaultData?.isLoading || shouldShowNetworkBanner;
   const isUserVaultDataLoading = userVaultData?.[0]?.isLoading || shouldShowNetworkBanner;
   const isUserVaultBalancesLoading = userVaultBalances?.isLoading;
 

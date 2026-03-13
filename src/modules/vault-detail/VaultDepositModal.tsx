@@ -75,8 +75,6 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   const { switchChain } = useSwitchChain();
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
-  // The vault's actual hub chain (from detectVaultNetwork), not the wallet's current chain.
-  // vaultChainId follows the wallet, so it can be wrong for cross-chain deposits.
   const hubChainId = selectedVault?.chainId || vaultChainId;
   const publicClient = usePublicClient({ chainId: hubChainId });
 

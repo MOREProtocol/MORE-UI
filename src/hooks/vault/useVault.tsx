@@ -144,6 +144,8 @@ interface VaultBatchTransaction {
 export interface VaultContextData {
   // Network context
   chainId: number;
+  /** True once the vault's actual chain has been detected (or no vault is selected) */
+  isChainDetected: boolean;
   signer: ethers.Signer | null;
   network: string;
 
@@ -239,20 +241,14 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   const { data: walletClient } = useWalletClient();
   const wagmiChainId = useChainId();
 
-  // Detect the vault's actual network. Always run — even with wallet connected,
-  // because the wallet may be on Ethereum while the vault lives on Base.
   const { data: detectedChainId } = useQuery({
     queryKey: ['detectVaultNetwork', selectedVaultId],
     queryFn: () => detectVaultNetwork(selectedVaultId!),
     enabled: !!selectedVaultId,
-    staleTime: 10 * 60 * 1000, // cache 10 min
+    staleTime: 10 * 60 * 1000,
   });
 
-  // For reading vault data, always prefer the detected chain (where the vault actually is).
-  // The wallet chain is only relevant for signing transactions.
-  // While detection is pending, fall back to wagmiChainId — hooks that fail on the wrong
-  // chain will retry when chainId updates. useVaultData has its own detectVaultNetwork
-  // inside the query function, so it always finds the right chain regardless.
+  const isChainDetected = !!detectedChainId || !selectedVaultId;
   const chainId = detectedChainId || wagmiChainId || ChainIds.flowEVMMainnet;
 
   const provider = useVaultProvider(chainId);
@@ -1026,6 +1022,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   const contextValue: VaultContextData = {
     // Network context
     chainId,
+    isChainDetected,
     signer,
     network,
     // Info reading
