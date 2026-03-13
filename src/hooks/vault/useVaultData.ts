@@ -640,7 +640,7 @@ const getVaultIncentives = (incentives: IncentiveItem[], vaultId: string): Incen
 };
 
 // Helper function to detect which network a vault exists on
-const detectVaultNetwork = async (vaultId: string, currentChainId?: number): Promise<number | null> => {
+export const detectVaultNetwork = async (vaultId: string, currentChainId?: number): Promise<number | null> => {
   const supportedChainIds = Object.keys(vaultsConfig).map(Number);
 
   // Prioritize current wallet network if provided

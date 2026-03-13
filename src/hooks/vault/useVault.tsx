@@ -22,7 +22,7 @@ import type { SpokeVaultInfo } from './types';
 import { isOmniHubVault, markVaultAsOmniHub } from './factoryRegistry';
 import omniVaultFactoryAbi from 'src/libs/abis/omni_vault_factory_abi.json';
 
-import { useVaultProvider, useOmniDeployedVaults } from './useVaultData';
+import { useVaultProvider, useOmniDeployedVaults, detectVaultNetwork } from './useVaultData';
 import { useOmniVaultActions } from './useOmniVaultActions';
 import bridgeFacetAbi from 'src/libs/abis/bridge_facet_abi.json';
 
@@ -239,8 +239,19 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   const { data: walletClient } = useWalletClient();
   const wagmiChainId = useChainId();
 
-  // Use wagmi chainId (reacts to network changes) with fallback to Flow EVM Mainnet
-  const chainId = wagmiChainId || ChainIds.flowEVMMainnet;
+  // Detect the vault's actual network so we don't default to Flow for Base vaults
+  // when no wallet is connected.
+  const { data: detectedChainId } = useQuery({
+    queryKey: ['detectVaultNetwork', selectedVaultId],
+    queryFn: () => detectVaultNetwork(selectedVaultId!),
+    enabled: !!selectedVaultId && !walletClient,
+    staleTime: 10 * 60 * 1000, // cache 10 min
+  });
+
+  // When wallet is connected, trust the wallet's chain. Otherwise use detected chain.
+  const chainId = walletClient
+    ? (wagmiChainId || ChainIds.flowEVMMainnet)
+    : (detectedChainId || wagmiChainId || ChainIds.flowEVMMainnet);
 
   const provider = useVaultProvider(chainId);
   const signer = useMemo(() => {
