@@ -15,7 +15,7 @@ import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useBalance, useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
 import { formatEther, formatUnits } from 'viem';
 import { networkConfigs } from 'src/ui-config/networksConfig';
-import { asSdkClient, getVaultStatus, quoteLzFee, depositFromSpoke, CHAIN_ID_TO_EID, quoteRouteDepositFee, type InboundRouteWithBalance } from '@oydual31/more-vaults-sdk/viem';
+import { asSdkClient, getVaultStatus, quoteLzFee, depositFromSpoke, waitForCompose, executeCompose, quoteComposeFee, preflightSpokeDeposit, CHAIN_ID_TO_EID, quoteRouteDepositFee, type InboundRouteWithBalance } from '@oydual31/more-vaults-sdk/viem';
 import { getRouteTokenDecimals } from '@oydual31/more-vaults-sdk/react';
 
 interface VaultDepositModalProps {
@@ -84,6 +84,9 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const [addTokenLoading, setAddTokenLoading] = useState(false);
   const [addTokenSuccess, setAddTokenSuccess] = useState(false);
 
+  // Hub chain wallet client for Stargate compose execution
+  const { data: hubWalletClient } = useWalletClient({ chainId: vaultChainId });
+
   // Omni vault state
   const [estimatedFee, setEstimatedFee] = useState<string | null>(null);
   const [isFeeLoading, setIsFeeLoading] = useState(false);
@@ -95,6 +98,18 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   } | null>(null);
   const addOmniRequest = useOmniRequestStore((s) => s.addOmniRequest);
   const omniStatus = useOmniRequestStore((s) => omniGuid ? s.omniRequests[omniGuid]?.status ?? 'pending' : 'pending');
+
+  // Stargate compose state (2-TX spoke deposits)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [composeData, setComposeData] = useState<any>(null);
+  const [composeStep, setComposeStep] = useState<'idle' | 'waiting-compose' | 'ready-to-execute' | 'executing' | 'done'>('idle');
+
+  // Spoke deposit preflight state
+  const [spokePreflight, setSpokePreflight] = useState<{
+    isStargate: boolean;
+    estimatedComposeFee: bigint;
+  } | null>(null);
+  const [spokePreflightError, setSpokePreflightError] = useState<string | null>(null);
 
   // Real fee for oft-compose: re-quoted on each amount change (debounced 500ms)
   const [realFee, setRealFee] = useState<bigint>(route?.lzFeeEstimate ?? BigInt(0));
@@ -275,6 +290,10 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       setEstimatedFee(null);
       setOmniGuid(null);
       setPreflight(null);
+      setComposeData(null);
+      setComposeStep('idle');
+      setSpokePreflight(null);
+      setSpokePreflightError(null);
     }
   }, [isOpen]);
 
@@ -296,8 +315,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
         try {
           if (isOftCompose) {
             setTxAction('oft-compose-deposit');
-          } else if (isOmniHub && preflight?.recommendedDepositFlow !== 'depositSimple') {
-            // async hub vault (or still loading — default to async as safe fallback)
+          } else if (isOmniHub) {
+            // omni hub vault (smartDeposit auto-detects sync vs async)
             setTxAction('omni-deposit');
           } else if (selectedAssetData.data?.decimals != null) {
             const isPrimary = (selectedAssetAddress || '').toLowerCase() === (primaryAssetAddress || '').toLowerCase();
@@ -341,6 +360,37 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
 
     // oft-compose: cross-chain deposit via OFT from spoke chain
     if (isOftCompose && route) {
+      // Step 2b: Execute compose on hub (Stargate only)
+      if (composeStep === 'ready-to-execute' && composeData) {
+        if (!hubWalletClient || !publicClient) { setTxError('Wallet not connected to the hub chain'); return; }
+        setIsLoading(true);
+        setTxError(null);
+        setComposeStep('executing');
+        try {
+          const pc = asSdkClient(publicClient);
+          const fee = await quoteComposeFee(pc, selectedVaultId as `0x${string}`);
+          const feeWithBuffer = (fee * BigInt(110)) / BigInt(100);
+          const { txHash: composeHash } = await executeCompose(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            hubWalletClient as any,
+            pc,
+            composeData,
+            feeWithBuffer,
+          );
+          setTxHash(composeHash);
+          setComposeStep('done');
+          if (refreshUserVaultData) refreshUserVaultData();
+        } catch (error) {
+          console.error('Error executing compose:', error);
+          setComposeStep('ready-to-execute');
+          setTxError(error instanceof Error ? error.message : 'Failed to execute compose on hub.');
+        } finally {
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // Step 1: Send OFT from spoke
       if (!amount || amount === '0') return;
       if (!route.spokeOft) { setTxError('Route configuration error: missing spoke OFT address'); return; }
       if (!spokeWalletClient || !spokePublicClient) { setTxError('Wallet not connected to the spoke chain'); return; }
@@ -350,13 +400,37 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
 
       setIsLoading(true);
       setTxError(null);
+      setSpokePreflightError(null);
       try {
         const parsedAmount = BigInt(parseUnits(amount, routeTokenDecimals).toString());
         const feeWithBuffer = (realFee * BigInt(101)) / BigInt(100);
-        const { txHash: hash } = await depositFromSpoke(
+
+        // Preflight validation: check balance, gas on spoke, composer on hub
+        try {
+          const pf = await preflightSpokeDeposit(
+            asSdkClient(spokePublicClient),
+            selectedVaultId as `0x${string}`,
+            route.spokeOft,
+            hubEid,
+            spokeEid,
+            parsedAmount,
+            accountAddress as `0x${string}`,
+            feeWithBuffer,
+          );
+          setSpokePreflight({ isStargate: pf.isStargate, estimatedComposeFee: pf.estimatedComposeFee });
+        } catch (preflightErr) {
+          const msg = preflightErr instanceof Error ? preflightErr.message : 'Preflight validation failed';
+          setSpokePreflightError(msg);
+          setTxError(msg);
+          setIsLoading(false);
+          return;
+        }
+
+        const result = await depositFromSpoke(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           spokeWalletClient as any,
           asSdkClient(spokePublicClient),
+          selectedVaultId as `0x${string}`,
           route.spokeOft,
           hubEid,
           spokeEid,
@@ -364,8 +438,31 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
           accountAddress as `0x${string}`,
           feeWithBuffer,
         );
-        setTxHash(hash);
-        if (refreshUserVaultData) refreshUserVaultData();
+        setTxHash(result.txHash);
+
+        // Stargate OFT: need 2nd TX on hub (waitForCompose + executeCompose)
+        if (result.composeData) {
+          setComposeData(result.composeData);
+          setComposeStep('waiting-compose');
+
+          // Wait for compose delivery in background
+          if (publicClient) {
+            waitForCompose(
+              asSdkClient(publicClient),
+              result.composeData,
+              accountAddress as `0x${string}`,
+            ).then(() => {
+              setComposeStep('ready-to-execute');
+            }).catch((err) => {
+              console.error('waitForCompose error:', err);
+              setTxError('Compose delivery timed out. You can retry the execute step later.');
+              setComposeStep('ready-to-execute'); // still allow manual retry
+            });
+          }
+        } else {
+          // Standard OFT: compose auto-executes in 1 TX, done
+          if (refreshUserVaultData) refreshUserVaultData();
+        }
       } catch (error) {
         console.error('Error during spoke deposit:', error);
         setTxError(error instanceof Error ? error.message : 'An unexpected error occurred.');
@@ -375,7 +472,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
       return;
     }
 
-    if (isOmniHub && omniDeposit && preflight?.recommendedDepositFlow !== 'depositSimple') {
+    if (isOmniHub && omniDeposit) {
       if (!amount || amount === '0' || !selectedAssetData.data || selectedAssetData.data.decimals == null) return;
       setIsLoading(true);
       setTxError(null);
@@ -384,6 +481,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
         const { txHash: hash, guid: capturedGuid } = await omniDeposit(parsedAmount);
         setTxHash(hash);
         if (capturedGuid) {
+          // Async deposit (vault is in async mode)
           setOmniGuid(capturedGuid);
           addOmniRequest({
             guid: capturedGuid,
@@ -395,6 +493,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
             vaultName: selectedVault?.overview?.name,
           });
         }
+        // No guid = sync deposit (vault is in sync mode), tx is already complete
         if (refreshUserVaultData) refreshUserVaultData();
       } catch (error) {
         console.error('Error during omni deposit:', error);
@@ -490,6 +589,17 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   };
 
   const buttonContent = useMemo(() => {
+    // Stargate compose: ready to execute on hub
+    if (isOftCompose && composeStep === 'ready-to-execute') {
+      return `Execute compose on ${networkConfigs[vaultChainId]?.name || 'hub'}`;
+    }
+    if (isOftCompose && composeStep === 'waiting-compose') {
+      return 'Waiting for compose delivery…';
+    }
+    if (isOftCompose && composeStep === 'executing') {
+      return 'Executing compose…';
+    }
+
     if (txHash) {
       const explorerName = networkConfigs[vaultChainId]?.explorerName || currentNetworkConfig.explorerName;
       return `See transaction on ${explorerName}`;
@@ -521,11 +631,13 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
     }
 
     return 'Deposit into the vault';
-  }, [amount, primaryAssetData.data, txHash, txAction, isLoading, currentNetworkConfig.explorerName, isOmniHub]);
+  }, [amount, primaryAssetData.data, txHash, txAction, isLoading, currentNetworkConfig.explorerName, isOmniHub, composeStep, vaultChainId]);
 
   const preflightBlocked = !isOftCompose && isOmniHub && preflight && (preflight.paused || preflight.escrowMissing);
   const isOnWrongChain = isOftCompose
-    ? wagmiChainId !== route!.spokeChainId
+    ? (composeStep === 'ready-to-execute'
+      ? wagmiChainId !== vaultChainId // compose execute requires hub chain
+      : wagmiChainId !== route!.spokeChainId)
     : isOmniHub && wagmiChainId !== vaultChainId;
 
   return (
@@ -750,10 +862,38 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
               </Box>
             )}
 
-            {/* oft-compose: show spoke tx link after confirmation */}
+            {/* Stargate 2-TX warning for spoke deposits */}
+            {isOftCompose && spokePreflight?.isStargate && !txHash && (
+              <Alert severity="info" sx={{ py: 0.5 }}>
+                This route uses Stargate and requires 2 transactions: one on{' '}
+                {networkConfigs[route!.spokeChainId]?.name || 'spoke'} and one on{' '}
+                {networkConfigs[vaultChainId]?.name || 'hub'}.
+                {spokePreflight.estimatedComposeFee > BigInt(0) && (
+                  <> You&apos;ll need ~{parseFloat(formatUnits(spokePreflight.estimatedComposeFee, 18)).toFixed(6)}{' '}
+                  {networkConfigs[vaultChainId]?.baseAssetSymbol || 'ETH'} on the hub for the compose transaction.</>
+                )}
+              </Alert>
+            )}
+
+            {/* Spoke preflight error */}
+            {spokePreflightError && !txError && (
+              <Alert severity="error" sx={{ py: 0.5 }}>
+                {spokePreflightError}
+              </Alert>
+            )}
+
+            {/* oft-compose: show spoke tx link and compose flow status */}
             {isOftCompose && txHash && (
               <Box sx={{ p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Typography variant="secondary14">✅ Bridge transaction sent — tokens are on their way to the hub</Typography>
+                {composeStep === 'idle' || composeStep === 'done' ? (
+                  <Typography variant="secondary14">✅ Bridge transaction sent — tokens are on their way to the hub</Typography>
+                ) : composeStep === 'waiting-compose' ? (
+                  <Typography variant="secondary14">⏳ Waiting for compose delivery on hub (~5-15 min)…</Typography>
+                ) : composeStep === 'ready-to-execute' ? (
+                  <Typography variant="secondary14">✅ Compose arrived — switch to {networkConfigs[vaultChainId]?.name || 'hub'} and execute</Typography>
+                ) : composeStep === 'executing' ? (
+                  <Typography variant="secondary14">⏳ Executing compose on hub…</Typography>
+                ) : null}
                 {networkConfigs[route!.spokeChainId]?.explorerLink && (
                   <Link
                     href={`${networkConfigs[route!.spokeChainId].explorerLink}/tx/${txHash}`}
@@ -792,7 +932,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Button
                 variant={txHash ? 'contained' : 'gradient'}
-                disabled={!amount || amount === '0' || isOnWrongChain || !!preflightBlocked}
+                disabled={(!amount || amount === '0' || !!preflightBlocked || isOnWrongChain) && composeStep !== 'ready-to-execute'}
                 onClick={handleClick}
                 size="large"
                 sx={{ minHeight: '44px' }}

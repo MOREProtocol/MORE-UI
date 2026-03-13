@@ -2,9 +2,8 @@ import { useCallback } from 'react';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import {
   asSdkClient,
-  depositAsync,
-  quoteLzFee,
-  redeemAsync,
+  smartDeposit,
+  smartRedeem,
 } from '@oydual31/more-vaults-sdk/viem';
 
 export const useOmniVaultActions = (
@@ -24,21 +23,18 @@ export const useOmniVaultActions = (
       const pc = asSdkClient(publicClient);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const wc = walletClient as any;
-      const lzFee = await quoteLzFee(pc, vault);
-      const feeWithBuffer = (lzFee * BigInt(101)) / BigInt(100);
 
-      const { txHash, guid } = await depositAsync(
+      const result = await smartDeposit(
         wc,
         pc,
-        { vault, hubChainId },
+        { vault },
         BigInt(amountInWei),
         walletClient.account.address,
-        feeWithBuffer,
       );
 
-      return { txHash, guid };
+      return { txHash: result.txHash, guid: 'guid' in result ? result.guid : undefined };
     },
-    [vaultAddress, walletClient, publicClient, hubChainId]
+    [vaultAddress, walletClient, publicClient]
   );
 
   const omniRedeem = useCallback(
@@ -51,23 +47,20 @@ export const useOmniVaultActions = (
       const pc = asSdkClient(publicClient);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const wc = walletClient as any;
-      const lzFee = await quoteLzFee(pc, vault);
-      const feeWithBuffer = (lzFee * BigInt(101)) / BigInt(100);
 
       const owner = walletClient.account.address;
-      const { txHash, guid } = await redeemAsync(
+      const result = await smartRedeem(
         wc,
         pc,
-        { vault, hubChainId },
+        { vault },
         BigInt(sharesInWei),
         owner,
         owner,
-        feeWithBuffer,
       );
 
-      return { txHash, guid };
+      return { txHash: result.txHash, guid: 'guid' in result ? result.guid : undefined };
     },
-    [vaultAddress, walletClient, publicClient, hubChainId]
+    [vaultAddress, walletClient, publicClient]
   );
 
   return { omniDeposit, omniRedeem };
