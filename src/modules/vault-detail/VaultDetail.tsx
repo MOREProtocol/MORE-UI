@@ -26,6 +26,8 @@ import {
   getRouteTokenDecimals,
   useInboundRoutes,
   useVaultTopology,
+  useVaultStatus,
+  useVaultMetadata,
 } from '@oydual31/more-vaults-sdk/react';
 import type { InboundRouteWithBalance } from '@oydual31/more-vaults-sdk/viem';
 import BigNumber from 'bignumber.js';
@@ -53,7 +55,7 @@ import {
 import { ChainIds } from 'src/utils/const';
 import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
 import { formatUnits } from 'viem';
-import { useAccount, useChainId, useReadContract, useSwitchChain } from 'wagmi';
+import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 
 import { LineChart } from '../charts/LineChart';
 import { VaultActivity } from './VaultActivity';
@@ -67,7 +69,7 @@ import { VaultWhitelistModal } from './VaultWhitelistModal';
 
 export const VaultDetail = () => {
   const router = useRouter();
-  const { selectedVaultId, accountAddress, chainId, isChainDetected, isOmniHub } = useVault();
+  const { selectedVaultId, accountAddress, chainId, isOmniHub } = useVault();
   const isOmniSpoke = isOmniSpokeVault(chainId, selectedVaultId ?? '');
   const { address } = useAccount();
   const wagmiChainId = useChainId();
@@ -75,30 +77,77 @@ export const VaultDetail = () => {
   const { topology, needsNetworkSwitch } = useVaultTopology(
     selectedVaultId as `0x${string}` | undefined
   );
+  const sdkChainId = topology?.hubChainId ?? chainId;
+  const { data: vaultStatus, isLoading: statusLoading } = useVaultStatus(
+    selectedVaultId as `0x${string}` | undefined,
+    sdkChainId
+  );
+  const { data: vaultMetadata } = useVaultMetadata(
+    selectedVaultId as `0x${string}` | undefined,
+    sdkChainId
+  );
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId], {
     enabled: !!selectedVaultId && !!accountAddress,
   });
   const vaultData = useVaultData(selectedVaultId);
-  const vaultAssetAddress = vaultData?.data?.overview?.asset?.address;
 
-  // Read vaultAsset on-chain in parallel with useVaultData so useInboundRoutes
-  // doesn't have to wait for the full subgraph response (~2.5 s waterfall).
-  const { data: vaultAssetOnChain } = useReadContract({
-    address: isOmniHub ? (selectedVaultId as `0x${string}`) : undefined,
-    abi: [
-      {
-        name: 'asset',
-        type: 'function',
-        stateMutability: 'view',
-        inputs: [],
-        outputs: [{ name: '', type: 'address' }],
+  // SDK provides reliable vault data regardless of wallet chain
+  const sdkVault = useMemo(() => {
+    if (!vaultStatus || !vaultMetadata) return null;
+    const decimals = vaultMetadata.underlyingDecimals ?? 18;
+    const totalAssetsNum = Number(formatUnits(vaultStatus.totalAssets ?? BigInt(0), decimals));
+    const sharePriceNum = Number(formatUnits(vaultStatus.sharePrice ?? BigInt(0), decimals));
+    return {
+      totalAssets: (vaultStatus.totalAssets ?? BigInt(0)).toString(),
+      totalSupply: (vaultStatus.totalSupply ?? BigInt(0)).toString(),
+      sharePrice: sharePriceNum,
+      totalAssetsFormatted: totalAssetsNum,
+      name: vaultMetadata.name,
+      symbol: vaultMetadata.symbol,
+      assetSymbol: vaultMetadata.underlyingSymbol,
+      assetDecimals: decimals,
+      underlying: vaultMetadata.underlying,
+      vaultDecimals: vaultMetadata.decimals,
+      isHub: vaultStatus.isHub,
+    };
+  }, [vaultStatus, vaultMetadata]);
+
+  // Merge: SDK data takes priority for core fields, legacy fills the rest
+  const selectedVault = useMemo(() => {
+    const legacy = vaultData?.data;
+    if (!sdkVault && !legacy) return undefined;
+    if (!sdkVault) return legacy;
+    return {
+      ...legacy,
+      id: selectedVaultId || legacy?.id || '',
+      chainId: sdkChainId,
+      overview: {
+        ...legacy?.overview,
+        name: legacy?.overview?.name || sdkVault.name,
+        symbol: legacy?.overview?.symbol || sdkVault.symbol,
+        sharePrice: sdkVault.sharePrice,
+        decimals: sdkVault.vaultDecimals,
+        asset: {
+          ...legacy?.overview?.asset,
+          symbol: legacy?.overview?.asset?.symbol || sdkVault.assetSymbol,
+          decimals: sdkVault.assetDecimals,
+          address: legacy?.overview?.asset?.address || sdkVault.underlying,
+        },
       },
-    ],
-    functionName: 'asset',
-    chainId: topology?.hubChainId ?? chainId,
-    query: { enabled: !!selectedVaultId && isOmniHub, staleTime: 5 * 60 * 1000 },
-  });
-  const routeVaultAsset = (vaultAssetOnChain ?? vaultAssetAddress) as `0x${string}` | undefined;
+      financials: {
+        ...legacy?.financials,
+        liquidity: {
+          ...legacy?.financials?.liquidity,
+          totalAssets: sdkVault.totalAssets,
+          totalSupply: sdkVault.totalSupply,
+        },
+      },
+      omni: legacy?.omni || (sdkVault.isHub ? { isHub: true, spokeVaults: [] } : undefined),
+    };
+  }, [sdkVault, vaultData?.data, selectedVaultId, sdkChainId]);
+
+  const vaultAssetAddress = selectedVault?.overview?.asset?.address;
+  const routeVaultAsset = (vaultAssetAddress || vaultMetadata?.underlying) as `0x${string}` | undefined;
 
   const { routes: inboundRoutes } = useInboundRoutes(
     isOmniHub ? topology?.hubChainId : undefined,
@@ -117,7 +166,6 @@ export const VaultDetail = () => {
     [chainId]
   );
 
-  const selectedVault = vaultData?.data;
   const hasNotes = !!selectedVault?.overview?.descriptionMarkdown;
   const [selectedTab, setSelectedTab] = useState<VaultTab>(hasNotes ? 'notes' : 'allocations');
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
@@ -176,11 +224,11 @@ export const VaultDetail = () => {
     });
   }, [inboundRoutes]);
 
-  const vaultNetwork = selectedVault?.chainId;
+  const vaultNetwork = selectedVault?.chainId || sdkChainId;
   const isOnCorrectNetwork = wagmiChainId === vaultNetwork;
-  // Omni vaults work cross-chain — don't block loading for wrong network
   const shouldShowNetworkBanner = address && vaultNetwork && !isOnCorrectNetwork && !isOmniHub && !isOmniSpoke;
-  const isLoading = !isChainDetected || vaultData?.isLoading || shouldShowNetworkBanner;
+  const sdkReady = !!sdkVault;
+  const isLoading = (!sdkReady && statusLoading) || shouldShowNetworkBanner;
   const isUserVaultDataLoading = userVaultData?.[0]?.isLoading || shouldShowNetworkBanner;
   const isUserVaultBalancesLoading = userVaultBalances?.isLoading;
 
