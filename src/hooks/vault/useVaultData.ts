@@ -148,13 +148,9 @@ export interface VaultDataHookOpts<TData, TResult = TData>
 }
 
 // Common hook to get provider
-// Pass chainIdParam = 0 to suppress (returns null) — used while vault chain detection is pending.
-export const useVaultProvider = (chainIdParam?: number): ethers.providers.JsonRpcProvider | RotationProvider | null => {
+export const useVaultProvider = (chainIdParam?: number) => {
   // const { data: walletClient } = useWalletClient();
   return useMemo(() => {
-    // Sentinel: 0 means "detection in progress, don't create a provider yet"
-    if (chainIdParam === 0) return null;
-
     // Always use the configured RPC URLs for reads — never the wallet's injected provider,
     // which bypasses the RotationProvider and uses the wallet's own RPC (e.g. MetaMask's
     // mainnet.base.org) with no fallback, causing 429s to go unhandled.
