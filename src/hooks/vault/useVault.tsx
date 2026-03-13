@@ -239,19 +239,18 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   const { data: walletClient } = useWalletClient();
   const wagmiChainId = useChainId();
 
-  // Detect the vault's actual network so we don't default to Flow for Base vaults
-  // when no wallet is connected.
+  // Detect the vault's actual network. Always run — even with wallet connected,
+  // because the wallet may be on Ethereum while the vault lives on Base.
   const { data: detectedChainId } = useQuery({
     queryKey: ['detectVaultNetwork', selectedVaultId],
     queryFn: () => detectVaultNetwork(selectedVaultId!),
-    enabled: !!selectedVaultId && !walletClient,
+    enabled: !!selectedVaultId,
     staleTime: 10 * 60 * 1000, // cache 10 min
   });
 
-  // When wallet is connected, trust the wallet's chain. Otherwise use detected chain.
-  const chainId = walletClient
-    ? (wagmiChainId || ChainIds.flowEVMMainnet)
-    : (detectedChainId || wagmiChainId || ChainIds.flowEVMMainnet);
+  // For reading vault data, always prefer the detected chain (where the vault actually is).
+  // The wallet chain is only relevant for signing transactions.
+  const chainId = detectedChainId || wagmiChainId || ChainIds.flowEVMMainnet;
 
   const provider = useVaultProvider(chainId);
   const signer = useMemo(() => {
