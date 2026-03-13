@@ -1,6 +1,15 @@
-import { Alert, Box, Button, CircularProgress, LinearProgress, Link, Typography } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  LinearProgress,
+  Link,
+  Typography,
+} from '@mui/material';
 import { useVaultTopology } from '@oydual31/more-vaults-sdk/react';
 import {
+  type SpokeRedeemRoute,
   asSdkClient,
   bridgeAssetsToSpoke,
   bridgeSharesToHub,
@@ -9,7 +18,6 @@ import {
   preflightSpokeRedeem,
   resolveRedeemAddresses,
   smartRedeem,
-  type SpokeRedeemRoute,
 } from '@oydual31/more-vaults-sdk/viem';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
@@ -119,13 +127,24 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
       setAssetsReceived(BigInt(0));
       setAssetBridgeTxHash(null);
       setProgressPct(0);
-      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
     }
   }, [isOpen]);
 
   // Step 0: Resolve addresses + preflight when modal opens
   useEffect(() => {
-    if (!isOpen || !selectedVaultId || !hubPublicClient || !spokePublicClient || !accountAddress || shares === BigInt(0)) return;
+    if (
+      !isOpen ||
+      !selectedVaultId ||
+      !hubPublicClient ||
+      !spokePublicClient ||
+      !accountAddress ||
+      shares === BigInt(0)
+    )
+      return;
     let cancelled = false;
     const run = async () => {
       try {
@@ -134,26 +153,31 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
           asSdkClient(hubPublicClient),
           selectedVaultId as `0x${string}`,
           hubChainId,
-          spokeChainId,
+          spokeChainId
         );
         if (cancelled) return;
         setRoute(resolvedRoute);
 
         // Quote share bridge fee (TX1)
-        const toBytes32 = `0x${(accountAddress as string).slice(2).padStart(64, '0')}` as `0x${string}`;
+        const toBytes32 = `0x${(accountAddress as string)
+          .slice(2)
+          .padStart(64, '0')}` as `0x${string}`;
         const quoteResult = await (asSdkClient(spokePublicClient) as any).readContract({
           address: resolvedRoute.spokeShareOft,
           abi: OFT_ABI,
           functionName: 'quoteSend',
-          args: [{
-            dstEid: resolvedRoute.hubEid,
-            to: toBytes32,
-            amountLD: shares,
-            minAmountLD: shares,
-            extraOptions: '0x',
-            composeMsg: '0x',
-            oftCmd: '0x',
-          }, false],
+          args: [
+            {
+              dstEid: resolvedRoute.hubEid,
+              to: toBytes32,
+              amountLD: shares,
+              minAmountLD: shares,
+              extraOptions: '0x',
+              composeMsg: '0x',
+              oftCmd: '0x',
+            },
+            false,
+          ],
         });
         if (cancelled) return;
         const bridgeFee = quoteResult.nativeFee;
@@ -164,7 +188,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
           resolvedRoute,
           shares,
           accountAddress as `0x${string}`,
-          bridgeFee,
+          bridgeFee
         );
         if (cancelled) return;
         setPreflightData({
@@ -182,9 +206,18 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
       }
     };
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, selectedVaultId, hubPublicClient, spokePublicClient, accountAddress, shares > BigInt(0)]);
+  }, [
+    isOpen,
+    selectedVaultId,
+    hubPublicClient,
+    spokePublicClient,
+    accountAddress,
+    shares > BigInt(0),
+  ]);
 
   // Progress bar update for waiting steps
   useEffect(() => {
@@ -192,9 +225,12 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
       setProgressPct(0);
       return;
     }
-    const timeoutMs = step === 'waiting_shares' ? LZ_TIMEOUTS.OFT_BRIDGE
-      : step === 'waiting_redeem' ? LZ_TIMEOUTS.LZ_READ_CALLBACK
-      : LZ_TIMEOUTS.STARGATE_BRIDGE;
+    const timeoutMs =
+      step === 'waiting_shares'
+        ? LZ_TIMEOUTS.OFT_BRIDGE
+        : step === 'waiting_redeem'
+        ? LZ_TIMEOUTS.LZ_READ_CALLBACK
+        : LZ_TIMEOUTS.STARGATE_BRIDGE;
     const start = stepStartTime || Date.now();
     const interval = setInterval(() => {
       const elapsed = Date.now() - start;
@@ -212,12 +248,23 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
       try {
         const balance = await (asSdkClient(hubPublicClient) as any).readContract({
           address: selectedVaultId as `0x${string}`,
-          abi: [{ name: 'balanceOf', type: 'function', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] }],
+          abi: [
+            {
+              name: 'balanceOf',
+              type: 'function',
+              stateMutability: 'view',
+              inputs: [{ name: 'account', type: 'address' }],
+              outputs: [{ name: '', type: 'uint256' }],
+            },
+          ],
           functionName: 'balanceOf',
           args: [accountAddress as `0x${string}`],
         });
         if (balance > BigInt(0)) {
-          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+          if (pollRef.current) {
+            clearInterval(pollRef.current);
+            pollRef.current = null;
+          }
           setStep('switch_to_hub');
         }
       } catch (e) {
@@ -228,12 +275,14 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
 
   // Step 1: Bridge shares to hub
   const handleBridgeShares = async () => {
-    if (!selectedVaultId || !accountAddress || !spokeWalletClient || !spokePublicClient || !route) return;
+    if (!selectedVaultId || !accountAddress || !spokeWalletClient || !spokePublicClient || !route)
+      return;
     setIsLoading(true);
     setTxError(null);
     setStep('bridging_shares');
     try {
-      const fee = shareBridgeFee > BigInt(0) ? (shareBridgeFee * BigInt(110)) / BigInt(100) : BigInt(5e15);
+      const fee =
+        shareBridgeFee > BigInt(0) ? (shareBridgeFee * BigInt(110)) / BigInt(100) : BigInt(5e15);
       const { txHash: hash } = await bridgeSharesToHub(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         spokeWalletClient as any,
@@ -242,7 +291,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
         route.hubEid,
         shares,
         accountAddress as `0x${string}`,
-        fee,
+        fee
       );
       setShareBridgeTxHash(hash);
       setStep('waiting_shares');
@@ -270,7 +319,15 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
       // Read current hub share balance
       const hubShares = await (asSdkClient(hubPublicClient) as any).readContract({
         address: vault,
-        abi: [{ name: 'balanceOf', type: 'function', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] }],
+        abi: [
+          {
+            name: 'balanceOf',
+            type: 'function',
+            stateMutability: 'view',
+            inputs: [{ name: 'account', type: 'address' }],
+            outputs: [{ name: '', type: 'uint256' }],
+          },
+        ],
         functionName: 'balanceOf',
         args: [owner],
       });
@@ -282,7 +339,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
         { vault },
         hubShares,
         owner,
-        owner,
+        owner
       );
       setRedeemTxHash(result.txHash);
 
@@ -305,7 +362,15 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
         if (pollRef.current) clearInterval(pollRef.current);
         const assetBefore = await (asSdkClient(hubPublicClient) as any).readContract({
           address: route!.hubAsset,
-          abi: [{ name: 'balanceOf', type: 'function', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] }],
+          abi: [
+            {
+              name: 'balanceOf',
+              type: 'function',
+              stateMutability: 'view',
+              inputs: [{ name: 'account', type: 'address' }],
+              outputs: [{ name: '', type: 'uint256' }],
+            },
+          ],
           functionName: 'balanceOf',
           args: [owner],
         });
@@ -313,12 +378,23 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
           try {
             const assetNow = await (asSdkClient(hubPublicClient) as any).readContract({
               address: route!.hubAsset,
-              abi: [{ name: 'balanceOf', type: 'function', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] }],
+              abi: [
+                {
+                  name: 'balanceOf',
+                  type: 'function',
+                  stateMutability: 'view',
+                  inputs: [{ name: 'account', type: 'address' }],
+                  outputs: [{ name: '', type: 'uint256' }],
+                },
+              ],
               functionName: 'balanceOf',
               args: [owner],
             });
             if ((assetNow as bigint) > (assetBefore as bigint)) {
-              if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+              if (pollRef.current) {
+                clearInterval(pollRef.current);
+                pollRef.current = null;
+              }
               setAssetsReceived((assetNow as bigint) - (assetBefore as bigint));
               setStep('bridging_assets');
             }
@@ -342,25 +418,37 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
 
   // Step 3: Bridge assets back to spoke
   const handleBridgeAssets = async () => {
-    if (!route || !hubWalletClient || !hubPublicClient || !accountAddress || assetsReceived === BigInt(0)) return;
+    if (
+      !route ||
+      !hubWalletClient ||
+      !hubPublicClient ||
+      !accountAddress ||
+      assetsReceived === BigInt(0)
+    )
+      return;
     setIsLoading(true);
     setTxError(null);
     try {
       // Quote asset bridge fee
-      const toBytes32 = `0x${(accountAddress as string).slice(2).padStart(64, '0')}` as `0x${string}`;
+      const toBytes32 = `0x${(accountAddress as string)
+        .slice(2)
+        .padStart(64, '0')}` as `0x${string}`;
       const quoteResult = await (asSdkClient(hubPublicClient) as any).readContract({
         address: route.hubAssetOft,
         abi: OFT_ABI,
         functionName: 'quoteSend',
-        args: [{
-          dstEid: route.spokeEid,
-          to: toBytes32,
-          amountLD: assetsReceived,
-          minAmountLD: assetsReceived * BigInt(99) / BigInt(100), // 1% slippage for Stargate
-          extraOptions: '0x',
-          composeMsg: '0x',
-          oftCmd: route.isStargate ? '0x01' : '0x', // TAXI mode for Stargate
-        }, false],
+        args: [
+          {
+            dstEid: route.spokeEid,
+            to: toBytes32,
+            amountLD: assetsReceived,
+            minAmountLD: (assetsReceived * BigInt(99)) / BigInt(100), // 1% slippage for Stargate
+            extraOptions: '0x',
+            composeMsg: '0x',
+            oftCmd: route.isStargate ? '0x01' : '0x', // TAXI mode for Stargate
+          },
+          false,
+        ],
       });
       const fee = (quoteResult.nativeFee * BigInt(110)) / BigInt(100); // 10% buffer
 
@@ -373,7 +461,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
         assetsReceived,
         accountAddress as `0x${string}`,
         fee,
-        route.isStargate,
+        route.isStargate
       );
       setAssetBridgeTxHash(hash);
       setStep('waiting_assets');
@@ -438,22 +526,31 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
             <Alert severity="info">
               This will withdraw your shares from{' '}
               <strong>{spokeCfg?.name || `chain ${spokeChainId}`}</strong> through the hub{' '}
-              <strong>({hubCfg?.name || `chain ${hubChainId}`})</strong> and bridge assets back.
-              The full process takes ~15-30 minutes across 3 transactions.
+              <strong>({hubCfg?.name || `chain ${hubChainId}`})</strong> and bridge assets back. The
+              full process takes ~15-30 minutes across 3 transactions.
             </Alert>
 
             {/* Summary rows */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="secondary14" color="text.secondary">Shares to redeem</Typography>
+              <Typography variant="secondary14" color="text.secondary">
+                Shares to redeem
+              </Typography>
               <Typography variant="secondary14" fontWeight={600}>
-                {isBalanceLoading ? <CircularProgress size={14} /> : `${sharesFormatted} ${vaultName || 'shares'}`}
+                {isBalanceLoading ? (
+                  <CircularProgress size={14} />
+                ) : (
+                  `${sharesFormatted} ${vaultName || 'shares'}`
+                )}
               </Typography>
             </Box>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="secondary14" color="text.secondary">Share bridge fee (TX1)</Typography>
+              <Typography variant="secondary14" color="text.secondary">
+                Share bridge fee (TX1)
+              </Typography>
               <Typography variant="secondary14">
-                ~{parseFloat(formatUnits(shareBridgeFee, 18)).toFixed(6)} {spokeCfg?.baseAssetSymbol || 'ETH'}
+                ~{parseFloat(formatUnits(shareBridgeFee, 18)).toFixed(6)}{' '}
+                {spokeCfg?.baseAssetSymbol || 'ETH'}
               </Typography>
             </Box>
 
@@ -464,7 +561,8 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
                     Gas on {spokeCfg?.name || 'spoke'}
                   </Typography>
                   <Typography variant="secondary14">
-                    {parseFloat(formatUnits(preflightData.spokeNativeBalance, 18)).toFixed(6)} {spokeCfg?.baseAssetSymbol || 'ETH'}
+                    {parseFloat(formatUnits(preflightData.spokeNativeBalance, 18)).toFixed(6)}{' '}
+                    {spokeCfg?.baseAssetSymbol || 'ETH'}
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -472,14 +570,21 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
                     Gas on {hubCfg?.name || 'hub'}
                   </Typography>
                   <Typography variant="secondary14">
-                    {parseFloat(formatUnits(preflightData.hubNativeBalance, 18)).toFixed(6)} {hubCfg?.baseAssetSymbol || 'ETH'}
+                    {parseFloat(formatUnits(preflightData.hubNativeBalance, 18)).toFixed(6)}{' '}
+                    {hubCfg?.baseAssetSymbol || 'ETH'}
                   </Typography>
                 </Box>
                 {preflightData.estimatedAssetBridgeFee > BigInt(0) && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="secondary14" color="text.secondary">Asset bridge fee (TX3, est.)</Typography>
+                    <Typography variant="secondary14" color="text.secondary">
+                      Asset bridge fee (TX3, est.)
+                    </Typography>
                     <Typography variant="secondary14">
-                      ~{parseFloat(formatUnits(preflightData.estimatedAssetBridgeFee, 18)).toFixed(6)} {hubCfg?.baseAssetSymbol || 'ETH'}
+                      ~
+                      {parseFloat(formatUnits(preflightData.estimatedAssetBridgeFee, 18)).toFixed(
+                        6
+                      )}{' '}
+                      {hubCfg?.baseAssetSymbol || 'ETH'}
                     </Typography>
                   </Box>
                 )}
@@ -490,12 +595,30 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
 
         {/* Step 1 complete: show bridge tx */}
         {shareBridgeTxHash && (
-          <Box sx={{ p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Box
+            sx={{
+              p: 2,
+              bgcolor: 'background.surface',
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'divider',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+            }}
+          >
             <Typography variant="secondary14">
-              {step === 'waiting_shares' ? '⏳ Shares bridging to hub...' : '✅ Shares bridged to hub'}
+              {step === 'waiting_shares'
+                ? '⏳ Shares bridging to hub...'
+                : '✅ Shares bridged to hub'}
             </Typography>
             {spokeCfg?.explorerLink && (
-              <Link href={`${spokeCfg.explorerLink}/tx/${shareBridgeTxHash}`} target="_blank" rel="noopener noreferrer" variant="secondary14">
+              <Link
+                href={`${spokeCfg.explorerLink}/tx/${shareBridgeTxHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="secondary14"
+              >
                 View TX1 on {spokeCfg.explorerName || 'explorer'} ↗
               </Link>
             )}
@@ -507,7 +630,11 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
           <Alert
             severity="warning"
             action={
-              <Button color="inherit" size="small" onClick={() => switchChain({ chainId: hubChainId })}>
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => switchChain({ chainId: hubChainId })}
+              >
                 Switch to {hubCfg?.name || 'hub'}
               </Button>
             }
@@ -518,17 +645,40 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
 
         {/* Step 2 complete: show redeem tx */}
         {redeemTxHash && (
-          <Box sx={{ p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Box
+            sx={{
+              p: 2,
+              bgcolor: 'background.surface',
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'divider',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+            }}
+          >
             <Typography variant="secondary14">
-              {step === 'waiting_redeem' ? '⏳ Waiting for redeem confirmation...' : '✅ Redeemed on hub'}
+              {step === 'waiting_redeem'
+                ? '⏳ Waiting for redeem confirmation...'
+                : '✅ Redeemed on hub'}
             </Typography>
             {hubCfg?.explorerLink && (
-              <Link href={`${hubCfg.explorerLink}/tx/${redeemTxHash}`} target="_blank" rel="noopener noreferrer" variant="secondary14">
+              <Link
+                href={`${hubCfg.explorerLink}/tx/${redeemTxHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="secondary14"
+              >
                 View TX2 on {hubCfg.explorerName || 'explorer'} ↗
               </Link>
             )}
             {redeemGuid && (
-              <Link href={`https://layerzeroscan.com/tx/${redeemGuid}`} target="_blank" rel="noopener noreferrer" variant="secondary14">
+              <Link
+                href={`https://layerzeroscan.com/tx/${redeemGuid}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="secondary14"
+              >
                 Track on LayerZero Scan ↗
               </Link>
             )}
@@ -537,14 +687,32 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
 
         {/* Step 3 complete: show asset bridge tx */}
         {assetBridgeTxHash && (
-          <Box sx={{ p: 2, bgcolor: 'background.surface', borderRadius: 1, border: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Box
+            sx={{
+              p: 2,
+              bgcolor: 'background.surface',
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'divider',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+            }}
+          >
             <Typography variant="secondary14">
               {step === 'waiting_assets'
-                ? `⏳ Assets on the way to ${spokeCfg?.name || 'spoke'} (~${route?.isStargate ? '13-30' : '7-15'} min)...`
+                ? `⏳ Assets on the way to ${spokeCfg?.name || 'spoke'} (~${
+                    route?.isStargate ? '13-30' : '7-15'
+                  } min)...`
                 : `✅ Assets sent to ${spokeCfg?.name || 'spoke'}`}
             </Typography>
             {hubCfg?.explorerLink && (
-              <Link href={`${hubCfg.explorerLink}/tx/${assetBridgeTxHash}`} target="_blank" rel="noopener noreferrer" variant="secondary14">
+              <Link
+                href={`${hubCfg.explorerLink}/tx/${assetBridgeTxHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="secondary14"
+              >
                 View TX3 on {hubCfg.explorerName || 'explorer'} ↗
               </Link>
             )}
@@ -562,8 +730,12 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
         {/* Error */}
         {txError && (
           <Box sx={{ p: 2, bgcolor: 'error.main', color: 'error.contrastText', borderRadius: 1 }}>
-            <Typography variant="secondary14" fontWeight="bold">Error</Typography>
-            <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>{txError}</Typography>
+            <Typography variant="secondary14" fontWeight="bold">
+              Error
+            </Typography>
+            <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+              {txError}
+            </Typography>
           </Box>
         )}
 
@@ -582,7 +754,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
             </Button>
           )}
 
-          {(step === 'switch_to_hub' && !onWrongChain) && (
+          {step === 'switch_to_hub' && !onWrongChain && (
             <Button
               variant="gradient"
               size="large"

@@ -1,15 +1,8 @@
+import { asSdkClient, smartDeposit, smartRedeem } from '@oydual31/more-vaults-sdk/viem';
 import { useCallback } from 'react';
 import { usePublicClient, useWalletClient } from 'wagmi';
-import {
-  asSdkClient,
-  smartDeposit,
-  smartRedeem,
-} from '@oydual31/more-vaults-sdk/viem';
 
-export const useOmniVaultActions = (
-  vaultAddress: string | null,
-  hubChainId: number
-) => {
+export const useOmniVaultActions = (vaultAddress: string | null, hubChainId: number) => {
   const { data: walletClient } = useWalletClient({ chainId: hubChainId });
   const publicClient = usePublicClient({ chainId: hubChainId });
 
@@ -29,7 +22,7 @@ export const useOmniVaultActions = (
         pc,
         { vault },
         BigInt(amountInWei),
-        walletClient.account.address,
+        walletClient.account.address
       );
 
       return { txHash: result.txHash, guid: 'guid' in result ? result.guid : undefined };
@@ -49,14 +42,7 @@ export const useOmniVaultActions = (
       const wc = walletClient as any;
 
       const owner = walletClient.account.address;
-      const result = await smartRedeem(
-        wc,
-        pc,
-        { vault },
-        BigInt(sharesInWei),
-        owner,
-        owner,
-      );
+      const result = await smartRedeem(wc, pc, { vault }, BigInt(sharesInWei), owner, owner);
 
       return { txHash: result.txHash, guid: 'guid' in result ? result.guid : undefined };
     },

@@ -1,8 +1,12 @@
+import {
+  asSdkClient,
+  getAsyncRequestStatusLabel,
+  LZ_TIMEOUTS,
+} from '@oydual31/more-vaults-sdk/viem';
 import { useEffect } from 'react';
-import { createPublicClient, fallback, http } from 'viem';
-import { asSdkClient, getAsyncRequestStatusLabel, LZ_TIMEOUTS } from '@oydual31/more-vaults-sdk/viem';
 import { OmniRequestStatus, useOmniRequestStore } from 'src/store/omniRequestStore';
 import { networkConfigs } from 'src/ui-config/networksConfig';
+import { createPublicClient, fallback, http } from 'viem';
 
 const TERMINAL: OmniRequestStatus[] = ['completed', 'refunded'];
 
@@ -41,7 +45,10 @@ export function useGlobalOmniPolling() {
 
     poll();
     const interval = setInterval(poll, LZ_TIMEOUTS.POLL_INTERVAL);
-    return () => { cancelled = true; clearInterval(interval); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active.length, updateOmniRequestStatus]);
 }
