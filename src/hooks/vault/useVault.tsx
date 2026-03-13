@@ -1008,7 +1008,6 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
       !!(selectedVaultId && (
         isCrossChainHub ||
         omniVaultsQuery.data?.some(addr => addr.toLowerCase() === selectedVaultId.toLowerCase()) ||
-        isOmniHubVault(ChainIds.base, selectedVaultId) ||
         isOmniHubVault(chainId, selectedVaultId)
       )),
     [isCrossChainHub, omniVaultsQuery.data, selectedVaultId, chainId]

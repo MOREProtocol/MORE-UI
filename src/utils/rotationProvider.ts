@@ -2,7 +2,7 @@ import { BaseProvider, Network, StaticJsonRpcProvider } from '@ethersproject/pro
 import { logger } from 'ethers';
 
 const DEFAULT_FALL_FORWARD_DELAY = 60000;
-const MAX_RETRIES = 1;
+const MAX_RETRIES = 3;
 
 interface RotationProviderConfig {
   maxRetries?: number;
