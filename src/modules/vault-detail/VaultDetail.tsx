@@ -327,28 +327,6 @@ export const VaultDetail = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5, pt: 4, pb: 7, px: xPadding }}>
       {/* Network Status Check */}
-      {needsNetworkSwitch && topology && address && (
-        <Alert
-          severity="warning"
-          sx={{ mb: 1 }}
-          action={
-            <Button
-              size="small"
-              variant="contained"
-              color="warning"
-              onClick={() => switchChain?.({ chainId: topology.hubChainId })}
-            >
-              Switch to{' '}
-              {networkConfigs[topology.hubChainId]?.name || `Chain ${topology.hubChainId}`}
-            </Button>
-          }
-        >
-          You are on a spoke chain. Deposits and redeems must be done on the hub:{' '}
-          <strong>
-            {networkConfigs[topology.hubChainId]?.name || `Chain ${topology.hubChainId}`}
-          </strong>
-        </Alert>
-      )}
       {!needsNetworkSwitch && shouldShowNetworkBanner && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           <Typography variant="main14">
@@ -527,37 +505,26 @@ export const VaultDetail = () => {
           }}
         >
           {!isLoading &&
-            (isOmniHub || !(vaultData?.data?.financials?.liquidity?.maxDeposit === '0')) && (
-              <Tooltip
-                title={isOmniSpoke ? 'Deposits and redeems are done on the hub chain (Base)' : ''}
-                disableHoverListener={!isOmniSpoke}
+            (isOmniHub || isOmniSpoke || !(vaultData?.data?.financials?.liquidity?.maxDeposit === '0')) && (
+              <Button
+                variant="gradient"
+                color="primary"
+                onClick={handleDepositClick}
+                disabled={isLoading || !accountAddress}
               >
-                <span>
-                  <Button
-                    variant="gradient"
-                    color="primary"
-                    onClick={handleDepositClick}
-                    disabled={isLoading || !accountAddress || isOmniSpoke}
-                  >
-                    Deposit
-                  </Button>
-                </span>
-              </Tooltip>
+                Deposit
+              </Button>
             )}
-          {!isLoading && !isUserVaultDataLoading && accountAddress && isOmniSpoke && (
-            <Button variant="gradient" size="medium" onClick={() => setIsBridgeModalOpen(true)}>
-              Bridge shares to hub
-            </Button>
-          )}
           {!isLoading &&
             !isUserVaultDataLoading &&
             accountAddress &&
-            !isOmniSpoke &&
-            ((isOmniHub && shares > 0) || (maxWithdraw && maxWithdraw.gt(0))) && (
+            ((isOmniHub && shares > 0) ||
+              isOmniSpoke ||
+              (maxWithdraw && maxWithdraw.gt(0))) && (
               <Button
                 variant="gradient"
                 size="medium"
-                onClick={() => setIsRedeemModalOpen(true)}
+                onClick={() => isOmniSpoke ? setIsBridgeModalOpen(true) : setIsRedeemModalOpen(true)}
                 disabled={isLoading || isUserVaultDataLoading}
               >
                 Withdraw
