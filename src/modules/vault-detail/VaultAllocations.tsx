@@ -33,8 +33,11 @@ export const VaultAllocations: React.FC = () => {
   });
 
   // Fetch cross-chain distribution for omni vaults
+  // Use both isOmniHub (context) and vaultData omni field as triggers,
+  // since isOmniHub may not resolve immediately on page load.
+  const isOmni = isOmniHub || !!selectedVault?.omni?.isHub;
   const { distribution } = useVaultDistribution(
-    isOmniHub ? (selectedVaultId as `0x${string}`) : undefined
+    isOmni ? (selectedVaultId as `0x${string}`) : undefined
   );
 
   const allocation = vaultAllocationData?.data?.allocation;

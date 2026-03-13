@@ -73,17 +73,20 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   } = useVault();
   const wagmiChainId = useChainId();
   const { switchChain } = useSwitchChain();
-  const publicClient = usePublicClient({ chainId: vaultChainId });
+  const vaultData = useVaultData(selectedVaultId);
+  const selectedVault = vaultData?.data;
+  // The vault's actual hub chain (from detectVaultNetwork), not the wallet's current chain.
+  // vaultChainId follows the wallet, so it can be wrong for cross-chain deposits.
+  const hubChainId = selectedVault?.chainId || vaultChainId;
+  const publicClient = usePublicClient({ chainId: hubChainId });
 
   // Spoke chain clients for oft-compose deposits
   const isOftCompose = !!route && route.depositType === 'oft-compose';
   const spokePublicClient = usePublicClient({ chainId: route?.spokeChainId });
   const { data: spokeWalletClient } = useWalletClient({ chainId: route?.spokeChainId });
-  const vaultData = useVaultData(selectedVaultId);
   const { distribution } = useVaultDistribution(
     isOmniHub ? (selectedVaultId as `0x${string}`) : undefined
   );
-  const selectedVault = vaultData?.data;
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
   const refreshUserVaultData = userVaultData?.[0]?.refetch;
   const [currentNetworkConfig] = useRootStore((state) => [state.currentNetworkConfig]);
@@ -133,7 +136,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   const [addTokenSuccess, setAddTokenSuccess] = useState(false);
 
   // Hub chain wallet client for Stargate compose execution
-  const { data: hubWalletClient } = useWalletClient({ chainId: vaultChainId });
+  const { data: hubWalletClient } = useWalletClient({ chainId: hubChainId });
 
   // Omni vault state
   const [estimatedFee, setEstimatedFee] = useState<string | null>(null);
@@ -180,7 +183,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
       try {
         const fee = await quoteRouteDepositFee(
           route,
-          vaultChainId,
+          hubChainId,
           parsedAmount,
           accountAddress as `0x${string}`
         );
@@ -190,7 +193,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
       }
     }, 500);
     return () => clearTimeout(t);
-  }, [route, amount, vaultChainId, accountAddress]);
+  }, [route, amount, hubChainId, accountAddress]);
 
   // Reset realFee when route changes
   useEffect(() => {
@@ -469,8 +472,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
 
   const handleClick = async () => {
     if (txHash) {
-      const explorerUrl = networkConfigs[vaultChainId]?.explorerLink
-        ? `${networkConfigs[vaultChainId].explorerLink}/tx/${txHash}`
+      const explorerUrl = networkConfigs[hubChainId]?.explorerLink
+        ? `${networkConfigs[hubChainId].explorerLink}/tx/${txHash}`
         : currentNetworkConfig.explorerLinkBuilder({ tx: txHash });
       window.open(explorerUrl, '_blank');
       return;
@@ -522,7 +525,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
         setTxError('Wallet not connected to the spoke chain');
         return;
       }
-      const hubEid = CHAIN_ID_TO_EID[vaultChainId];
+      const hubEid = CHAIN_ID_TO_EID[hubChainId];
       const spokeEid = CHAIN_ID_TO_EID[route.spokeChainId];
       if (!hubEid || !spokeEid) {
         setTxError('Unsupported chain EID');
@@ -584,7 +587,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
               type: 'stargate-compose',
               step: 'waiting-compose',
               vaultId: selectedVaultId,
-              hubChainId: vaultChainId,
+              hubChainId: hubChainId,
               spokeChainId: route.spokeChainId,
               spokeTxHash: result.txHash,
               composeEndpoint: result.composeData.endpoint ?? null,
@@ -649,7 +652,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
           addOmniRequest({
             guid: capturedGuid,
             vaultId: selectedVaultId!,
-            chainId: vaultChainId,
+            chainId: hubChainId,
             type: 'deposit',
             status: 'pending',
             txHash: hash,
@@ -775,7 +778,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   const buttonContent = useMemo(() => {
     // Stargate compose: ready to execute on hub
     if (isOftCompose && composeStep === 'ready-to-execute') {
-      return `Execute compose on ${networkConfigs[vaultChainId]?.name || 'hub'}`;
+      return `Execute compose on ${networkConfigs[hubChainId]?.name || 'hub'}`;
     }
     if (isOftCompose && composeStep === 'waiting-compose') {
       return 'Waiting for compose delivery…';
@@ -786,7 +789,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
 
     if (txHash) {
       const explorerName =
-        networkConfigs[vaultChainId]?.explorerName || currentNetworkConfig.explorerName;
+        networkConfigs[hubChainId]?.explorerName || currentNetworkConfig.explorerName;
       return `See transaction on ${explorerName}`;
     }
 
@@ -827,16 +830,16 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
     currentNetworkConfig.explorerName,
     isOmniHub,
     composeStep,
-    vaultChainId,
+    hubChainId,
   ]);
 
   const preflightBlocked =
     !isOftCompose && isOmniHub && preflight && (preflight.paused || preflight.escrowMissing);
   const isOnWrongChain = isOftCompose
     ? composeStep === 'ready-to-execute'
-      ? wagmiChainId !== vaultChainId // compose execute requires hub chain
+      ? wagmiChainId !== hubChainId // compose execute requires hub chain
       : wagmiChainId !== route!.spokeChainId
-    : isOmniHub && wagmiChainId !== vaultChainId;
+    : isOmniHub && wagmiChainId !== hubChainId;
 
   return (
     <BasicModal open={isOpen} setOpen={setIsOpen}>
@@ -1060,7 +1063,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
                         size="small"
                         onClick={() =>
                           switchChain({
-                            chainId: isOftCompose ? route!.spokeChainId : vaultChainId,
+                            chainId: isOftCompose ? route!.spokeChainId : hubChainId,
                           })
                         }
                       >
@@ -1091,7 +1094,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
                   ) : estimatedFee ? (
                     <Typography variant="secondary14">
                       ~{parseFloat(estimatedFee).toFixed(6)}{' '}
-                      {networkConfigs[vaultChainId]?.baseAssetSymbol || 'ETH'} (excess refunded)
+                      {networkConfigs[hubChainId]?.baseAssetSymbol || 'ETH'} (excess refunded)
                     </Typography>
                   ) : (
                     <Typography variant="secondary14" color="text.secondary">
@@ -1115,7 +1118,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
               <Alert severity="info" sx={{ py: 0.5 }}>
                 This route uses Stargate and requires 2 transactions: one on{' '}
                 {networkConfigs[route!.spokeChainId]?.name || 'spoke'} and one on{' '}
-                {networkConfigs[vaultChainId]?.name || 'hub'}.
+                {networkConfigs[hubChainId]?.name || 'hub'}.
                 {spokePreflight.estimatedComposeFee > BigInt(0) && (
                   <>
                     {' '}
@@ -1123,7 +1126,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
                     {parseFloat(formatUnits(spokePreflight.estimatedComposeFee, 18)).toFixed(
                       6
                     )}{' '}
-                    {networkConfigs[vaultChainId]?.baseAssetSymbol || 'ETH'} on the hub for the
+                    {networkConfigs[hubChainId]?.baseAssetSymbol || 'ETH'} on the hub for the
                     compose transaction.
                   </>
                 )}
@@ -1161,7 +1164,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
                   </Typography>
                 ) : composeStep === 'ready-to-execute' ? (
                   <Typography variant="secondary14">
-                    ✅ Compose arrived — switch to {networkConfigs[vaultChainId]?.name || 'hub'} and
+                    ✅ Compose arrived — switch to {networkConfigs[hubChainId]?.name || 'hub'} and
                     execute
                   </Typography>
                 ) : composeStep === 'executing' ? (
