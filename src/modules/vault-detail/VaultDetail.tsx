@@ -228,7 +228,8 @@ export const VaultDetail = () => {
   const isOnCorrectNetwork = wagmiChainId === vaultNetwork;
   const shouldShowNetworkBanner = address && vaultNetwork && !isOnCorrectNetwork && !isOmniHub && !isOmniSpoke;
   const sdkReady = !!sdkVault;
-  const isLoading = (!sdkReady && statusLoading) || shouldShowNetworkBanner;
+  const topologyReady = !!topology;
+  const isLoading = !topologyReady || (!sdkReady && statusLoading) || shouldShowNetworkBanner;
   const isUserVaultDataLoading = userVaultData?.[0]?.isLoading || shouldShowNetworkBanner;
   const isUserVaultBalancesLoading = userVaultBalances?.isLoading;
 
