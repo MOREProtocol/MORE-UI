@@ -35,7 +35,6 @@ import { isOmniSpokeVault } from 'src/hooks/vault/factoryRegistry';
 import {
   getRouteTokenDecimals,
   useInboundRoutes,
-  useVaultDistribution,
   useVaultTopology,
 } from '@oydual31/more-vaults-sdk/react';
 import type { InboundRouteWithBalance } from '@oydual31/more-vaults-sdk/viem';
@@ -50,10 +49,6 @@ export const VaultDetail = () => {
   const { topology, needsNetworkSwitch } = useVaultTopology(
     selectedVaultId as `0x${string}` | undefined
   );
-  const { distribution, isLoading: isDistributionLoading } = useVaultDistribution(
-    selectedVaultId as `0x${string}` | undefined
-  );
-
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId], { enabled: !!selectedVaultId && !!accountAddress });
   const vaultData = useVaultData(selectedVaultId);
   const vaultAssetAddress = vaultData?.data?.overview?.asset?.address;
@@ -644,19 +639,31 @@ export const VaultDetail = () => {
             </Box>
 
 
-            {/* Row 2 - Networks */}
+            {/* Row 2 - Networks (compact) */}
             <Box>
               <Typography variant="secondary14" color="text.secondary">
-                Hub Network
+                Networks
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 {isLoading ? <Skeleton width={80} height={24} /> : (() => {
                   const hubChainId = topology?.hubChainId ?? chainId;
                   const hubCfg = networkConfigs[hubChainId];
+                  const spokeIds = topology?.spokeChainIds || [];
+                  const allChainIds = [hubChainId, ...spokeIds];
                   return (
                     <>
-                      <MarketLogo size={24} logo={hubCfg?.networkLogoPath} />
-                      <Typography variant="main16">{hubCfg?.name || `Chain ${hubChainId}`}</Typography>
+                      {/* Overlapping chain logos */}
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {allChainIds.map((cId, idx) => (
+                          <Box key={cId} sx={{ ml: idx > 0 ? '-6px' : 0, zIndex: allChainIds.length - idx }}>
+                            <MarketLogo size={22} logo={networkConfigs[cId]?.networkLogoPath} />
+                          </Box>
+                        ))}
+                      </Box>
+                      <Typography variant="main14">
+                        {hubCfg?.name || `Chain ${hubChainId}`}
+                        {spokeIds.length > 0 && ` + ${spokeIds.length} chain${spokeIds.length > 1 ? 's' : ''}`}
+                      </Typography>
                       {needsNetworkSwitch && (
                         <Button
                           size="small"
@@ -672,179 +679,6 @@ export const VaultDetail = () => {
                 })()}
               </Box>
             </Box>
-
-            {/* Spoke Chains */}
-            {topology && topology.spokeChainIds.length > 0 && (
-              <Box>
-                <Typography variant="secondary14" color="text.secondary">
-                  Spoke Chains
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  {topology.spokeChainIds.map((spokeChainId) => {
-                    const spokeCfg = networkConfigs[spokeChainId];
-                    const isCurrentChain = wagmiChainId === spokeChainId;
-                    const spokeBalance = distribution?.spokeBalances.find(s => s.chainId === spokeChainId);
-                    const isUnreachable = spokeBalance ? !spokeBalance.isReachable : false;
-                    return (
-                      <Box key={spokeChainId} sx={{ display: 'flex', alignItems: 'center', gap: 1, opacity: isUnreachable ? 0.5 : 1 }}>
-                        <MarketLogo size={20} logo={spokeCfg?.networkLogoPath} />
-                        <Typography variant="main14" sx={{ color: isUnreachable ? 'text.disabled' : undefined }}>
-                          {spokeCfg?.name || `Chain ${spokeChainId}`}
-                        </Typography>
-                        {isUnreachable && (
-                          <Chip label="Unreachable" size="small" sx={{ fontSize: '0.6rem', height: 18, bgcolor: 'action.disabledBackground', color: 'text.disabled' }} />
-                        )}
-                        {isCurrentChain && (
-                          <Chip label="You are here" size="small" color="warning" sx={{ fontSize: '0.65rem', height: 18 }} />
-                        )}
-                      </Box>
-                    );
-                  })}
-                </Box>
-              </Box>
-            )}
-
-            {/* Asset Distribution (cross-chain) */}
-            {isOmniHub && (
-              <Box sx={{ gridColumn: { xsm: '1 / -1' } }}>
-                <Typography variant="secondary14" color="text.secondary" sx={{ mb: 1 }}>
-                  Asset Distribution
-                </Typography>
-                {isDistributionLoading ? (
-                  <Skeleton width="100%" height={60} />
-                ) : distribution ? (() => {
-                  const decimals = selectedVault?.overview?.asset?.decimals || 18;
-                  const assetSymbol = selectedVault?.overview?.asset?.symbol || '';
-                  const totalActual = distribution.totalActual;
-                  const ZERO = BigInt(0);
-                  const SCALE = BigInt(10000);
-                  const hubLiquidPct = totalActual > ZERO
-                    ? Number((distribution.hubLiquidBalance * SCALE) / totalActual) / 100
-                    : 0;
-                  const hubStrategyPct = totalActual > ZERO
-                    ? Number((distribution.hubStrategyBalance * SCALE) / totalActual) / 100
-                    : 0;
-
-                  return (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                      {/* Stacked bar */}
-                      <Box sx={{ display: 'flex', width: '100%', height: 8, borderRadius: 1, overflow: 'hidden' }}>
-                        <Box sx={{ width: `${hubLiquidPct}%`, bgcolor: 'primary.main' }} />
-                        <Box sx={{ width: `${hubStrategyPct}%`, bgcolor: 'primary.dark' }} />
-                        {distribution.spokeBalances.map((spoke) => {
-                          const spokePct = totalActual > ZERO
-                            ? Number((spoke.totalAssets * SCALE) / totalActual) / 100
-                            : 0;
-                          return (
-                            <Box
-                              key={spoke.chainId}
-                              sx={{
-                                width: `${spokePct}%`,
-                                bgcolor: spoke.isReachable ? 'warning.main' : 'action.disabled',
-                              }}
-                            />
-                          );
-                        })}
-                      </Box>
-
-                      {/* Hub breakdown */}
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'primary.main' }} />
-                          <Typography variant="secondary12">Hub Liquid</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <FormattedNumber
-                            value={formatUnits(distribution.hubLiquidBalance, decimals)}
-                            symbol={assetSymbol}
-                            variant="secondary12"
-                            compact
-                          />
-                          <Typography variant="secondary12" color="text.secondary">
-                            ({hubLiquidPct.toFixed(1)}%)
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'primary.dark' }} />
-                          <Typography variant="secondary12">Hub Strategies</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <FormattedNumber
-                            value={formatUnits(distribution.hubStrategyBalance, decimals)}
-                            symbol={assetSymbol}
-                            variant="secondary12"
-                            compact
-                          />
-                          <Typography variant="secondary12" color="text.secondary">
-                            ({hubStrategyPct.toFixed(1)}%)
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      {/* Spoke breakdown */}
-                      {distribution.spokeBalances.map((spoke) => {
-                        const spokeCfg = networkConfigs[spoke.chainId];
-                        const spokePct = totalActual > ZERO
-                          ? Number((spoke.totalAssets * SCALE) / totalActual) / 100
-                          : 0;
-                        return (
-                          <Box key={spoke.chainId} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: spoke.isReachable ? 1 : 0.5 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: spoke.isReachable ? 'warning.main' : 'action.disabled' }} />
-                              <Typography variant="secondary12" sx={{ color: spoke.isReachable ? undefined : 'text.disabled' }}>
-                                {spokeCfg?.name || `Chain ${spoke.chainId}`}
-                                {!spoke.isReachable && ' (Unreachable)'}
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              {spoke.isReachable ? (
-                                <>
-                                  <FormattedNumber
-                                    value={formatUnits(spoke.totalAssets, decimals)}
-                                    symbol={assetSymbol}
-                                    variant="secondary12"
-                                    compact
-                                  />
-                                  <Typography variant="secondary12" color="text.secondary">
-                                    ({spokePct.toFixed(1)}%)
-                                  </Typography>
-                                </>
-                              ) : (
-                                <Typography variant="secondary12" color="text.disabled">N/A</Typography>
-                              )}
-                            </Box>
-                          </Box>
-                        );
-                      })}
-
-                      {/* Total */}
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid', borderColor: 'divider', pt: 1 }}>
-                        <Typography variant="secondary12" fontWeight={600}>Total</Typography>
-                        <FormattedNumber
-                          value={formatUnits(distribution.totalActual, decimals)}
-                          symbol={assetSymbol}
-                          variant="secondary12"
-                          compact
-                          sx={{ fontWeight: 600 }}
-                        />
-                      </Box>
-                    </Box>
-                  );
-                })() : null}
-              </Box>
-            )}
-
-            {/* Oracle Accounting Warning */}
-            {isOmniHub && distribution && !distribution.oracleAccountingEnabled && (
-              <Box sx={{ gridColumn: { xsm: '1 / -1' } }}>
-                <Alert severity="warning" sx={{ py: 0.5 }}>
-                  Share price updates when deposits or withdrawals occur, returns from other chains may not be reflected yet.
-                </Alert>
-              </Box>
-            )}
 
             {/* Row 3 - Remaining Capacity */}
             <Box>

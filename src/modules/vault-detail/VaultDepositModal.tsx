@@ -16,7 +16,7 @@ import { useBalance, useChainId, usePublicClient, useSwitchChain, useWalletClien
 import { formatEther, formatUnits } from 'viem';
 import { networkConfigs } from 'src/ui-config/networksConfig';
 import { asSdkClient, getVaultStatus, quoteLzFee, depositFromSpoke, waitForCompose, executeCompose, quoteComposeFee, preflightSpokeDeposit, CHAIN_ID_TO_EID, quoteRouteDepositFee, type InboundRouteWithBalance } from '@oydual31/more-vaults-sdk/viem';
-import { getRouteTokenDecimals } from '@oydual31/more-vaults-sdk/react';
+import { getRouteTokenDecimals, useVaultDistribution } from '@oydual31/more-vaults-sdk/react';
 
 interface VaultDepositModalProps {
   isOpen: boolean;
@@ -36,6 +36,9 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
   const spokePublicClient = usePublicClient({ chainId: route?.spokeChainId });
   const { data: spokeWalletClient } = useWalletClient({ chainId: route?.spokeChainId });
   const vaultData = useVaultData(selectedVaultId);
+  const { distribution } = useVaultDistribution(
+    isOmniHub ? selectedVaultId as `0x${string}` : undefined
+  );
   const selectedVault = vaultData?.data;
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId]);
   const refreshUserVaultData = userVaultData?.[0]?.refetch;
@@ -860,6 +863,13 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({ isOpen, se
                   )}
                 </Box>
               </Box>
+            )}
+
+            {/* Oracle accounting notice */}
+            {isOmniHub && distribution && !distribution.oracleAccountingEnabled && (
+              <Alert severity="warning" sx={{ py: 0.5 }}>
+                Share price updates when deposits or withdrawals occur, returns from other chains may not be reflected yet.
+              </Alert>
             )}
 
             {/* Stargate 2-TX warning for spoke deposits */}
