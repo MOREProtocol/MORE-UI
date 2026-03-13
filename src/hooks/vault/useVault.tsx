@@ -241,7 +241,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
 
   // Detect the vault's actual network. Always run — even with wallet connected,
   // because the wallet may be on Ethereum while the vault lives on Base.
-  const { data: detectedChainId } = useQuery({
+  const { data: detectedChainId, isLoading: isDetecting } = useQuery({
     queryKey: ['detectVaultNetwork', selectedVaultId],
     queryFn: () => detectVaultNetwork(selectedVaultId!),
     enabled: !!selectedVaultId,
@@ -250,7 +250,14 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
 
   // For reading vault data, always prefer the detected chain (where the vault actually is).
   // The wallet chain is only relevant for signing transactions.
-  const chainId = detectedChainId || wagmiChainId || ChainIds.flowEVMMainnet;
+  // While detection is pending, DON'T fall back to the wallet chain — it causes all hooks
+  // to fire RPC calls against the wrong network (e.g. Ethereum instead of Base).
+  // While detection is pending for a selected vault, use chainId = 0 as sentinel.
+  // This makes useVaultProvider return null, blocking all hooks from querying the wrong RPC.
+  const vaultChainDetected = !!detectedChainId || !selectedVaultId || !isDetecting;
+  const chainId = vaultChainDetected
+    ? (detectedChainId || wagmiChainId || ChainIds.flowEVMMainnet)
+    : 0;
 
   const provider = useVaultProvider(chainId);
   const signer = useMemo(() => {
