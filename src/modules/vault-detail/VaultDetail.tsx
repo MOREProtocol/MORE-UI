@@ -27,7 +27,6 @@ import { VaultAllocations } from './VaultAllocations';
 import { VaultManagement } from './VaultManagement/VaultManagement';
 import { VaultNotes } from './VaultNotes';
 import { RewardsButton } from 'src/components/incentives/IncentivesButton';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
 import { useAccount, useChainId, useReadContract, useSwitchChain } from 'wagmi';
@@ -70,7 +69,7 @@ export const VaultDetail = () => {
   });
   const routeVaultAsset = (vaultAssetOnChain ?? vaultAssetAddress) as `0x${string}` | undefined;
 
-  const { routes: inboundRoutes, isLoading: isRoutesLoading } = useInboundRoutes(
+  const { routes: inboundRoutes } = useInboundRoutes(
     isOmniHub ? topology?.hubChainId : undefined,
     isOmniHub ? selectedVaultId as `0x${string}` : undefined,
     isOmniHub ? routeVaultAsset : undefined,
@@ -93,7 +92,6 @@ export const VaultDetail = () => {
   const [isBridgeModalOpen, setIsBridgeModalOpen] = useState(false);
   const [isRoutePickerOpen, setIsRoutePickerOpen] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<InboundRouteWithBalance | null>(null);
-  const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [selectedChartDataKey, setSelectedChartDataKey] = useState<'sharePrice' | 'totalAssets'>('sharePrice');
 
   // Get whitelist data from smart contract
@@ -580,120 +578,6 @@ export const VaultDetail = () => {
               </Box>
             </Box>
 
-            {/* Deposit Routes (cross-chain OFT) */}
-            {isOmniHub && (
-              <Box sx={{ gridColumn: { xsm: '1 / -1' } }}>
-                <Typography variant="secondary14" color="text.secondary" sx={{ mb: 1 }}>
-                  Deposit Routes
-                </Typography>
-                {isRoutesLoading ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                    {[0, 1, 2].map((i) => <Skeleton key={i} width="100%" height={28} />)}
-                  </Box>
-                ) : inboundRoutes && inboundRoutes.length > 0 ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                    {inboundRoutes.map((route, idx) => {
-                      const chainCfg = networkConfigs[route.spokeChainId];
-                      const decimals = getRouteTokenDecimals(route.symbol);
-                      const hasBalance = route.userBalance > BigInt(0);
-                      const formattedBalance = parseFloat(formatUnits(route.userBalance, decimals)).toLocaleString(undefined, { maximumFractionDigits: 4 });
-                      const lzFeeEth = route.depositType === 'oft-compose'
-                        ? parseFloat(formatUnits(route.lzFeeEstimate, 18)).toFixed(5)
-                        : null;
-                      return (
-                        <Box
-                          key={idx}
-                          onClick={() => {
-                            if (!hasBalance || !accountAddress) return;
-                            setSelectedRoute(route);
-                            setIsDepositModalOpen(true);
-                          }}
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: 1,
-                            opacity: hasBalance ? 1 : 0.4,
-                            py: 0.5,
-                            px: 1,
-                            borderRadius: 1,
-                            border: '1px solid',
-                            borderColor: selectedRoute === route ? 'primary.main' : 'divider',
-                            cursor: hasBalance && accountAddress ? 'pointer' : 'default',
-                            '&:hover': hasBalance && accountAddress ? { borderColor: 'primary.light', bgcolor: 'action.hover' } : {},
-                          }}
-                        >
-                          {/* Left: token + chain */}
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <TokenIcon symbol={route.sourceTokenSymbol} fontSize="small" />
-                            <Box>
-                              <Typography variant="secondary12" fontWeight={600}>{route.sourceTokenSymbol}</Typography>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                {chainCfg && <MarketLogo size={14} logo={chainCfg.networkLogoPath} />}
-                                <Typography variant="secondary12" color="text.secondary">
-                                  {chainCfg?.name || `Chain ${route.spokeChainId}`}
-                                </Typography>
-                                {route.depositType === 'direct' && (
-                                  <Chip label="Direct" size="small" color="success" sx={{ fontSize: '0.6rem', height: 16, ml: 0.5 }} />
-                                )}
-                              </Box>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                <Typography variant="secondary12" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
-                                  {route.spokeToken.slice(0, 6)}…{route.spokeToken.slice(-4)}
-                                </Typography>
-                                <Tooltip title={copiedToken === route.spokeToken ? 'Copied!' : 'Copy address'} placement="top">
-                                  <IconButton
-                                    size="small"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigator.clipboard.writeText(route.spokeToken);
-                                      setCopiedToken(route.spokeToken);
-                                      setTimeout(() => setCopiedToken(null), 1500);
-                                    }}
-                                    sx={{ p: 0.25 }}
-                                  >
-                                    <ContentCopyIcon sx={{ fontSize: 11 }} />
-                                  </IconButton>
-                                </Tooltip>
-                                {chainCfg?.explorerLink && (
-                                  <Tooltip title="View on explorer" placement="top">
-                                    <IconButton
-                                      size="small"
-                                      component="a"
-                                      href={`${chainCfg.explorerLink}/address/${route.spokeToken}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                                      sx={{ p: 0.25 }}
-                                    >
-                                      <OpenInNewIcon sx={{ fontSize: 11 }} />
-                                    </IconButton>
-                                  </Tooltip>
-                                )}
-                              </Box>
-                            </Box>
-                          </Box>
-
-                          {/* Right: balance + fee */}
-                          <Box sx={{ textAlign: 'right' }}>
-                            <Typography variant="secondary12" fontWeight={hasBalance ? 600 : 400}>
-                              {hasBalance ? `${formattedBalance} ${route.sourceTokenSymbol}` : 'No balance'}
-                            </Typography>
-                            {lzFeeEth && (
-                              <Typography variant="secondary12" color="text.secondary">
-                                ~{lzFeeEth} {route.nativeSymbol} fee
-                              </Typography>
-                            )}
-                          </Box>
-                        </Box>
-                      );
-                    })}
-                  </Box>
-                ) : !isRoutesLoading && accountAddress ? (
-                  <Typography variant="secondary12" color="text.secondary">No routes available</Typography>
-                ) : null}
-              </Box>
-            )}
 
             {/* Row 2 - Networks */}
             <Box>
