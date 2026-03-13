@@ -23,6 +23,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
 import { useVault } from 'src/hooks/vault/useVault';
 import { useVaultData } from 'src/hooks/vault/useVaultData';
+import { useOmniFlowStore } from 'src/store/omniFlowStore';
 import { useOmniRequestStore } from 'src/store/omniRequestStore';
 import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
 import { formatUnits } from 'viem';
@@ -55,6 +56,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
   const vaultData = useVaultData(selectedVaultId);
   const { topology } = useVaultTopology(selectedVaultId as `0x${string}` | undefined);
   const addOmniRequest = useOmniRequestStore((s) => s.addOmniRequest);
+  const flowStore = useOmniFlowStore();
 
   const hubChainId = topology?.hubChainId ?? vaultChainId;
   const spokeChainId = wagmiChainId; // user opened modal from spoke chain
@@ -112,9 +114,73 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
     };
   }, []);
 
-  // Reset state when modal closes
+  // Helper: persist current flow state
+  const persistFlow = useCallback(
+    (
+      overrides: Partial<{
+        step: RedeemStep;
+        shareBridgeTxHash: string | null;
+        redeemTxHash: string | null;
+        redeemGuid: string | null;
+        assetBridgeTxHash: string | null;
+        assetsReceived: bigint;
+      }>
+    ) => {
+      if (!selectedVaultId) return;
+      flowStore.setFlow(selectedVaultId, {
+        type: 'spoke-redeem',
+        step: overrides.step ?? step,
+        vaultId: selectedVaultId,
+        hubChainId,
+        spokeChainId,
+        shareBridgeTxHash: overrides.shareBridgeTxHash ?? shareBridgeTxHash,
+        redeemTxHash: overrides.redeemTxHash ?? redeemTxHash,
+        redeemGuid: overrides.redeemGuid ?? redeemGuid,
+        assetBridgeTxHash: overrides.assetBridgeTxHash ?? assetBridgeTxHash,
+        assetsReceived: String(overrides.assetsReceived ?? assetsReceived),
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      selectedVaultId,
+      hubChainId,
+      spokeChainId,
+      step,
+      shareBridgeTxHash,
+      redeemTxHash,
+      redeemGuid,
+      assetBridgeTxHash,
+      assetsReceived,
+    ]
+  );
+
+  // Restore flow state from persistent store when modal opens
+  useEffect(() => {
+    if (!isOpen || !selectedVaultId) return;
+    const saved = flowStore.getFlow(selectedVaultId);
+    if (saved && saved.type === 'spoke-redeem' && saved.step !== 'done') {
+      setStep(saved.step);
+      setShareBridgeTxHash(saved.shareBridgeTxHash);
+      setRedeemTxHash(saved.redeemTxHash);
+      setRedeemGuid(saved.redeemGuid);
+      setAssetBridgeTxHash(saved.assetBridgeTxHash);
+      setAssetsReceived(BigInt(saved.assetsReceived || '0'));
+      // Restart polling if we're in a waiting state
+      if (saved.step === 'waiting_shares') {
+        setStepStartTime(Date.now());
+        pollSharesOnHub();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, selectedVaultId]);
+
+  // Reset state when modal closes — only clear if flow is done or hasn't started
   useEffect(() => {
     if (!isOpen) {
+      const shouldClear = step === 'loading' || step === 'ready' || step === 'done';
+      if (shouldClear && selectedVaultId) {
+        flowStore.removeFlow(selectedVaultId);
+      }
       setStep('loading');
       setIsLoading(false);
       setTxError(null);
@@ -132,6 +198,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
         pollRef.current = null;
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Step 0: Resolve addresses + preflight when modal opens
@@ -266,6 +333,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
             pollRef.current = null;
           }
           setStep('switch_to_hub');
+          persistFlow({ step: 'switch_to_hub' });
         }
       } catch (e) {
         console.warn('[CrossChainRedeem] poll shares on hub error:', e);
@@ -296,6 +364,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
       setShareBridgeTxHash(hash);
       setStep('waiting_shares');
       setStepStartTime(Date.now());
+      persistFlow({ step: 'waiting_shares', shareBridgeTxHash: hash });
       pollSharesOnHub();
     } catch (error) {
       console.error('Error during bridgeSharesToHub:', error);
@@ -342,10 +411,16 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
         owner
       );
       setRedeemTxHash(result.txHash);
+      persistFlow({ redeemTxHash: result.txHash });
 
       if ('guid' in result) {
         // Async vault — need to wait for LZ callback
         setRedeemGuid(result.guid);
+        persistFlow({
+          redeemTxHash: result.txHash,
+          redeemGuid: result.guid,
+          step: 'waiting_redeem',
+        });
         addOmniRequest({
           guid: result.guid,
           vaultId: selectedVaultId!,
@@ -395,8 +470,10 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
                 clearInterval(pollRef.current);
                 pollRef.current = null;
               }
-              setAssetsReceived((assetNow as bigint) - (assetBefore as bigint));
+              const received = (assetNow as bigint) - (assetBefore as bigint);
+              setAssetsReceived(received);
               setStep('bridging_assets');
+              persistFlow({ step: 'bridging_assets', assetsReceived: received });
             }
           } catch (e) {
             console.warn('[CrossChainRedeem] poll asset balance error:', e);
@@ -406,6 +483,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
         // Sync vault — assets available immediately
         setAssetsReceived(result.assets);
         setStep('bridging_assets');
+        persistFlow({ step: 'bridging_assets', assetsReceived: result.assets });
       }
     } catch (error) {
       console.error('Error during smartRedeem:', error);
@@ -466,10 +544,12 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
       setAssetBridgeTxHash(hash);
       setStep('waiting_assets');
       setStepStartTime(Date.now());
+      persistFlow({ step: 'waiting_assets', assetBridgeTxHash: hash });
 
       // Assets will arrive on spoke automatically — show success after timeout
       setTimeout(() => {
         setStep('done');
+        if (selectedVaultId) flowStore.removeFlow(selectedVaultId);
       }, 30000); // Show done after 30s, actual delivery can take longer
     } catch (error) {
       console.error('Error during bridgeAssetsToSpoke:', error);

@@ -39,6 +39,7 @@ import {
   useVaultData,
 } from 'src/hooks/vault/useVaultData';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
+import { useOmniFlowStore } from 'src/store/omniFlowStore';
 import { useOmniRequestStore } from 'src/store/omniRequestStore';
 import { useRootStore } from 'src/store/root';
 import { networkConfigs } from 'src/ui-config/networksConfig';
@@ -144,6 +145,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
     recommendedDepositFlow: 'depositSimple' | 'depositAsync' | 'mintAsync' | 'none' | null;
   } | null>(null);
   const addOmniRequest = useOmniRequestStore((s) => s.addOmniRequest);
+  const flowStore = useOmniFlowStore();
   const omniStatus = useOmniRequestStore((s) =>
     omniGuid ? s.omniRequests[omniGuid]?.status ?? 'pending' : 'pending'
   );
@@ -346,9 +348,35 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
     };
   }, [isOmniHub, isOftCompose, isOpen, selectedVaultId, publicClient, route]);
 
-  // Reset state when modal closes
+  // Restore Stargate compose flow from persistent store when modal opens
+  useEffect(() => {
+    if (!isOpen || !selectedVaultId) return;
+    const saved = flowStore.getFlow(selectedVaultId);
+    if (saved && saved.type === 'stargate-compose' && saved.step !== 'done') {
+      if (saved.spokeTxHash) setTxHash(saved.spokeTxHash);
+      setComposeStep(saved.step);
+      if (saved.composeGuid && saved.composeMessage) {
+        setComposeData({
+          endpoint: saved.composeEndpoint,
+          from: saved.composeFrom,
+          to: saved.composeTo,
+          guid: saved.composeGuid,
+          index: saved.composeIndex ?? 0,
+          message: saved.composeMessage,
+        });
+      }
+      if (saved.omniGuid) setOmniGuid(saved.omniGuid);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, selectedVaultId]);
+
+  // Reset state when modal closes — keep flow if compose is in progress
   useEffect(() => {
     if (!isOpen) {
+      const shouldClearFlow = composeStep === 'idle' || composeStep === 'done';
+      if (shouldClearFlow && selectedVaultId) {
+        flowStore.removeFlow(selectedVaultId);
+      }
       setAmount('');
       setTxHash(null);
       setTxAction(null);
@@ -365,6 +393,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
       setSpokePreflight(null);
       setSpokePreflightError(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Keep selected asset synced with vault data when it changes
@@ -471,6 +500,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
           );
           setTxHash(composeHash);
           setComposeStep('done');
+          if (selectedVaultId) flowStore.removeFlow(selectedVaultId);
           if (refreshUserVaultData) refreshUserVaultData();
         } catch (error) {
           console.error('Error executing compose:', error);
@@ -549,6 +579,24 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
         if (result.composeData) {
           setComposeData(result.composeData);
           setComposeStep('waiting-compose');
+          if (selectedVaultId) {
+            flowStore.setFlow(selectedVaultId, {
+              type: 'stargate-compose',
+              step: 'waiting-compose',
+              vaultId: selectedVaultId,
+              hubChainId: vaultChainId,
+              spokeChainId: route.spokeChainId,
+              spokeTxHash: result.txHash,
+              composeEndpoint: result.composeData.endpoint ?? null,
+              composeFrom: result.composeData.from ?? null,
+              composeTo: result.composeData.to ?? null,
+              composeGuid: result.composeData.guid ?? null,
+              composeIndex: result.composeData.index ?? null,
+              composeMessage: result.composeData.message ?? null,
+              composeTxHash: null,
+              omniGuid: null,
+            });
+          }
 
           // Wait for compose delivery in background
           if (publicClient) {
@@ -559,6 +607,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
             )
               .then(() => {
                 setComposeStep('ready-to-execute');
+                if (selectedVaultId)
+                  flowStore.updateFlow(selectedVaultId, { step: 'ready-to-execute' });
               })
               .catch((err) => {
                 console.error('waitForCompose error:', err);
