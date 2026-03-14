@@ -13,9 +13,12 @@ import {
   asSdkClient,
   bridgeAssetsToSpoke,
   bridgeSharesToHub,
+  CHAIN_ID_TO_EID,
   LZ_TIMEOUTS,
   OFT_ABI,
   preflightSpokeRedeem,
+  quoteShareBridgeFee,
+  waitForAsyncRequest,
   resolveRedeemAddresses,
   smartRedeem,
 } from '@oydual31/more-vaults-sdk/viem';
@@ -27,7 +30,7 @@ import { useOmniFlowStore } from 'src/store/omniFlowStore';
 import { useOmniRequestStore } from 'src/store/omniRequestStore';
 import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
 import { formatUnits } from 'viem';
-import { useBalance, useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
+import { useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
 
 type RedeemStep =
   | 'loading'
@@ -44,11 +47,23 @@ type RedeemStep =
 interface VaultBridgeSharesToHubModalProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
+  /** The spoke chain to redeem from. Required so we don't depend on wallet chain. */
+  spokeChainId: number;
+  /** Spoke shares (in vault decimals) for DISPLAY */
+  spokeShares?: bigint;
+  /** Raw spoke shares (in OFT native decimals) for BRIDGE/QUOTE */
+  rawSpokeShares?: bigint;
+  /** Vault decimals from SDK (default 8) */
+  vaultDecimals?: number;
 }
 
 export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalProps> = ({
   isOpen,
   setIsOpen,
+  spokeChainId,
+  spokeShares: spokeSharesProp,
+  rawSpokeShares: rawSpokeSharesProp,
+  vaultDecimals = 8,
 }) => {
   const { selectedVaultId, accountAddress, chainId: vaultChainId } = useVault();
   const wagmiChainId = useChainId();
@@ -59,7 +74,6 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
   const flowStore = useOmniFlowStore();
 
   const hubChainId = topology?.hubChainId ?? vaultChainId;
-  const spokeChainId = wagmiChainId; // user opened modal from spoke chain
 
   // Clients on spoke chain
   const spokePublicClient = usePublicClient({ chainId: spokeChainId });
@@ -69,20 +83,12 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
   const hubPublicClient = usePublicClient({ chainId: hubChainId });
   const { data: hubWalletClient } = useWalletClient({ chainId: hubChainId });
 
-  // Share balance on the spoke chain
-  const { data: shareBalance, isLoading: isBalanceLoading } = useBalance({
-    address: accountAddress as `0x${string}`,
-    token: selectedVaultId as `0x${string}`,
-    chainId: spokeChainId,
-    query: { enabled: !!accountAddress && !!selectedVaultId },
-  });
-
   const [step, setStep] = useState<RedeemStep>('loading');
   const [isLoading, setIsLoading] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
   const [route, setRoute] = useState<SpokeRedeemRoute | null>(null);
   const [shareBridgeFee, setShareBridgeFee] = useState<bigint>(BigInt(0));
-  const [preflightData, setPreflightData] = useState<{
+  const [_preflightData, setPreflightData] = useState<{
     spokeNativeBalance: bigint;
     hubNativeBalance: bigint;
     estimatedAssetBridgeFee: bigint;
@@ -100,9 +106,9 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
   const [progressPct, setProgressPct] = useState<number>(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const shares = shareBalance?.value ?? BigInt(0);
-  const shareDecimals = shareBalance?.decimals ?? 18;
-  const sharesFormatted = parseFloat(formatUnits(shares, shareDecimals)).toFixed(6);
+  const shares = spokeSharesProp ?? BigInt(0); // vault decimals, for display
+  const rawShares = rawSpokeSharesProp ?? BigInt(0); // OFT native decimals, for bridge/quote
+  const sharesFormatted = parseFloat(formatUnits(shares, vaultDecimals)).toFixed(6);
   const hubCfg = networkConfigs[hubChainId];
   const spokeCfg = networkConfigs[spokeChainId];
   const vaultName = vaultData?.data?.overview?.name;
@@ -174,29 +180,46 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, selectedVaultId]);
 
-  // Reset state when modal closes — only clear if flow is done or hasn't started
+  // Auto-switch chain based on current redeem step
+  const needsHubSwitch = ['switch_to_hub', 'redeeming', 'bridging_assets'].includes(step);
   useEffect(() => {
-    if (!isOpen) {
-      const shouldClear = step === 'loading' || step === 'ready' || step === 'done';
-      if (shouldClear && selectedVaultId) {
-        flowStore.removeFlow(selectedVaultId);
-      }
-      setStep('loading');
-      setIsLoading(false);
-      setTxError(null);
-      setRoute(null);
-      setShareBridgeFee(BigInt(0));
-      setPreflightData(null);
-      setShareBridgeTxHash(null);
-      setRedeemTxHash(null);
-      setRedeemGuid(null);
-      setAssetsReceived(BigInt(0));
-      setAssetBridgeTxHash(null);
-      setProgressPct(0);
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
+    if (!isOpen) return;
+    if (step === 'ready' && wagmiChainId !== spokeChainId) {
+      switchChain({ chainId: spokeChainId });
+    } else if (needsHubSwitch && wagmiChainId !== hubChainId) {
+      switchChain({ chainId: hubChainId });
+    }
+  }, [isOpen, step, needsHubSwitch, wagmiChainId, spokeChainId, hubChainId]);
+
+  // Reset state when modal closes — only clear if flow is done or hasn't started
+  const [wasOpen, setWasOpen] = useState(false);
+  useEffect(() => {
+    if (isOpen) {
+      setWasOpen(true);
+      return;
+    }
+    // Only clean up if the modal was actually open and then closed (not on mount)
+    if (!wasOpen) return;
+    setWasOpen(false);
+    const shouldClear = step === 'loading' || step === 'ready' || step === 'done';
+    if (shouldClear && selectedVaultId) {
+      flowStore.removeFlow(selectedVaultId);
+    }
+    setStep('loading');
+    setIsLoading(false);
+    setTxError(null);
+    setRoute(null);
+    setShareBridgeFee(BigInt(0));
+    setPreflightData(null);
+    setShareBridgeTxHash(null);
+    setRedeemTxHash(null);
+    setRedeemGuid(null);
+    setAssetsReceived(BigInt(0));
+    setAssetBridgeTxHash(null);
+    setProgressPct(0);
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -209,7 +232,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
       !hubPublicClient ||
       !spokePublicClient ||
       !accountAddress ||
-      shares === BigInt(0)
+      rawShares === BigInt(0)
     )
       return;
     let cancelled = false;
@@ -225,35 +248,21 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
         if (cancelled) return;
         setRoute(resolvedRoute);
 
-        // Quote share bridge fee (TX1)
-        const toBytes32 = `0x${(accountAddress as string)
-          .slice(2)
-          .padStart(64, '0')}` as `0x${string}`;
-        const quoteResult = await (asSdkClient(spokePublicClient) as any).readContract({
-          address: resolvedRoute.spokeShareOft,
-          abi: OFT_ABI,
-          functionName: 'quoteSend',
-          args: [
-            {
-              dstEid: resolvedRoute.hubEid,
-              to: toBytes32,
-              amountLD: shares,
-              minAmountLD: shares,
-              extraOptions: '0x',
-              composeMsg: '0x',
-              oftCmd: '0x',
-            },
-            false,
-          ],
-        });
+        // Quote share bridge fee using SDK (handles OFT decimals + enforcedOptions)
+        const bridgeFee = await quoteShareBridgeFee(
+          asSdkClient(spokePublicClient),
+          resolvedRoute.spokeShareOft,
+          CHAIN_ID_TO_EID[hubChainId],
+          rawShares, // OFT native decimals
+          accountAddress as `0x${string}`,
+        );
         if (cancelled) return;
-        const bridgeFee = quoteResult.nativeFee;
         setShareBridgeFee(bridgeFee);
 
         // Preflight validation
         const pf = await preflightSpokeRedeem(
           resolvedRoute,
-          shares,
+          rawShares, // OFT native decimals for validation
           accountAddress as `0x${string}`,
           bridgeFee
         );
@@ -267,7 +276,23 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
       } catch (err) {
         if (!cancelled) {
           console.error('Cross-chain redeem preflight error:', err);
-          setTxError(err instanceof Error ? err.message : 'Failed to prepare cross-chain redeem.');
+          const raw = err instanceof Error ? err.message : 'Failed to prepare cross-chain redeem.';
+          // Parse SDK "Insufficient ETH on hub" error into a friendly message
+          if (raw.includes('Insufficient ETH on hub')) {
+            const needMatch = raw.match(/Need:\s*~?(\d+)\s*wei/);
+            const haveMatch = raw.match(/Have:\s*(\d+)\s*wei/);
+            const need = needMatch ? (Number(needMatch[1]) / 1e18).toFixed(6) : '?';
+            const have = haveMatch ? (Number(haveMatch[1]) / 1e18).toFixed(6) : '?';
+            setTxError(
+              `Not enough ETH on ${hubCfg?.name || 'hub'} for gas fees. You have ${have} ETH but need ~${need} ETH. Send more ETH to your wallet on ${hubCfg?.name || 'hub'}.`
+            );
+          } else if (raw.includes('Insufficient ETH on spoke')) {
+            setTxError(
+              `Not enough ETH on ${spokeCfg?.name || 'spoke'} for gas. Send more ETH there before starting.`
+            );
+          } else {
+            setTxError(raw);
+          }
           setStep('ready'); // show error state
         }
       }
@@ -283,7 +308,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
     hubPublicClient,
     spokePublicClient,
     accountAddress,
-    shares > BigInt(0),
+    rawShares > BigInt(0),
   ]);
 
   // Progress bar update for waiting steps
@@ -356,8 +381,8 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
         spokeWalletClient as any,
         asSdkClient(spokePublicClient),
         route.spokeShareOft,
-        route.hubEid,
-        shares,
+        CHAIN_ID_TO_EID[hubChainId],
+        rawShares, // OFT native decimals
         accountAddress as `0x${string}`,
         fee
       );
@@ -432,53 +457,24 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
         });
         setStep('waiting_redeem');
         setStepStartTime(Date.now());
+        setIsLoading(false); // unlock UI while waiting
 
-        // Poll for redeem completion (check asset balance increase on hub)
-        if (pollRef.current) clearInterval(pollRef.current);
-        const assetBefore = await (asSdkClient(hubPublicClient) as any).readContract({
-          address: route!.hubAsset,
-          abi: [
-            {
-              name: 'balanceOf',
-              type: 'function',
-              stateMutability: 'view',
-              inputs: [{ name: 'account', type: 'address' }],
-              outputs: [{ name: '', type: 'uint256' }],
-            },
-          ],
-          functionName: 'balanceOf',
-          args: [owner],
-        });
-        pollRef.current = setInterval(async () => {
-          try {
-            const assetNow = await (asSdkClient(hubPublicClient) as any).readContract({
-              address: route!.hubAsset,
-              abi: [
-                {
-                  name: 'balanceOf',
-                  type: 'function',
-                  stateMutability: 'view',
-                  inputs: [{ name: 'account', type: 'address' }],
-                  outputs: [{ name: '', type: 'uint256' }],
-                },
-              ],
-              functionName: 'balanceOf',
-              args: [owner],
-            });
-            if ((assetNow as bigint) > (assetBefore as bigint)) {
-              if (pollRef.current) {
-                clearInterval(pollRef.current);
-                pollRef.current = null;
-              }
-              const received = (assetNow as bigint) - (assetBefore as bigint);
-              setAssetsReceived(received);
-              setStep('bridging_assets');
-              persistFlow({ step: 'bridging_assets', assetsReceived: received });
-            }
-          } catch (e) {
-            console.warn('[CrossChainRedeem] poll asset balance error:', e);
-          }
-        }, LZ_TIMEOUTS.POLL_INTERVAL);
+        // SDK 0.2.6: deterministic GUID polling instead of balance comparison
+        const final = await waitForAsyncRequest(
+          asSdkClient(hubPublicClient) as any,
+          selectedVaultId as `0x${string}`,
+          result.guid as `0x${string}`,
+          LZ_TIMEOUTS.POLL_INTERVAL,
+          LZ_TIMEOUTS.LZ_READ_CALLBACK,
+        );
+        if (final.status === 'completed') {
+          setAssetsReceived(final.result);
+          setStep('bridging_assets');
+          persistFlow({ step: 'bridging_assets', assetsReceived: final.result });
+        } else {
+          setTxError('Redeem was refunded — shares returned to your wallet.');
+          setStep('switch_to_hub');
+        }
       } else {
         // Sync vault — assets available immediately
         setAssetsReceived(result.assets);
@@ -559,145 +555,138 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
     }
   };
 
-  // Step labels for progress display
-  const stepLabels: Record<RedeemStep, string> = {
-    loading: 'Preparing...',
-    ready: 'Ready to start',
-    bridging_shares: 'Step 1/3: Bridging shares to hub...',
-    waiting_shares: `Step 1/3: Waiting for shares on ${hubCfg?.name || 'hub'} (~7 min)...`,
-    switch_to_hub: `Step 2/3: Switch to ${hubCfg?.name || 'hub'} to redeem`,
-    redeeming: 'Step 2/3: Redeeming on hub...',
-    waiting_redeem: 'Step 2/3: Waiting for redeem confirmation (~5 min)...',
-    bridging_assets: `Step 3/3: Bridge assets back to ${spokeCfg?.name || 'spoke'}`,
-    waiting_assets: `Step 3/3: Assets on the way to ${spokeCfg?.name || 'spoke'}...`,
-    done: 'Cross-chain redeem complete!',
-  };
-
   const isWaiting = ['waiting_shares', 'waiting_redeem', 'waiting_assets'].includes(step);
   const needsHubChain = ['switch_to_hub', 'redeeming', 'bridging_assets'].includes(step);
+  const onWrongChainForSpoke = step === 'ready' && wagmiChainId !== spokeChainId;
   const onWrongChain = needsHubChain && wagmiChainId !== hubChainId;
+
+  // Step definitions for the stepper
+  const steps = [
+    {
+      label: `Bridge shares to ${hubCfg?.name || 'hub'}`,
+      chain: spokeCfg?.name,
+      time: '~7 min',
+      done: ['switch_to_hub', 'redeeming', 'waiting_redeem', 'bridging_assets', 'waiting_assets', 'done'].includes(step),
+      active: step === 'bridging_shares' || step === 'waiting_shares',
+    },
+    {
+      label: `Redeem on ${hubCfg?.name || 'hub'}`,
+      chain: hubCfg?.name,
+      time: '~5 min',
+      done: ['bridging_assets', 'waiting_assets', 'done'].includes(step),
+      active: step === 'switch_to_hub' || step === 'redeeming' || step === 'waiting_redeem',
+    },
+    {
+      label: `Bridge assets to ${spokeCfg?.name || 'spoke'}`,
+      chain: hubCfg?.name,
+      time: '~13 min',
+      done: step === 'done',
+      active: step === 'bridging_assets' || step === 'waiting_assets',
+      optional: true,
+    },
+  ];
+
+  // Progress label
+  const stepLabel =
+    step === 'loading' ? 'Preparing...'
+    : step === 'ready' ? 'Ready to start'
+    : step === 'bridging_shares' ? 'Step 1/3: Bridging shares to hub...'
+    : step === 'waiting_shares' ? `Step 1/3: Waiting for shares on ${hubCfg?.name || 'hub'} (~7 min)...`
+    : step === 'switch_to_hub' ? `Step 2/3: Redeem on ${hubCfg?.name || 'hub'}`
+    : step === 'redeeming' ? 'Step 2/3: Redeeming on hub...'
+    : step === 'waiting_redeem' ? 'Step 2/3: Waiting for redeem confirmation (~5 min)...'
+    : step === 'bridging_assets' ? `Step 3/3: Bridge assets to ${spokeCfg?.name || 'spoke'}`
+    : step === 'waiting_assets' ? `Step 3/3: Assets on the way to ${spokeCfg?.name || 'spoke'}...`
+    : step === 'done' ? 'Cross-chain withdrawal complete!'
+    : 'Processing...';
 
   return (
     <BasicModal open={isOpen} setOpen={setIsOpen}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <Typography variant="h2">Cross-chain withdrawal</Typography>
+        <Typography variant="h2">
+          Withdraw to {spokeCfg?.name || 'spoke'}
+        </Typography>
 
-        {/* Step progress */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Typography variant="secondary14" fontWeight={600}>
-            {stepLabels[step]}
-          </Typography>
-          {isWaiting && (
-            <LinearProgress variant="determinate" value={progressPct} sx={{ borderRadius: 1 }} />
-          )}
-        </Box>
-
-        {/* Step 0: Loading/Preflight */}
+        {/* Step 0: Loading */}
         {step === 'loading' && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <CircularProgress size={20} />
-            <Typography variant="secondary14">Resolving addresses and validating...</Typography>
+            <Typography variant="secondary14">Resolving addresses...</Typography>
           </Box>
         )}
 
-        {/* Ready: Show summary */}
+        {/* Ready: Show shares + step overview */}
         {step === 'ready' && !txError && (
           <>
-            <Alert severity="info">
-              This will withdraw your shares from{' '}
-              <strong>{spokeCfg?.name || `chain ${spokeChainId}`}</strong> through the hub{' '}
-              <strong>({hubCfg?.name || `chain ${hubChainId}`})</strong> and bridge assets back. The
-              full process takes ~15-30 minutes across 3 transactions.
-            </Alert>
-
-            {/* Summary rows */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="secondary14" color="text.secondary">
                 Shares to redeem
               </Typography>
               <Typography variant="secondary14" fontWeight={600}>
-                {isBalanceLoading ? (
-                  <CircularProgress size={14} />
-                ) : (
-                  `${sharesFormatted} ${vaultName || 'shares'}`
-                )}
+                {sharesFormatted} shares
               </Typography>
             </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="secondary14" color="text.secondary">
-                Share bridge fee (TX1)
-              </Typography>
-              <Typography variant="secondary14">
-                ~{parseFloat(formatUnits(shareBridgeFee, 18)).toFixed(6)}{' '}
-                {spokeCfg?.baseAssetSymbol || 'ETH'}
-              </Typography>
-            </Box>
-
-            {preflightData && (
-              <>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="secondary14" color="text.secondary">
-                    Gas on {spokeCfg?.name || 'spoke'}
-                  </Typography>
-                  <Typography variant="secondary14">
-                    {parseFloat(formatUnits(preflightData.spokeNativeBalance, 18)).toFixed(6)}{' '}
-                    {spokeCfg?.baseAssetSymbol || 'ETH'}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="secondary14" color="text.secondary">
-                    Gas on {hubCfg?.name || 'hub'}
-                  </Typography>
-                  <Typography variant="secondary14">
-                    {parseFloat(formatUnits(preflightData.hubNativeBalance, 18)).toFixed(6)}{' '}
-                    {hubCfg?.baseAssetSymbol || 'ETH'}
-                  </Typography>
-                </Box>
-                {preflightData.estimatedAssetBridgeFee > BigInt(0) && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="secondary14" color="text.secondary">
-                      Asset bridge fee (TX3, est.)
-                    </Typography>
-                    <Typography variant="secondary14">
-                      ~
-                      {parseFloat(formatUnits(preflightData.estimatedAssetBridgeFee, 18)).toFixed(
-                        6
-                      )}{' '}
-                      {hubCfg?.baseAssetSymbol || 'ETH'}
-                    </Typography>
-                  </Box>
-                )}
-              </>
-            )}
           </>
         )}
 
-        {/* Step 1 complete: show bridge tx */}
+        {/* Stepper — always visible after loading */}
+        {step !== 'loading' && (
+          <>
+            {/* Progress label + bar */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography variant="secondary14" fontWeight={600}>
+                {stepLabel}
+              </Typography>
+              {isWaiting && (
+                <LinearProgress variant="determinate" value={progressPct} sx={{ borderRadius: 1 }} />
+              )}
+            </Box>
+
+            {/* Step circles */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {steps.map((s, i) => (
+                <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 24, height: 24, borderRadius: '50%',
+                      bgcolor: s.done ? 'success.main' : s.active ? 'primary.main' : 'grey.500',
+                      color: 'primary.contrastText',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 700, flexShrink: 0,
+                    }}
+                  >
+                    {s.done ? '\u2713' : i + 1}
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="secondary14" sx={{ fontWeight: s.active ? 600 : 400 }}>
+                      {s.label}{s.optional ? ' (optional)' : ''}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Sign on {s.chain} · {s.time}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </>
+        )}
+
+        {/* TX1: spoke bridge tx link */}
         {shareBridgeTxHash && (
           <Box
             sx={{
-              p: 2,
-              bgcolor: 'background.surface',
-              borderRadius: 1,
-              border: '1px solid',
-              borderColor: 'divider',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1,
+              p: 2, bgcolor: 'background.surface', borderRadius: 1,
+              border: '1px solid', borderColor: 'divider',
+              display: 'flex', flexDirection: 'column', gap: 1,
             }}
           >
             <Typography variant="secondary14">
-              {step === 'waiting_shares'
-                ? '⏳ Shares bridging to hub...'
-                : '✅ Shares bridged to hub'}
+              {step === 'waiting_shares' ? 'Shares bridging to hub...' : 'Shares delivered to hub'}
             </Typography>
             {spokeCfg?.explorerLink && (
               <Link
                 href={`${spokeCfg.explorerLink}/tx/${shareBridgeTxHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                variant="secondary14"
+                target="_blank" rel="noopener noreferrer" variant="secondary14"
               >
                 View TX1 on {spokeCfg.explorerName || 'explorer'} ↗
               </Link>
@@ -705,49 +694,36 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
           </Box>
         )}
 
-        {/* Chain switch prompt */}
+        {/* Chain switch fallback */}
         {step === 'switch_to_hub' && onWrongChain && (
           <Alert
             severity="warning"
             action={
-              <Button
-                color="inherit"
-                size="small"
-                onClick={() => switchChain({ chainId: hubChainId })}
-              >
+              <Button color="inherit" size="small" onClick={() => switchChain({ chainId: hubChainId })}>
                 Switch to {hubCfg?.name || 'hub'}
               </Button>
             }
           >
-            Shares have arrived. Switch to {hubCfg?.name || 'hub'} to continue.
+            Shares arrived. Switch to {hubCfg?.name || 'hub'} to continue.
           </Alert>
         )}
 
-        {/* Step 2 complete: show redeem tx */}
+        {/* TX2: redeem tx link */}
         {redeemTxHash && (
           <Box
             sx={{
-              p: 2,
-              bgcolor: 'background.surface',
-              borderRadius: 1,
-              border: '1px solid',
-              borderColor: 'divider',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1,
+              p: 2, bgcolor: 'background.surface', borderRadius: 1,
+              border: '1px solid', borderColor: 'divider',
+              display: 'flex', flexDirection: 'column', gap: 1,
             }}
           >
             <Typography variant="secondary14">
-              {step === 'waiting_redeem'
-                ? '⏳ Waiting for redeem confirmation...'
-                : '✅ Redeemed on hub'}
+              {step === 'waiting_redeem' ? 'Waiting for redeem confirmation...' : 'Redeemed on hub'}
             </Typography>
             {hubCfg?.explorerLink && (
               <Link
                 href={`${hubCfg.explorerLink}/tx/${redeemTxHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                variant="secondary14"
+                target="_blank" rel="noopener noreferrer" variant="secondary14"
               >
                 View TX2 on {hubCfg.explorerName || 'explorer'} ↗
               </Link>
@@ -755,9 +731,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
             {redeemGuid && (
               <Link
                 href={`https://layerzeroscan.com/tx/${redeemGuid}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                variant="secondary14"
+                target="_blank" rel="noopener noreferrer" variant="secondary14"
               >
                 Track on LayerZero Scan ↗
               </Link>
@@ -765,33 +739,24 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
           </Box>
         )}
 
-        {/* Step 3 complete: show asset bridge tx */}
+        {/* TX3: asset bridge tx link */}
         {assetBridgeTxHash && (
           <Box
             sx={{
-              p: 2,
-              bgcolor: 'background.surface',
-              borderRadius: 1,
-              border: '1px solid',
-              borderColor: 'divider',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1,
+              p: 2, bgcolor: 'background.surface', borderRadius: 1,
+              border: '1px solid', borderColor: 'divider',
+              display: 'flex', flexDirection: 'column', gap: 1,
             }}
           >
             <Typography variant="secondary14">
               {step === 'waiting_assets'
-                ? `⏳ Assets on the way to ${spokeCfg?.name || 'spoke'} (~${
-                    route?.isStargate ? '13-30' : '7-15'
-                  } min)...`
-                : `✅ Assets sent to ${spokeCfg?.name || 'spoke'}`}
+                ? `Assets on the way to ${spokeCfg?.name || 'spoke'}...`
+                : `Assets sent to ${spokeCfg?.name || 'spoke'}`}
             </Typography>
             {hubCfg?.explorerLink && (
               <Link
                 href={`${hubCfg.explorerLink}/tx/${assetBridgeTxHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                variant="secondary14"
+                target="_blank" rel="noopener noreferrer" variant="secondary14"
               >
                 View TX3 on {hubCfg.explorerName || 'explorer'} ↗
               </Link>
@@ -802,7 +767,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
         {/* Done */}
         {step === 'done' && (
           <Alert severity="success">
-            Cross-chain withdrawal complete. Your {route?.symbol || 'assets'} should arrive on{' '}
+            Withdrawal complete. Your {route?.symbol || 'assets'} should arrive on{' '}
             {spokeCfg?.name || 'spoke'} shortly.
           </Alert>
         )}
@@ -810,47 +775,48 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
         {/* Error */}
         {txError && (
           <Box sx={{ p: 2, bgcolor: 'error.main', color: 'error.contrastText', borderRadius: 1 }}>
-            <Typography variant="secondary14" fontWeight="bold">
-              Error
-            </Typography>
-            <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
-              {txError}
-            </Typography>
+            <Typography variant="secondary14" fontWeight="bold">Error</Typography>
+            <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>{txError}</Typography>
           </Box>
         )}
 
         {/* Action buttons */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {step === 'ready' && !txError && (
+          {step === 'ready' && !txError && !onWrongChainForSpoke && (
             <Button
-              variant="gradient"
-              size="large"
+              variant="gradient" size="large"
               disabled={shares === BigInt(0) || isLoading}
               onClick={handleBridgeShares}
               sx={{ minHeight: '44px' }}
             >
               {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
-              {shares === BigInt(0) ? 'No shares to redeem' : `Start cross-chain withdrawal`}
+              {shares === BigInt(0) ? 'No shares to redeem' : 'Start withdrawal'}
+            </Button>
+          )}
+          {step === 'ready' && !txError && onWrongChainForSpoke && (
+            <Button
+              variant="gradient" size="large"
+              onClick={() => switchChain({ chainId: spokeChainId })}
+              sx={{ minHeight: '44px' }}
+            >
+              Switch to {spokeCfg?.name || 'spoke'} to start
             </Button>
           )}
 
           {step === 'switch_to_hub' && !onWrongChain && (
             <Button
-              variant="gradient"
-              size="large"
-              disabled={isLoading}
+              variant="gradient" size="large" disabled={isLoading}
               onClick={handleRedeem}
               sx={{ minHeight: '44px' }}
             >
               {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
-              Redeem shares on {hubCfg?.name || 'hub'}
+              Redeem on {hubCfg?.name || 'hub'}
             </Button>
           )}
 
           {step === 'bridging_assets' && (
             <Button
-              variant="gradient"
-              size="large"
+              variant="gradient" size="large"
               disabled={isLoading || assetsReceived === BigInt(0)}
               onClick={handleBridgeAssets}
               sx={{ minHeight: '44px' }}
@@ -862,12 +828,21 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
 
           {step === 'done' && (
             <Button
-              variant="contained"
-              size="large"
+              variant="contained" size="large"
               onClick={() => setIsOpen(false)}
               sx={{ minHeight: '44px' }}
             >
               Close
+            </Button>
+          )}
+
+          {step !== 'done' && step !== 'loading' && step !== 'ready' && (
+            <Button
+              variant="outlined" size="large"
+              onClick={() => setIsOpen(false)}
+              sx={{ minHeight: '44px' }}
+            >
+              Close (progress saved)
             </Button>
           )}
         </Box>

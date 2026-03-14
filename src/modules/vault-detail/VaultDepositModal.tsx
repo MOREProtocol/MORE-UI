@@ -6,6 +6,7 @@ import {
   CircularProgress,
   Collapse,
   FormControlLabel,
+  LinearProgress,
   Link,
   Tooltip,
   Typography,
@@ -18,16 +19,19 @@ import {
   depositFromSpoke,
   executeCompose,
   getVaultStatus,
+  LZ_TIMEOUTS,
   preflightSpokeDeposit,
   quoteComposeFee,
   quoteLzFee,
   quoteRouteDepositFee,
+  waitForAsyncRequest,
   waitForCompose,
 } from '@oydual31/more-vaults-sdk/viem';
 import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
 import { parseUnits } from 'ethers/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { BasicModal } from 'src/components/primitives/BasicModal';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { Asset, AssetInput } from 'src/components/transactions/AssetInput';
@@ -69,13 +73,15 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
     accountAddress,
     enhanceTransactionWithGas,
     isOmniHub,
+    omniHubChainId,
     omniDeposit,
   } = useVault();
   const wagmiChainId = useChainId();
   const { switchChain } = useSwitchChain();
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
-  const hubChainId = selectedVault?.chainId || vaultChainId;
+  // For omni vaults, use SDK-resolved hub chain; legacy as fallback for non-omni
+  const hubChainId = isOmniHub ? omniHubChainId : (selectedVault?.chainId || vaultChainId);
   const publicClient = usePublicClient({ chainId: hubChainId });
 
   // Spoke chain clients for oft-compose deposits
@@ -114,15 +120,31 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   const selectedAssetData = useAssetData(selectedAssetAddress || '');
 
   const depositableBalancesQuery = useDepositableAssetsBalances(selectedVaultId, accountAddress);
+  // For omni hub direct deposits, use route.spokeToken (correct hub-chain address)
+  // because primaryAssetAddress may be from a different chain's metadata.
+  const balanceTokenAddress = (isOmniHub && route?.spokeToken
+    ? route.spokeToken
+    : (selectedAssetAddress || primaryAssetAddress)) as `0x${string}`;
   const { data: walletBalanceData } = useBalance({
     address: accountAddress as `0x${string}`,
-    token: (selectedAssetAddress || primaryAssetAddress) as `0x${string}`,
+    token: balanceTokenAddress,
+    chainId: isOmniHub && !isOftCompose ? hubChainId : undefined,
   });
 
   const assetBalances = depositableBalancesQuery.balances;
   const fallbackWalletBalance =
     assetBalances[(selectedAssetAddress || primaryAssetAddress).toLowerCase()] ?? '0';
-  const walletBalance = walletBalanceData?.formatted || fallbackWalletBalance || '0';
+  // For omni hub, trust useBalance (reads correct token on correct chain); skip fallback
+  const walletBalance = isOmniHub
+    ? (walletBalanceData?.formatted || '0')
+    : (walletBalanceData?.formatted || fallbackWalletBalance || '0');
+
+  // Check ETH balance on hub for Stargate 2-TX compose fee
+  const { data: hubEthBalance } = useBalance({
+    address: accountAddress as `0x${string}`,
+    chainId: hubChainId,
+    query: { enabled: isOftCompose && !!accountAddress },
+  });
 
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -147,9 +169,11 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   } | null>(null);
   const addOmniRequest = useOmniRequestStore((s) => s.addOmniRequest);
   const flowStore = useOmniFlowStore();
-  const omniStatus = useOmniRequestStore((s) =>
-    omniGuid ? s.omniRequests[omniGuid]?.status ?? 'pending' : 'pending'
-  );
+  const queryClient = useQueryClient();
+
+  // Omni async status — updated by waitForAsyncRequest inline
+  const [omniStatus, setOmniStatus] = useState<'pending' | 'completed' | 'refunded'>('pending');
+  const [omniResult, setOmniResult] = useState<bigint | null>(null);
 
   // Stargate compose state (2-TX spoke deposits)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -159,7 +183,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   >('idle');
 
   // Spoke deposit preflight state
-  const [spokePreflight, setSpokePreflight] = useState<{
+  const [_spokePreflight, setSpokePreflight] = useState<{
     isStargate: boolean;
     estimatedComposeFee: bigint;
   } | null>(null);
@@ -292,6 +316,24 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
     };
   }, [walletBalance, whitelistAmount, selectedAssetData.data?.decimals]);
 
+  // Auto-switch chain when route is selected / modal opens
+  useEffect(() => {
+    if (!isOpen || !route) return;
+    if (isOftCompose) {
+      // OFT compose: switch based on step
+      if (composeStep === 'idle' && wagmiChainId !== route.spokeChainId) {
+        switchChain({ chainId: route.spokeChainId });
+      } else if (composeStep === 'ready-to-execute' && wagmiChainId !== hubChainId) {
+        switchChain({ chainId: hubChainId });
+      }
+    } else {
+      // Hub / direct deposit: switch to hub chain
+      if (wagmiChainId !== hubChainId) {
+        switchChain({ chainId: hubChainId });
+      }
+    }
+  }, [isOpen, isOftCompose, route, composeStep, wagmiChainId, hubChainId]);
+
   // On open, verify vault is not paused and escrow is configured before allowing deposit
   useEffect(() => {
     if (!isOmniHub || isOftCompose || !isOpen || !selectedVaultId || !publicClient) return;
@@ -355,45 +397,99 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
     const saved = flowStore.getFlow(selectedVaultId);
     if (saved && saved.type === 'stargate-compose' && saved.step !== 'done') {
       if (saved.spokeTxHash) setTxHash(saved.spokeTxHash);
-      setComposeStep(saved.step);
-      if (saved.composeGuid && saved.composeMessage) {
-        setComposeData({
-          endpoint: saved.composeEndpoint,
-          from: saved.composeFrom,
-          to: saved.composeTo,
-          guid: saved.composeGuid,
-          index: saved.composeIndex ?? 0,
-          message: saved.composeMessage,
-        });
-      }
       if (saved.omniGuid) setOmniGuid(saved.omniGuid);
+
+      const partialCompose = saved.composeGuid ? {
+        endpoint: saved.composeEndpoint,
+        from: saved.composeFrom,
+        to: saved.composeTo,
+        guid: saved.composeGuid,
+        index: saved.composeIndex ?? 0,
+        message: saved.composeMessage,
+        isStargate: saved.composeIsStargate ?? true,
+        hubChainId: saved.hubChainId ?? hubChainId,
+        hubBlockStart: BigInt(saved.composeHubBlockStart || '0'),
+      } : null;
+
+      // If from is 0x0 or message is missing, re-resolve via waitForCompose
+      const needsResolve = partialCompose && (
+        !saved.composeFrom || saved.composeFrom === '0x0000000000000000000000000000000000000000' ||
+        !saved.composeMessage || saved.composeMessage === '0x'
+      );
+
+      if (needsResolve && partialCompose && publicClient && accountAddress) {
+        setComposeStep('waiting-compose');
+        // Race with a 15s timeout — old flows don't have hubBlockStart so scanning is slow
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 15000));
+        Promise.race([
+          waitForCompose(
+            asSdkClient(publicClient),
+            partialCompose as any,
+            accountAddress as `0x${string}`,
+          ),
+          timeoutPromise,
+        ])
+          .then((resolved) => {
+            if (resolved) {
+              setComposeData(resolved);
+              setComposeStep('ready-to-execute');
+              flowStore.updateFlow(selectedVaultId, {
+                step: 'ready-to-execute',
+                composeFrom: resolved.from,
+                composeMessage: resolved.message,
+              });
+            } else {
+              // Timeout — use what we have, user can retry
+              console.warn('waitForCompose timed out during recovery, using partial data');
+              setComposeData(partialCompose as any);
+              setComposeStep('ready-to-execute');
+            }
+          })
+          .catch((err) => {
+            console.error('waitForCompose recovery error:', err);
+            // Still set compose data with what we have — executeCompose may work
+            if (partialCompose) setComposeData(partialCompose as any);
+            setComposeStep('ready-to-execute');
+          });
+      } else if (partialCompose) {
+        setComposeData(partialCompose as any);
+        setComposeStep(saved.step);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, selectedVaultId]);
 
   // Reset state when modal closes — keep flow if compose is in progress
+  const [wasOpen, setWasOpen] = useState(false);
   useEffect(() => {
-    if (!isOpen) {
-      const shouldClearFlow = composeStep === 'idle' || composeStep === 'done';
-      if (shouldClearFlow && selectedVaultId) {
-        flowStore.removeFlow(selectedVaultId);
-      }
-      setAmount('');
-      setTxHash(null);
-      setTxAction(null);
-      setIsLoading(false);
-      setRiskAccepted(false);
-      setTxError(null);
-      setAddTokenLoading(false);
-      setAddTokenSuccess(false);
-      setEstimatedFee(null);
-      setOmniGuid(null);
-      setPreflight(null);
-      setComposeData(null);
-      setComposeStep('idle');
-      setSpokePreflight(null);
-      setSpokePreflightError(null);
+    if (isOpen) {
+      setWasOpen(true);
+      return;
     }
+    // Only clean up if the modal was actually open and then closed (not on mount)
+    if (!wasOpen) return;
+    setWasOpen(false);
+    const shouldClearFlow = composeStep === 'idle' || composeStep === 'done';
+    if (shouldClearFlow && selectedVaultId) {
+      flowStore.removeFlow(selectedVaultId);
+    }
+    setAmount('');
+    setTxHash(null);
+    setTxAction(null);
+    setIsLoading(false);
+    setRiskAccepted(false);
+    setTxError(null);
+    setAddTokenLoading(false);
+    setAddTokenSuccess(false);
+    setEstimatedFee(null);
+    setOmniGuid(null);
+    setOmniStatus('pending');
+    setOmniResult(null);
+    setPreflight(null);
+    setComposeData(null);
+    setComposeStep('idle');
+    setSpokePreflight(null);
+    setSpokePreflightError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
@@ -469,15 +565,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   };
 
   const handleClick = async () => {
-    if (txHash) {
-      const explorerUrl = networkConfigs[hubChainId]?.explorerLink
-        ? `${networkConfigs[hubChainId].explorerLink}/tx/${txHash}`
-        : currentNetworkConfig.explorerLinkBuilder({ tx: txHash });
-      window.open(explorerUrl, '_blank');
-      return;
-    }
-
     // oft-compose: cross-chain deposit via OFT from spoke chain
+    // Check compose step BEFORE txHash — txHash may be set from TX1 (spoke)
     if (isOftCompose && route) {
       // Step 2b: Execute compose on hub (Stargate only)
       if (composeStep === 'ready-to-execute' && composeData) {
@@ -490,18 +579,41 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
         setComposeStep('executing');
         try {
           const pc = asSdkClient(publicClient);
-          const fee = await quoteComposeFee(pc, selectedVaultId as `0x${string}`);
-          const feeWithBuffer = (fee * BigInt(110)) / BigInt(100);
-          const { txHash: composeHash } = await executeCompose(
+          // Include spokeEid + receiver so fee covers readFee + shareSendFee
+          const fee = await quoteComposeFee(
+            pc,
+            selectedVaultId as `0x${string}`,
+            CHAIN_ID_TO_EID[route.spokeChainId],
+            accountAddress as `0x${string}`,
+          );
+          const composeResult = await executeCompose(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             hubWalletClient as any,
             pc,
             composeData,
-            feeWithBuffer
+            fee // SDK already includes 10% buffer
           );
-          setTxHash(composeHash);
+          setTxHash(composeResult.txHash);
           setComposeStep('done');
           if (selectedVaultId) flowStore.removeFlow(selectedVaultId);
+
+          // SDK 0.2.6: executeCompose now returns guid for async vaults
+          if (composeResult.guid) {
+            setOmniGuid(composeResult.guid);
+            setOmniStatus('pending');
+            setIsLoading(false); // unlock UI while waiting
+            const final = await waitForAsyncRequest(
+              pc,
+              selectedVaultId as `0x${string}`,
+              composeResult.guid as `0x${string}`,
+              LZ_TIMEOUTS.POLL_INTERVAL,
+              LZ_TIMEOUTS.LZ_READ_CALLBACK,
+            );
+            setOmniStatus(final.status as 'completed' | 'refunded');
+            setOmniResult(final.result);
+            queryClient.invalidateQueries({ queryKey: ['userPositionMultiChain'] });
+            queryClient.invalidateQueries({ queryKey: ['vaultStatus'] });
+          }
           if (refreshUserVaultData) refreshUserVaultData();
         } catch (error) {
           console.error('Error executing compose:', error);
@@ -554,8 +666,18 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
             estimatedComposeFee: pf.estimatedComposeFee,
           });
         } catch (preflightErr) {
-          const msg =
+          const raw =
             preflightErr instanceof Error ? preflightErr.message : 'Preflight validation failed';
+          let msg = raw;
+          if (raw.includes('Insufficient ETH on hub')) {
+            const needMatch = raw.match(/Need:\s*~?(\d+)\s*wei/);
+            const haveMatch = raw.match(/Have:\s*(\d+)\s*wei/);
+            const need = needMatch ? (Number(needMatch[1]) / 1e18).toFixed(6) : '?';
+            const have = haveMatch ? (Number(haveMatch[1]) / 1e18).toFixed(6) : '?';
+            msg = `Not enough ETH on ${networkConfigs[hubChainId]?.name || 'hub'} for step 2. You have ${have} ETH but need ~${need} ETH.`;
+          } else if (raw.includes('Insufficient')) {
+            msg = `Not enough funds. ${raw.split(']').pop()?.trim() || raw}`;
+          }
           setSpokePreflightError(msg);
           setTxError(msg);
           setIsLoading(false);
@@ -594,6 +716,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
               composeGuid: result.composeData.guid ?? null,
               composeIndex: result.composeData.index ?? null,
               composeMessage: result.composeData.message ?? null,
+              composeIsStargate: result.composeData.isStargate ?? true,
+              composeHubBlockStart: String(result.composeData.hubBlockStart ?? '0'),
               composeTxHash: null,
               omniGuid: null,
             });
@@ -606,15 +730,21 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
               result.composeData,
               accountAddress as `0x${string}`
             )
-              .then(() => {
+              .then((resolvedCompose) => {
+                // Update composeData with real from + message from the SDK
+                setComposeData(resolvedCompose);
                 setComposeStep('ready-to-execute');
                 if (selectedVaultId)
-                  flowStore.updateFlow(selectedVaultId, { step: 'ready-to-execute' });
+                  flowStore.updateFlow(selectedVaultId, {
+                    step: 'ready-to-execute',
+                    composeFrom: resolvedCompose.from,
+                    composeMessage: resolvedCompose.message,
+                  });
               })
               .catch((err) => {
                 console.error('waitForCompose error:', err);
-                setTxError('Compose delivery timed out. You can retry the execute step later.');
-                setComposeStep('ready-to-execute'); // still allow manual retry
+                // Don't show error — compose may still arrive, allow manual execute
+                setComposeStep('ready-to-execute');
               });
           }
         } else {
@@ -630,6 +760,15 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
       return;
     }
 
+    // If a TX was already submitted, open explorer
+    if (txHash) {
+      const explorerUrl = networkConfigs[hubChainId]?.explorerLink
+        ? `${networkConfigs[hubChainId].explorerLink}/tx/${txHash}`
+        : currentNetworkConfig.explorerLinkBuilder({ tx: txHash });
+      window.open(explorerUrl, '_blank');
+      return;
+    }
+
     if (isOmniHub && omniDeposit) {
       if (
         !amount ||
@@ -640,12 +779,13 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
         return;
       setIsLoading(true);
       setTxError(null);
+      setOmniStatus('pending');
+      setOmniResult(null);
       try {
         const parsedAmount = parseUnits(amount, selectedAssetData.data.decimals).toString();
         const { txHash: hash, guid: capturedGuid } = await omniDeposit(parsedAmount);
         setTxHash(hash);
         if (capturedGuid) {
-          // Async deposit (vault is in async mode)
           setOmniGuid(capturedGuid);
           addOmniRequest({
             guid: capturedGuid,
@@ -656,9 +796,25 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
             txHash: hash,
             vaultName: selectedVault?.overview?.name,
           });
+          // Wait for async finalization via GUID polling (SDK 0.2.6)
+          setIsLoading(false); // unlock UI while waiting
+          const final = await waitForAsyncRequest(
+            asSdkClient(publicClient!),
+            selectedVaultId as `0x${string}`,
+            capturedGuid as `0x${string}`,
+            LZ_TIMEOUTS.POLL_INTERVAL,
+            LZ_TIMEOUTS.LZ_READ_CALLBACK,
+          );
+          setOmniStatus(final.status as 'completed' | 'refunded');
+          setOmniResult(final.result);
+          // Refresh position data
+          queryClient.invalidateQueries({ queryKey: ['userPositionMultiChain'] });
+          queryClient.invalidateQueries({ queryKey: ['vaultStatus'] });
+          if (refreshUserVaultData) refreshUserVaultData();
+        } else {
+          // Sync deposit — shares received immediately
+          if (refreshUserVaultData) refreshUserVaultData();
         }
-        // No guid = sync deposit (vault is in sync mode), tx is already complete
-        if (refreshUserVaultData) refreshUserVaultData();
       } catch (error) {
         console.error('Error during omni deposit:', error);
         setTxError(error instanceof Error ? error.message : 'An unexpected error occurred.');
@@ -989,248 +1145,454 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
               </Alert>
             )}
 
-            <AssetInput
-              value={amount}
-              onChange={handleChange}
-              usdValue={amountInUsd.toString(10)}
-              symbol={isOftCompose ? route!.sourceTokenSymbol : selectedAssetSymbol || ''}
-              assets={
-                isOftCompose
-                  ? [
-                      {
-                        address: route!.spokeToken,
-                        symbol: route!.sourceTokenSymbol,
-                        balance: routeBalance ?? '0',
-                        decimals: routeTokenDecimals,
-                      } as Asset,
-                    ]
-                  : depositableAssets.map(
-                      (a) =>
-                        ({
-                          address: a.address,
-                          symbol: a.symbol || (a.address || '').slice(0, 6) || 'TOKEN',
-                          balance:
-                            (a.address || '').toLowerCase() ===
-                            (selectedAssetAddress || '').toLowerCase()
-                              ? walletBalance
-                              : assetBalances[(a.address || '').toLowerCase()] ?? '0',
-                          decimals: a.decimals,
-                        } as Asset)
-                    )
-              }
-              onSelect={(asset) => {
-                if (!isOftCompose) {
-                  setSelectedAssetAddress(asset.address || '');
-                  setSelectedAssetSymbol(
-                    asset.symbol || (asset.address || '').slice(0, 6) || 'TOKEN'
-                  );
-                }
-              }}
-              maxValue={maxAmountToSupply}
-              isMaxSelected={amount === maxAmountToSupply}
-              balanceText={isOftCompose ? 'Balance on spoke' : assetInputConfig.balanceText}
-            />
-            {txError && (
-              <Box
-                sx={{
-                  mb: 2,
-                  p: 2,
-                  bgcolor: 'error.main',
-                  color: 'error.contrastText',
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'error.main',
-                }}
-              >
-                <Typography variant="secondary14" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  Transaction Error
-                </Typography>
-                <Typography variant="caption">{txError}</Typography>
-              </Box>
-            )}
+            {/* ── OFT-COMPOSE STEPPER ── */}
+            {isOftCompose && composeStep !== 'idle' ? (
+              <>
+                {/* Step progress label */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="secondary14" fontWeight={600}>
+                    {composeStep === 'waiting-compose'
+                      ? 'Step 1/2: Waiting for compose delivery (~5-15 min)...'
+                      : composeStep === 'ready-to-execute'
+                      ? `Step 2/2: Execute compose on ${networkConfigs[hubChainId]?.name || 'hub'}`
+                      : composeStep === 'executing'
+                      ? 'Step 2/2: Executing compose...'
+                      : composeStep === 'done' && omniStatus === 'pending'
+                      ? 'Waiting for cross-chain accounting (~2-5 min)...'
+                      : composeStep === 'done' && omniStatus === 'completed'
+                      ? 'Deposit complete!'
+                      : composeStep === 'done' && omniStatus === 'refunded'
+                      ? 'Deposit refunded'
+                      : 'Processing...'}
+                  </Typography>
+                  {(composeStep === 'waiting-compose' || composeStep === 'executing' ||
+                    (composeStep === 'done' && omniStatus === 'pending')) && (
+                    <LinearProgress sx={{ borderRadius: 1 }} />
+                  )}
+                </Box>
 
-            {(isOftCompose ||
-              (isOmniHub && preflight?.recommendedDepositFlow !== 'depositSimple')) && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {isOnWrongChain && (
+                {/* 2-step overview */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  {[
+                    {
+                      label: `Bridge tokens from ${networkConfigs[route!.spokeChainId]?.name || 'spoke'}`,
+                      chain: networkConfigs[route!.spokeChainId]?.name,
+                      time: '~5-15 min',
+                      done: !!txHash,
+                      active: composeStep === 'waiting-compose',
+                    },
+                    {
+                      label: `Execute compose on ${networkConfigs[hubChainId]?.name || 'hub'}`,
+                      chain: networkConfigs[hubChainId]?.name,
+                      time: '~2-5 min',
+                      done: composeStep === 'done',
+                      active: composeStep === 'ready-to-execute' || composeStep === 'executing',
+                    },
+                  ].map((s, i) => (
+                    <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Box
+                        sx={{
+                          width: 24, height: 24, borderRadius: '50%',
+                          bgcolor: s.done ? 'success.main' : s.active ? 'primary.main' : 'grey.500',
+                          color: 'primary.contrastText',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 12, fontWeight: 700, flexShrink: 0,
+                        }}
+                      >
+                        {s.done ? '\u2713' : i + 1}
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="secondary14" sx={{ fontWeight: s.active ? 600 : 400 }}>
+                          {s.label}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Sign on {s.chain} · {s.time}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* TX1: spoke bridge tx link */}
+                {txHash && networkConfigs[route!.spokeChainId]?.explorerLink && (
+                  <Box
+                    sx={{
+                      p: 2, bgcolor: 'background.surface', borderRadius: 1,
+                      border: '1px solid', borderColor: 'divider',
+                      display: 'flex', flexDirection: 'column', gap: 1,
+                    }}
+                  >
+                    <Typography variant="secondary14">
+                      {composeStep === 'waiting-compose'
+                        ? 'Tokens bridging to hub...'
+                        : 'Tokens delivered to hub'}
+                    </Typography>
+                    <Link
+                      href={`${networkConfigs[route!.spokeChainId].explorerLink}/tx/${txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      variant="secondary14"
+                    >
+                      View TX1 on {networkConfigs[route!.spokeChainId]?.explorerName || 'explorer'} ↗
+                    </Link>
+                  </Box>
+                )}
+
+                {/* Chain switch prompt for compose execution */}
+                {composeStep === 'ready-to-execute' && wagmiChainId !== hubChainId && (
                   <Alert
                     severity="warning"
                     action={
                       <Button
                         color="inherit"
                         size="small"
-                        onClick={() =>
-                          switchChain({
-                            chainId: isOftCompose ? route!.spokeChainId : hubChainId,
-                          })
-                        }
+                        onClick={() => switchChain({ chainId: hubChainId })}
                       >
-                        Switch network
+                        Switch to {networkConfigs[hubChainId]?.name || 'hub'}
                       </Button>
                     }
                   >
-                    {isOftCompose
-                      ? `Switch to ${
-                          networkConfigs[route!.spokeChainId]?.name || 'spoke chain'
-                        } to use this route.`
-                      : "You must be on the vault's hub network to deposit."}
+                    Compose arrived. Switch to {networkConfigs[hubChainId]?.name || 'hub'} to continue.
                   </Alert>
                 )}
-                <Box
-                  sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <Typography variant="secondary14" color="text.secondary">
-                    Bridge fee (est.)
-                  </Typography>
-                  {isFeeLoading ? (
-                    <CircularProgress size={14} />
-                  ) : isOftCompose ? (
+
+                {/* TX2: compose tx link + async status */}
+                {composeStep === 'done' && (
+                  <Box
+                    sx={{
+                      p: 2, bgcolor: 'background.surface', borderRadius: 1,
+                      border: '1px solid', borderColor: 'divider',
+                      display: 'flex', flexDirection: 'column', gap: 1,
+                    }}
+                  >
                     <Typography variant="secondary14">
-                      ~{parseFloat(formatUnits(realFee, 18)).toFixed(6)} {route!.nativeSymbol}{' '}
-                      (excess refunded)
+                      {omniStatus === 'pending' && 'Waiting for cross-chain accounting...'}
+                      {omniStatus === 'completed' && (
+                        omniResult
+                          ? `Deposit complete — ${parseFloat(formatUnits(BigInt(omniResult.toString()), selectedAssetData.data?.decimals ?? 18)).toFixed(4)} shares minted`
+                          : 'Deposit complete — shares minted'
+                      )}
+                      {omniStatus === 'refunded' && 'Deposit refunded — funds returned to your wallet'}
                     </Typography>
-                  ) : estimatedFee ? (
-                    <Typography variant="secondary14">
-                      ~{parseFloat(estimatedFee).toFixed(6)}{' '}
-                      {networkConfigs[hubChainId]?.baseAssetSymbol || 'ETH'} (excess refunded)
-                    </Typography>
-                  ) : (
-                    <Typography variant="secondary14" color="text.secondary">
-                      —
-                    </Typography>
+                    {omniGuid && (
+                      <Link
+                        href={`https://layerzeroscan.com/tx/${omniGuid}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        variant="secondary14"
+                      >
+                        Track on LayerZero Scan ↗
+                      </Link>
+                    )}
+                  </Box>
+                )}
+
+                {/* Error display */}
+                {txError && (
+                  <Box sx={{ p: 2, bgcolor: 'error.main', color: 'error.contrastText', borderRadius: 1 }}>
+                    <Typography variant="secondary14" fontWeight="bold">Error</Typography>
+                    <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>{txError}</Typography>
+                  </Box>
+                )}
+
+                {/* Action buttons */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {composeStep === 'ready-to-execute' && wagmiChainId === hubChainId && (
+                    <Button
+                      variant="gradient"
+                      size="large"
+                      disabled={isLoading}
+                      onClick={handleClick}
+                      sx={{ minHeight: '44px' }}
+                    >
+                      {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
+                      Execute compose on {networkConfigs[hubChainId]?.name || 'hub'}
+                    </Button>
+                  )}
+                  {composeStep === 'done' && omniStatus !== 'pending' && (
+                    <Button
+                      variant="contained"
+                      size="large"
+                      onClick={() => setIsOpen(false)}
+                      sx={{ minHeight: '44px' }}
+                    >
+                      Close
+                    </Button>
+                  )}
+                  {composeStep !== 'done' && (
+                    <Button
+                      variant="outlined"
+                      size="large"
+                      onClick={() => setIsOpen(false)}
+                      sx={{ minHeight: '44px' }}
+                    >
+                      Close (progress saved)
+                    </Button>
                   )}
                 </Box>
-              </Box>
-            )}
-
-            {/* Oracle accounting notice */}
-            {isOmniHub && distribution && !distribution.oracleAccountingEnabled && (
-              <Alert severity="warning" sx={{ py: 0.5 }}>
-                Share price updates when deposits or withdrawals occur, returns from other chains
-                may not be reflected yet.
-              </Alert>
-            )}
-
-            {/* Stargate 2-TX warning for spoke deposits */}
-            {isOftCompose && spokePreflight?.isStargate && !txHash && (
-              <Alert severity="info" sx={{ py: 0.5 }}>
-                This route uses Stargate and requires 2 transactions: one on{' '}
-                {networkConfigs[route!.spokeChainId]?.name || 'spoke'} and one on{' '}
-                {networkConfigs[hubChainId]?.name || 'hub'}.
-                {spokePreflight.estimatedComposeFee > BigInt(0) && (
+              </>
+            ) : (
+              <>
+                {/* ── STANDARD DEPOSIT UI (amount input) — hidden when hub stepper active ── */}
+                {!(isOmniHub && !isOftCompose && txHash) && (
                   <>
-                    {' '}
-                    You&apos;ll need ~
-                    {parseFloat(formatUnits(spokePreflight.estimatedComposeFee, 18)).toFixed(
-                      6
-                    )}{' '}
-                    {networkConfigs[hubChainId]?.baseAssetSymbol || 'ETH'} on the hub for the
-                    compose transaction.
+                    <AssetInput
+                      value={amount}
+                      onChange={handleChange}
+                      usdValue={amountInUsd.toString(10)}
+                      symbol={isOftCompose ? route!.sourceTokenSymbol : selectedAssetSymbol || ''}
+                      assets={
+                        isOftCompose
+                          ? [
+                              {
+                                address: route!.spokeToken,
+                                symbol: route!.sourceTokenSymbol,
+                                balance: routeBalance ?? '0',
+                                decimals: routeTokenDecimals,
+                              } as Asset,
+                            ]
+                          : depositableAssets.map(
+                              (a) =>
+                                ({
+                                  address: a.address,
+                                  symbol: a.symbol || (a.address || '').slice(0, 6) || 'TOKEN',
+                                  balance:
+                                    (a.address || '').toLowerCase() ===
+                                    (selectedAssetAddress || '').toLowerCase()
+                                      ? walletBalance
+                                      : assetBalances[(a.address || '').toLowerCase()] ?? '0',
+                                  decimals: a.decimals,
+                                } as Asset)
+                            )
+                      }
+                      onSelect={(asset) => {
+                        if (!isOftCompose) {
+                          setSelectedAssetAddress(asset.address || '');
+                          setSelectedAssetSymbol(
+                            asset.symbol || (asset.address || '').slice(0, 6) || 'TOKEN'
+                          );
+                        }
+                      }}
+                      maxValue={maxAmountToSupply}
+                      isMaxSelected={amount === maxAmountToSupply}
+                      balanceText={isOftCompose ? 'Balance on spoke' : assetInputConfig.balanceText}
+                    />
+                    {txError && (
+                      <Box
+                        sx={{
+                          mb: 2,
+                          p: 2,
+                          bgcolor: 'error.main',
+                          color: 'error.contrastText',
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: 'error.main',
+                        }}
+                      >
+                        <Typography variant="secondary14" sx={{ fontWeight: 'bold', mb: 1 }}>
+                          Transaction Error
+                        </Typography>
+                        <Typography variant="caption">{txError}</Typography>
+                      </Box>
+                    )}
+
+                    {/* Wrong-chain alert */}
+                    {isOnWrongChain && (
+                      <Alert
+                        severity="warning"
+                        action={
+                          <Button
+                            color="inherit"
+                            size="small"
+                            onClick={() => {
+                              const targetChain = isOftCompose
+                                ? route!.spokeChainId
+                                : hubChainId;
+                              switchChain({ chainId: targetChain });
+                            }}
+                          >
+                            Switch network
+                          </Button>
+                        }
+                      >
+                        {isOftCompose
+                          ? `Switch to ${
+                              networkConfigs[route!.spokeChainId]?.name || 'spoke chain'
+                            } to use this route.`
+                          : `Switch to ${networkConfigs[hubChainId]?.name || 'hub chain'} to deposit.`}
+                      </Alert>
+                    )}
+
+                    {/* Bridge fee + info — compact row */}
+                    {isOftCompose ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="secondary14" color="text.secondary">
+                          Bridge fee (est.)
+                        </Typography>
+                        {isFeeLoading ? (
+                          <CircularProgress size={14} />
+                        ) : (
+                          <Typography variant="secondary14">
+                            ~{parseFloat(formatUnits(realFee, 18)).toFixed(6)} {route!.nativeSymbol}
+                          </Typography>
+                        )}
+                      </Box>
+                    ) : (isOmniHub && preflight?.recommendedDepositFlow !== 'depositSimple') ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="secondary14" color="text.secondary">
+                          Bridge fee (est.)
+                        </Typography>
+                        {isFeeLoading ? (
+                          <CircularProgress size={14} />
+                        ) : estimatedFee ? (
+                          <Typography variant="secondary14">
+                            ~{parseFloat(estimatedFee).toFixed(6)}{' '}
+                            {networkConfigs[hubChainId]?.baseAssetSymbol || 'ETH'}
+                          </Typography>
+                        ) : (
+                          <Typography variant="secondary14" color="text.secondary">—</Typography>
+                        )}
+                      </Box>
+                    ) : null}
+
+                    {/* Oracle accounting notice — hub deposits only */}
+                    {isOmniHub && !isOftCompose && distribution && !distribution.oracleAccountingEnabled && (
+                      <Alert severity="warning" sx={{ py: 0.5 }}>
+                        Share price updates when deposits or withdrawals occur, returns from other chains
+                        may not be reflected yet.
+                      </Alert>
+                    )}
+
+                    {/* Low ETH warning — only show when ETH is actually insufficient */}
+                    {isOftCompose && hubEthBalance && hubEthBalance.value < BigInt(1e14) && (
+                      <Alert severity="error" sx={{ py: 0.5 }}>
+                        You need ETH on {networkConfigs[hubChainId]?.name || 'hub'} for step 2. You only have{' '}
+                        {parseFloat(hubEthBalance.formatted).toFixed(6)} ETH — send more before depositing.
+                      </Alert>
+                    )}
+
+                    {/* Spoke preflight error */}
+                    {spokePreflightError && !txError && (
+                      <Alert severity="error" sx={{ py: 0.5 }}>
+                        {spokePreflightError.includes('Insufficient ETH on hub')
+                          ? `Not enough ETH on ${networkConfigs[hubChainId]?.name || 'hub'} for step 2.`
+                          : spokePreflightError}
+                      </Alert>
+                    )}
                   </>
                 )}
-              </Alert>
-            )}
 
-            {/* Spoke preflight error */}
-            {spokePreflightError && !txError && (
-              <Alert severity="error" sx={{ py: 0.5 }}>
-                {spokePreflightError}
-              </Alert>
-            )}
+                {/* Hub deposit stepper — shown after TX is submitted */}
+                {isOmniHub && !isOftCompose && txHash && (() => {
+                  const steps = [
+                    {
+                      label: 'Deposit',
+                      done: !!txHash,
+                      active: !!txHash && omniStatus === 'pending' && !omniGuid,
+                    },
+                    {
+                      label: 'Cross-chain accounting',
+                      done: omniStatus === 'completed' || omniStatus === 'refunded',
+                      active: omniStatus === 'pending' && !!omniGuid,
+                    },
+                  ];
+                  const statusLabel = omniStatus === 'pending'
+                    ? (omniGuid ? 'Waiting for cross-chain accounting (~2-5 min)...' : 'Transaction confirmed')
+                    : omniStatus === 'completed'
+                    ? (omniResult
+                        ? `Deposit complete — ${parseFloat(formatUnits(BigInt(omniResult.toString()), selectedAssetData.data?.decimals ?? 18)).toFixed(4)} shares minted`
+                        : 'Deposit complete — shares minted')
+                    : 'Deposit refunded — funds returned to your wallet';
+                  return (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Typography variant="secondary14" fontWeight={600}>{statusLabel}</Typography>
+                      {omniStatus === 'pending' && <LinearProgress sx={{ borderRadius: 1 }} />}
 
-            {/* oft-compose: show spoke tx link and compose flow status */}
-            {isOftCompose && txHash && (
-              <Box
-                sx={{
-                  p: 2,
-                  bgcolor: 'background.surface',
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 1,
-                }}
-              >
-                {composeStep === 'idle' || composeStep === 'done' ? (
-                  <Typography variant="secondary14">
-                    ✅ Bridge transaction sent — tokens are on their way to the hub
-                  </Typography>
-                ) : composeStep === 'waiting-compose' ? (
-                  <Typography variant="secondary14">
-                    ⏳ Waiting for compose delivery on hub (~5-15 min)…
-                  </Typography>
-                ) : composeStep === 'ready-to-execute' ? (
-                  <Typography variant="secondary14">
-                    ✅ Compose arrived — switch to {networkConfigs[hubChainId]?.name || 'hub'} and
-                    execute
-                  </Typography>
-                ) : composeStep === 'executing' ? (
-                  <Typography variant="secondary14">⏳ Executing compose on hub…</Typography>
-                ) : null}
-                {networkConfigs[route!.spokeChainId]?.explorerLink && (
-                  <Link
-                    href={`${networkConfigs[route!.spokeChainId].explorerLink}/tx/${txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    variant="secondary14"
-                  >
-                    View on {networkConfigs[route!.spokeChainId]?.explorerName || 'explorer'} ↗
-                  </Link>
-                )}
-              </Box>
-            )}
+                      {/* Step circles */}
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                        {steps.map((s, i) => (
+                          <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Box
+                              sx={{
+                                width: 24, height: 24, borderRadius: '50%',
+                                bgcolor: s.done ? 'success.main' : s.active ? 'primary.main' : 'grey.500',
+                                color: 'primary.contrastText',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 12, fontWeight: 700, flexShrink: 0,
+                              }}
+                            >
+                              {s.done ? '\u2713' : i + 1}
+                            </Box>
+                            <Typography variant="secondary14" sx={{ fontWeight: s.active ? 600 : 400 }}>
+                              {s.label}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
 
-            {/* Cross-chain request status tracker — shown after bridge tx confirms */}
-            {isOmniHub && !isOftCompose && txHash && (
-              <Box
-                sx={{
-                  p: 2,
-                  bgcolor: 'background.surface',
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 1,
-                }}
-              >
-                <Typography variant="secondary14">
-                  {omniStatus === 'pending' && '⏳ Waiting for cross-chain accounting (~2 min)…'}
-                  {omniStatus === 'ready-to-execute' && '⏳ Accounting resolved, finalising…'}
-                  {omniStatus === 'completed' && '✅ Deposit complete — shares minted'}
-                  {omniStatus === 'refunded' &&
-                    '↩️ Deposit refunded — funds returned to your wallet'}
-                </Typography>
-                {omniGuid && (
-                  <Link
-                    href={`https://layerzeroscan.com/tx/${omniGuid}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    variant="secondary14"
-                  >
-                    Track on LayerZero Scan ↗
-                  </Link>
-                )}
-              </Box>
-            )}
+                      {/* TX link */}
+                      <Box
+                        sx={{
+                          p: 2, bgcolor: 'background.surface', borderRadius: 1,
+                          border: '1px solid', borderColor: 'divider',
+                          display: 'flex', flexDirection: 'column', gap: 1,
+                        }}
+                      >
+                        <Link
+                          href={`${networkConfigs[hubChainId]?.explorerLink}/tx/${txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          variant="secondary14"
+                        >
+                          View on {networkConfigs[hubChainId]?.explorerName || 'explorer'} ↗
+                        </Link>
+                        {omniGuid && (
+                          <Link
+                            href={`https://layerzeroscan.com/tx/${omniGuid}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            variant="secondary14"
+                          >
+                            Track on LayerZero Scan ↗
+                          </Link>
+                        )}
+                      </Box>
+                    </Box>
+                  );
+                })()}
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Button
-                variant={txHash ? 'contained' : 'gradient'}
-                disabled={
-                  (!amount || amount === '0' || !!preflightBlocked || isOnWrongChain) &&
-                  composeStep !== 'ready-to-execute'
-                }
-                onClick={handleClick}
-                size="large"
-                sx={{ minHeight: '44px' }}
-                data-cy="actionButton"
-              >
-                {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
-                {buttonContent}
-              </Button>
-            </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {/* Hide main action button when hub stepper is active */}
+                  {!(isOmniHub && !isOftCompose && txHash) && (
+                    <Button
+                      variant={txHash ? 'contained' : 'gradient'}
+                      disabled={
+                        isOnWrongChain ||
+                        (!amount || amount === '0' || !!preflightBlocked ||
+                          (isOftCompose && hubEthBalance && hubEthBalance.value < BigInt(1e14)))
+                      }
+                      onClick={handleClick}
+                      size="large"
+                      sx={{ minHeight: '44px' }}
+                      data-cy="actionButton"
+                    >
+                      {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
+                      {buttonContent}
+                    </Button>
+                  )}
+                  {txHash && (
+                    <Button
+                      variant="outlined"
+                      onClick={() => setIsOpen(false)}
+                      size="large"
+                      sx={{ minHeight: '44px' }}
+                    >
+                      Close
+                    </Button>
+                  )}
+                </Box>
+              </>
+            )}
           </Box>
         </Collapse>
       </Box>

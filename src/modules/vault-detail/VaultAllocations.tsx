@@ -1,5 +1,5 @@
 import { Box, Typography } from '@mui/material';
-import { useVaultDistribution } from '@oydual31/more-vaults-sdk/react';
+import { useVaultDistribution, useVaultTopology } from '@oydual31/more-vaults-sdk/react';
 import React from 'react';
 import { MarketLogo } from 'src/components/MarketSwitcher';
 import { BaseDataGrid, ColumnDefinition } from 'src/components/primitives/DataGrid';
@@ -32,7 +32,8 @@ export const VaultAllocations: React.FC = () => {
     enabled: !!selectedVaultId,
   });
 
-  const isOmni = isOmniHub || !!selectedVault?.omni?.isHub;
+  const { topology } = useVaultTopology(selectedVaultId as `0x${string}` | undefined);
+  const isOmni = isOmniHub || !!selectedVault?.omni?.isHub || topology?.role === 'hub' || topology?.role === 'spoke';
   const { distribution } = useVaultDistribution(
     isOmni ? (selectedVaultId as `0x${string}`) : undefined
   );
@@ -43,9 +44,9 @@ export const VaultAllocations: React.FC = () => {
   const isLoading = vaultAllocationData?.isLoading;
   const error = vaultAllocationData?.isError;
 
-  // Build spoke assets from distribution data
-  const spokeAssets: VaultAsset[] = React.useMemo(() => {
-    if (!distribution || !distribution.spokeBalances.length) return [];
+  // Build cross-chain assets from distribution data (hub + spokes)
+  const distributionAssets: VaultAsset[] = React.useMemo(() => {
+    if (!distribution) return [];
     const decimals = selectedVault?.overview?.asset?.decimals || 18;
     const symbol = selectedVault?.overview?.asset?.symbol || '';
     const price =
@@ -53,21 +54,55 @@ export const VaultAllocations: React.FC = () => {
       allocation?.find((a) => a.assetSymbol.toLowerCase() === symbol.toLowerCase())?.price ||
       0;
 
-    return distribution.spokeBalances
-      .filter((spoke) => spoke.isReachable && spoke.totalAssets > BigInt(0))
-      .map((spoke) => {
-        const cfg = networkConfigs[spoke.chainId];
-        const bal = parseFloat(formatUnits(spoke.totalAssets, decimals));
-        return {
-          assetName: `${symbol} on ${cfg?.name || `Chain ${spoke.chainId}`}`,
-          assetSymbol: symbol,
-          balance: bal,
-          price,
-          value: bal * price,
-          category: 'Spoke Chain',
-          chainLogo: cfg?.networkLogoPath,
-        };
+    const assets: VaultAsset[] = [];
+
+    // Hub liquid balance
+    if (distribution.hubLiquidBalance > BigInt(0)) {
+      const hubCfg = networkConfigs[distribution.hubChainId];
+      const bal = parseFloat(formatUnits(distribution.hubLiquidBalance, decimals));
+      assets.push({
+        assetName: `${symbol} available on ${hubCfg?.name || 'Hub'}`,
+        assetSymbol: symbol,
+        balance: bal,
+        price,
+        value: bal * price,
+        category: 'Hub Available',
+        chainLogo: hubCfg?.networkLogoPath,
       });
+    }
+
+    // Hub strategy balance
+    if (distribution.hubStrategyBalance > BigInt(0)) {
+      const hubCfg = networkConfigs[distribution.hubChainId];
+      const bal = parseFloat(formatUnits(distribution.hubStrategyBalance, decimals));
+      assets.push({
+        assetName: `${symbol} in strategies on ${hubCfg?.name || 'Hub'}`,
+        assetSymbol: symbol,
+        balance: bal,
+        price,
+        value: bal * price,
+        category: 'Hub Strategy',
+        chainLogo: hubCfg?.networkLogoPath,
+      });
+    }
+
+    // Spoke balances
+    for (const spoke of distribution.spokeBalances) {
+      if (!spoke.isReachable || spoke.totalAssets <= BigInt(0)) continue;
+      const cfg = networkConfigs[spoke.chainId];
+      const bal = parseFloat(formatUnits(spoke.totalAssets, decimals));
+      assets.push({
+        assetName: `${symbol} on ${cfg?.name || `Chain ${spoke.chainId}`}`,
+        assetSymbol: symbol,
+        balance: bal,
+        price,
+        value: bal * price,
+        category: 'Spoke Chain',
+        chainLogo: cfg?.networkLogoPath,
+      });
+    }
+
+    return assets;
   }, [distribution, selectedVault, available, allocation]);
 
   // Combine all assets for display
@@ -79,7 +114,7 @@ export const VaultAllocations: React.FC = () => {
       category: 'Staking',
     })),
     ...(available || []).map((asset) => ({ ...asset, category: 'Available' })),
-    ...spokeAssets,
+    ...distributionAssets,
   ]
     .filter((asset) => (asset.balance || 0) > 0) // Hide allocations with zero balance
     .sort((a, b) => (b.value || 0) - (a.value || 0)); // Sort by descending allocation value

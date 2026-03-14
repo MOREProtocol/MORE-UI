@@ -28,6 +28,7 @@ import {
   useVaultTopology,
   useVaultStatus,
   useVaultMetadata,
+  useUserPositionMultiChain,
 } from '@oydual31/more-vaults-sdk/react';
 import type { InboundRouteWithBalance } from '@oydual31/more-vaults-sdk/viem';
 import BigNumber from 'bignumber.js';
@@ -74,17 +75,22 @@ export const VaultDetail = () => {
   const { address } = useAccount();
   const wagmiChainId = useChainId();
   const { switchChain } = useSwitchChain();
-  const { topology, needsNetworkSwitch } = useVaultTopology(
+  const { topology } = useVaultTopology(
     selectedVaultId as `0x${string}` | undefined
   );
-  const sdkChainId = topology?.hubChainId ?? chainId;
+  const sdkChainId = topology?.hubChainId || chainId;
+  const topologyReady = !!topology;
   const { data: vaultStatus, isLoading: statusLoading } = useVaultStatus(
-    selectedVaultId as `0x${string}` | undefined,
+    topologyReady ? (selectedVaultId as `0x${string}`) : undefined,
     sdkChainId
   );
   const { data: vaultMetadata } = useVaultMetadata(
-    selectedVaultId as `0x${string}` | undefined,
+    topologyReady ? (selectedVaultId as `0x${string}`) : undefined,
     sdkChainId
+  );
+  const { data: userPosition } = useUserPositionMultiChain(
+    selectedVaultId as `0x${string}` | undefined,
+    accountAddress as `0x${string}` | undefined
   );
   const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId], {
     enabled: !!selectedVaultId && !!accountAddress,
@@ -146,15 +152,34 @@ export const VaultDetail = () => {
     };
   }, [sdkVault, vaultData?.data, selectedVaultId, sdkChainId]);
 
-  const vaultAssetAddress = selectedVault?.overview?.asset?.address;
-  const routeVaultAsset = (vaultAssetAddress || vaultMetadata?.underlying) as `0x${string}` | undefined;
+  // Use SDK metadata for asset decimals (reliable for omni vaults), legacy as fallback
+  const assetDecimals = vaultMetadata?.underlyingDecimals ?? selectedVault?.overview?.asset?.decimals ?? 6;
 
-  const { routes: inboundRoutes } = useInboundRoutes(
-    isOmniHub ? topology?.hubChainId : undefined,
-    isOmniHub ? (selectedVaultId as `0x${string}`) : undefined,
-    isOmniHub ? routeVaultAsset : undefined,
-    isOmniHub ? (accountAddress as `0x${string}`) : undefined
+  // Prioritize SDK metadata (reads from correct hub chain) over legacy (may read wrong chain)
+  const routeVaultAsset = (vaultMetadata?.underlying || selectedVault?.overview?.asset?.address) as `0x${string}` | undefined;
+
+  const isOmniFromTopology = topology?.role === 'hub' || topology?.role === 'spoke';
+
+  // Debug: log useInboundRoutes inputs
+  console.log('[VaultDetail] useInboundRoutes inputs:', {
+    isOmniFromTopology,
+    hubChainId: topology?.hubChainId,
+    vaultId: selectedVaultId,
+    routeVaultAsset,
+    vaultMetadataUnderlying: vaultMetadata?.underlying,
+    legacyAssetAddress: selectedVault?.overview?.asset?.address,
+    account: accountAddress,
+    topologyRole: topology?.role,
+  });
+
+  const { routes: inboundRoutes, isLoading: routesLoading, error: routesError } = useInboundRoutes(
+    isOmniFromTopology ? topology?.hubChainId : undefined,
+    isOmniFromTopology ? (selectedVaultId as `0x${string}`) : undefined,
+    isOmniFromTopology ? routeVaultAsset : undefined,
+    isOmniFromTopology ? (accountAddress as `0x${string}`) : undefined
   );
+
+  console.log('[VaultDetail] inboundRoutes result:', { routes: inboundRoutes, routesLoading, routesError });
   const userVaultBalances = useUserVaultBalances(accountAddress, { enabled: !!accountAddress });
   const theme = useTheme();
   const downToMd = useMediaQuery(theme.breakpoints.down('md'));
@@ -172,6 +197,9 @@ export const VaultDetail = () => {
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [isWhitelistModalOpen, setIsWhitelistModalOpen] = useState(false);
   const [isBridgeModalOpen, setIsBridgeModalOpen] = useState(false);
+  const [bridgeSpokeChainId, setBridgeSpokeChainId] = useState<number>(1);
+  const [bridgeSpokeShares, setBridgeSpokeShares] = useState<bigint>(BigInt(0));
+  const [bridgeRawSpokeShares, setBridgeRawSpokeShares] = useState<bigint>(BigInt(0));
   const [isRoutePickerOpen, setIsRoutePickerOpen] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<InboundRouteWithBalance | null>(null);
   const [pickerStep, setPickerStep] = useState<'chain' | 'asset'>('chain');
@@ -226,11 +254,10 @@ export const VaultDetail = () => {
 
   const vaultNetwork = selectedVault?.chainId || sdkChainId;
   const isOnCorrectNetwork = wagmiChainId === vaultNetwork;
-  const shouldShowNetworkBanner = address && vaultNetwork && !isOnCorrectNetwork && !isOmniHub && !isOmniSpoke;
+  const isOmniVault = isOmniHub || isOmniSpoke;
   const sdkReady = !!sdkVault;
-  const topologyReady = !!topology;
-  const isLoading = !topologyReady || (!sdkReady && statusLoading) || shouldShowNetworkBanner;
-  const isUserVaultDataLoading = userVaultData?.[0]?.isLoading || shouldShowNetworkBanner;
+  const isLoading = !topologyReady || (!sdkReady && statusLoading);
+  const isUserVaultDataLoading = userVaultData?.[0]?.isLoading;
   const isUserVaultBalancesLoading = userVaultBalances?.isLoading;
 
   // Get asset data using oracle + fallback to reserve
@@ -239,7 +266,7 @@ export const VaultDetail = () => {
   });
   const aum = selectedVault ? BigInt(selectedVault?.financials?.liquidity?.totalAssets) : BigInt(0);
   const aumFormatted = selectedVault
-    ? formatUnits(aum, selectedVault?.overview?.asset?.decimals || 18)
+    ? formatUnits(aum, assetDecimals)
     : '0';
   // const aumInUsd = new BigNumber(aumFormatted).multipliedBy(
   //   assetData.data?.price || 0
@@ -253,7 +280,26 @@ export const VaultDetail = () => {
   // const totalSupplyInUsd = new BigNumber(totalSupplyFormatted)
   //   .multipliedBy(selectedVault?.overview?.sharePrice || 0)
   //   .multipliedBy(assetData.data?.price || 0);
-  const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
+  const legacyMaxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
+  const sdkEstimatedAssets = userPosition?.estimatedAssets ?? BigInt(0);
+  const maxWithdraw = sdkEstimatedAssets > BigInt(0)
+    ? { gt: (n: number) => sdkEstimatedAssets > BigInt(n) }
+    : legacyMaxWithdraw;
+
+  // Debug: log SDK position data
+  if (userPosition) {
+    console.log('[VaultDetail] SDK userPosition:', {
+      hubShares: userPosition.hubShares?.toString(),
+      spokeShares: userPosition.spokeShares ? Object.fromEntries(
+        Object.entries(userPosition.spokeShares).map(([k, v]) => [k, (v as bigint).toString()])
+      ) : null,
+      totalShares: userPosition.totalShares?.toString(),
+      estimatedAssets: userPosition.estimatedAssets?.toString(),
+      decimals: userPosition.decimals,
+      assetDecimals,
+      formatted: formatUnits(sdkEstimatedAssets, assetDecimals),
+    });
+  }
 
   // const secondsSinceInception = Number(new Date().getTime() / 1000) - Number(selectedVault?.overview?.creationTimestamp);
 
@@ -278,7 +324,10 @@ export const VaultDetail = () => {
   const sharePriceAsset =
     shareInfo.data && shareInfo.data[0] ? shareInfo.data[0].sharePriceAsset : 0;
 
-  const shares = thisVaultBalance ? parseFloat(thisVaultBalance.sharesBalance || '0') : 0;
+  const sdkSharesRaw = userPosition?.totalShares ?? BigInt(0);
+  const sdkDecimals = userPosition?.decimals ?? selectedVault?.overview?.decimals ?? 18;
+  const sdkShares = Number(formatUnits(sdkSharesRaw, sdkDecimals));
+  const shares = sdkShares > 0 ? sdkShares : (thisVaultBalance ? parseFloat(thisVaultBalance.sharesBalance || '0') : 0);
   const wacb = thisVaultBalance ? parseFloat(thisVaultBalance.weightedAverageCostBasis || '0') : 0;
   const realizedAssetPnL = thisVaultBalance ? parseFloat(thisVaultBalance.realizedPnL || '0') : 0;
   const unrealizedAssetPnL = shares * (sharePriceAsset - wacb);
@@ -328,11 +377,16 @@ export const VaultDetail = () => {
     setSelectedRoute(null);
     setPickerStep('chain');
     setPickerChainId(null);
+    // Non-omni vault on wrong chain → switch first
+    if (!isOmniVault && !isOnCorrectNetwork) {
+      switchChain?.({ chainId: vaultNetwork || ChainIds.flowEVMMainnet });
+      return;
+    }
     if (isWhitelistEnabled && !isWhitelisted) {
       setIsWhitelistModalOpen(true);
       return;
     }
-    if (isOmniHub && inboundRoutes && inboundRoutes.length > 0) {
+    if (isOmniFromTopology && inboundRoutes && inboundRoutes.length > 0) {
       setIsRoutePickerOpen(true);
     } else {
       setIsDepositModalOpen(true);
@@ -374,11 +428,12 @@ export const VaultDetail = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5, pt: 4, pb: 7, px: xPadding }}>
-      {/* Network Status Check */}
-      {!needsNetworkSwitch && shouldShowNetworkBanner && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
+      {/* Network hint for non-omni vaults — informational only, doesn't block the page */}
+      {address && !isOnCorrectNetwork && !isOmniVault && !isLoading && (
+        <Alert severity="info" sx={{ mb: 3 }}>
           <Typography variant="main14">
-            Wrong Network:{' '}
+            This vault is on{' '}
+            {networkConfigs[vaultNetwork || ChainIds.flowEVMMainnet]?.name || 'another network'}.{' '}
             <Typography
               component="span"
               variant="main14"
@@ -386,14 +441,12 @@ export const VaultDetail = () => {
               sx={{
                 textDecoration: 'underline',
                 cursor: 'pointer',
+                fontWeight: 600,
                 '&:hover': { color: 'primary.dark' },
               }}
             >
-              Please switch to{' '}
-              {networkConfigs[vaultNetwork || ChainIds.flowEVMMainnet]?.name ||
-                'the correct network'}
-            </Typography>{' '}
-            to view vault details
+              Switch to deposit or withdraw
+            </Typography>
           </Typography>
         </Alert>
       )}
@@ -564,16 +617,19 @@ export const VaultDetail = () => {
               </Button>
             )}
           {!isLoading &&
-            !isUserVaultDataLoading &&
             accountAddress &&
-            ((isOmniHub && shares > 0) ||
-              isOmniSpoke ||
-              (maxWithdraw && maxWithdraw.gt(0))) && (
+            (shares > 0 || (maxWithdraw && maxWithdraw.gt(0))) && (
               <Button
                 variant="gradient"
                 size="medium"
-                onClick={() => isOmniSpoke ? setIsBridgeModalOpen(true) : setIsRedeemModalOpen(true)}
-                disabled={isLoading || isUserVaultDataLoading}
+                onClick={() => {
+                  if (!isOmniVault && !isOnCorrectNetwork) {
+                    switchChain?.({ chainId: vaultNetwork || ChainIds.flowEVMMainnet });
+                    return;
+                  }
+                  setIsRedeemModalOpen(true);
+                }}
+                disabled={isLoading}
               >
                 Withdraw
               </Button>
@@ -621,29 +677,33 @@ export const VaultDetail = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   {!accountAddress ? (
                     <Typography variant="main16">–</Typography>
-                  ) : isLoading || isUserVaultDataLoading ? (
+                  ) : isLoading ? (
                     <Skeleton width={80} height={24} />
                   ) : (
                     <FormattedNumber
                       value={
                         formatUnits(
-                          maxWithdraw?.toBigInt() || BigInt(0),
-                          vaultData?.data?.overview?.asset?.decimals || 18
+                          sdkEstimatedAssets > BigInt(0)
+                            ? sdkEstimatedAssets
+                            : (legacyMaxWithdraw?.toBigInt() || BigInt(0)),
+                          assetDecimals
                         ) || ''
                       }
-                      symbol={vaultData?.data?.overview?.asset?.symbol || ''}
+                      symbol={selectedVault?.overview?.asset?.symbol || ''}
                       variant="main16"
                       compact
                     />
                   )}
                 </Box>
-                {accountAddress && !isLoading && !isUserVaultDataLoading && (
+                {accountAddress && !isLoading && (
                   <UsdChip
                     value={
                       new BigNumber(
                         formatUnits(
-                          maxWithdraw?.toBigInt() || BigInt(0),
-                          vaultData?.data?.overview?.asset?.decimals || 18
+                          sdkEstimatedAssets > BigInt(0)
+                            ? sdkEstimatedAssets
+                            : (legacyMaxWithdraw?.toBigInt() || BigInt(0)),
+                          assetDecimals
                         ) || '0'
                       )
                         .multipliedBy(assetData.data?.price || 0)
@@ -819,16 +879,6 @@ export const VaultDetail = () => {
                           {spokeIds.length > 0 &&
                             ` + ${spokeIds.length} chain${spokeIds.length > 1 ? 's' : ''}`}
                         </Typography>
-                        {needsNetworkSwitch && (
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => switchChain?.({ chainId: hubChainId })}
-                            sx={{ ml: 1, py: 0, fontSize: '0.7rem' }}
-                          >
-                            Switch
-                          </Button>
-                        )}
                       </>
                     );
                   })()
@@ -1135,8 +1185,8 @@ export const VaultDetail = () => {
                 ) : (
                   <>
                     <FormattedNumber
-                      value={vaultData?.data?.overview?.sharePrice.toString() || '0'}
-                      symbol={vaultData?.data?.overview?.asset?.symbol || ''}
+                      value={selectedVault?.overview?.sharePrice?.toString() || '0'}
+                      symbol={selectedVault?.overview?.asset?.symbol || ''}
                       variant="main16"
                       sx={{ fontWeight: 800 }}
                     />
@@ -1290,7 +1340,7 @@ export const VaultDetail = () => {
                   <>
                     <FormattedNumber
                       value={aumFormatted || '0'}
-                      symbol={vaultData?.data?.overview?.asset?.symbol || ''}
+                      symbol={selectedVault?.overview?.asset?.symbol || ''}
                       variant="main16"
                       sx={{ fontWeight: 800 }}
                     />
@@ -1394,9 +1444,25 @@ export const VaultDetail = () => {
         whitelistAmount={whitelistAmount}
         route={selectedRoute ?? undefined}
       />
-      <VaultRedeemModal isOpen={isRedeemModalOpen} setIsOpen={setIsRedeemModalOpen} />
+      <VaultRedeemModal
+        isOpen={isRedeemModalOpen}
+        setIsOpen={setIsRedeemModalOpen}
+        onRedeemFromSpoke={(spokeChain, shares, rawShares) => {
+          setBridgeSpokeChainId(spokeChain);
+          setBridgeSpokeShares(shares);
+          setBridgeRawSpokeShares(rawShares);
+          setIsBridgeModalOpen(true);
+        }}
+      />
       <VaultWhitelistModal isOpen={isWhitelistModalOpen} setIsOpen={setIsWhitelistModalOpen} />
-      <VaultBridgeSharesToHubModal isOpen={isBridgeModalOpen} setIsOpen={setIsBridgeModalOpen} />
+      <VaultBridgeSharesToHubModal
+        isOpen={isBridgeModalOpen}
+        setIsOpen={setIsBridgeModalOpen}
+        spokeChainId={bridgeSpokeChainId}
+        spokeShares={bridgeSpokeShares}
+        rawSpokeShares={bridgeRawSpokeShares}
+        vaultDecimals={userPosition?.decimals ?? 8}
+      />
 
       {/* Route picker — 2-step flow: Chain → Asset */}
       <Dialog
@@ -1476,7 +1542,7 @@ export const VaultDetail = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
                         {chain.isDirect ? (
                           <Chip
-                            label="Direct"
+                            label="Hub"
                             size="small"
                             color="success"
                             sx={{ fontSize: '0.65rem', height: 18 }}

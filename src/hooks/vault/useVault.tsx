@@ -24,6 +24,7 @@ import omniVaultFactoryAbi from 'src/libs/abis/omni_vault_factory_abi.json';
 
 import { useVaultProvider, useOmniDeployedVaults, detectVaultNetwork } from './useVaultData';
 import { useOmniVaultActions } from './useOmniVaultActions';
+import { useVaultTopology } from '@oydual31/more-vaults-sdk/react';
 import bridgeFacetAbi from 'src/libs/abis/bridge_facet_abi.json';
 
 // Define standardized types for monetary values
@@ -208,6 +209,7 @@ export interface VaultContextData {
   operationsLoading: boolean;
   operationsError: Error | null;
   isOmniHub: boolean;
+  omniHubChainId: number;
   omniDeposit?: (amountInWei: string) => Promise<{ txHash: string; guid?: string }>;
   omniRedeem?: (sharesInWei: string) => Promise<{ txHash: string; guid?: string }>;
 }
@@ -1003,19 +1005,27 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     staleTime: 5 * 60 * 1000,
   });
 
+  // SDK topology discovery — works without wallet, detects hub/spoke across all chains
+  const { topology } = useVaultTopology(selectedVaultId as `0x${string}` | undefined);
+  const isOmniFromTopology = topology?.role === 'hub' || topology?.role === 'spoke';
+
   const isOmniHub = useMemo(
     () =>
       !!(selectedVaultId && (
+        isOmniFromTopology ||
         isCrossChainHub ||
         omniVaultsQuery.data?.some(addr => addr.toLowerCase() === selectedVaultId.toLowerCase()) ||
         isOmniHubVault(chainId, selectedVaultId)
       )),
-    [isCrossChainHub, omniVaultsQuery.data, selectedVaultId, chainId]
+    [isOmniFromTopology, isCrossChainHub, omniVaultsQuery.data, selectedVaultId, chainId]
   );
+
+  // For omni vaults, use the hub chain from topology (not wallet chain)
+  const omniHubChainId = topology?.hubChainId || chainId;
 
   const { omniDeposit, omniRedeem } = useOmniVaultActions(
     isOmniHub ? selectedVaultId : null,
-    chainId
+    omniHubChainId
   );
 
   const contextValue: VaultContextData = {
@@ -1057,6 +1067,7 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     operationsLoading,
     operationsError,
     isOmniHub,
+    omniHubChainId,
     omniDeposit,
     omniRedeem,
   };

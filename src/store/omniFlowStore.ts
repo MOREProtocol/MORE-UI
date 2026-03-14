@@ -37,6 +37,8 @@ export interface StargateComposeFlow {
   composeGuid: string | null;
   composeIndex: number | null;
   composeMessage: string | null;
+  composeIsStargate: boolean | null;
+  composeHubBlockStart: string | null;
   composeTxHash: string | null;
   omniGuid: string | null;
 }
@@ -98,6 +100,14 @@ export const useOmniFlowStore = create<OmniFlowStore>()(
     }),
     {
       name: 'omni-flows',
+      // Merge persisted state with initial state (preserves flows across HMR)
+      merge: (persisted, current) => {
+        const p = persisted as Partial<OmniFlowStore> | undefined;
+        return {
+          ...current,
+          flows: { ...(p?.flows || {}) },
+        };
+      },
       // Clean up stale flows on rehydrate
       onRehydrateStorage: () => (state) => {
         if (!state) return;

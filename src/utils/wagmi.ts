@@ -28,14 +28,13 @@ export const config = getDefaultConfig({
       http('https://ethereum.publicnode.com'),
     ]),
     [base.id]: fallback([
-      http('https://base.rpc.subquery.network/public'),
-      http('https://base.rpc.blxrbdn.com'),
-      http('https://gateway.tenderly.co/public/base'),
-      http('https://1rpc.io/base'),
       http('https://base-rpc.publicnode.com'),
       http('https://base.llamarpc.com'),
       http('https://base.drpc.org'),
       http('https://mainnet.base.org'),
+      http('https://1rpc.io/base'),
+      http('https://gateway.tenderly.co/public/base'),
+      http('https://base.rpc.subquery.network/public'),
     ]),
     [arbitrum.id]: fallback([
       http('https://arbitrum.public.blockpi.network/v1/rpc/public'),
