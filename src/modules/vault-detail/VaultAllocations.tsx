@@ -1,15 +1,17 @@
 import { Box, Typography } from '@mui/material';
 import { useVaultDistribution, useVaultTopology } from '@oydual31/more-vaults-sdk/react';
-import React from 'react';
+import { asSdkClient, getVaultAssetBreakdown } from '@oydual31/more-vaults-sdk/viem';
+import React, { useEffect, useState } from 'react';
 import { MarketLogo } from 'src/components/MarketSwitcher';
 import { BaseDataGrid, ColumnDefinition } from 'src/components/primitives/DataGrid';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { useVault } from 'src/hooks/vault/useVault';
 import { useVaultAllocation } from 'src/hooks/vault/useVaultAllocation';
-import { useVaultData } from 'src/hooks/vault/useVaultData';
+import { useAssetData, useVaultData } from 'src/hooks/vault/useVaultData';
 import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
 import { formatUnits } from 'viem';
+import { usePublicClient } from 'wagmi';
 
 // Define the asset type for type safety
 interface VaultAsset {
@@ -23,9 +25,10 @@ interface VaultAsset {
 }
 
 export const VaultAllocations: React.FC = () => {
-  const { selectedVaultId, isOmniHub } = useVault();
+  const { selectedVaultId, isOmniHub, omniHubChainId, chainId: vaultChainId } = useVault();
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
+  const hubChainId = isOmniHub ? omniHubChainId : vaultChainId;
 
   // Fetch vault allocation data (LP tokens, staking assets, available tokens)
   const vaultAllocationData = useVaultAllocation(selectedVaultId, {
@@ -38,6 +41,23 @@ export const VaultAllocations: React.FC = () => {
     isOmni ? (selectedVaultId as `0x${string}`) : undefined
   );
 
+  // Fetch per-asset breakdown for omni vaults (SDK 0.3.0+)
+  const publicClient = usePublicClient({ chainId: hubChainId });
+  const [assetBreakdown, setAssetBreakdown] = useState<Awaited<ReturnType<typeof getVaultAssetBreakdown>> | null>(null);
+  useEffect(() => {
+    if (!isOmni || !selectedVaultId || !publicClient) return;
+    let cancelled = false;
+    getVaultAssetBreakdown(asSdkClient(publicClient), selectedVaultId as `0x${string}`)
+      .then((bd) => { if (!cancelled) setAssetBreakdown(bd); })
+      .catch(() => { if (!cancelled) setAssetBreakdown(null); });
+    return () => { cancelled = true; };
+  }, [isOmni, selectedVaultId, publicClient]);
+
+  // Get price for underlying asset
+  const underlyingAddress = selectedVault?.overview?.asset?.address || '';
+  const underlyingAssetData = useAssetData(underlyingAddress);
+  const underlyingPrice = underlyingAssetData.data?.price || 0;
+
   const allocation = vaultAllocationData?.data?.allocation;
   const staking = vaultAllocationData?.data?.staked;
   const available = vaultAllocationData?.data?.available;
@@ -45,45 +65,63 @@ export const VaultAllocations: React.FC = () => {
   const error = vaultAllocationData?.isError;
 
   // Build cross-chain assets from distribution data (hub + spokes)
+  // Uses per-asset breakdown when available (SDK 0.3.0+) for detailed hub holdings
   const distributionAssets: VaultAsset[] = React.useMemo(() => {
     if (!distribution) return [];
     const decimals = selectedVault?.overview?.asset?.decimals || 18;
     const symbol = selectedVault?.overview?.asset?.symbol || '';
-    const price =
+    const fallbackPrice =
       available?.find((a) => a.assetSymbol.toLowerCase() === symbol.toLowerCase())?.price ||
       allocation?.find((a) => a.assetSymbol.toLowerCase() === symbol.toLowerCase())?.price ||
-      0;
+      underlyingPrice || 0;
 
     const assets: VaultAsset[] = [];
+    const hubCfg = networkConfigs[distribution.hubChainId];
 
-    // Hub liquid balance
-    if (distribution.hubLiquidBalance > BigInt(0)) {
-      const hubCfg = networkConfigs[distribution.hubChainId];
-      const bal = parseFloat(formatUnits(distribution.hubLiquidBalance, decimals));
-      assets.push({
-        assetName: `${symbol} available on ${hubCfg?.name || 'Hub'}`,
-        assetSymbol: symbol,
-        balance: bal,
-        price,
-        value: bal * price,
-        category: 'Hub Available',
-        chainLogo: hubCfg?.networkLogoPath,
-      });
-    }
-
-    // Hub strategy balance
-    if (distribution.hubStrategyBalance > BigInt(0)) {
-      const hubCfg = networkConfigs[distribution.hubChainId];
-      const bal = parseFloat(formatUnits(distribution.hubStrategyBalance, decimals));
-      assets.push({
-        assetName: `${symbol} in strategies on ${hubCfg?.name || 'Hub'}`,
-        assetSymbol: symbol,
-        balance: bal,
-        price,
-        value: bal * price,
-        category: 'Hub Strategy',
-        chainLogo: hubCfg?.networkLogoPath,
-      });
+    // Per-asset hub holdings from breakdown (shows each token individually)
+    if (assetBreakdown && assetBreakdown.assets.length > 0) {
+      for (const asset of assetBreakdown.assets) {
+        if (asset.balance <= BigInt(0)) continue;
+        const bal = parseFloat(formatUnits(asset.balance, asset.decimals));
+        // For the underlying asset, use known price; others need external price
+        const isUnderlying = asset.address.toLowerCase() === underlyingAddress.toLowerCase();
+        const assetPrice = isUnderlying ? fallbackPrice : 0;
+        assets.push({
+          assetName: `${asset.symbol} on ${hubCfg?.name || 'Hub'}`,
+          assetSymbol: asset.symbol,
+          balance: bal,
+          price: assetPrice,
+          value: bal * assetPrice,
+          category: 'Hub Holdings',
+          chainLogo: hubCfg?.networkLogoPath,
+        });
+      }
+    } else {
+      // Fallback: single-token hub display
+      if (distribution.hubLiquidBalance > BigInt(0)) {
+        const bal = parseFloat(formatUnits(distribution.hubLiquidBalance, decimals));
+        assets.push({
+          assetName: `${symbol} available on ${hubCfg?.name || 'Hub'}`,
+          assetSymbol: symbol,
+          balance: bal,
+          price: fallbackPrice,
+          value: bal * fallbackPrice,
+          category: 'Hub Available',
+          chainLogo: hubCfg?.networkLogoPath,
+        });
+      }
+      if (distribution.hubStrategyBalance > BigInt(0)) {
+        const bal = parseFloat(formatUnits(distribution.hubStrategyBalance, decimals));
+        assets.push({
+          assetName: `${symbol} in strategies on ${hubCfg?.name || 'Hub'}`,
+          assetSymbol: symbol,
+          balance: bal,
+          price: fallbackPrice,
+          value: bal * fallbackPrice,
+          category: 'Hub Strategy',
+          chainLogo: hubCfg?.networkLogoPath,
+        });
+      }
     }
 
     // Spoke balances
@@ -95,15 +133,15 @@ export const VaultAllocations: React.FC = () => {
         assetName: `${symbol} on ${cfg?.name || `Chain ${spoke.chainId}`}`,
         assetSymbol: symbol,
         balance: bal,
-        price,
-        value: bal * price,
+        price: fallbackPrice,
+        value: bal * fallbackPrice,
         category: 'Spoke Chain',
         chainLogo: cfg?.networkLogoPath,
       });
     }
 
     return assets;
-  }, [distribution, selectedVault, available, allocation]);
+  }, [distribution, selectedVault, available, allocation, assetBreakdown, underlyingAddress, underlyingPrice]);
 
   // Combine all assets for display
   const allAssets: VaultAsset[] = [

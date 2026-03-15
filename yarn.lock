@@ -2622,10 +2622,10 @@
   resolved "https://registry.npmjs.org/@nolyfill/is-core-module/-/is-core-module-1.0.39.tgz"
   integrity sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==
 
-"@oydual31/more-vaults-sdk@0.2.8":
-  version "0.2.8"
-  resolved "https://registry.yarnpkg.com/@oydual31/more-vaults-sdk/-/more-vaults-sdk-0.2.8.tgz#714fab808188539b18a769ca3a62068ffe3052f2"
-  integrity sha512-Za5TQshIbrcSvmpVq+B9LXnFLYncGwf9Iag5FWRyIxNyhcbnjMtoj/Ba4ogtPvUHavOLHqWcVuHfj/C4lv5q+Q==
+"@oydual31/more-vaults-sdk@0.3.2":
+  version "0.3.2"
+  resolved "https://registry.yarnpkg.com/@oydual31/more-vaults-sdk/-/more-vaults-sdk-0.3.2.tgz#52e8c1cd99d093edf8a2f1d585e4b0b79bf40484"
+  integrity sha512-t2lOrKb4FsosW3sRTQj0bVwm/b0ETfzQkrCCXU1ptNQJDud3TjCCKdlpthuGz7U47fPfIj2r1wBqNzLwbh2RTw==
   dependencies:
     ethers ">=6.0.0"
     viem ">=2.0.0"

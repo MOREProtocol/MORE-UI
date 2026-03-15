@@ -15,9 +15,11 @@ import { getRouteTokenDecimals, useVaultDistribution } from '@oydual31/more-vaul
 import {
   type InboundRouteWithBalance,
   asSdkClient,
+  canDeposit,
   CHAIN_ID_TO_EID,
   depositFromSpoke,
   executeCompose,
+  getVaultAnalysis,
   getVaultStatus,
   LZ_TIMEOUTS,
   preflightSpokeDeposit,
@@ -99,17 +101,27 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   const primaryAssetAddress = selectedVault?.overview?.asset?.address || '';
   const primaryAssetData = useAssetData(primaryAssetAddress || '');
 
-  const depositableAssets =
-    selectedVault?.overview?.depositableAssets &&
-    selectedVault.overview.depositableAssets.length > 0
-      ? selectedVault.overview.depositableAssets
-      : [
-          {
-            address: primaryAssetAddress,
-            symbol: selectedVault?.overview?.asset?.symbol,
-            decimals: selectedVault?.overview?.asset?.decimals,
-          },
-        ];
+  // SDK depositable assets (getVaultAnalysis) — dynamic token selector for omni vaults
+  const [sdkDepositableAssets, setSdkDepositableAssets] = useState<
+    Array<{ address: string; symbol: string; name: string; decimals: number }> | null
+  >(null);
+
+  const depositableAssets = useMemo(() => {
+    // For omni vaults, prefer SDK analysis (correct hub-chain addresses)
+    if (isOmniHub && sdkDepositableAssets && sdkDepositableAssets.length > 0) {
+      return sdkDepositableAssets;
+    }
+    return selectedVault?.overview?.depositableAssets &&
+      selectedVault.overview.depositableAssets.length > 0
+        ? selectedVault.overview.depositableAssets
+        : [
+            {
+              address: primaryAssetAddress,
+              symbol: selectedVault?.overview?.asset?.symbol,
+              decimals: selectedVault?.overview?.asset?.decimals,
+            },
+          ];
+  }, [isOmniHub, sdkDepositableAssets, selectedVault, primaryAssetAddress]);
 
   const [selectedAssetAddress, setSelectedAssetAddress] = useState<string>(
     depositableAssets?.[0]?.address || primaryAssetAddress
@@ -174,6 +186,41 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   // Omni async status — updated by waitForAsyncRequest inline
   const [omniStatus, setOmniStatus] = useState<'pending' | 'completed' | 'refunded'>('pending');
   const [omniResult, setOmniResult] = useState<bigint | null>(null);
+
+  // SDK deposit eligibility (canDeposit) — maxDeposit cap + whitelist check
+  const [depositEligibility, setDepositEligibility] = useState<{
+    allowed: boolean;
+    reason: string;
+    maxDeposit?: bigint;
+    whitelistEnabled?: boolean;
+  } | null>(null);
+
+  // Fetch deposit eligibility and analysis for omni vaults
+  useEffect(() => {
+    if (!isOmniHub || !selectedVaultId || !publicClient || !accountAddress) return;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const [eligibility, analysis] = await Promise.all([
+          canDeposit(
+            asSdkClient(publicClient),
+            selectedVaultId as `0x${string}`,
+            accountAddress as `0x${string}`
+          ),
+          getVaultAnalysis(asSdkClient(publicClient), selectedVaultId as `0x${string}`),
+        ]);
+        if (cancelled) return;
+        setDepositEligibility(eligibility);
+        if (analysis.depositableAssets.length > 0) {
+          setSdkDepositableAssets(analysis.depositableAssets);
+        }
+      } catch {
+        // SDK functions may not be available on older vaults
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [isOmniHub, selectedVaultId, publicClient, accountAddress]);
 
   // Stargate compose state (2-TX spoke deposits)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -293,8 +340,16 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
         : whitelistAmountFormatted;
     }
 
+    // Cap by SDK maxDeposit if available (canDeposit response)
+    if (depositEligibility?.maxDeposit != null && selectedAssetData.data?.decimals != null) {
+      const maxDepositFormatted = formatUnits(depositEligibility.maxDeposit, selectedAssetData.data.decimals);
+      if (new BigNumber(effectiveMaxAmount).isGreaterThan(maxDepositFormatted)) {
+        effectiveMaxAmount = maxDepositFormatted;
+      }
+    }
+
     return effectiveMaxAmount || '0';
-  }, [walletBalance, whitelistAmount, selectedAssetData.data]);
+  }, [walletBalance, whitelistAmount, selectedAssetData.data, depositEligibility]);
 
   const assetInputConfig = useMemo(() => {
     if (!selectedAssetData.data?.decimals || !whitelistAmount || whitelistAmount === '0') {
@@ -988,7 +1043,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   ]);
 
   const preflightBlocked =
-    !isOftCompose && isOmniHub && preflight && (preflight.paused || preflight.escrowMissing);
+    (!isOftCompose && isOmniHub && preflight && (preflight.paused || preflight.escrowMissing)) ||
+    (depositEligibility && !depositEligibility.allowed);
   const isOnWrongChain = isOftCompose
     ? composeStep === 'ready-to-execute'
       ? wagmiChainId !== hubChainId // compose execute requires hub chain
@@ -1142,6 +1198,16 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
             {isOmniHub && preflight?.escrowMissing && (
               <Alert severity="error">
                 This vault&apos;s escrow is not configured. Deposits are disabled.
+              </Alert>
+            )}
+            {depositEligibility && !depositEligibility.allowed && depositEligibility.reason === 'not-whitelisted' && (
+              <Alert severity="warning">
+                Your address is not whitelisted for deposits in this vault.
+              </Alert>
+            )}
+            {depositEligibility && !depositEligibility.allowed && depositEligibility.reason === 'capacity-full' && (
+              <Alert severity="warning">
+                This vault has reached its deposit capacity.
               </Alert>
             )}
 
