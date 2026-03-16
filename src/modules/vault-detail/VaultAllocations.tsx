@@ -1,7 +1,11 @@
 import { Box, Typography } from '@mui/material';
-import { useVaultDistribution, useVaultTopology } from '@oydual31/more-vaults-sdk/react';
-import { asSdkClient, getVaultAssetBreakdown } from '@oydual31/more-vaults-sdk/viem';
-import React, { useEffect, useState } from 'react';
+import {
+  useVaultAssetBreakdown,
+  useVaultDistribution,
+  useVaultPortfolioMultiChain,
+  useVaultTopology,
+} from '@oydual31/more-vaults-sdk/react';
+import React from 'react';
 import { MarketLogo } from 'src/components/MarketSwitcher';
 import { BaseDataGrid, ColumnDefinition } from 'src/components/primitives/DataGrid';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
@@ -11,7 +15,6 @@ import { useVaultAllocation } from 'src/hooks/vault/useVaultAllocation';
 import { useAssetData, useVaultData } from 'src/hooks/vault/useVaultData';
 import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
 import { formatUnits } from 'viem';
-import { usePublicClient } from 'wagmi';
 
 // Define the asset type for type safety
 interface VaultAsset {
@@ -41,22 +44,43 @@ export const VaultAllocations: React.FC = () => {
     isOmni ? (selectedVaultId as `0x${string}`) : undefined
   );
 
-  // Fetch per-asset breakdown for omni vaults (SDK 0.3.0+)
-  const publicClient = usePublicClient({ chainId: hubChainId });
-  const [assetBreakdown, setAssetBreakdown] = useState<Awaited<ReturnType<typeof getVaultAssetBreakdown>> | null>(null);
-  useEffect(() => {
-    if (!isOmni || !selectedVaultId || !publicClient) return;
-    let cancelled = false;
-    getVaultAssetBreakdown(asSdkClient(publicClient), selectedVaultId as `0x${string}`)
-      .then((bd) => { if (!cancelled) setAssetBreakdown(bd); })
-      .catch(() => { if (!cancelled) setAssetBreakdown(null); });
-    return () => { cancelled = true; };
-  }, [isOmni, selectedVaultId, publicClient]);
+  // Per-asset breakdown for omni vaults (SDK hook with React Query caching)
+  const { data: assetBreakdown } = useVaultAssetBreakdown(
+    isOmni ? (selectedVaultId as `0x${string}`) : undefined,
+    hubChainId
+  );
 
   // Get price for underlying asset
   const underlyingAddress = selectedVault?.overview?.asset?.address || '';
   const underlyingAssetData = useAssetData(underlyingAddress);
   const underlyingPrice = underlyingAssetData.data?.price || 0;
+
+  // SDK multi-chain portfolio for sub-vault positions (Moonwell, ERC4626/7540)
+  const { data: portfolio } = useVaultPortfolioMultiChain(
+    isOmni ? (selectedVaultId as `0x${string}`) : undefined,
+    hubChainId
+  );
+
+  // Build sub-vault position assets from portfolio (Moonwell, ERC4626/7540 positions)
+  const subVaultAssets: VaultAsset[] = React.useMemo(() => {
+    if (!portfolio || !portfolio.allSubVaultPositions?.length) return [];
+    return portfolio.allSubVaultPositions
+      .filter((pos) => pos.underlyingValue > BigInt(0))
+      .map((pos) => {
+        const cfg = networkConfigs[pos.chainId];
+        const bal = parseFloat(formatUnits(pos.underlyingValue, pos.underlyingDecimals));
+        const price = underlyingPrice;
+        return {
+          assetName: `${pos.name} on ${cfg?.name || `Chain ${pos.chainId}`}`,
+          assetSymbol: pos.underlyingSymbol || pos.symbol,
+          balance: bal,
+          price,
+          value: bal * price,
+          category: pos.type === 'erc7540' ? 'Async Vault' : 'Sub-vault',
+          chainLogo: cfg?.networkLogoPath,
+        };
+      });
+  }, [portfolio, underlyingPrice]);
 
   const allocation = vaultAllocationData?.data?.allocation;
   const staking = vaultAllocationData?.data?.staked;
@@ -153,6 +177,7 @@ export const VaultAllocations: React.FC = () => {
     })),
     ...(available || []).map((asset) => ({ ...asset, category: 'Available' })),
     ...distributionAssets,
+    ...subVaultAssets,
   ]
     .filter((asset) => (asset.balance || 0) > 0) // Hide allocations with zero balance
     .sort((a, b) => (b.value || 0) - (a.value || 0)); // Sort by descending allocation value
