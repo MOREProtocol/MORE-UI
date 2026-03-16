@@ -5,11 +5,12 @@ import {
   useVaultPortfolioMultiChain,
   useVaultTopology,
 } from '@oydual31/more-vaults-sdk/react';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { MarketLogo } from 'src/components/MarketSwitcher';
 import { BaseDataGrid, ColumnDefinition } from 'src/components/primitives/DataGrid';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
+import { getPythPrice, usePythPrices } from 'src/hooks/usePythPrices';
 import { useVault } from 'src/hooks/vault/useVault';
 import { useVaultAllocation } from 'src/hooks/vault/useVaultAllocation';
 import { useAssetData, useVaultData } from 'src/hooks/vault/useVaultData';
@@ -61,6 +62,36 @@ export const VaultAllocations: React.FC = () => {
     hubChainId
   );
 
+  const allocation = vaultAllocationData?.data?.allocation;
+  const staking = vaultAllocationData?.data?.staked;
+  const available = vaultAllocationData?.data?.available;
+  const isLoading = vaultAllocationData?.isLoading;
+  const error = vaultAllocationData?.isError;
+
+  // Collect all token symbols that need pricing (for Pyth oracle)
+  const allSymbols = useMemo(() => {
+    const syms = new Set<string>();
+    const underSym = selectedVault?.overview?.asset?.symbol;
+    if (underSym) syms.add(underSym);
+    if (assetBreakdown?.assets) {
+      for (const a of assetBreakdown.assets) {
+        if (a.symbol) syms.add(a.symbol);
+      }
+    }
+    if (portfolio?.allSubVaultPositions) {
+      for (const pos of portfolio.allSubVaultPositions) {
+        if (pos.underlyingSymbol) syms.add(pos.underlyingSymbol);
+        if (pos.symbol) syms.add(pos.symbol);
+      }
+    }
+    if (allocation) for (const a of allocation) { if (a.assetSymbol) syms.add(a.assetSymbol); }
+    if (available) for (const a of available) { if (a.assetSymbol) syms.add(a.assetSymbol); }
+    return Array.from(syms);
+  }, [selectedVault, assetBreakdown, portfolio, allocation, available]);
+
+  // Fetch USD prices from Pyth Hermes API (free, no API key needed)
+  const { prices: pythPrices } = usePythPrices(allSymbols);
+
   // Build sub-vault position assets from portfolio (Moonwell, ERC4626/7540 positions)
   const subVaultAssets: VaultAsset[] = React.useMemo(() => {
     if (!portfolio || !portfolio.allSubVaultPositions?.length) return [];
@@ -69,10 +100,11 @@ export const VaultAllocations: React.FC = () => {
       .map((pos) => {
         const cfg = networkConfigs[pos.chainId];
         const bal = parseFloat(formatUnits(pos.underlyingValue, pos.underlyingDecimals));
-        const price = underlyingPrice;
+        const sym = pos.underlyingSymbol || pos.symbol;
+        const price = underlyingPrice || getPythPrice(pythPrices, sym);
         return {
           assetName: `${pos.name} on ${cfg?.name || `Chain ${pos.chainId}`}`,
-          assetSymbol: pos.underlyingSymbol || pos.symbol,
+          assetSymbol: sym,
           balance: bal,
           price,
           value: bal * price,
@@ -80,13 +112,7 @@ export const VaultAllocations: React.FC = () => {
           chainLogo: cfg?.networkLogoPath,
         };
       });
-  }, [portfolio, underlyingPrice]);
-
-  const allocation = vaultAllocationData?.data?.allocation;
-  const staking = vaultAllocationData?.data?.staked;
-  const available = vaultAllocationData?.data?.available;
-  const isLoading = vaultAllocationData?.isLoading;
-  const error = vaultAllocationData?.isError;
+  }, [portfolio, underlyingPrice, pythPrices]);
 
   // Build cross-chain assets from distribution data (hub + spokes)
   // Uses per-asset breakdown when available (SDK 0.3.0+) for detailed hub holdings
@@ -107,9 +133,11 @@ export const VaultAllocations: React.FC = () => {
       for (const asset of assetBreakdown.assets) {
         if (asset.balance <= BigInt(0)) continue;
         const bal = parseFloat(formatUnits(asset.balance, asset.decimals));
-        // For the underlying asset, use known price; others need external price
+        // Use known price for underlying; Pyth oracle price for other tokens
         const isUnderlying = asset.address.toLowerCase() === underlyingAddress.toLowerCase();
-        const assetPrice = isUnderlying ? fallbackPrice : 0;
+        const assetPrice = isUnderlying
+          ? fallbackPrice
+          : getPythPrice(pythPrices, asset.symbol) || fallbackPrice;
         assets.push({
           assetName: `${asset.symbol} on ${hubCfg?.name || 'Hub'}`,
           assetSymbol: asset.symbol,
@@ -165,7 +193,7 @@ export const VaultAllocations: React.FC = () => {
     }
 
     return assets;
-  }, [distribution, selectedVault, available, allocation, assetBreakdown, underlyingAddress, underlyingPrice]);
+  }, [distribution, selectedVault, available, allocation, assetBreakdown, underlyingAddress, underlyingPrice, pythPrices]);
 
   // Combine all assets for display
   const allAssets: VaultAsset[] = [
