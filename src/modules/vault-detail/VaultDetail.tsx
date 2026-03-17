@@ -9,9 +9,6 @@ import {
   Box,
   Button,
   Chip,
-  Dialog,
-  DialogContent,
-  DialogTitle,
   IconButton,
   Skeleton,
   SvgIcon,
@@ -23,14 +20,12 @@ import {
   useTheme,
 } from '@mui/material';
 import {
-  getRouteTokenDecimals,
   useInboundRoutes,
   useVaultTopology,
   useVaultStatus,
   useVaultMetadata,
   useUserPositionMultiChain,
 } from '@oydual31/more-vaults-sdk/react';
-import type { InboundRouteWithBalance } from '@oydual31/more-vaults-sdk/viem';
 import BigNumber from 'bignumber.js';
 import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
@@ -200,57 +195,12 @@ export const VaultDetail = () => {
   const [bridgeSpokeChainId, setBridgeSpokeChainId] = useState<number>(1);
   const [bridgeSpokeShares, setBridgeSpokeShares] = useState<bigint>(BigInt(0));
   const [bridgeRawSpokeShares, setBridgeRawSpokeShares] = useState<bigint>(BigInt(0));
-  const [isRoutePickerOpen, setIsRoutePickerOpen] = useState(false);
-  const [selectedRoute, setSelectedRoute] = useState<InboundRouteWithBalance | null>(null);
-  const [pickerStep, setPickerStep] = useState<'chain' | 'asset'>('chain');
-  const [pickerChainId, setPickerChainId] = useState<number | null>(null);
   const [selectedChartDataKey, setSelectedChartDataKey] = useState<'sharePrice' | 'totalAssets'>(
     'sharePrice'
   );
 
   // Get whitelist data from smart contract
   const { isWhitelisted, whitelistAmount, isWhitelistEnabled } = useDepositWhitelist();
-
-  // Group inbound routes by chain for the 2-step route picker
-  const routesByChain = useMemo(() => {
-    if (!inboundRoutes || inboundRoutes.length === 0) return [];
-    const chainMap = new Map<
-      number,
-      {
-        chainId: number;
-        chainName: string;
-        chainLogo: string | undefined;
-        isDirect: boolean;
-        totalBalance: number;
-        nativeSymbol: string;
-        routes: InboundRouteWithBalance[];
-      }
-    >();
-    for (const route of inboundRoutes) {
-      const cfg = networkConfigs[route.spokeChainId];
-      if (!chainMap.has(route.spokeChainId)) {
-        chainMap.set(route.spokeChainId, {
-          chainId: route.spokeChainId,
-          chainName: cfg?.name || `Chain ${route.spokeChainId}`,
-          chainLogo: cfg?.networkLogoPath,
-          isDirect: route.depositType === 'direct' || route.depositType === 'direct-async',
-          totalBalance: 0,
-          nativeSymbol: route.nativeSymbol,
-          routes: [],
-        });
-      }
-      const entry = chainMap.get(route.spokeChainId)!;
-      entry.routes.push(route);
-      const decimals = getRouteTokenDecimals(route.symbol);
-      entry.totalBalance += parseFloat(formatUnits(route.userBalance, decimals));
-    }
-    // Hub chain first, then spokes sorted by balance desc
-    return Array.from(chainMap.values()).sort((a, b) => {
-      if (a.isDirect && !b.isDirect) return -1;
-      if (!a.isDirect && b.isDirect) return 1;
-      return b.totalBalance - a.totalBalance;
-    });
-  }, [inboundRoutes]);
 
   const vaultNetwork = selectedVault?.chainId || sdkChainId;
   const isOnCorrectNetwork = wagmiChainId === vaultNetwork;
@@ -374,9 +324,6 @@ export const VaultDetail = () => {
   const isFlowTheme = process.env.NEXT_PUBLIC_UI_THEME === 'flow';
 
   const handleDepositClick = () => {
-    setSelectedRoute(null);
-    setPickerStep('chain');
-    setPickerChainId(null);
     // Non-omni vault on wrong chain → switch first
     if (!isOmniVault && !isOnCorrectNetwork) {
       switchChain?.({ chainId: vaultNetwork || ChainIds.flowEVMMainnet });
@@ -386,33 +333,6 @@ export const VaultDetail = () => {
       setIsWhitelistModalOpen(true);
       return;
     }
-    if (isOmniFromTopology && inboundRoutes && inboundRoutes.length > 0) {
-      setIsRoutePickerOpen(true);
-    } else {
-      setIsDepositModalOpen(true);
-    }
-  };
-
-  const handleChainSelect = (chainId: number) => {
-    const chainGroup = routesByChain.find((c) => c.chainId === chainId);
-    if (!chainGroup) return;
-
-    // Single asset on this chain → skip asset selection, go straight to deposit
-    if (chainGroup.routes.length === 1) {
-      setIsRoutePickerOpen(false);
-      setSelectedRoute(chainGroup.routes[0]);
-      setIsDepositModalOpen(true);
-      return;
-    }
-
-    // Multiple assets → show asset picker
-    setPickerChainId(chainId);
-    setPickerStep('asset');
-  };
-
-  const handleAssetSelect = (route: InboundRouteWithBalance) => {
-    setIsRoutePickerOpen(false);
-    setSelectedRoute(route);
     setIsDepositModalOpen(true);
   };
 
@@ -1437,12 +1357,9 @@ export const VaultDetail = () => {
       {/* MODALS */}
       <VaultDepositModal
         isOpen={isDepositModalOpen}
-        setIsOpen={(open) => {
-          setIsDepositModalOpen(open);
-          if (!open) setSelectedRoute(null);
-        }}
+        setIsOpen={setIsDepositModalOpen}
         whitelistAmount={whitelistAmount}
-        route={selectedRoute ?? undefined}
+        inboundRoutes={inboundRoutes ?? []}
       />
       <VaultRedeemModal
         isOpen={isRedeemModalOpen}
@@ -1464,184 +1381,6 @@ export const VaultDetail = () => {
         vaultDecimals={userPosition?.decimals ?? 8}
       />
 
-      {/* Route picker — 2-step flow: Chain → Asset */}
-      <Dialog
-        open={isRoutePickerOpen}
-        onClose={() => {
-          setIsRoutePickerOpen(false);
-          setPickerStep('chain');
-          setPickerChainId(null);
-        }}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle sx={{ pb: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-          {pickerStep === 'asset' && (
-            <IconButton
-              size="small"
-              onClick={() => {
-                setPickerStep('chain');
-                setPickerChainId(null);
-              }}
-              sx={{ mr: 0.5 }}
-            >
-              <ArrowBackRoundedIcon fontSize="small" />
-            </IconButton>
-          )}
-          <Box>
-            {pickerStep === 'chain' ? 'Select network' : 'Select asset'}
-            <Typography
-              variant="secondary14"
-              color="text.secondary"
-              sx={{ display: 'block', mt: 0.25 }}
-            >
-              {pickerStep === 'chain'
-                ? 'Where are your funds?'
-                : `Deposit from ${networkConfigs[pickerChainId!]?.name || 'selected chain'}`}
-            </Typography>
-          </Box>
-        </DialogTitle>
-        <DialogContent
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1.5,
-            pb: 2.5,
-            pt: '12px !important',
-          }}
-        >
-          {/* Step 1: Chain selection */}
-          {pickerStep === 'chain' &&
-            routesByChain.map((chain) => {
-              const hasBalance = chain.totalBalance > 0;
-              return (
-                <Box
-                  key={chain.chainId}
-                  onClick={() => handleChainSelect(chain.chainId)}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 2,
-                    py: 2,
-                    px: 2.5,
-                    borderRadius: 2,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    cursor: 'pointer',
-                    transition: 'border-color 0.15s, background 0.15s',
-                    '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <MarketLogo size={36} logo={chain.chainLogo} />
-                    <Box>
-                      <Typography variant="main16" fontWeight={600}>
-                        {chain.chainName}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                        {chain.isDirect ? (
-                          <Chip
-                            label="Hub"
-                            size="small"
-                            color="success"
-                            sx={{ fontSize: '0.65rem', height: 18 }}
-                          />
-                        ) : (
-                          <Chip
-                            label="Cross-chain"
-                            size="small"
-                            sx={{ fontSize: '0.65rem', height: 18, bgcolor: 'action.hover' }}
-                          />
-                        )}
-                        <Typography variant="secondary12" color="text.secondary">
-                          {chain.routes.length} {chain.routes.length === 1 ? 'asset' : 'assets'}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                  {hasBalance && (
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        bgcolor: 'success.main',
-                        flexShrink: 0,
-                      }}
-                    />
-                  )}
-                </Box>
-              );
-            })}
-
-          {/* Step 2: Asset selection within chosen chain */}
-          {pickerStep === 'asset' &&
-            pickerChainId != null &&
-            (() => {
-              const chainGroup = routesByChain.find((c) => c.chainId === pickerChainId);
-              if (!chainGroup) return null;
-              return chainGroup.routes.map((route, idx) => {
-                const decimals = getRouteTokenDecimals(route.symbol);
-                const hasBalance = route.userBalance > BigInt(0);
-                const formattedBalance = parseFloat(
-                  formatUnits(route.userBalance, decimals)
-                ).toLocaleString(undefined, { maximumFractionDigits: 4 });
-                const lzFeeEth =
-                  route.depositType === 'oft-compose'
-                    ? parseFloat(formatUnits(route.lzFeeEstimate, 18)).toFixed(5)
-                    : null;
-                return (
-                  <Box
-                    key={idx}
-                    onClick={() => handleAssetSelect(route)}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 2,
-                      py: 2,
-                      px: 2.5,
-                      borderRadius: 2,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      cursor: 'pointer',
-                      opacity: hasBalance ? 1 : 0.45,
-                      transition: 'border-color 0.15s, background 0.15s',
-                      '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <TokenIcon symbol={route.sourceTokenSymbol} sx={{ fontSize: 36 }} />
-                      <Box>
-                        <Typography variant="main16" fontWeight={600}>
-                          {route.sourceTokenSymbol}
-                        </Typography>
-                        {lzFeeEth && (
-                          <Typography variant="secondary12" color="text.secondary">
-                            ~{lzFeeEth} {route.nativeSymbol} bridge fee
-                          </Typography>
-                        )}
-                      </Box>
-                    </Box>
-                    <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                      <Typography
-                        variant="secondary14"
-                        fontWeight={600}
-                        color={hasBalance ? 'text.primary' : 'text.secondary'}
-                      >
-                        {hasBalance ? formattedBalance : '0'}
-                      </Typography>
-                      <Typography variant="secondary12" color="text.secondary">
-                        {route.sourceTokenSymbol}
-                      </Typography>
-                    </Box>
-                  </Box>
-                );
-              });
-            })()}
-        </DialogContent>
-      </Dialog>
     </Box>
   );
 };
