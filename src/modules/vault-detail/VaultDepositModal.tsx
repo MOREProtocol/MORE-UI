@@ -11,6 +11,7 @@ import {
   Link,
   Tooltip,
   Typography,
+  useTheme,
 } from '@mui/material';
 import { getRouteTokenDecimals, useVaultDistribution } from '@oydual31/more-vaults-sdk/react';
 import {
@@ -33,7 +34,7 @@ import {
 import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
 import { parseUnits } from 'ethers/lib/utils';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { BasicModal } from 'src/components/primitives/BasicModal';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
@@ -82,6 +83,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   } = useVault();
   const wagmiChainId = useChainId();
   const { switchChain } = useSwitchChain();
+  const originalChainIdRef = useRef<number | null>(null);
+  const theme = useTheme();
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
   // For omni vaults, use SDK-resolved hub chain; legacy as fallback for non-omni
@@ -576,6 +579,10 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setWasOpen(true);
+      // Capture the chain the user was on before any cross-chain switch
+      if (originalChainIdRef.current === null) {
+        originalChainIdRef.current = wagmiChainId;
+      }
       return;
     }
     // Only clean up if the modal was actually open and then closed (not on mount)
@@ -604,6 +611,14 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
     setSpokePreflightError(null);
     setSelectedRoute(null);
     setPickerChainId(null);
+    // Restore the original chain if the wallet was switched during a cross-chain deposit
+    if (
+      originalChainIdRef.current !== null &&
+      wagmiChainId !== originalChainIdRef.current
+    ) {
+      switchChain?.({ chainId: originalChainIdRef.current });
+    }
+    originalChainIdRef.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
@@ -1280,7 +1295,6 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
                 {/* Chain cards — always visible */}
                 {routesByChain.map((chain) => {
                   const isSelected = pickerChainId === chain.chainId;
-                  const hasBalance = chain.totalBalance > 0;
                   return (
                     <Box
                       key={chain.chainId}
@@ -1303,12 +1317,12 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
                         py: 1.5,
                         px: 2,
                         borderRadius: 2,
-                        border: '1px solid',
-                        borderColor: isSelected ? 'primary.main' : 'divider',
+                        border: '1.5px solid',
+                        borderColor: isSelected ? theme.palette.other.chartHighlight : '#E0E0E0',
                         cursor: 'pointer',
-                        transition: 'border-color 0.15s, background 0.15s',
-                        bgcolor: isSelected ? 'action.selected' : 'transparent',
-                        '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+                        transition: 'border-color 0.15s',
+                        bgcolor: 'transparent',
+                        '&:hover': { borderColor: theme.palette.text.muted, bgcolor: theme.palette.background.surface },
                       }}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -1322,30 +1336,18 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
                               <Chip
                                 label="Hub"
                                 size="small"
-                                color="success"
-                                sx={{ fontSize: '0.6rem', height: 16 }}
+                                sx={{ fontSize: '0.6rem', height: 16, bgcolor: theme.palette.other.chartHighlight, color: '#fff' }}
                               />
                             ) : (
                               <Chip
-                                label="Cross-chain"
+                                label="Crosschain"
                                 size="small"
-                                sx={{ fontSize: '0.6rem', height: 16, bgcolor: 'action.hover' }}
+                                sx={{ fontSize: '0.6rem', height: 16 }}
                               />
                             )}
                           </Box>
                         </Box>
                       </Box>
-                      {hasBalance && (
-                        <Box
-                          sx={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            bgcolor: 'success.main',
-                            flexShrink: 0,
-                          }}
-                        />
-                      )}
                     </Box>
                   );
                 })}
@@ -1385,13 +1387,13 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
                               py: 1.5,
                               px: 2,
                               borderRadius: 2,
-                              border: '1px solid',
-                              borderColor: isAssetSelected ? 'primary.main' : 'divider',
+                              border: '1.5px solid',
+                              borderColor: isAssetSelected ? theme.palette.other.chartHighlight : '#E0E0E0',
                               cursor: 'pointer',
                               opacity: hasBalance ? 1 : 0.45,
-                              bgcolor: isAssetSelected ? 'action.selected' : 'transparent',
-                              transition: 'border-color 0.15s, background 0.15s',
-                              '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+                              bgcolor: 'transparent',
+                              transition: 'border-color 0.15s',
+                              '&:hover': { borderColor: theme.palette.text.muted, bgcolor: theme.palette.background.surface },
                             }}
                           >
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

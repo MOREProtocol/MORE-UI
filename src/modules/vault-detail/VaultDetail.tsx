@@ -193,6 +193,7 @@ export const VaultDetail = () => {
   const [isWhitelistModalOpen, setIsWhitelistModalOpen] = useState(false);
   const [isBridgeModalOpen, setIsBridgeModalOpen] = useState(false);
   const [bridgeSpokeChainId, setBridgeSpokeChainId] = useState<number>(1);
+  const [hoveredNetworkChainId, setHoveredNetworkChainId] = useState<number | null>(null);
   const [bridgeSpokeShares, setBridgeSpokeShares] = useState<bigint>(BigInt(0));
   const [bridgeRawSpokeShares, setBridgeRawSpokeShares] = useState<bigint>(BigInt(0));
   const [selectedChartDataKey, setSelectedChartDataKey] = useState<'sharePrice' | 'totalAssets'>(
@@ -286,7 +287,7 @@ export const VaultDetail = () => {
   // Asset-based invested and percent
   const totalInvestedAsset = thisVaultBalance
     ? parseFloat(thisVaultBalance.totalDeposited || '0') -
-      parseFloat(thisVaultBalance.totalWithdrawn || '0')
+    parseFloat(thisVaultBalance.totalWithdrawn || '0')
     : 0;
   const pnlPercentageAsset = totalInvestedAsset > 0 ? totalPnLInAsset / totalInvestedAsset : 0;
 
@@ -406,9 +407,8 @@ export const VaultDetail = () => {
                     fontSize="large"
                   />
                   <Typography variant="main21" sx={{ color: 'primary.main' }}>
-                    {`${
-                      selectedVault?.overview?.asset?.symbol || selectedVault?.overview?.name || ''
-                    } Vault`}
+                    {`${selectedVault?.overview?.asset?.symbol || selectedVault?.overview?.name || ''
+                      } Vault`}
                   </Typography>
                 </>
               ) : (
@@ -426,11 +426,15 @@ export const VaultDetail = () => {
               )}
               {isOmniHub && (
                 <Chip
-                  label="Omni-Chain Hub"
+                  label="Omnichain"
                   size="small"
-                  color="primary"
-                  variant="outlined"
-                  sx={{ ml: 0.5 }}
+                  sx={{
+                    ml: 0.5,
+                    background: theme.palette.gradients.newGradient,
+                    color: '#fff',
+                    fontWeight: 600,
+                    border: 'none',
+                  }}
                 />
               )}
               <IconButton
@@ -743,14 +747,14 @@ export const VaultDetail = () => {
                 ) : (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                     {(selectedVault?.overview?.depositableAssets &&
-                    selectedVault.overview.depositableAssets.length > 0
+                      selectedVault.overview.depositableAssets.length > 0
                       ? selectedVault.overview.depositableAssets
                       : [
-                          {
-                            address: selectedVault?.overview?.asset?.address || '',
-                            symbol: selectedVault?.overview?.asset?.symbol || '',
-                          },
-                        ]
+                        {
+                          address: selectedVault?.overview?.asset?.address || '',
+                          symbol: selectedVault?.overview?.asset?.symbol || '',
+                        },
+                      ]
                     ).map((token) => (
                       <Box
                         key={token.address || token.symbol || Math.random().toString()}
@@ -783,21 +787,42 @@ export const VaultDetail = () => {
                     const allChainIds = [hubChainId, ...spokeIds];
                     return (
                       <>
-                        {/* Overlapping chain logos */}
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {/* Chain logos — piled when idle, spread on hover (pure CSS, no React state) */}
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            // Reserve the fully-expanded width so the adjacent text never moves
+                            minWidth: 22 + Math.max(0, allChainIds.length - 1) * 18,
+                            // On hover, override the negative margin for all but the first icon
+                            '&:hover > * + *': { marginLeft: '-4px' },
+                          }}
+                          onMouseLeave={() => setHoveredNetworkChainId(null)}
+                        >
                           {allChainIds.map((cId, idx) => (
                             <Box
                               key={cId}
-                              sx={{ ml: idx > 0 ? '-6px' : 0, zIndex: allChainIds.length - idx }}
+                              onMouseEnter={() => setHoveredNetworkChainId(cId)}
+                              onMouseLeave={() => setHoveredNetworkChainId(null)}
+                              sx={{
+                                ml: idx > 0 ? '-14px' : 0,
+                                zIndex: allChainIds.length - idx,
+                                transition: 'margin-left 0.2s ease',
+                                cursor: 'default',
+                              }}
                             >
                               <MarketLogo size={22} logo={networkConfigs[cId]?.networkLogoPath} />
                             </Box>
                           ))}
                         </Box>
                         <Typography variant="main14">
-                          {hubCfg?.name || `Chain ${hubChainId}`}
-                          {spokeIds.length > 0 &&
-                            ` + ${spokeIds.length} chain${spokeIds.length > 1 ? 's' : ''}`}
+                          {hoveredNetworkChainId !== null
+                            ? networkConfigs[hoveredNetworkChainId]?.name ||
+                            `Chain ${hoveredNetworkChainId}`
+                            : `${hubCfg?.name || `Chain ${hubChainId}`}${spokeIds.length > 0
+                              ? ` + ${spokeIds.length} chain${spokeIds.length > 1 ? 's' : ''}`
+                              : ''
+                            }`}
                         </Typography>
                       </>
                     );
@@ -875,8 +900,8 @@ export const VaultDetail = () => {
                           // Omni hub vaults return 0 for maxDeposit (bridge routing); use depositCapacity - totalAssets instead
                           isOmniHub
                             ? BigInt(
-                                vaultData?.data?.financials?.liquidity?.depositCapacity || '0'
-                              ) - BigInt(vaultData?.data?.financials?.liquidity?.totalAssets || '0')
+                              vaultData?.data?.financials?.liquidity?.depositCapacity || '0'
+                            ) - BigInt(vaultData?.data?.financials?.liquidity?.totalAssets || '0')
                             : BigInt(vaultData?.data?.financials?.liquidity?.maxDeposit || '0'),
                           vaultData?.data?.overview?.asset?.decimals || 18
                         ) || ''
@@ -894,8 +919,8 @@ export const VaultDetail = () => {
                         formatUnits(
                           isOmniHub
                             ? BigInt(
-                                vaultData?.data?.financials?.liquidity?.depositCapacity || '0'
-                              ) - BigInt(vaultData?.data?.financials?.liquidity?.totalAssets || '0')
+                              vaultData?.data?.financials?.liquidity?.depositCapacity || '0'
+                            ) - BigInt(vaultData?.data?.financials?.liquidity?.totalAssets || '0')
                             : BigInt(vaultData?.data?.financials?.liquidity?.maxDeposit || '0'),
                           vaultData?.data?.overview?.asset?.decimals || 18
                         ) || '0'
@@ -1088,8 +1113,8 @@ export const VaultDetail = () => {
                   border: isLoading
                     ? 'none'
                     : selectedChartDataKey === 'sharePrice'
-                    ? `1.5px solid ${theme.palette.other.chartHighlight}`
-                    : '1.5px solid #E0E0E0',
+                      ? `1.5px solid ${theme.palette.other.chartHighlight}`
+                      : '1.5px solid #E0E0E0',
                   borderRadius: '6px',
                   padding: '2px 6px',
                   width: 'fit-content',
@@ -1242,8 +1267,8 @@ export const VaultDetail = () => {
                   border: isLoading
                     ? 'none'
                     : selectedChartDataKey === 'totalAssets'
-                    ? `1.5px solid ${theme.palette.other.chartHighlight}`
-                    : '1.5px solid #E0E0E0',
+                      ? `1.5px solid ${theme.palette.other.chartHighlight}`
+                      : '1.5px solid #E0E0E0',
                   borderRadius: '6px',
                   padding: '2px 6px',
                   width: 'fit-content',
@@ -1339,7 +1364,7 @@ export const VaultDetail = () => {
           >
             {hasNotes && <Tab label="Vault Info" value="notes" />}
             <Tab label="Allocations" value="allocations" />
-            <Tab label="Activity" value="activity" />
+            {!isOmniVault && <Tab label="Activity" value="activity" />}
             {canManageVault && <Tab label="Manage" value="manage" />}
           </Tabs>
 

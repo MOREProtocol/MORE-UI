@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Chip, CircularProgress, LinearProgress, Link, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, CircularProgress, LinearProgress, Link, Typography, useTheme } from '@mui/material';
 import { useUserPositionMultiChain } from '@oydual31/more-vaults-sdk/react';
 import {
   asSdkClient,
@@ -52,6 +52,7 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({ isOpen, setI
     omniHubChainId,
     omniRedeem,
   } = useVault();
+  const theme = useTheme();
   // For omni vaults, use SDK-resolved hub chain; legacy as fallback for non-omni
   const chainId = isOmniHub ? omniHubChainId : vaultChainId;
   const wagmiChainId = useChainId();
@@ -815,38 +816,34 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({ isOpen, setI
                   onClick={() => { if (hasBalance) { setHubSelected(true); setSelectedSpoke(null); setAmount(''); } }}
                   sx={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    gap: 2, py: 2, px: 2.5, borderRadius: 2,
-                    border: '1px solid',
-                    borderColor: hubSelected ? 'primary.main' : 'divider',
+                    gap: 2, py: 1.5, px: 2, borderRadius: 2,
+                    border: '1.5px solid',
+                    borderColor: hubSelected ? theme.palette.other.chartHighlight : '#E0E0E0',
                     cursor: hasBalance ? 'pointer' : 'default',
                     opacity: hasBalance ? 1 : 0.45,
-                    transition: 'border-color 0.15s, background 0.15s',
-                    '&:hover': hasBalance ? { borderColor: 'primary.main', bgcolor: 'action.hover' } : {},
+                    bgcolor: 'transparent',
+                    transition: 'border-color 0.15s',
+                    '&:hover': hasBalance ? { borderColor: theme.palette.text.muted, bgcolor: theme.palette.background.surface } : {},
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     {networkConfigs[chainId]?.networkLogoPath && (
-                      <img src={networkConfigs[chainId].networkLogoPath} width={36} height={36} alt="" style={{ borderRadius: '50%' }} />
+                      <img src={networkConfigs[chainId].networkLogoPath} width={32} height={32} alt="" style={{ borderRadius: '50%' }} />
                     )}
                     <Box>
-                      <Typography variant="main16" fontWeight={600}>
+                      <Typography variant="main14" fontWeight={600}>
                         {networkConfigs[chainId]?.name || 'Hub'}
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                        <Chip label="Hub" size="small" color="success" sx={{ fontSize: '0.65rem', height: 18 }} />
+                        <Chip label="Hub" size="small" sx={{ fontSize: '0.65rem', height: 18, bgcolor: theme.palette.other.chartHighlight, color: '#fff' }} />
                       </Box>
                     </Box>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Typography variant="secondary14" fontWeight={600} color={hasBalance ? 'text.primary' : 'text.secondary'}>
-                        {hasBalance ? parseFloat(maxAmountToRedeem.toString()).toFixed(4) : '0'}
-                      </Typography>
-                      <Typography variant="secondary12" color="text.secondary">shares</Typography>
-                    </Box>
-                    {hasBalance && (
-                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main', flexShrink: 0 }} />
-                    )}
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="secondary14" fontWeight={600} color={hasBalance ? 'text.primary' : 'text.secondary'}>
+                      {hasBalance ? parseFloat(maxAmountToRedeem.toString()).toFixed(4) : '0'}
+                    </Typography>
+                    <Typography variant="secondary12" color="text.secondary">shares</Typography>
                   </Box>
                 </Box>
               );
@@ -876,37 +873,33 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({ isOpen, setI
                   }}
                   sx={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    gap: 2, py: 2, px: 2.5, borderRadius: 2,
-                    border: '1px solid', borderColor: selectedSpoke?.chainId === spokeId ? 'primary.main' : 'divider',
+                    gap: 2, py: 1.5, px: 2, borderRadius: 2,
+                    border: '1.5px solid', borderColor: selectedSpoke?.chainId === spokeId ? theme.palette.other.chartHighlight : '#E0E0E0',
                     cursor: hasBalance && onRedeemFromSpoke ? 'pointer' : 'default',
                     opacity: hasBalance ? 1 : 0.45,
-                    transition: 'border-color 0.15s, background 0.15s',
-                    '&:hover': hasBalance && onRedeemFromSpoke ? { borderColor: 'primary.main', bgcolor: 'action.hover' } : {},
+                    bgcolor: 'transparent',
+                    transition: 'border-color 0.15s',
+                    '&:hover': hasBalance && onRedeemFromSpoke ? { borderColor: theme.palette.text.muted, bgcolor: theme.palette.background.surface } : {},
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     {networkConfigs[spokeId]?.networkLogoPath && (
-                      <img src={networkConfigs[spokeId].networkLogoPath} width={36} height={36} alt="" style={{ borderRadius: '50%' }} />
+                      <img src={networkConfigs[spokeId].networkLogoPath} width={32} height={32} alt="" style={{ borderRadius: '50%' }} />
                     )}
                     <Box>
-                      <Typography variant="main16" fontWeight={600}>
+                      <Typography variant="main14" fontWeight={600}>
                         {chainName}
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                        <Chip label="Cross-chain" size="small" sx={{ fontSize: '0.65rem', height: 18, bgcolor: 'action.hover' }} />
+                        <Chip label="Crosschain" size="small" sx={{ fontSize: '0.65rem', height: 18 }} />
                       </Box>
                     </Box>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Typography variant="secondary14" fontWeight={600} color={hasBalance ? 'text.primary' : 'text.secondary'}>
-                        {hasBalance ? formatted : '0'}
-                      </Typography>
-                      <Typography variant="secondary12" color="text.secondary">shares</Typography>
-                    </Box>
-                    {hasBalance && (
-                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'success.main', flexShrink: 0 }} />
-                    )}
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="secondary14" fontWeight={600} color={hasBalance ? 'text.primary' : 'text.secondary'}>
+                      {hasBalance ? formatted : '0'}
+                    </Typography>
+                    <Typography variant="secondary12" color="text.secondary">shares</Typography>
                   </Box>
                 </Box>
               );
