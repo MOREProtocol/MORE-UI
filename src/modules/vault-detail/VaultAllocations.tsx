@@ -29,14 +29,14 @@ interface VaultAsset {
 }
 
 export const VaultAllocations: React.FC = () => {
-  const { selectedVaultId, isOmniHub, omniHubChainId, chainId: vaultChainId } = useVault();
+  const { selectedVaultId, isOmniHub, omniHubChainId, chainId: vaultChainId, isChainDetected } = useVault();
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
   const hubChainId = isOmniHub ? omniHubChainId : vaultChainId;
 
   // Fetch vault allocation data (LP tokens, staking assets, available tokens)
   const vaultAllocationData = useVaultAllocation(selectedVaultId, {
-    enabled: !!selectedVaultId,
+    enabled: !!selectedVaultId && isChainDetected,
   });
 
   const { topology } = useVaultTopology(selectedVaultId as `0x${string}` | undefined);

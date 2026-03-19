@@ -65,7 +65,7 @@ import { VaultWhitelistModal } from './VaultWhitelistModal';
 
 export const VaultDetail = () => {
   const router = useRouter();
-  const { selectedVaultId, accountAddress, chainId, isOmniHub } = useVault();
+  const { selectedVaultId, accountAddress, chainId, isOmniHub, isChainDetected } = useVault();
   const isOmniSpoke = isOmniSpokeVault(chainId, selectedVaultId ?? '');
   const { address } = useAccount();
   const wagmiChainId = useChainId();
@@ -175,7 +175,7 @@ export const VaultDetail = () => {
   );
 
   console.log('[VaultDetail] inboundRoutes result:', { routes: inboundRoutes, routesLoading, routesError });
-  const userVaultBalances = useUserVaultBalances(accountAddress, { enabled: !!accountAddress });
+  const userVaultBalances = useUserVaultBalances(accountAddress, { enabled: !!accountAddress && isChainDetected });
   const theme = useTheme();
   const downToMd = useMediaQuery(theme.breakpoints.down('md'));
   const downToMdLg = useMediaQuery(theme.breakpoints.down('mdlg'));
@@ -258,7 +258,7 @@ export const VaultDetail = () => {
 
   // Calculate user's P&L for this specific vault using live recomputed metrics
   const portfolioMetricsQuery = useUserPortfolioMetrics(accountAddress || '', '3m', {
-    enabled: !!accountAddress,
+    enabled: !!accountAddress && isChainDetected,
   });
   const perVaultMetrics = portfolioMetricsQuery.data?.perVaultMetrics || [];
   const perVault = perVaultMetrics.find(

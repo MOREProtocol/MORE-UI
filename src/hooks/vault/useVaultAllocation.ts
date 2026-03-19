@@ -471,7 +471,7 @@ export const useVaultAllocation = <TResult = { allocation: VaultAllocationItem[]
   // Base query configuration for balance/amount queries (more frequent updates)
   const balanceQueryConfig = {
     staleTime: 30 * 1000, // 30 seconds
-    cacheTime: 5 * 60 * 1000, // 5 minutes  
+    cacheTime: 5 * 60 * 1000, // 5 minutes
     retry: 1, // Fast fallback for failed tokens
     retryDelay: 500,
   };

@@ -1409,7 +1409,12 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
                             }}
                           >
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                              <TokenIcon symbol={r.sourceTokenSymbol} sx={{ fontSize: 32 }} />
+                              <TokenIcon
+                                symbol={r.sourceTokenSymbol}
+                                address={r.spokeToken}
+                                chainId={r.spokeChainId}
+                                sx={{ fontSize: 32 }}
+                              />
                               <Box>
                                 <Typography variant="main14" fontWeight={600}>
                                   {r.sourceTokenSymbol}
@@ -1643,6 +1648,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
                           ? [
                               {
                                 address: selectedRoute!.spokeToken,
+                                chainId: selectedRoute!.spokeChainId,
                                 symbol: selectedRoute!.sourceTokenSymbol,
                                 balance: routeBalance ?? '0',
                                 decimals: routeTokenDecimals,
