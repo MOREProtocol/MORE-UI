@@ -130,7 +130,9 @@ export const VaultAssetsList = () => {
     ...(omniVaultsQuery?.data ?? []),
   ];
   const vaultIds = Array.from(new Set(rawVaultIds.map(v => v.toLowerCase())));
-  const isLoadingVaultIds = deployedVaultsQuery?.isLoading || omniVaultsQuery?.isLoading;
+  // Only block on Flow vault loading — omni vaults are discovered in the background
+  // and added to the list incrementally once the multi-chain scan completes.
+  const isLoadingVaultIds = deployedVaultsQuery?.isLoading;
 
   // Only query vaults if vaultIds are available
   const vaultsQuery = useVaultsListData(vaultIds);

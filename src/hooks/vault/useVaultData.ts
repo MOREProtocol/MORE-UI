@@ -1234,10 +1234,8 @@ export const useVaultData = <TResult = VaultData>(
   const { reserves } = useAppDataContext();
 
   const baseQueryIsEnabled = !!provider && !!vaultId && (opts?.enabled !== false);
-  const isFlowChain = chainId === ChainIds.flowEVMMainnet || chainId === ChainIds.flowEVMTestnet;
-  const reservesAreReady = !isFlowChain || reserves.length > 0;
 
-  const actualQueryExecutionIsEnabled = baseQueryIsEnabled && reservesAreReady;
+  const actualQueryExecutionIsEnabled = baseQueryIsEnabled;
 
   // Fetch incentives independently to avoid blocking vault query
   const { data: incentivesData } = useIncentives({
@@ -1247,17 +1245,36 @@ export const useVaultData = <TResult = VaultData>(
   const canExecuteMainQuery = actualQueryExecutionIsEnabled;
 
   const queryApiResult = useVaultQuery<VaultData, TResult>(
-    vaultQueryKeys.vaultDetailsWithSubgraph(vaultId, chainId),
+    vaultQueryKeys.vaultDetailsWithSubgraph(vaultId),
     async () => {
       if (!vaultId) {
         throw new Error('Missing vaultId');
       }
 
-      // If we know this vault's factory (via registry), skip network detection
+      // Resolve vault's actual chain:
+      // 1. Check registry across all known chains (synchronous, no RPC calls).
+      //    Registry is populated by useOmniDeployedVaults — vaults that have been discovered
+      //    on any chain are found instantly without touching the network.
+      // 2. Fall back to sequential RPC detection, keeping chainId as a hint so the wallet's
+      //    chain is tried first — this keeps the fast path for same-chain vaults (e.g. Flow
+      //    vault + wallet on Flow) while the cross-chain registry lookup above covers the
+      //    cross-chain warm case (e.g. Base vault + wallet on Flow, registry populated).
       let vaultActualChainId = chainId;
-      const reg = getVaultFactoryInfo(chainId, vaultId);
-      if (!reg) {
-        // Fallback: detect across networks
+      const allSupportedChainIds = Object.keys(vaultsConfig).map(Number);
+      // Prefer chains that have a subgraph configured. The same vault address can appear on
+      // multiple chains via deterministic CREATE2 deployment (e.g., Ethereum + Flow). Picking a
+      // chain without a subgraph would cause fetchVaultHistoricalSnapshots to return null and
+      // the chart would disappear after the omni registry populates.
+      const chainsWithSubgraph = allSupportedChainIds.filter((id) => {
+        const cfg = vaultsConfig[id as keyof typeof vaultsConfig];
+        return Array.isArray(cfg?.factories) && cfg.factories.some((f) => !!(f as { subgraphUrl?: string }).subgraphUrl);
+      });
+      const registeredChainId =
+        chainsWithSubgraph.find((id) => !!getVaultFactoryInfo(id, vaultId)) ||
+        allSupportedChainIds.find((id) => !!getVaultFactoryInfo(id, vaultId));
+      if (registeredChainId) {
+        vaultActualChainId = registeredChainId;
+      } else {
         const detected = await detectVaultNetwork(vaultId, chainId);
         if (!detected) {
           throw new Error(`Vault ${vaultId} not found on any supported network`);
@@ -1523,18 +1540,6 @@ export const useVaultData = <TResult = VaultData>(
     canExecuteMainQuery,
     opts
   );
-
-  if (baseQueryIsEnabled && isFlowChain && reserves.length === 0) {
-    return {
-      ...queryApiResult,
-      status: 'loading',
-      isLoading: true,
-      isFetching: true,
-      isSuccess: false,
-      isError: false,
-      data: undefined,
-    } as UseQueryResult<TResult, Error>;
-  }
 
   return queryApiResult;
 };
@@ -2032,32 +2037,6 @@ export const useDeployedVaults = <TResult = string[]>(
             const oracleAddress = thisFactory?.addresses?.ORACLE;
             cleanIds.forEach((id) => registerVaultFactoryInfo(chainId, id, { subgraphUrl, oracleAddress }));
 
-            // If this is the omni factory, check each vault for cross-chain hub status
-            if (addr.toLowerCase() === OMNI_FACTORY_ADDRESS.toLowerCase()) {
-              const localEid = CHAIN_ID_TO_LZ_EID[chainId];
-              if (localEid) {
-                const omniFactory = new ethers.Contract(addr, omniVaultFactoryAbi, provider);
-                await Promise.all(cleanIds.map(async (vaultId) => {
-                  try {
-                    const isCrossChain: boolean = await omniFactory.isCrossChainVault(localEid, vaultId);
-                    if (isCrossChain) {
-                      const [eids, spokeAddresses]: [number[], string[]] = await omniFactory.hubToSpokes(localEid, vaultId);
-                      const spokeVaults = eids.map((eid, i) => ({
-                        eid,
-                        chainId: EID_TO_CHAIN_ID[eid] ?? 0,
-                        address: spokeAddresses[i],
-                      })).filter((s) => s.chainId !== 0);
-                      markVaultAsOmniHub(chainId, vaultId, spokeVaults);
-                      spokeVaults.forEach((spoke) => {
-                        markVaultAsOmniSpoke(spoke.chainId, spoke.address, chainId, vaultId);
-                        registerVaultFactoryInfo(spoke.chainId, spoke.address, {});
-                      });
-                    }
-                  } catch { /* not cross-chain or call not supported */ }
-                }));
-              }
-            }
-
             return cleanIds;
           } catch {
             return [];
@@ -2108,7 +2087,21 @@ export const useDeployedVaults = <TResult = string[]>(
 };
 
 export const useOmniDeployedVaults = () => {
-  const omniChainIds = Object.keys(CHAIN_ID_TO_LZ_EID).map(Number);
+  // Only scan chains where OMNI_FACTORY_ADDRESS is actually configured as a factory.
+  // Chains with a different factory address (e.g. Ethereum) would time out or fail.
+  const omniChainIds = Object.keys(CHAIN_ID_TO_LZ_EID)
+    .map(Number)
+    .filter((id) => {
+      const cfg = vaultsConfig[id as keyof typeof vaultsConfig];
+      return (
+        Array.isArray(cfg?.factories) &&
+        cfg.factories.some(
+          (f) =>
+            (f.addresses?.VAULT_FACTORY || '').toLowerCase() ===
+            OMNI_FACTORY_ADDRESS.toLowerCase()
+        )
+      );
+    });
 
   return useQuery({
     queryKey: ['omniDeployedVaults', omniChainIds],

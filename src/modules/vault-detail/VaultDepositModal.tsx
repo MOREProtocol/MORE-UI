@@ -431,22 +431,25 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
     };
   }, [walletBalance, whitelistAmount, selectedAssetData.data?.decimals]);
 
-  // Auto-switch chain when a route is selected
+  // Auto-switch chain for OFT-compose deposits only (two-step flow: spoke then hub).
+  // Direct/hub deposits intentionally do NOT auto-switch — isWrongChainForAction already
+  // shows an explicit "Switch to [chain]" button in the CTA, which the user clicks when ready.
+  // Silently switching on modal open causes a jarring blink as wagmiChainId transitions.
+  // Guard with Page Visibility API so background tabs never trigger a chain switch (prevents
+  // blinking when the user changes chain in a different tab).
   useEffect(() => {
-    if (!isOpen || !selectedRoute) return;
-    if (isOftCompose) {
-      // OFT compose: switch based on step
+    if (!isOpen || !selectedRoute || !isOftCompose) return;
+    const checkAndSwitch = () => {
+      if (document.visibilityState !== 'visible') return;
       if (composeStep === 'idle' && wagmiChainId !== selectedRoute.spokeChainId) {
         switchChain({ chainId: selectedRoute.spokeChainId });
       } else if (composeStep === 'ready-to-execute' && wagmiChainId !== hubChainId) {
         switchChain({ chainId: hubChainId });
       }
-    } else {
-      // Hub / direct deposit: switch to hub chain
-      if (wagmiChainId !== hubChainId) {
-        switchChain({ chainId: hubChainId });
-      }
-    }
+    };
+    checkAndSwitch();
+    document.addEventListener('visibilitychange', checkAndSwitch);
+    return () => document.removeEventListener('visibilitychange', checkAndSwitch);
   }, [isOpen, isOftCompose, selectedRoute, composeStep, wagmiChainId, hubChainId]);
 
   // On open, verify vault is not paused and escrow is configured before allowing deposit
@@ -611,10 +614,13 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
     setSpokePreflightError(null);
     setSelectedRoute(null);
     setPickerChainId(null);
-    // Restore the original chain if the wallet was switched during a cross-chain deposit
+    // Restore the original chain if the wallet was switched during a cross-chain deposit.
+    // Only restore when the tab is visible — restoring from a background tab causes blinking
+    // in other tabs that may be on a different chain.
     if (
       originalChainIdRef.current !== null &&
-      wagmiChainId !== originalChainIdRef.current
+      wagmiChainId !== originalChainIdRef.current &&
+      document.visibilityState === 'visible'
     ) {
       switchChain?.({ chainId: originalChainIdRef.current });
     }
@@ -1307,6 +1313,12 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
                           setSelectedRoute(chain.routes[0]);
                         } else {
                           setSelectedRoute(null);
+                        }
+                        // Switch chain immediately on explicit user selection.
+                        // Hub/direct: switch to hub chain. OFT-compose: the auto-switch
+                        // effect handles it as part of the multi-step flow.
+                        if (chain.isDirect && wagmiChainId !== hubChainId) {
+                          switchChain({ chainId: hubChainId });
                         }
                       }}
                       sx={{
