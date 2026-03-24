@@ -88,7 +88,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
   const [txError, setTxError] = useState<string | null>(null);
   const [route, setRoute] = useState<SpokeRedeemRoute | null>(null);
   const [shareBridgeFee, setShareBridgeFee] = useState<bigint>(BigInt(0));
-  const [_preflightData, setPreflightData] = useState<{
+  const [, setPreflightData] = useState<{
     spokeNativeBalance: bigint;
     hubNativeBalance: bigint;
     estimatedAssetBridgeFee: bigint;
@@ -338,7 +338,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
 
     pollRef.current = setInterval(async () => {
       try {
-        const balance = await (asSdkClient(hubPublicClient) as any).readContract({
+        const balance = await asSdkClient(hubPublicClient).readContract({
           address: selectedVaultId as `0x${string}`,
           abi: [
             {
@@ -411,7 +411,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
       const owner = accountAddress as `0x${string}`;
 
       // Read current hub share balance
-      const hubShares = await (asSdkClient(hubPublicClient) as any).readContract({
+      const hubShares = await asSdkClient(hubPublicClient).readContract({
         address: vault,
         abi: [
           {
@@ -461,7 +461,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
 
         // SDK 0.2.6: deterministic GUID polling instead of balance comparison
         const final = await waitForAsyncRequest(
-          asSdkClient(hubPublicClient) as any,
+          asSdkClient(hubPublicClient),
           selectedVaultId as `0x${string}`,
           result.guid as `0x${string}`,
           LZ_TIMEOUTS.POLL_INTERVAL,
@@ -507,7 +507,7 @@ export const VaultBridgeSharesToHubModal: React.FC<VaultBridgeSharesToHubModalPr
       const toBytes32 = `0x${(accountAddress as string)
         .slice(2)
         .padStart(64, '0')}` as `0x${string}`;
-      const quoteResult = await (asSdkClient(hubPublicClient) as any).readContract({
+      const quoteResult = await asSdkClient(hubPublicClient).readContract({
         address: route.hubAssetOft,
         abi: OFT_ABI,
         functionName: 'quoteSend',

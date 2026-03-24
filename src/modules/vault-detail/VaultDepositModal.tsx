@@ -7,14 +7,18 @@ import {
   CircularProgress,
   Collapse,
   FormControlLabel,
+  IconButton,
   LinearProgress,
   Link,
+  Menu,
+  MenuItem,
   Tooltip,
   Typography,
   useTheme,
 } from '@mui/material';
 import { getRouteTokenDecimals, useVaultDistribution } from '@oydual31/more-vaults-sdk/react';
 import {
+  type ComposeData,
   type InboundRouteWithBalance,
   asSdkClient,
   canDeposit,
@@ -31,12 +35,16 @@ import {
   waitForAsyncRequest,
   waitForCompose,
 } from '@oydual31/more-vaults-sdk/viem';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { useOrphanedComposes } from 'src/hooks/vault/useOrphanedComposes';
 import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
 import { parseUnits } from 'ethers/lib/utils';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { BasicModal } from 'src/components/primitives/BasicModal';
+import { type ComposeStep, VaultOftComposeFlow } from './VaultOftComposeFlow';
+import { VaultOrphanSearchView } from './VaultOrphanSearchView';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { MarketLogo } from 'src/components/MarketSwitcher';
 import { Asset, AssetInput } from 'src/components/transactions/AssetInput';
@@ -84,6 +92,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   const wagmiChainId = useChainId();
   const { switchChain } = useSwitchChain();
   const originalChainIdRef = useRef<number | null>(null);
+  // Set to true when user chooses "start new deposit" — suppresses compose restore for this session
+  const skipFlowRestoreRef = useRef(false);
   const theme = useTheme();
   const vaultData = useVaultData(selectedVaultId);
   const selectedVault = vaultData?.data;
@@ -173,14 +183,14 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
     }
     return selectedVault?.overview?.depositableAssets &&
       selectedVault.overview.depositableAssets.length > 0
-        ? selectedVault.overview.depositableAssets
-        : [
-            {
-              address: primaryAssetAddress,
-              symbol: selectedVault?.overview?.asset?.symbol,
-              decimals: selectedVault?.overview?.asset?.decimals,
-            },
-          ];
+      ? selectedVault.overview.depositableAssets
+      : [
+        {
+          address: primaryAssetAddress,
+          symbol: selectedVault?.overview?.asset?.symbol,
+          decimals: selectedVault?.overview?.asset?.decimals,
+        },
+      ];
   }, [isOmniHub, sdkDepositableAssets, selectedVault, primaryAssetAddress]);
 
   const [selectedAssetAddress, setSelectedAssetAddress] = useState<string>(
@@ -284,13 +294,23 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
 
   // Stargate compose state (2-TX spoke deposits)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [composeData, setComposeData] = useState<any>(null);
-  const [composeStep, setComposeStep] = useState<
-    'idle' | 'waiting-compose' | 'ready-to-execute' | 'executing' | 'done'
-  >('idle');
+  const [composeData, setComposeData] = useState<ComposeData | null>(null);
+  const [composeStep, setComposeStep] = useState<ComposeStep>('idle');
+
+  // Orphaned compose recovery (stuck deposits where TX1 completed but TX2 never ran)
+  const { orphans, scanning: orphanScanning, scan: scanOrphans, scanMore: scanMoreOrphans, cancel: cancelOrphanScan, removeByGuid: removeOrphanByGuid, oldestBlockSearched, oldestBlockDate, totalBlocksScanned } = useOrphanedComposes();
+  const [orphanBeingRecovered, setOrphanBeingRecovered] = useState<ComposeData | null>(null);
+  const [orphanRecoveryStatus, setOrphanRecoveryStatus] = useState<'executing' | 'done' | 'error' | null>(null);
+  const [orphanOmniStatus, setOrphanOmniStatus] = useState<'pending' | 'completed' | 'refunded'>('pending');
+  const [orphanOmniResult, setOrphanOmniResult] = useState<bigint | null>(null);
+  const [orphanRecoveryGuid, setOrphanRecoveryGuid] = useState<string | null>(null);
+  const [orphanRecoveryError, setOrphanRecoveryError] = useState<string | null>(null);
+  // Three-dots menu + search mode
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [orphanSearchMode, setOrphanSearchMode] = useState(false);
 
   // Spoke deposit preflight state
-  const [_spokePreflight, setSpokePreflight] = useState<{
+  const [, setSpokePreflight] = useState<{
     isStargate: boolean;
     estimatedComposeFee: bigint;
   } | null>(null);
@@ -378,8 +398,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   };
 
   // Balances/decimals override for oft-compose routes
-  const routeTokenDecimals = selectedRoute ? getRouteTokenDecimals(selectedRoute.symbol) : 18;
-  const routeBalance = selectedRoute ? formatUnits(selectedRoute.userBalance, routeTokenDecimals) : null;
+  const routeTokenDecimals = selectedRoute?.symbol ? getRouteTokenDecimals(selectedRoute.symbol) : 18;
+  const routeBalance = selectedRoute && selectedRoute.userBalance != null ? formatUnits(selectedRoute.userBalance, routeTokenDecimals) : null;
 
   const maxAmountToSupply = useMemo(() => {
     if (isOftCompose && routeBalance != null) return routeBalance;
@@ -439,6 +459,9 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   // blinking when the user changes chain in a different tab).
   useEffect(() => {
     if (!isOpen || !selectedRoute || !isOftCompose) return;
+    // Never auto-switch while in orphan search mode — the user may be intentionally
+    // switching to the hub chain to execute a pending compose there.
+    if (orphanSearchMode) return;
     const checkAndSwitch = () => {
       if (document.visibilityState !== 'visible') return;
       if (composeStep === 'idle' && wagmiChainId !== selectedRoute.spokeChainId) {
@@ -450,7 +473,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
     checkAndSwitch();
     document.addEventListener('visibilitychange', checkAndSwitch);
     return () => document.removeEventListener('visibilitychange', checkAndSwitch);
-  }, [isOpen, isOftCompose, selectedRoute, composeStep, wagmiChainId, hubChainId]);
+  }, [isOpen, isOftCompose, selectedRoute, composeStep, wagmiChainId, hubChainId, orphanSearchMode]);
 
   // On open, verify vault is not paused and escrow is configured before allowing deposit
   useEffect(() => {
@@ -485,7 +508,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
     if (!isOpen) return;
     // oft-compose: display from realFee state (updated via debounced quoteRouteDepositFee)
     if (isOftCompose && selectedRoute) {
-      setEstimatedFee(formatUnits(selectedRoute.lzFeeEstimate, 18)); // initial display; realFee updates it
+      setEstimatedFee(selectedRoute.lzFeeEstimate != null ? formatUnits(selectedRoute.lzFeeEstimate, 18) : null); // initial display; realFee updates it
       return;
     }
     if (!isOmniHub || !selectedVaultId || !publicClient) return;
@@ -512,10 +535,14 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
   // Restore Stargate compose flow from persistent store when modal opens
   useEffect(() => {
     if (!isOpen || !selectedVaultId) return;
+    if (skipFlowRestoreRef.current) return;
     const saved = flowStore.getFlow(selectedVaultId);
     if (saved && saved.type === 'stargate-compose' && saved.step !== 'done') {
       if (saved.spokeTxHash) setTxHash(saved.spokeTxHash);
       if (saved.omniGuid) setOmniGuid(saved.omniGuid);
+      // Restore a minimal route so isOftCompose becomes true — without this,
+      // txHash being set causes the hub deposit flow UI to render instead of compose UI.
+      setSelectedRoute({ spokeChainId: saved.spokeChainId, depositType: 'oft-compose', userBalance: BigInt(0) } as InboundRouteWithBalance);
 
       const partialCompose = saved.composeGuid ? {
         endpoint: saved.composeEndpoint,
@@ -542,7 +569,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
         Promise.race([
           waitForCompose(
             asSdkClient(publicClient),
-            partialCompose as any,
+            partialCompose as ComposeData,
             accountAddress as `0x${string}`,
           ),
           timeoutPromise,
@@ -559,18 +586,18 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
             } else {
               // Timeout — use what we have, user can retry
               console.warn('waitForCompose timed out during recovery, using partial data');
-              setComposeData(partialCompose as any);
+              setComposeData(partialCompose as ComposeData);
               setComposeStep('ready-to-execute');
             }
           })
           .catch((err) => {
             console.error('waitForCompose recovery error:', err);
             // Still set compose data with what we have — executeCompose may work
-            if (partialCompose) setComposeData(partialCompose as any);
+            if (partialCompose) setComposeData(partialCompose as ComposeData);
             setComposeStep('ready-to-execute');
           });
       } else if (partialCompose) {
-        setComposeData(partialCompose as any);
+        setComposeData(partialCompose as ComposeData);
         setComposeStep(saved.step);
       }
     }
@@ -614,6 +641,15 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
     setSpokePreflightError(null);
     setSelectedRoute(null);
     setPickerChainId(null);
+    setOrphanBeingRecovered(null);
+    setOrphanRecoveryStatus(null);
+    setOrphanRecoveryError(null);
+    setOrphanRecoveryGuid(null);
+    setOrphanOmniStatus('pending');
+    setOrphanOmniResult(null);
+    cancelOrphanScan();
+    setOrphanSearchMode(false);
+    setMenuAnchor(null);
     // Restore the original chain if the wallet was switched during a cross-chain deposit.
     // Only restore when the tab is visible — restoring from a background tab causes blinking
     // in other tabs that may be on a different chain.
@@ -625,6 +661,7 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
       switchChain?.({ chainId: originalChainIdRef.current });
     }
     originalChainIdRef.current = null;
+    skipFlowRestoreRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
@@ -656,9 +693,9 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
             const { action } = isPrimary
               ? await depositInVault(parseUnits(amount, selectedAssetData.data.decimals).toString())
               : await depositInVaultFromToken(
-                  selectedAssetAddress,
-                  parseUnits(amount, selectedAssetData.data.decimals).toString()
-                );
+                selectedAssetAddress,
+                parseUnits(amount, selectedAssetData.data.decimals).toString()
+              );
             setTxAction(action);
           }
         } catch (error) {
@@ -1048,9 +1085,9 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
           const { action: currentActionState } = isPrimaryLocal
             ? await depositInVault(parseUnits(amount, selectedAssetData.data.decimals).toString())
             : await depositInVaultFromToken(
-                selectedAssetAddress,
-                parseUnits(amount, selectedAssetData.data.decimals).toString()
-              );
+              selectedAssetAddress,
+              parseUnits(amount, selectedAssetData.data.decimals).toString()
+            );
           setTxAction(currentActionState);
         } catch (recoveryError) {
           console.error('Error trying to recover button state:', recoveryError);
@@ -1061,6 +1098,66 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRecoverOrphan = async (orphan: ComposeData) => {
+    if (!hubWalletClient || !publicClient || !selectedVaultId) {
+      setOrphanRecoveryError('Wallet not connected to the hub chain');
+      return;
+    }
+    // Ensure user is on the hub chain before executing
+    if (wagmiChainId !== hubChainId) {
+      switchChain({ chainId: hubChainId });
+      return;
+    }
+    setOrphanBeingRecovered(orphan);
+    setOrphanRecoveryStatus('executing');
+    setOrphanRecoveryError(null);
+    setOrphanOmniStatus('pending');
+    setOrphanOmniResult(null);
+    setOrphanRecoveryGuid(null);
+    try {
+      const pc = asSdkClient(publicClient);
+      // Quote fee — pass spokeEid + receiver when available; SDK falls back gracefully
+      const fee = await quoteComposeFee(pc, selectedVaultId as `0x${string}`);
+      const result = await executeCompose(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        hubWalletClient as any,
+        pc,
+        orphan,
+        fee,
+      );
+      setOrphanRecoveryStatus('done');
+      removeOrphanByGuid(orphan.guid);
+      if (result.guid) {
+        setOrphanRecoveryGuid(result.guid);
+        setOrphanOmniStatus('pending');
+        const final = await waitForAsyncRequest(
+          pc,
+          selectedVaultId as `0x${string}`,
+          result.guid as `0x${string}`,
+          LZ_TIMEOUTS.POLL_INTERVAL,
+          LZ_TIMEOUTS.LZ_READ_CALLBACK,
+        );
+        setOrphanOmniStatus(final.status as 'completed' | 'refunded');
+        setOrphanOmniResult(final.result);
+        queryClient.invalidateQueries({ queryKey: ['userPositionMultiChain'] });
+        queryClient.invalidateQueries({ queryKey: ['vaultStatus'] });
+      }
+      if (refreshUserVaultData) refreshUserVaultData();
+    } catch (err) {
+      console.error('[RecoverOrphan] executeCompose failed:', err);
+      const msg = err instanceof Error ? err.message : 'Failed to execute compose';
+      // If already executed, dismiss the orphan
+      if (msg.includes('already delivered')) {
+        removeOrphanByGuid(orphan.guid);
+        setOrphanBeingRecovered(null);
+        setOrphanRecoveryStatus(null);
+      } else {
+        setOrphanRecoveryStatus('error');
+        setOrphanRecoveryError(msg);
+      }
     }
   };
 
@@ -1104,9 +1201,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
       return 'Deposit into the vault';
     }
     if (txAction === 'oft-compose-deposit') {
-      return `Bridge & deposit from ${
-        networkConfigs[selectedRoute?.spokeChainId ?? 0]?.name || 'spoke chain'
-      }`;
+      return `Bridge & deposit from ${networkConfigs[selectedRoute?.spokeChainId ?? 0]?.name || 'spoke chain'
+        }`;
     }
 
     return 'Deposit into the vault';
@@ -1133,519 +1229,431 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
 
   return (
     <BasicModal open={isOpen} setOpen={setIsOpen}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Typography variant="h2">
-            {isOftCompose
-              ? `Deposit from ${networkConfigs[selectedRoute!.spokeChainId]?.name || 'spoke chain'}`
-              : 'Deposit into the vault'}
-          </Typography>
+      {/* Three-dots menu — positioned to the left of BasicModal's X button */}
+      {isOmniHub && (
+        <Box sx={{ position: 'absolute', top: '24px', right: '60px', zIndex: 6 }}>
+          <IconButton
+            size="small"
+            onClick={(e) => setMenuAnchor(e.currentTarget)}
+            sx={{ p: 0, width: 28, height: 28, color: 'text.light', borderRadius: '50%' }}
+          >
+            <MoreVertIcon sx={{ fontSize: '20px' }} />
+          </IconButton>
+          <Menu
+            anchorEl={menuAnchor}
+            open={!!menuAnchor}
+            onClose={() => setMenuAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+            <MenuItem
+              onClick={() => {
+                setMenuAnchor(null);
+                setOrphanSearchMode(true);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                scanOrphans(publicClient as any, selectedVaultId!, accountAddress!, hubChainId);
+              }}
+              disabled={!publicClient || !selectedVaultId || !accountAddress}
+            >
+              Search for pending spoke deposits
+            </MenuItem>
+          </Menu>
         </Box>
-        {/* Risk Disclosure Section */}
-        <Collapse in={!riskAccepted}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <Box
-              sx={{
-                mb: 2,
-                p: 2,
-                bgcolor: 'background.surface',
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'divider',
-              }}
-            >
-              <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
-                I understand that depositing into this vault involves a risk of loss. The protocol
-                provides only the underlying infrastructure. The vault&apos;s owner and curator are
-                solely responsible for managing its strategy and allocations, and assume full
-                responsibility for its performance.
-              </Typography>
-            </Box>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={riskAccepted}
-                  onChange={(e) => setRiskAccepted(e.target.checked)}
-                  sx={{ color: 'text.secondary' }}
-                />
-              }
-              label={
-                <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
-                  I understand and accept the risks.
-                </Typography>
-              }
-            />
-          </Box>
-        </Collapse>
+      )}
 
-        {/* Deposit Interface Section */}
-        <Collapse in={riskAccepted}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                pb: 3,
-                borderColor: 'divider',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Tooltip
-                  title={
-                    addTokenSuccess
-                      ? 'Vault token added to wallet!'
-                      : txHash || hasVaultTokens
-                      ? 'Click to add vault token to your wallet'
-                      : ''
-                  }
-                  enterDelay={1000}
-                  placement="top"
-                  arrow
-                >
-                  <Box
-                    onClick={handleCuratorIconClick}
-                    sx={{
-                      cursor:
-                        (txHash || hasVaultTokens) && !addTokenLoading ? 'pointer' : 'default',
-                      position: 'relative',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      '&:hover': {
-                        opacity: (txHash || hasVaultTokens) && !addTokenLoading ? 0.8 : 1,
-                      },
-                      transition: 'opacity 0.2s',
-                    }}
+      {/* ── ORPHAN SEARCH MODE — replaces main content while active ── */}
+      {orphanSearchMode ? (
+        <VaultOrphanSearchView
+          scanning={orphanScanning}
+          orphans={orphans}
+          hubChainId={hubChainId}
+          wagmiChainId={wagmiChainId}
+          assetDecimals={selectedAssetData.data?.decimals}
+          recovering={orphanBeingRecovered}
+          recoveryStatus={orphanRecoveryStatus}
+          recoveryOmniStatus={orphanOmniStatus}
+          recoveryOmniResult={orphanOmniResult}
+          recoveryGuid={orphanRecoveryGuid}
+          recoveryError={orphanRecoveryError}
+          onBack={() => { cancelOrphanScan(); setOrphanSearchMode(false); }}
+          onRecover={handleRecoverOrphan}
+          onSwitchToHub={() => switchChain({ chainId: hubChainId })}
+          onDismissRecovery={() => {
+            setOrphanBeingRecovered(null);
+            setOrphanRecoveryStatus(null);
+            setOrphanRecoveryError(null);
+            setOrphanRecoveryGuid(null);
+            setOrphanOmniStatus('pending');
+            setOrphanOmniResult(null);
+          }}
+          totalBlocksScanned={totalBlocksScanned}
+          oldestBlockDate={oldestBlockDate}
+          canLoadMore={!orphanScanning && oldestBlockSearched !== null && oldestBlockSearched > BigInt(0)}
+          onLoadMore={scanMoreOrphans}
+        />
+      ) : (
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Typography variant="h2">
+              {isOftCompose
+                ? `Deposit from ${networkConfigs[selectedRoute!.spokeChainId]?.name || 'spoke chain'}`
+                : 'Deposit into the vault'}
+            </Typography>
+          </Box>
+          {/* Risk Disclosure Section */}
+          <Collapse in={!riskAccepted}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <Box
+                sx={{
+                  mb: 2,
+                  p: 2,
+                  bgcolor: 'background.surface',
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
+                  I understand that depositing into this vault involves a risk of loss. The protocol
+                  provides only the underlying infrastructure. The vault&apos;s owner and curator are
+                  solely responsible for managing its strategy and allocations, and assume full
+                  responsibility for its performance.
+                </Typography>
+              </Box>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={riskAccepted}
+                    onChange={(e) => setRiskAccepted(e.target.checked)}
+                    sx={{ color: 'text.secondary' }}
+                  />
+                }
+                label={
+                  <Typography variant="secondary14" sx={{ color: 'text.secondary' }}>
+                    I understand and accept the risks.
+                  </Typography>
+                }
+              />
+            </Box>
+          </Collapse>
+
+          {/* Deposit Interface Section */}
+          <Collapse in={riskAccepted}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  pb: 3,
+                  borderColor: 'divider',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Tooltip
+                    title={
+                      addTokenSuccess
+                        ? 'Vault token added to wallet!'
+                        : txHash || hasVaultTokens
+                          ? 'Click to add vault token to your wallet'
+                          : ''
+                    }
+                    enterDelay={1000}
+                    placement="top"
+                    arrow
                   >
-                    <img
-                      src={selectedVault?.overview?.curatorLogo || '/MOREVault.svg'}
-                      width="45px"
-                      height="45px"
-                      alt="token-svg"
-                      style={{ borderRadius: '50%' }}
-                    />
-                    {addTokenLoading && (
-                      <CircularProgress
-                        size={20}
-                        sx={{
-                          position: 'absolute',
-                          color: 'primary.main',
-                        }}
+                    <Box
+                      onClick={handleCuratorIconClick}
+                      sx={{
+                        cursor:
+                          (txHash || hasVaultTokens) && !addTokenLoading ? 'pointer' : 'default',
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        '&:hover': {
+                          opacity: (txHash || hasVaultTokens) && !addTokenLoading ? 0.8 : 1,
+                        },
+                        transition: 'opacity 0.2s',
+                      }}
+                    >
+                      <img
+                        src={selectedVault?.overview?.curatorLogo || '/MOREVault.svg'}
+                        width="45px"
+                        height="45px"
+                        alt="token-svg"
+                        style={{ borderRadius: '50%' }}
                       />
-                    )}
-                    {addTokenSuccess && (
-                      <Box
-                        sx={{
-                          position: 'absolute',
-                          top: -5,
-                          right: -5,
-                          backgroundColor: 'success.main',
-                          borderRadius: '50%',
-                          width: 16,
-                          height: 16,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '10px',
-                          color: 'white',
-                        }}
-                      >
-                        ✓
-                      </Box>
-                    )}
-                  </Box>
-                </Tooltip>
-                <Box>
-                  <Typography variant="main16">{selectedVault?.overview?.name}</Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <TokenIcon
-                      symbol={selectedAssetData.data?.symbol || ''}
-                      sx={{ fontSize: '16px' }}
-                    />
-                    <Typography variant="secondary12">{selectedAssetData.data?.symbol}</Typography>
+                      {addTokenLoading && (
+                        <CircularProgress
+                          size={20}
+                          sx={{
+                            position: 'absolute',
+                            color: 'primary.main',
+                          }}
+                        />
+                      )}
+                      {addTokenSuccess && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            top: -5,
+                            right: -5,
+                            backgroundColor: 'success.main',
+                            borderRadius: '50%',
+                            width: 16,
+                            height: 16,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '10px',
+                            color: 'white',
+                          }}
+                        >
+                          ✓
+                        </Box>
+                      )}
+                    </Box>
+                  </Tooltip>
+                  <Box>
+                    <Typography variant="main16">{selectedVault?.overview?.name}</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <TokenIcon
+                        symbol={selectedAssetData.data?.symbol || ''}
+                        sx={{ fontSize: '16px' }}
+                      />
+                      <Typography variant="secondary12">{selectedAssetData.data?.symbol}</Typography>
+                    </Box>
                   </Box>
                 </Box>
               </Box>
-            </Box>
 
-            {/* Preflight warnings */}
-            {isOmniHub && preflight?.paused && (
-              <Alert severity="error">
-                This vault is currently paused. Deposits are temporarily disabled.
-              </Alert>
-            )}
-            {isOmniHub && preflight?.escrowMissing && (
-              <Alert severity="error">
-                This vault&apos;s escrow is not configured. Deposits are disabled.
-              </Alert>
-            )}
-            {depositEligibility && !depositEligibility.allowed && depositEligibility.reason === 'not-whitelisted' && (
-              <Alert severity="warning">
-                Your address is not whitelisted for deposits in this vault.
-              </Alert>
-            )}
-            {depositEligibility && !depositEligibility.allowed && depositEligibility.reason === 'capacity-full' && (
-              <Alert severity="warning">
-                This vault has reached its deposit capacity.
-              </Alert>
-            )}
+              {/* Preflight warnings */}
+              {isOmniHub && preflight?.paused && (
+                <Alert severity="error">
+                  This vault is currently paused. Deposits are temporarily disabled.
+                </Alert>
+              )}
+              {isOmniHub && preflight?.escrowMissing && (
+                <Alert severity="error">
+                  This vault&apos;s escrow is not configured. Deposits are disabled.
+                </Alert>
+              )}
+              {depositEligibility && !depositEligibility.allowed && depositEligibility.reason === 'not-whitelisted' && (
+                <Alert severity="warning">
+                  Your address is not whitelisted for deposits in this vault.
+                </Alert>
+              )}
+              {depositEligibility && !depositEligibility.allowed && depositEligibility.reason === 'capacity-full' && (
+                <Alert severity="warning">
+                  This vault has reached its deposit capacity.
+                </Alert>
+              )}
 
-            {/* ── INLINE CHAIN / ASSET SELECTOR (omni vaults only) ── */}
-            {isOmniHub && routesByChain.length > 0 && !(isOftCompose && composeStep !== 'idle') && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                <Typography variant="secondary14" color="text.secondary" fontWeight={600}>
-                  From network
-                </Typography>
+              {/* ── INLINE CHAIN / ASSET SELECTOR (omni vaults only) ── */}
+              {isOmniHub && routesByChain.length > 0 && !(isOftCompose && composeStep !== 'idle') && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Typography variant="secondary14" color="text.secondary" fontWeight={600}>
+                    From network
+                  </Typography>
 
-                {/* Chain cards — always visible */}
-                {routesByChain.map((chain) => {
-                  const isSelected = pickerChainId === chain.chainId;
-                  return (
-                    <Box
-                      key={chain.chainId}
-                      onClick={() => {
-                        if (isSelected) return;
-                        if (amount) setAmount('');
-                        setPickerChainId(chain.chainId);
-                        // Single asset on this chain → auto-select the route
-                        if (chain.routes.length === 1) {
-                          setSelectedRoute(chain.routes[0]);
-                        } else {
-                          setSelectedRoute(null);
-                        }
-                        // Switch chain immediately on explicit user selection.
-                        // Hub/direct: switch to hub chain. OFT-compose: the auto-switch
-                        // effect handles it as part of the multi-step flow.
-                        if (chain.isDirect && wagmiChainId !== hubChainId) {
-                          switchChain({ chainId: hubChainId });
-                        }
-                      }}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 2,
-                        py: 1.5,
-                        px: 2,
-                        borderRadius: 2,
-                        border: '1.5px solid',
-                        borderColor: isSelected ? theme.palette.other.chartHighlight : '#E0E0E0',
-                        cursor: 'pointer',
-                        transition: 'border-color 0.15s',
-                        bgcolor: 'transparent',
-                        '&:hover': { borderColor: theme.palette.text.muted, bgcolor: theme.palette.background.surface },
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <MarketLogo size={32} logo={chain.chainLogo} />
-                        <Box>
-                          <Typography variant="main14" fontWeight={600}>
-                            {chain.chainName}
-                          </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            {chain.isDirect ? (
-                              <Chip
-                                label="Hub"
-                                size="small"
-                                sx={{ fontSize: '0.6rem', height: 16, bgcolor: theme.palette.other.chartHighlight, color: '#fff' }}
-                              />
-                            ) : (
-                              <Chip
-                                label="Crosschain"
-                                size="small"
-                                sx={{ fontSize: '0.6rem', height: 16 }}
-                              />
-                            )}
+                  {/* Chain cards — always visible */}
+                  {routesByChain.map((chain) => {
+                    const isSelected = pickerChainId === chain.chainId;
+                    return (
+                      <Box
+                        key={chain.chainId}
+                        onClick={() => {
+                          if (isSelected) return;
+                          if (amount) setAmount('');
+                          setPickerChainId(chain.chainId);
+                          // Single asset on this chain → auto-select the route
+                          if (chain.routes.length === 1) {
+                            setSelectedRoute(chain.routes[0]);
+                          } else {
+                            setSelectedRoute(null);
+                          }
+                          // Switch chain immediately on explicit user selection.
+                          // Hub/direct: switch to hub chain. OFT-compose: the auto-switch
+                          // effect handles it as part of the multi-step flow.
+                          if (chain.isDirect && wagmiChainId !== hubChainId) {
+                            switchChain({ chainId: hubChainId });
+                          }
+                        }}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 2,
+                          py: 1.5,
+                          px: 2,
+                          borderRadius: 2,
+                          border: '1.5px solid',
+                          borderColor: isSelected ? theme.palette.other.chartHighlight : '#E0E0E0',
+                          cursor: 'pointer',
+                          transition: 'border-color 0.15s',
+                          bgcolor: 'transparent',
+                          '&:hover': { borderColor: theme.palette.text.muted, bgcolor: theme.palette.background.surface },
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <MarketLogo size={32} logo={chain.chainLogo} />
+                          <Box>
+                            <Typography variant="main14" fontWeight={600}>
+                              {chain.chainName}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              {chain.isDirect ? (
+                                <Chip
+                                  label="Hub"
+                                  size="small"
+                                  sx={{ fontSize: '0.6rem', height: 16, bgcolor: theme.palette.other.chartHighlight, color: '#fff' }}
+                                />
+                              ) : (
+                                <Chip
+                                  label="Crosschain"
+                                  size="small"
+                                  sx={{ fontSize: '0.6rem', height: 16 }}
+                                />
+                              )}
+                            </Box>
                           </Box>
                         </Box>
                       </Box>
-                    </Box>
-                  );
-                })}
+                    );
+                  })}
 
-                {/* Asset cards — shown when selected chain has multiple assets */}
-                {pickerChainId != null && (() => {
-                  const chainGroup = routesByChain.find((c) => c.chainId === pickerChainId);
-                  if (!chainGroup || chainGroup.routes.length <= 1) return null;
-                  return (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pl: 1 }}>
-                      <Typography variant="secondary12" color="text.secondary">
-                        Select asset to deposit from {networkConfigs[pickerChainId]?.name || 'chain'}
-                      </Typography>
-                      {chainGroup.routes.map((r, idx) => {
-                        const decimals = getRouteTokenDecimals(r.symbol);
-                        const hasBalance = r.userBalance > BigInt(0);
-                        const formattedBalance = parseFloat(
-                          formatUnits(r.userBalance, decimals)
-                        ).toLocaleString(undefined, { maximumFractionDigits: 4 });
-                        const lzFeeEth =
-                          r.depositType === 'oft-compose'
-                            ? parseFloat(formatUnits(r.lzFeeEstimate, 18)).toFixed(5)
-                            : null;
-                        const isAssetSelected = selectedRoute === r;
-                        return (
-                          <Box
-                            key={idx}
-                            onClick={() => {
-                              if (amount) setAmount('');
-                              setSelectedRoute(r);
-                            }}
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: 2,
-                              py: 1.5,
-                              px: 2,
-                              borderRadius: 2,
-                              border: '1.5px solid',
-                              borderColor: isAssetSelected ? theme.palette.other.chartHighlight : '#E0E0E0',
-                              cursor: 'pointer',
-                              opacity: hasBalance ? 1 : 0.45,
-                              bgcolor: 'transparent',
-                              transition: 'border-color 0.15s',
-                              '&:hover': { borderColor: theme.palette.text.muted, bgcolor: theme.palette.background.surface },
-                            }}
-                          >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                              <TokenIcon
-                                symbol={r.sourceTokenSymbol}
-                                address={r.spokeToken}
-                                chainId={r.spokeChainId}
-                                sx={{ fontSize: 32 }}
-                              />
-                              <Box>
-                                <Typography variant="main14" fontWeight={600}>
+                  {/* Asset cards — shown when selected chain has multiple assets */}
+                  {pickerChainId != null && (() => {
+                    const chainGroup = routesByChain.find((c) => c.chainId === pickerChainId);
+                    if (!chainGroup || chainGroup.routes.length <= 1) return null;
+                    return (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pl: 1 }}>
+                        <Typography variant="secondary12" color="text.secondary">
+                          Select asset to deposit from {networkConfigs[pickerChainId]?.name || 'chain'}
+                        </Typography>
+                        {chainGroup.routes.map((r, idx) => {
+                          const decimals = getRouteTokenDecimals(r.symbol);
+                          const hasBalance = r.userBalance > BigInt(0);
+                          const formattedBalance = parseFloat(
+                            formatUnits(r.userBalance, decimals)
+                          ).toLocaleString(undefined, { maximumFractionDigits: 4 });
+                          const lzFeeEth =
+                            r.depositType === 'oft-compose'
+                              ? parseFloat(formatUnits(r.lzFeeEstimate, 18)).toFixed(5)
+                              : null;
+                          const isAssetSelected = selectedRoute === r;
+                          return (
+                            <Box
+                              key={idx}
+                              onClick={() => {
+                                if (amount) setAmount('');
+                                setSelectedRoute(r);
+                              }}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 2,
+                                py: 1.5,
+                                px: 2,
+                                borderRadius: 2,
+                                border: '1.5px solid',
+                                borderColor: isAssetSelected ? theme.palette.other.chartHighlight : '#E0E0E0',
+                                cursor: 'pointer',
+                                opacity: hasBalance ? 1 : 0.45,
+                                bgcolor: 'transparent',
+                                transition: 'border-color 0.15s',
+                                '&:hover': { borderColor: theme.palette.text.muted, bgcolor: theme.palette.background.surface },
+                              }}
+                            >
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <TokenIcon
+                                  symbol={r.sourceTokenSymbol}
+                                  address={r.spokeToken}
+                                  chainId={r.spokeChainId}
+                                  sx={{ fontSize: 32 }}
+                                />
+                                <Box>
+                                  <Typography variant="main14" fontWeight={600}>
+                                    {r.sourceTokenSymbol}
+                                  </Typography>
+                                  {lzFeeEth && (
+                                    <Typography variant="secondary12" color="text.secondary">
+                                      ~{lzFeeEth} {r.nativeSymbol} bridge fee
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </Box>
+                              <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                                <Typography
+                                  variant="secondary14"
+                                  fontWeight={600}
+                                  color={hasBalance ? 'text.primary' : 'text.secondary'}
+                                >
+                                  {hasBalance ? formattedBalance : '0'}
+                                </Typography>
+                                <Typography variant="secondary12" color="text.secondary">
                                   {r.sourceTokenSymbol}
                                 </Typography>
-                                {lzFeeEth && (
-                                  <Typography variant="secondary12" color="text.secondary">
-                                    ~{lzFeeEth} {r.nativeSymbol} bridge fee
-                                  </Typography>
-                                )}
                               </Box>
                             </Box>
-                            <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                              <Typography
-                                variant="secondary14"
-                                fontWeight={600}
-                                color={hasBalance ? 'text.primary' : 'text.secondary'}
-                              >
-                                {hasBalance ? formattedBalance : '0'}
-                              </Typography>
-                              <Typography variant="secondary12" color="text.secondary">
-                                {r.sourceTokenSymbol}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        );
-                      })}
-                    </Box>
-                  );
-                })()}
-              </Box>
-            )}
-
-            {/* ── OFT-COMPOSE STEPPER ── */}
-            {isOftCompose && composeStep !== 'idle' ? (
-              <>
-                {/* Step progress label */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Typography variant="secondary14" fontWeight={600}>
-                    {composeStep === 'waiting-compose'
-                      ? 'Step 1/2: Waiting for compose delivery (~5-15 min)...'
-                      : composeStep === 'ready-to-execute'
-                      ? `Step 2/2: Execute compose on ${networkConfigs[hubChainId]?.name || 'hub'}`
-                      : composeStep === 'executing'
-                      ? 'Step 2/2: Executing compose...'
-                      : composeStep === 'done' && omniStatus === 'pending'
-                      ? 'Waiting for cross-chain accounting (~2-5 min)...'
-                      : composeStep === 'done' && omniStatus === 'completed'
-                      ? 'Deposit complete!'
-                      : composeStep === 'done' && omniStatus === 'refunded'
-                      ? 'Deposit refunded'
-                      : 'Processing...'}
-                  </Typography>
-                  {(composeStep === 'waiting-compose' || composeStep === 'executing' ||
-                    (composeStep === 'done' && omniStatus === 'pending')) && (
-                    <LinearProgress sx={{ borderRadius: 1 }} />
-                  )}
-                </Box>
-
-                {/* 2-step overview */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  {[
-                    {
-                      label: `Bridge tokens from ${networkConfigs[selectedRoute!.spokeChainId]?.name || 'spoke'}`,
-                      chain: networkConfigs[selectedRoute!.spokeChainId]?.name,
-                      time: '~5-15 min',
-                      done: !!txHash,
-                      active: composeStep === 'waiting-compose',
-                    },
-                    {
-                      label: `Execute compose on ${networkConfigs[hubChainId]?.name || 'hub'}`,
-                      chain: networkConfigs[hubChainId]?.name,
-                      time: '~2-5 min',
-                      done: composeStep === 'done',
-                      active: composeStep === 'ready-to-execute' || composeStep === 'executing',
-                    },
-                  ].map((s, i) => (
-                    <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Box
-                        sx={{
-                          width: 24, height: 24, borderRadius: '50%',
-                          bgcolor: s.done ? 'success.main' : s.active ? 'primary.main' : 'grey.500',
-                          color: 'primary.contrastText',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 12, fontWeight: 700, flexShrink: 0,
-                        }}
-                      >
-                        {s.done ? '\u2713' : i + 1}
+                          );
+                        })}
                       </Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="secondary14" sx={{ fontWeight: s.active ? 600 : 400 }}>
-                          {s.label}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Sign on {s.chain} · {s.time}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  ))}
+                    );
+                  })()}
                 </Box>
+              )}
 
-                {/* TX1: spoke bridge tx link */}
-                {txHash && networkConfigs[selectedRoute!.spokeChainId]?.explorerLink && (
-                  <Box
-                    sx={{
-                      p: 2, bgcolor: 'background.surface', borderRadius: 1,
-                      border: '1px solid', borderColor: 'divider',
-                      display: 'flex', flexDirection: 'column', gap: 1,
-                    }}
-                  >
-                    <Typography variant="secondary14">
-                      {composeStep === 'waiting-compose'
-                        ? 'Tokens bridging to hub...'
-                        : 'Tokens delivered to hub'}
-                    </Typography>
-                    <Link
-                      href={`${networkConfigs[selectedRoute!.spokeChainId].explorerLink}/tx/${txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      variant="secondary14"
-                    >
-                      View TX1 on {networkConfigs[selectedRoute!.spokeChainId]?.explorerName || 'explorer'} ↗
-                    </Link>
-                  </Box>
-                )}
-
-                {/* Chain switch prompt for compose execution */}
-                {composeStep === 'ready-to-execute' && wagmiChainId !== hubChainId && (
-                  <Alert
-                    severity="warning"
-                    action={
-                      <Button
-                        color="inherit"
-                        size="small"
-                        onClick={() => switchChain({ chainId: hubChainId })}
-                      >
-                        Switch to {networkConfigs[hubChainId]?.name || 'hub'}
-                      </Button>
+              {/* ── OFT-COMPOSE STEPPER ── */}
+              {isOftCompose && composeStep !== 'idle' ? (
+                <VaultOftComposeFlow
+                  composeStep={composeStep}
+                  omniStatus={omniStatus}
+                  omniResult={omniResult}
+                  omniGuid={omniGuid}
+                  txHash={txHash}
+                  isLoading={isLoading}
+                  txError={txError}
+                  selectedRoute={selectedRoute!}
+                  hubChainId={hubChainId}
+                  assetDecimals={selectedAssetData.data?.decimals}
+                  wagmiChainId={wagmiChainId}
+                  onAction={handleClick}
+                  onClose={() => setIsOpen(false)}
+                  onSwitchToHub={() => switchChain({ chainId: hubChainId })}
+                  onNewDeposit={() => {
+                    // Suppress restore for this session so the compose UI doesn't reappear,
+                    // but keep the flow in the store so the user can resume it on next open.
+                    skipFlowRestoreRef.current = true;
+                    setComposeStep('idle');
+                    setTxHash(null);
+                    setComposeData(null);
+                    // Re-apply hub auto-selection so amount input shows immediately
+                    const hub = routesByChain.find((c) => c.isDirect) ?? routesByChain[0];
+                    if (hub) {
+                      setPickerChainId(hub.chainId);
+                      setSelectedRoute(hub.routes.length === 1 ? hub.routes[0] : null);
+                    } else {
+                      setSelectedRoute(null);
                     }
-                  >
-                    Compose arrived. Switch to {networkConfigs[hubChainId]?.name || 'hub'} to continue.
-                  </Alert>
-                )}
-
-                {/* TX2: compose tx link + async status */}
-                {composeStep === 'done' && (
-                  <Box
-                    sx={{
-                      p: 2, bgcolor: 'background.surface', borderRadius: 1,
-                      border: '1px solid', borderColor: 'divider',
-                      display: 'flex', flexDirection: 'column', gap: 1,
-                    }}
-                  >
-                    <Typography variant="secondary14">
-                      {omniStatus === 'pending' && 'Waiting for cross-chain accounting...'}
-                      {omniStatus === 'completed' && (
-                        omniResult
-                          ? `Deposit complete — ${parseFloat(formatUnits(BigInt(omniResult.toString()), selectedAssetData.data?.decimals ?? 18)).toFixed(4)} shares minted`
-                          : 'Deposit complete — shares minted'
-                      )}
-                      {omniStatus === 'refunded' && 'Deposit refunded — funds returned to your wallet'}
-                    </Typography>
-                    {omniGuid && (
-                      <Link
-                        href={`https://layerzeroscan.com/tx/${omniGuid}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        variant="secondary14"
-                      >
-                        Track on LayerZero Scan ↗
-                      </Link>
-                    )}
-                  </Box>
-                )}
-
-                {/* Error display */}
-                {txError && (
-                  <Box sx={{ p: 2, bgcolor: 'error.main', color: 'error.contrastText', borderRadius: 1 }}>
-                    <Typography variant="secondary14" fontWeight="bold">Error</Typography>
-                    <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>{txError}</Typography>
-                  </Box>
-                )}
-
-                {/* Action buttons */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {composeStep === 'ready-to-execute' && wagmiChainId === hubChainId && (
-                    <Button
-                      variant="gradient"
-                      size="large"
-                      disabled={isLoading}
-                      onClick={handleClick}
-                      sx={{ minHeight: '44px' }}
-                    >
-                      {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
-                      Execute compose on {networkConfigs[hubChainId]?.name || 'hub'}
-                    </Button>
-                  )}
-                  {composeStep === 'done' && omniStatus !== 'pending' && (
-                    <Button
-                      variant="contained"
-                      size="large"
-                      onClick={() => setIsOpen(false)}
-                      sx={{ minHeight: '44px' }}
-                    >
-                      Close
-                    </Button>
-                  )}
-                  {composeStep !== 'done' && (
-                    <Button
-                      variant="outlined"
-                      size="large"
-                      onClick={() => setIsOpen(false)}
-                      sx={{ minHeight: '44px' }}
-                    >
-                      Close (progress saved)
-                    </Button>
-                  )}
-                </Box>
-              </>
-            ) : (
-              <>
-                {/* ── STANDARD DEPOSIT UI (amount input) — hidden when hub stepper active or no route selected ── */}
-                {!(isOmniHub && !isOftCompose && txHash) && !(routesByChain.length > 0 && !selectedRoute) && (
-                  <>
-                    <AssetInput
-                      value={amount}
-                      onChange={handleChange}
-                      usdValue={amountInUsd.toString(10)}
-                      symbol={isOftCompose ? selectedRoute!.sourceTokenSymbol : selectedAssetSymbol || ''}
-                      assets={
-                        isOftCompose
-                          ? [
+                  }}
+                />
+              ) : (
+                <>
+                  {/* ── STANDARD DEPOSIT UI (amount input) — hidden when hub stepper active or no route selected ── */}
+                  {!(isOmniHub && !isOftCompose && txHash) && !(routesByChain.length > 0 && !selectedRoute) && (
+                    <>
+                      <AssetInput
+                        value={amount}
+                        onChange={handleChange}
+                        usdValue={amountInUsd.toString(10)}
+                        symbol={isOftCompose ? selectedRoute!.sourceTokenSymbol : selectedAssetSymbol || ''}
+                        assets={
+                          isOftCompose
+                            ? [
                               {
                                 address: selectedRoute!.spokeToken,
                                 chainId: selectedRoute!.spokeChainId,
@@ -1654,251 +1662,266 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
                                 decimals: routeTokenDecimals,
                               } as Asset,
                             ]
-                          : depositableAssets.map(
+                            : depositableAssets.map(
                               (a) =>
-                                ({
-                                  address: a.address,
-                                  symbol: a.symbol || (a.address || '').slice(0, 6) || 'TOKEN',
-                                  balance:
-                                    (a.address || '').toLowerCase() ===
+                              ({
+                                address: a.address,
+                                symbol: a.symbol || (a.address || '').slice(0, 6) || 'TOKEN',
+                                balance:
+                                  (a.address || '').toLowerCase() ===
                                     (selectedAssetAddress || '').toLowerCase()
-                                      ? walletBalance
-                                      : assetBalances[(a.address || '').toLowerCase()] ?? '0',
-                                  decimals: a.decimals,
-                                } as Asset)
+                                    ? walletBalance
+                                    : assetBalances[(a.address || '').toLowerCase()] ?? '0',
+                                decimals: a.decimals,
+                              } as Asset)
                             )
-                      }
-                      onSelect={(asset) => {
-                        if (!isOftCompose) {
-                          setSelectedAssetAddress(asset.address || '');
-                          setSelectedAssetSymbol(
-                            asset.symbol || (asset.address || '').slice(0, 6) || 'TOKEN'
-                          );
                         }
-                      }}
-                      maxValue={maxAmountToSupply}
-                      isMaxSelected={amount === maxAmountToSupply}
-                      balanceText={isOftCompose ? 'Balance on spoke' : assetInputConfig.balanceText}
-                    />
-                    {txError && (
-                      <Box
-                        sx={{
-                          mb: 2,
-                          p: 2,
-                          bgcolor: 'error.main',
-                          color: 'error.contrastText',
-                          borderRadius: 1,
-                          border: '1px solid',
-                          borderColor: 'error.main',
+                        onSelect={(asset) => {
+                          if (!isOftCompose) {
+                            setSelectedAssetAddress(asset.address || '');
+                            setSelectedAssetSymbol(
+                              asset.symbol || (asset.address || '').slice(0, 6) || 'TOKEN'
+                            );
+                          }
                         }}
-                      >
-                        <Typography variant="secondary14" sx={{ fontWeight: 'bold', mb: 1 }}>
-                          Transaction Error
-                        </Typography>
-                        <Typography variant="caption">{txError}</Typography>
-                      </Box>
-                    )}
-
-                    {/* Wrong-chain alert */}
-                    {isOnWrongChain && (
-                      <Alert
-                        severity="warning"
-                        action={
-                          <Button
-                            color="inherit"
-                            size="small"
-                            onClick={() => {
-                              const targetChain = isOftCompose
-                                ? selectedRoute!.spokeChainId
-                                : hubChainId;
-                              switchChain({ chainId: targetChain });
-                            }}
-                          >
-                            Switch network
-                          </Button>
-                        }
-                      >
-                        {isOftCompose
-                          ? `Switch to ${
-                              networkConfigs[selectedRoute!.spokeChainId]?.name || 'spoke chain'
-                            } to use this route.`
-                          : `Switch to ${networkConfigs[hubChainId]?.name || 'hub chain'} to deposit.`}
-                      </Alert>
-                    )}
-
-                    {/* Bridge fee + info — compact row */}
-                    {isOftCompose ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Typography variant="secondary14" color="text.secondary">
-                          Bridge fee (est.)
-                        </Typography>
-                        {isFeeLoading ? (
-                          <CircularProgress size={14} />
-                        ) : (
-                          <Typography variant="secondary14">
-                            ~{parseFloat(formatUnits(realFee, 18)).toFixed(6)} {selectedRoute!.nativeSymbol}
+                        maxValue={maxAmountToSupply}
+                        isMaxSelected={amount === maxAmountToSupply}
+                        balanceText={isOftCompose ? 'Balance on spoke' : assetInputConfig.balanceText}
+                      />
+                      {txError && (
+                        <Box
+                          sx={{
+                            mb: 2,
+                            p: 2,
+                            bgcolor: 'error.main',
+                            color: 'error.contrastText',
+                            borderRadius: 1,
+                            border: '1px solid',
+                            borderColor: 'error.main',
+                          }}
+                        >
+                          <Typography variant="secondary14" sx={{ fontWeight: 'bold', mb: 1 }}>
+                            Transaction Error
                           </Typography>
-                        )}
-                      </Box>
-                    ) : (isOmniHub && preflight?.recommendedDepositFlow !== 'depositSimple') ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Typography variant="secondary14" color="text.secondary">
-                          Bridge fee (est.)
-                        </Typography>
-                        {isFeeLoading ? (
-                          <CircularProgress size={14} />
-                        ) : estimatedFee ? (
-                          <Typography variant="secondary14">
-                            ~{parseFloat(estimatedFee).toFixed(6)}{' '}
-                            {networkConfigs[hubChainId]?.baseAssetSymbol || 'ETH'}
-                          </Typography>
-                        ) : (
-                          <Typography variant="secondary14" color="text.secondary">—</Typography>
-                        )}
-                      </Box>
-                    ) : null}
+                          <Typography variant="caption">{txError}</Typography>
+                        </Box>
+                      )}
 
-                    {/* Oracle accounting notice — hub deposits only */}
-                    {isOmniHub && !isOftCompose && distribution && !distribution.oracleAccountingEnabled && (
-                      <Alert severity="warning" sx={{ py: 0.5 }}>
-                        Share price updates when deposits or withdrawals occur, returns from other chains
-                        may not be reflected yet.
-                      </Alert>
-                    )}
-
-                    {/* Low ETH warning — only show when ETH is actually insufficient */}
-                    {isOftCompose && hubEthBalance && hubEthBalance.value < BigInt(1e14) && (
-                      <Alert severity="error" sx={{ py: 0.5 }}>
-                        You need ETH on {networkConfigs[hubChainId]?.name || 'hub'} for step 2. You only have{' '}
-                        {parseFloat(hubEthBalance.formatted).toFixed(6)} ETH — send more before depositing.
-                      </Alert>
-                    )}
-
-                    {/* Spoke preflight error */}
-                    {spokePreflightError && !txError && (
-                      <Alert severity="error" sx={{ py: 0.5 }}>
-                        {spokePreflightError.includes('Insufficient ETH on hub')
-                          ? `Not enough ETH on ${networkConfigs[hubChainId]?.name || 'hub'} for step 2.`
-                          : spokePreflightError}
-                      </Alert>
-                    )}
-                  </>
-                )}
-
-                {/* Hub deposit stepper — shown after TX is submitted */}
-                {isOmniHub && !isOftCompose && txHash && (() => {
-                  const steps = [
-                    {
-                      label: 'Deposit',
-                      done: !!txHash,
-                      active: !!txHash && omniStatus === 'pending' && !omniGuid,
-                    },
-                    {
-                      label: 'Cross-chain accounting',
-                      done: omniStatus === 'completed' || omniStatus === 'refunded',
-                      active: omniStatus === 'pending' && !!omniGuid,
-                    },
-                  ];
-                  const statusLabel = omniStatus === 'pending'
-                    ? (omniGuid ? 'Waiting for cross-chain accounting (~2-5 min)...' : 'Transaction confirmed')
-                    : omniStatus === 'completed'
-                    ? (omniResult
-                        ? `Deposit complete — ${parseFloat(formatUnits(BigInt(omniResult.toString()), selectedAssetData.data?.decimals ?? 18)).toFixed(4)} shares minted`
-                        : 'Deposit complete — shares minted')
-                    : 'Deposit refunded — funds returned to your wallet';
-                  return (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <Typography variant="secondary14" fontWeight={600}>{statusLabel}</Typography>
-                      {omniStatus === 'pending' && <LinearProgress sx={{ borderRadius: 1 }} />}
-
-                      {/* Step circles */}
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                        {steps.map((s, i) => (
-                          <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <Box
-                              sx={{
-                                width: 24, height: 24, borderRadius: '50%',
-                                bgcolor: s.done ? 'success.main' : s.active ? 'primary.main' : 'grey.500',
-                                color: 'primary.contrastText',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 12, fontWeight: 700, flexShrink: 0,
+                      {/* Wrong-chain alert */}
+                      {isOnWrongChain && (
+                        <Alert
+                          severity="warning"
+                          action={
+                            <Button
+                              color="inherit"
+                              size="small"
+                              onClick={() => {
+                                const targetChain = isOftCompose
+                                  ? selectedRoute!.spokeChainId
+                                  : hubChainId;
+                                switchChain({ chainId: targetChain });
                               }}
                             >
-                              {s.done ? '\u2713' : i + 1}
-                            </Box>
-                            <Typography variant="secondary14" sx={{ fontWeight: s.active ? 600 : 400 }}>
-                              {s.label}
-                            </Typography>
-                          </Box>
-                        ))}
-                      </Box>
-
-                      {/* TX link */}
-                      <Box
-                        sx={{
-                          p: 2, bgcolor: 'background.surface', borderRadius: 1,
-                          border: '1px solid', borderColor: 'divider',
-                          display: 'flex', flexDirection: 'column', gap: 1,
-                        }}
-                      >
-                        <Link
-                          href={`${networkConfigs[hubChainId]?.explorerLink}/tx/${txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          variant="secondary14"
+                              Switch network
+                            </Button>
+                          }
                         >
-                          View on {networkConfigs[hubChainId]?.explorerName || 'explorer'} ↗
-                        </Link>
-                        {omniGuid && (
+                          {isOftCompose
+                            ? `Switch to ${networkConfigs[selectedRoute!.spokeChainId]?.name || 'spoke chain'
+                            } to use this route.`
+                            : `Switch to ${networkConfigs[hubChainId]?.name || 'hub chain'} to deposit.`}
+                        </Alert>
+                      )}
+
+                      {/* Bridge fee + info — compact row */}
+                      {isOftCompose ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Typography variant="secondary14" color="text.secondary">
+                            Bridge fee (est.)
+                          </Typography>
+                          {isFeeLoading ? (
+                            <CircularProgress size={14} />
+                          ) : (
+                            <Typography variant="secondary14">
+                              ~{parseFloat(formatUnits(realFee, 18)).toFixed(6)} {selectedRoute!.nativeSymbol}
+                            </Typography>
+                          )}
+                        </Box>
+                      ) : (isOmniHub && preflight?.recommendedDepositFlow !== 'depositSimple') ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Typography variant="secondary14" color="text.secondary">
+                            Bridge fee (est.)
+                          </Typography>
+                          {isFeeLoading ? (
+                            <CircularProgress size={14} />
+                          ) : estimatedFee ? (
+                            <Typography variant="secondary14">
+                              ~{parseFloat(estimatedFee).toFixed(6)}{' '}
+                              {networkConfigs[hubChainId]?.baseAssetSymbol || 'ETH'}
+                            </Typography>
+                          ) : (
+                            <Typography variant="secondary14" color="text.secondary">—</Typography>
+                          )}
+                        </Box>
+                      ) : null}
+
+                      {/* Oracle accounting notice — hub deposits only */}
+                      {isOmniHub && !isOftCompose && distribution && !distribution.oracleAccountingEnabled && (
+                        <Alert severity="warning" sx={{ py: 0.5 }}>
+                          Share price updates when deposits or withdrawals occur, returns from other chains
+                          may not be reflected yet.
+                        </Alert>
+                      )}
+
+                      {/* Low ETH warning — only show when ETH is actually insufficient */}
+                      {isOftCompose && hubEthBalance && hubEthBalance.value < BigInt(1e14) && (
+                        <Alert severity="error" sx={{ py: 0.5 }}>
+                          You need ETH on {networkConfigs[hubChainId]?.name || 'hub'} for step 2. You only have{' '}
+                          {parseFloat(hubEthBalance.formatted).toFixed(6)} ETH — send more before depositing.
+                        </Alert>
+                      )}
+
+                      {/* Spoke preflight error */}
+                      {spokePreflightError && !txError && (
+                        <Alert severity="error" sx={{ py: 0.5 }}>
+                          {spokePreflightError.includes('Insufficient ETH on hub')
+                            ? `Not enough ETH on ${networkConfigs[hubChainId]?.name || 'hub'} for step 2.`
+                            : spokePreflightError}
+                        </Alert>
+                      )}
+                    </>
+                  )}
+
+                  {/* Hub deposit stepper — shown after TX is submitted */}
+                  {isOmniHub && !isOftCompose && txHash && (() => {
+                    const steps = [
+                      {
+                        label: 'Deposit',
+                        done: !!txHash,
+                        active: !!txHash && omniStatus === 'pending' && !omniGuid,
+                      },
+                      {
+                        label: 'Cross-chain accounting',
+                        done: omniStatus === 'completed' || omniStatus === 'refunded',
+                        active: omniStatus === 'pending' && !!omniGuid,
+                      },
+                    ];
+                    const statusLabel = omniStatus === 'pending'
+                      ? (omniGuid ? 'Waiting for cross-chain accounting (~2-5 min)...' : 'Transaction confirmed')
+                      : omniStatus === 'completed'
+                        ? (omniResult
+                          ? `Deposit complete — ${parseFloat(formatUnits(BigInt(omniResult.toString()), selectedAssetData.data?.decimals ?? 18)).toFixed(4)} shares minted`
+                          : 'Deposit complete — shares minted')
+                        : 'Deposit refunded — funds returned to your wallet';
+                    return (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Typography variant="secondary14" fontWeight={600}>{statusLabel}</Typography>
+                        {omniStatus === 'pending' && <LinearProgress sx={{ borderRadius: 1 }} />}
+
+                        {/* Step circles */}
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                          {steps.map((s, i) => (
+                            <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                              <Box
+                                sx={{
+                                  width: 24, height: 24, borderRadius: '50%',
+                                  bgcolor: s.done ? 'success.main' : s.active ? 'primary.main' : 'grey.500',
+                                  color: 'primary.contrastText',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  fontSize: 12, fontWeight: 700, flexShrink: 0,
+                                }}
+                              >
+                                {s.done ? '\u2713' : i + 1}
+                              </Box>
+                              <Typography variant="secondary14" sx={{ fontWeight: s.active ? 600 : 400 }}>
+                                {s.label}
+                              </Typography>
+                            </Box>
+                          ))}
+                        </Box>
+
+                        {/* TX link */}
+                        <Box
+                          sx={{
+                            p: 2, bgcolor: 'background.surface', borderRadius: 1,
+                            border: '1px solid', borderColor: 'divider',
+                            display: 'flex', flexDirection: 'column', gap: 1,
+                          }}
+                        >
                           <Link
-                            href={`https://layerzeroscan.com/tx/${omniGuid}`}
+                            href={`${networkConfigs[hubChainId]?.explorerLink}/tx/${txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             variant="secondary14"
                           >
-                            Track on LayerZero Scan ↗
+                            View on {networkConfigs[hubChainId]?.explorerName || 'explorer'} ↗
                           </Link>
-                        )}
+                          {omniGuid && (
+                            <Link
+                              href={`https://layerzeroscan.com/tx/${omniGuid}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              variant="secondary14"
+                            >
+                              Track on LayerZero Scan ↗
+                            </Link>
+                          )}
+                        </Box>
                       </Box>
-                    </Box>
-                  );
-                })()}
+                    );
+                  })()}
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {/* Hide main action button when hub stepper is active */}
-                  {!(isOmniHub && !isOftCompose && txHash) && (
-                    <Button
-                      variant={txHash ? 'contained' : 'gradient'}
-                      disabled={
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {/* Hide main action button when hub stepper is active */}
+                    {!(isOmniHub && !isOftCompose && txHash) && (() => {
+                      const eligibilityTooltip =
+                        depositEligibility?.reason === 'not-whitelisted'
+                          ? 'You are not whitelisted to deposit in this vault'
+                          : depositEligibility?.reason === 'capacity-full'
+                          ? 'This vault has reached its deposit capacity'
+                          : depositEligibility?.reason === 'paused'
+                          ? 'This vault is currently paused'
+                          : '';
+                      const isDisabled =
                         isOnWrongChain ||
-                        (!amount || amount === '0' || !!preflightBlocked ||
-                          (isOftCompose && hubEthBalance && hubEthBalance.value < BigInt(1e14)))
-                      }
-                      onClick={handleClick}
-                      size="large"
-                      sx={{ minHeight: '44px' }}
-                      data-cy="actionButton"
-                    >
-                      {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
-                      {buttonContent}
-                    </Button>
-                  )}
-                  {txHash && (
-                    <Button
-                      variant="outlined"
-                      onClick={() => setIsOpen(false)}
-                      size="large"
-                      sx={{ minHeight: '44px' }}
-                    >
-                      Close
-                    </Button>
-                  )}
-                </Box>
-              </>
-            )}
-          </Box>
-        </Collapse>
-      </Box>
+                        !amount || amount === '0' || !!preflightBlocked ||
+                        (isOftCompose && hubEthBalance && hubEthBalance.value < BigInt(1e14));
+                      return (
+                        <Tooltip title={isDisabled && eligibilityTooltip ? eligibilityTooltip : ''} arrow>
+                          <span>
+                            <Button
+                              variant={txHash ? 'contained' : 'gradient'}
+                              disabled={isDisabled}
+                              onClick={handleClick}
+                              size="large"
+                              sx={{ minHeight: '44px', width: '100%' }}
+                              data-cy="actionButton"
+                            >
+                              {isLoading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
+                              {buttonContent}
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      );
+                    })()}
+                    {txHash && (
+                      <Button
+                        variant="outlined"
+                        onClick={() => setIsOpen(false)}
+                        size="large"
+                        sx={{ minHeight: '44px' }}
+                      >
+                        Close
+                      </Button>
+                    )}
+                  </Box>
+                </>
+              )}
+            </Box>
+          </Collapse>
+        </Box>
+
+      )} {/* end orphanSearchMode ternary */}
     </BasicModal>
   );
 };

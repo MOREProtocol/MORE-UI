@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Chip, CircularProgress, LinearProgress, Link, Typography, useTheme } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, LinearProgress, Link, Typography } from '@mui/material';
 import { useUserPositionMultiChain } from '@oydual31/more-vaults-sdk/react';
 import {
   asSdkClient,
@@ -14,6 +14,7 @@ import { formatUnits, parseUnits } from 'ethers/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { BasicModal } from 'src/components/primitives/BasicModal';
+import { type SpokeSelection, VaultRedeemSourceSelector } from './VaultRedeemSourceSelector';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { AssetInput } from 'src/components/transactions/AssetInput';
@@ -52,7 +53,6 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({ isOpen, setI
     omniHubChainId,
     omniRedeem,
   } = useVault();
-  const theme = useTheme();
   // For omni vaults, use SDK-resolved hub chain; legacy as fallback for non-omni
   const chainId = isOmniHub ? omniHubChainId : vaultChainId;
   const wagmiChainId = useChainId();
@@ -82,12 +82,7 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({ isOpen, setI
   // For omni vaults: track which chain the user selected to show amount input
   const [hubSelected, setHubSelected] = useState(false);
   // Spoke selection: { chainId, balance (bigint), rawBalance (bigint), decimals }
-  const [selectedSpoke, setSelectedSpoke] = useState<{
-    chainId: number;
-    balance: bigint;
-    rawBalance: bigint;
-    decimals: number;
-  } | null>(null);
+  const [selectedSpoke, setSelectedSpoke] = useState<SpokeSelection | null>(null);
   const [withdrawalRequest, setWithdrawalRequest] = useState<{
     shares: string;
     timeLockEndsAt: string;
@@ -807,104 +802,16 @@ export const VaultRedeemModal: React.FC<VaultRedeemModalProps> = ({ isOpen, setI
 
         {/* Redeem source selector for omni vaults — hidden when stepper is active */}
         {isOmniHub && userPosition && !(txHash && txAction === null) && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            {/* Hub option */}
-            {(() => {
-              const hasBalance = maxAmountToRedeem.gt(0);
-              return (
-                <Box
-                  onClick={() => { if (hasBalance) { setHubSelected(true); setSelectedSpoke(null); setAmount(''); } }}
-                  sx={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    gap: 2, py: 1.5, px: 2, borderRadius: 2,
-                    border: '1.5px solid',
-                    borderColor: hubSelected ? theme.palette.other.chartHighlight : '#E0E0E0',
-                    cursor: hasBalance ? 'pointer' : 'default',
-                    opacity: hasBalance ? 1 : 0.45,
-                    bgcolor: 'transparent',
-                    transition: 'border-color 0.15s',
-                    '&:hover': hasBalance ? { borderColor: theme.palette.text.muted, bgcolor: theme.palette.background.surface } : {},
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    {networkConfigs[chainId]?.networkLogoPath && (
-                      <img src={networkConfigs[chainId].networkLogoPath} width={32} height={32} alt="" style={{ borderRadius: '50%' }} />
-                    )}
-                    <Box>
-                      <Typography variant="main14" fontWeight={600}>
-                        {networkConfigs[chainId]?.name || 'Hub'}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                        <Chip label="Hub" size="small" sx={{ fontSize: '0.65rem', height: 18, bgcolor: theme.palette.other.chartHighlight, color: '#fff' }} />
-                      </Box>
-                    </Box>
-                  </Box>
-                  <Box sx={{ textAlign: 'right' }}>
-                    <Typography variant="secondary14" fontWeight={600} color={hasBalance ? 'text.primary' : 'text.secondary'}>
-                      {hasBalance ? parseFloat(maxAmountToRedeem.toString()).toFixed(4) : '0'}
-                    </Typography>
-                    <Typography variant="secondary12" color="text.secondary">shares</Typography>
-                  </Box>
-                </Box>
-              );
-            })()}
-            {/* Spoke options */}
-            {userPosition.spokeShares && Object.entries(userPosition.spokeShares).map(([cid, bal]) => {
-              const spokeId = Number(cid);
-              const decimals = userPosition.decimals ?? 8;
-              const formatted = parseFloat(formatUnits((bal as bigint).toString(), decimals)).toFixed(4);
-              const chainName = networkConfigs[spokeId]?.name || `Chain ${spokeId}`;
-              const hasBalance = (bal as bigint) > BigInt(0);
-              return (
-                <Box
-                  key={cid}
-                  onClick={() => {
-                    if (hasBalance && onRedeemFromSpoke) {
-                      const raw = (userPosition as any).rawSpokeShares?.[spokeId] ?? bal;
-                      setSelectedSpoke({
-                        chainId: spokeId,
-                        balance: bal as bigint,
-                        rawBalance: raw as bigint,
-                        decimals,
-                      });
-                      setHubSelected(false);
-                      setAmount('');
-                    }
-                  }}
-                  sx={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    gap: 2, py: 1.5, px: 2, borderRadius: 2,
-                    border: '1.5px solid', borderColor: selectedSpoke?.chainId === spokeId ? theme.palette.other.chartHighlight : '#E0E0E0',
-                    cursor: hasBalance && onRedeemFromSpoke ? 'pointer' : 'default',
-                    opacity: hasBalance ? 1 : 0.45,
-                    bgcolor: 'transparent',
-                    transition: 'border-color 0.15s',
-                    '&:hover': hasBalance && onRedeemFromSpoke ? { borderColor: theme.palette.text.muted, bgcolor: theme.palette.background.surface } : {},
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    {networkConfigs[spokeId]?.networkLogoPath && (
-                      <img src={networkConfigs[spokeId].networkLogoPath} width={32} height={32} alt="" style={{ borderRadius: '50%' }} />
-                    )}
-                    <Box>
-                      <Typography variant="main14" fontWeight={600}>
-                        {chainName}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                        <Chip label="Crosschain" size="small" sx={{ fontSize: '0.65rem', height: 18 }} />
-                      </Box>
-                    </Box>
-                  </Box>
-                  <Box sx={{ textAlign: 'right' }}>
-                    <Typography variant="secondary14" fontWeight={600} color={hasBalance ? 'text.primary' : 'text.secondary'}>
-                      {hasBalance ? formatted : '0'}
-                    </Typography>
-                    <Typography variant="secondary12" color="text.secondary">shares</Typography>
-                  </Box>
-                </Box>
-              );
-            })}
-          </Box>
+          <VaultRedeemSourceSelector
+            hubChainId={chainId}
+            hubSelected={hubSelected}
+            selectedSpokeChainId={selectedSpoke?.chainId ?? null}
+            maxAmountToRedeem={maxAmountToRedeem}
+            userPosition={userPosition}
+            canRedeemFromSpoke={!!onRedeemFromSpoke}
+            onSelectHub={() => { setHubSelected(true); setSelectedSpoke(null); setAmount(''); }}
+            onSelectSpoke={(spoke) => { setSelectedSpoke(spoke); setHubSelected(false); setAmount(''); }}
+          />
         )}
 
         {/* Amount input — for spoke redeem (shown after selecting a spoke, hidden when stepper active) */}
