@@ -12,6 +12,7 @@ import {
   SvgIcon,
   Tab,
   Tabs,
+  Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
@@ -42,8 +43,9 @@ import {
 } from 'src/hooks/vault/useVaultData';
 import { ChainIds } from 'src/utils/const';
 import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
+import { asSdkClient, canDeposit } from '@oydual31/more-vaults-sdk/viem';
 import { formatUnits } from 'viem';
-import { useAccount, useChainId, useSwitchChain } from 'wagmi';
+import { useAccount, useChainId, usePublicClient, useSwitchChain } from 'wagmi';
 
 import { LineChart } from '../charts/LineChart';
 import { VaultActivity } from './VaultActivity';
@@ -193,8 +195,40 @@ export const VaultDetail = () => {
     'sharePrice'
   );
 
-  // Get whitelist data from smart contract
+  // Mono-chain vaults: whitelist check via direct contract calls
   const { isWhitelisted, whitelistAmount, isWhitelistEnabled } = useDepositWhitelist();
+
+  // Omni hub vaults: whitelist check via SDK's canDeposit() (fixed in SDK to use
+  // getAvailableToDeposit rather than maxDeposit, which reverts on async hub vaults)
+  const hubPublicClient = usePublicClient({ chainId: sdkChainId });
+  const [omniDepositEligibility, setOmniDepositEligibility] = useState<{
+    allowed: boolean;
+    reason: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!isOmniHub || !selectedVaultId || !hubPublicClient || !accountAddress) return;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const eligibility = await canDeposit(
+          asSdkClient(hubPublicClient),
+          selectedVaultId as `0x${string}`,
+          accountAddress as `0x${string}`
+        );
+        if (!cancelled) setOmniDepositEligibility(eligibility);
+      } catch {
+        // Don't block on SDK failure — fail open
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [isOmniHub, selectedVaultId, hubPublicClient, accountAddress]);
+
+  // Only block when we have a confirmed not-whitelisted result — never blocks while loading
+  const isNotWhitelisted = isOmniHub
+    ? (omniDepositEligibility !== null && !omniDepositEligibility.allowed && omniDepositEligibility.reason === 'not-whitelisted')
+    : (isWhitelistEnabled && !isWhitelisted);
 
   const vaultNetwork = selectedVault?.chainId || sdkChainId;
   const isOnCorrectNetwork = wagmiChainId === vaultNetwork;
@@ -321,10 +355,6 @@ export const VaultDetail = () => {
     // Non-omni vault on wrong chain → switch first
     if (!isOmniVault && !isOnCorrectNetwork) {
       switchChain?.({ chainId: vaultNetwork || ChainIds.flowEVMMainnet });
-      return;
-    }
-    if (isWhitelistEnabled && !isWhitelisted) {
-      setIsWhitelistModalOpen(true);
       return;
     }
     setIsDepositModalOpen(true);
@@ -524,14 +554,21 @@ export const VaultDetail = () => {
         >
           {!isLoading &&
             (isOmniHub || isOmniSpoke || !(vaultData?.data?.financials?.liquidity?.maxDeposit === '0')) && (
-              <Button
-                variant="gradient"
-                color="primary"
-                onClick={handleDepositClick}
-                disabled={isLoading || !accountAddress}
+              <Tooltip
+                title={isNotWhitelisted ? 'Your address is not whitelisted for deposits in this vault' : ''}
+                placement="top"
               >
-                Deposit
-              </Button>
+                <span>
+                  <Button
+                    variant="gradient"
+                    color="primary"
+                    onClick={handleDepositClick}
+                    disabled={isLoading || !accountAddress || isNotWhitelisted}
+                  >
+                    Deposit
+                  </Button>
+                </span>
+              </Tooltip>
             )}
           {!isLoading &&
             accountAddress &&

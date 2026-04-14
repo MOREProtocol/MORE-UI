@@ -39,7 +39,7 @@
     "@mui/icons-material": "^5.10.14",
     "@mui/lab": "5.0.0-alpha.103",
     "@mui/material": "^5.10.9",
-    "@oydual31/more-vaults-sdk": "^1.1.11",
+    "@oydual31/more-vaults-sdk": "^1.1.20",
     "@paraswap/sdk": "6.2.4",
     "@rainbow-me/rainbowkit": "^2.1.4",
     "@safe-global/safe-apps-provider": "^0.18.6",
