@@ -984,7 +984,8 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
           queryClient.invalidateQueries({ queryKey: ['vaultStatus'] });
           if (refreshUserVaultData) refreshUserVaultData();
         } else {
-          // Sync deposit — shares received immediately
+          // Sync deposit (oracle ON) — shares received immediately, no cross-chain step
+          setOmniStatus('completed');
           if (refreshUserVaultData) refreshUserVaultData();
         }
       } catch (error) {
@@ -1794,25 +1795,26 @@ export const VaultDepositModal: React.FC<VaultDepositModalProps> = ({
 
                   {/* Hub deposit stepper — shown after TX is submitted */}
                   {isOmniHub && !isOftCompose && txHash && (() => {
+                    const isSyncDeposit = preflight?.recommendedDepositFlow === 'depositSimple';
                     const steps = [
                       {
                         label: 'Deposit',
-                        done: !!txHash,
+                        done: !!txHash && (isSyncDeposit ? omniStatus === 'completed' : true),
                         active: !!txHash && omniStatus === 'pending' && !omniGuid,
                       },
-                      {
+                      ...(!isSyncDeposit ? [{
                         label: 'Cross-chain accounting',
                         done: omniStatus === 'completed' || omniStatus === 'refunded',
                         active: omniStatus === 'pending' && !!omniGuid,
-                      },
+                      }] : []),
                     ];
-                    const statusLabel = omniStatus === 'pending'
-                      ? (omniGuid ? 'Waiting for cross-chain accounting (~2-5 min)...' : 'Transaction confirmed')
-                      : omniStatus === 'completed'
-                        ? (omniResult
-                          ? `Deposit complete — ${parseFloat(formatUnits(BigInt(omniResult.toString()), selectedAssetData.data?.decimals ?? 18)).toFixed(4)} shares minted`
-                          : 'Deposit complete — shares minted')
-                        : 'Deposit refunded — funds returned to your wallet';
+                    const statusLabel = omniStatus === 'completed'
+                      ? (omniResult
+                        ? `Deposit complete — ${parseFloat(formatUnits(BigInt(omniResult.toString()), selectedAssetData.data?.decimals ?? 18)).toFixed(4)} shares minted`
+                        : 'Deposit complete — shares minted')
+                      : omniStatus === 'refunded'
+                        ? 'Deposit refunded — funds returned to your wallet'
+                        : (omniGuid ? 'Waiting for cross-chain accounting (~2-5 min)...' : 'Transaction confirmed');
                     return (
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <Typography variant="secondary14" fontWeight={600}>{statusLabel}</Typography>
