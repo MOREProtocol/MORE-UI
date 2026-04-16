@@ -353,7 +353,7 @@ export function MarketsTable() {
     const supplyColumns: ColumnDefinition<MarketRow>[] = [
       {
         key: 'totalLiquidity',
-        label: 'Total Liquidity',
+        label: 'Total Supply',
         sortable: true,
         render: (row: MarketRow) => (
           row.reserve ? (
@@ -453,7 +453,7 @@ export function MarketsTable() {
     };
     const totalsColumn: ColumnDefinition<MarketRow> = {
       key: 'totalLiquidity',
-      label: 'Total Liquidity',
+      label: 'Total Supply',
       sortable: true,
       render: (row: MarketRow) => (
         row.reserve ? (
