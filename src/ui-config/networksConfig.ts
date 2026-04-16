@@ -91,7 +91,12 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
         : 'https://app.more.markets/api/rpc-proxy/?network=eth-mainnet';
     },
     publicJsonRPCUrl: [
-      'https://ethereum.publicnode.com'
+      'https://eth.llamarpc.com',
+      'https://0xrpc.io/eth',
+      'https://eth-mainnet.public.blastapi.io',
+      'https://mainnet.gateway.tenderly.co',
+      'https://eth.drpc.org',
+      'https://ethereum.publicnode.com',
     ],
     baseUniswapAdapter: '0x0',
     baseAssetSymbol: 'ETH',
@@ -110,7 +115,13 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
         : 'https://app.more.markets/api/rpc-proxy/?network=base-mainnet';
     },
     publicJsonRPCUrl: [
-      'https://base.publicnode.com'
+      'https://base-rpc.publicnode.com',
+      'https://base.llamarpc.com',
+      'https://base.drpc.org',
+      'https://mainnet.base.org',
+      'https://1rpc.io/base',
+      'https://gateway.tenderly.co/public/base',
+      'https://base.rpc.subquery.network/public',
     ],
     baseUniswapAdapter: '0x0',
     baseAssetSymbol: 'ETH',
@@ -129,7 +140,10 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
         : 'https://app.more.markets/api/rpc-proxy/?network=arb-mainnet';
     },
     publicJsonRPCUrl: [
-      'https://arbitrum.publicnode.com'
+      'https://arbitrum.public.blockpi.network/v1/rpc/public',
+      'https://public-arb-mainnet.fastnode.io',
+      'https://arbitrum-one-rpc.publicnode.com',
+      'https://arbitrum.publicnode.com',
     ],
     baseUniswapAdapter: '0x0',
     baseAssetSymbol: 'ETH',

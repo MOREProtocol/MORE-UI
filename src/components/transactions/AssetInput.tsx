@@ -60,6 +60,7 @@ export interface Asset {
   symbol: string;
   iconSymbol?: string;
   address?: string;
+  chainId?: number;
   mToken?: boolean;
   priceInUsd?: string;
   decimals?: number;
@@ -196,6 +197,8 @@ export const AssetInput = <T extends Asset = Asset>({
               <TokenIcon
                 mToken={asset.mToken}
                 symbol={asset.iconSymbol || asset.symbol}
+                address={asset.address}
+                chainId={asset.chainId}
                 sx={{ mr: 2, ml: 4 }}
               />
               <Typography variant="h3" sx={{ lineHeight: '28px' }} data-cy={'inputAsset'}>

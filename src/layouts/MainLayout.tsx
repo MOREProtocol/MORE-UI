@@ -1,6 +1,8 @@
 import { Box } from '@mui/material';
 import React, { ReactNode } from 'react';
 import AnalyticsConsent from 'src/components/Analytics/AnalyticsConsent';
+import { OmniRequestNotifications } from 'src/components/OmniRequestNotifications';
+import { useGlobalOmniPolling } from 'src/hooks/vault/useGlobalOmniPolling';
 import { FeedbackModal } from 'src/layouts/FeedbackDialog';
 import { FORK_ENABLED } from 'src/utils/marketsAndNetworksConfig';
 
@@ -8,6 +10,8 @@ import { AppFooter } from './AppFooter';
 import { AppHeader } from './AppHeader';
 
 export function MainLayout({ children }: { children: ReactNode }) {
+  useGlobalOmniPolling();
+
   return (
     <Box
       sx={{
@@ -29,6 +33,7 @@ export function MainLayout({ children }: { children: ReactNode }) {
       </Box>
       <AppFooter />
       <FeedbackModal />
+      <OmniRequestNotifications />
       {FORK_ENABLED ? null : <AnalyticsConsent />}
     </Box>
   );

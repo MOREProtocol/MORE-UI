@@ -6,6 +6,7 @@ import { createWithEqualityFn } from 'zustand/traditional';
 import { AnalyticsSlice, createAnalyticsSlice } from './analyticsSlice';
 import { BatchTransactionsSlice, createBatchTransactionsSlice } from './batchTransactionsSlice';
 import { createLayoutSlice, LayoutSlice } from './layoutSlice';
+import { createOmniRequestSlice, OmniRequestSlice } from './omniRequestSlice';
 import { createPoolSlice, PoolSlice } from './poolSlice';
 import { createProtocolDataSlice, ProtocolDataSlice } from './protocolDataSlice';
 import { createTransactionsSlice, TransactionsSlice } from './transactionsSlice';
@@ -24,7 +25,8 @@ export type RootStore = ProtocolDataSlice &
   AnalyticsSlice &
   TransactionsSlice &
   BatchTransactionsSlice &
-  LayoutSlice;
+  LayoutSlice &
+  OmniRequestSlice;
 
 export const useRootStore = createWithEqualityFn<RootStore>()(
   subscribeWithSelector(
@@ -39,6 +41,7 @@ export const useRootStore = createWithEqualityFn<RootStore>()(
         ...createTransactionsSlice(...args),
         ...createBatchTransactionsSlice(...args),
         ...createLayoutSlice(...args),
+        ...createOmniRequestSlice(...args),
       };
     })
   )

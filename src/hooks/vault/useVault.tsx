@@ -22,8 +22,9 @@ import type { SpokeVaultInfo } from './types';
 import { isOmniHubVault, markVaultAsOmniHub } from './factoryRegistry';
 import omniVaultFactoryAbi from 'src/libs/abis/omni_vault_factory_abi.json';
 
-import { useVaultProvider, useOmniDeployedVaults } from './useVaultData';
+import { useVaultProvider, useOmniDeployedVaults, detectVaultNetwork } from './useVaultData';
 import { useOmniVaultActions } from './useOmniVaultActions';
+import { useVaultTopology } from '@oydual31/more-vaults-sdk/react';
 import bridgeFacetAbi from 'src/libs/abis/bridge_facet_abi.json';
 
 // Define standardized types for monetary values
@@ -144,6 +145,8 @@ interface VaultBatchTransaction {
 export interface VaultContextData {
   // Network context
   chainId: number;
+  /** True once the vault's actual chain has been detected (or no vault is selected) */
+  isChainDetected: boolean;
   signer: ethers.Signer | null;
   network: string;
 
@@ -206,20 +209,9 @@ export interface VaultContextData {
   operationsLoading: boolean;
   operationsError: Error | null;
   isOmniHub: boolean;
-  omniDeposit?: (amountInWei: string) => Promise<{
-    tx: ethers.providers.TransactionRequest;
-    action: 'approve' | 'omni-deposit';
-    nativeFee?: ethers.BigNumber;
-    guid?: string;
-  }>;
-  omniRedeem?: (sharesInWei: string) => Promise<{
-    tx: ethers.providers.TransactionRequest;
-    action: 'approve' | 'omni-redeem';
-    nativeFee?: ethers.BigNumber;
-    guid?: string;
-  }>;
-  checkOmniDepositAction?: (amountInWei: string) => Promise<'approve' | 'omni-deposit'>;
-  checkOmniRedeemAction?: (sharesInWei: string) => Promise<'approve' | 'omni-redeem'>;
+  omniHubChainId: number;
+  omniDeposit?: (amountInWei: string) => Promise<{ txHash: string; guid?: string }>;
+  omniRedeem?: (sharesInWei: string) => Promise<{ txHash: string; guid?: string }>;
 }
 
 // Create the context
@@ -251,8 +243,15 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
   const { data: walletClient } = useWalletClient();
   const wagmiChainId = useChainId();
 
-  // Use wagmi chainId (reacts to network changes) with fallback to Flow EVM Mainnet
-  const chainId = wagmiChainId || ChainIds.flowEVMMainnet;
+  const { data: detectedChainId } = useQuery({
+    queryKey: ['detectVaultNetwork', selectedVaultId],
+    queryFn: () => detectVaultNetwork(selectedVaultId!),
+    enabled: !!selectedVaultId,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const isChainDetected = !!detectedChainId || !selectedVaultId;
+  const chainId = detectedChainId || wagmiChainId || ChainIds.flowEVMMainnet;
 
   const provider = useVaultProvider(chainId);
   const signer = useMemo(() => {
@@ -1006,25 +1005,33 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     staleTime: 5 * 60 * 1000,
   });
 
+  // SDK topology discovery — works without wallet, detects hub/spoke across all chains
+  const { topology } = useVaultTopology(selectedVaultId as `0x${string}` | undefined);
+  const isOmniFromTopology = topology?.role === 'hub' || topology?.role === 'spoke';
+
   const isOmniHub = useMemo(
     () =>
       !!(selectedVaultId && (
+        isOmniFromTopology ||
         isCrossChainHub ||
         omniVaultsQuery.data?.some(addr => addr.toLowerCase() === selectedVaultId.toLowerCase()) ||
-        isOmniHubVault(ChainIds.base, selectedVaultId) ||
         isOmniHubVault(chainId, selectedVaultId)
       )),
-    [isCrossChainHub, omniVaultsQuery.data, selectedVaultId, chainId]
+    [isOmniFromTopology, isCrossChainHub, omniVaultsQuery.data, selectedVaultId, chainId]
   );
 
-  const { omniDeposit, omniRedeem, checkOmniDepositAction, checkOmniRedeemAction } = useOmniVaultActions(
+  // For omni vaults, use the hub chain from topology (not wallet chain)
+  const omniHubChainId = topology?.hubChainId || chainId;
+
+  const { omniDeposit, omniRedeem } = useOmniVaultActions(
     isOmniHub ? selectedVaultId : null,
-    chainId
+    omniHubChainId
   );
 
   const contextValue: VaultContextData = {
     // Network context
     chainId,
+    isChainDetected,
     signer,
     network,
     // Info reading
@@ -1060,10 +1067,9 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     operationsLoading,
     operationsError,
     isOmniHub,
+    omniHubChainId,
     omniDeposit,
     omniRedeem,
-    checkOmniDepositAction,
-    checkOmniRedeemAction,
   };
 
   return <VaultContext.Provider value={contextValue}>{children}</VaultContext.Provider>;

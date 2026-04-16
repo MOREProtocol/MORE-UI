@@ -1,84 +1,250 @@
-import { Avatar, Box, Button, Chip, Skeleton, SvgIcon, Tab, Tabs, Typography, useMediaQuery, useTheme, Tooltip, IconButton, Alert } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
-import InfoIcon from '@mui/icons-material/InfoOutlined';
-import { useVault, VaultTab } from 'src/hooks/vault/useVault';
-import { useEffect, useMemo, useState } from 'react';
-import { useUserVaultsData, useVaultData, useAssetData, useUserVaultBalances, useUserPortfolioMetrics, useVaultsSharePriceAsset } from 'src/hooks/vault/useVaultData';
-import { CompactMode } from 'src/components/CompactableTypography';
-import { Address } from 'src/components/Address';
-import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
-import { useDepositWhitelist } from 'src/hooks/vault/useDepositWhitelist';
-import { VaultWhitelistModal } from './VaultWhitelistModal';
-import { VaultDepositModal } from './VaultDepositModal';
-import { VaultRedeemModal } from './VaultRedeemModal';
-import { LineChart } from '../charts/LineChart';
-import { MarketLogo } from 'src/components/MarketSwitcher';
-import { TokenIcon } from 'src/components/primitives/TokenIcon';
-import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
-import { UsdChip } from 'src/components/primitives/UsdChip';
-import { formatUnits } from 'viem';
-import { formatTimeRemaining } from 'src/helpers/timeHelper';
+import {
+  Alert,
+  Avatar,
+  Box,
+  Button,
+  Chip,
+  IconButton,
+  Skeleton,
+  SvgIcon,
+  Tab,
+  Tabs,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
+import {
+  useInboundRoutes,
+  useVaultTopology,
+  useVaultStatus,
+  useVaultMetadata,
+  useUserPositionMultiChain,
+} from '@oydual31/more-vaults-sdk/react';
 import { useRouter } from 'next/router';
-import BigNumber from 'bignumber.js';
+import { useEffect, useMemo, useState } from 'react';
+import { Address } from 'src/components/Address';
+import { CompactMode } from 'src/components/CompactableTypography';
+import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
+import { TokenIcon } from 'src/components/primitives/TokenIcon';
+import { isOmniSpokeVault } from 'src/hooks/vault/factoryRegistry';
+import { useDepositWhitelist } from 'src/hooks/vault/useDepositWhitelist';
+import { useVault, VaultTab } from 'src/hooks/vault/useVault';
+import {
+  useAssetData,
+  useUserPortfolioMetrics,
+  useUserVaultBalances,
+  useUserVaultsData,
+  useVaultData,
+  useVaultsSharePriceAsset,
+} from 'src/hooks/vault/useVaultData';
+import { ChainIds } from 'src/utils/const';
+import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
+import { asSdkClient, canDeposit } from '@oydual31/more-vaults-sdk/viem';
+import { formatUnits } from 'viem';
+import { useAccount, useChainId, usePublicClient, useSwitchChain } from 'wagmi';
+
+import { LineChart } from '../charts/LineChart';
 import { VaultActivity } from './VaultActivity';
 import { VaultAllocations } from './VaultAllocations';
+import { VaultBridgeSharesToHubModal } from './VaultBridgeSharesToHubModal';
+import { VaultDepositModal } from './VaultDepositModal';
 import { VaultManagement } from './VaultManagement/VaultManagement';
 import { VaultNotes } from './VaultNotes';
-import { RewardsButton } from 'src/components/incentives/IncentivesButton';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
-import { useAccount, useChainId, useSwitchChain } from 'wagmi';
-import { ChainIds } from 'src/utils/const';
-import { isOmniSpokeVault } from 'src/hooks/vault/factoryRegistry';
+import { VaultKpiGrid } from './VaultKpiGrid';
+import { VaultRedeemModal } from './VaultRedeemModal';
+import { VaultWhitelistModal } from './VaultWhitelistModal';
 
 export const VaultDetail = () => {
   const router = useRouter();
-  const { selectedVaultId, accountAddress, chainId, isOmniHub } = useVault();
+  const { selectedVaultId, accountAddress, chainId, isOmniHub, isChainDetected } = useVault();
   const isOmniSpoke = isOmniSpokeVault(chainId, selectedVaultId ?? '');
   const { address } = useAccount();
   const wagmiChainId = useChainId();
   const { switchChain } = useSwitchChain();
-
-  const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId], { enabled: !!selectedVaultId && !!accountAddress });
+  const { topology } = useVaultTopology(
+    selectedVaultId as `0x${string}` | undefined
+  );
+  const sdkChainId = topology?.hubChainId || chainId;
+  const topologyReady = !!topology;
+  const { data: vaultStatus, isLoading: statusLoading } = useVaultStatus(
+    topologyReady ? (selectedVaultId as `0x${string}`) : undefined,
+    sdkChainId
+  );
+  const { data: vaultMetadata } = useVaultMetadata(
+    topologyReady ? (selectedVaultId as `0x${string}`) : undefined,
+    sdkChainId
+  );
+  const { data: userPosition } = useUserPositionMultiChain(
+    selectedVaultId as `0x${string}` | undefined,
+    accountAddress as `0x${string}` | undefined
+  );
+  const userVaultData = useUserVaultsData(accountAddress, [selectedVaultId], {
+    enabled: !!selectedVaultId && !!accountAddress,
+  });
   const vaultData = useVaultData(selectedVaultId);
-  const userVaultBalances = useUserVaultBalances(accountAddress, { enabled: !!accountAddress });
+
+  // SDK provides reliable vault data regardless of wallet chain
+  const sdkVault = useMemo(() => {
+    if (!vaultStatus || !vaultMetadata) return null;
+    const decimals = vaultMetadata.underlyingDecimals ?? 18;
+    const totalAssetsNum = Number(formatUnits(vaultStatus.totalAssets ?? BigInt(0), decimals));
+    const sharePriceNum = Number(formatUnits(vaultStatus.sharePrice ?? BigInt(0), decimals));
+    return {
+      totalAssets: (vaultStatus.totalAssets ?? BigInt(0)).toString(),
+      totalSupply: (vaultStatus.totalSupply ?? BigInt(0)).toString(),
+      sharePrice: sharePriceNum,
+      totalAssetsFormatted: totalAssetsNum,
+      name: vaultMetadata.name,
+      symbol: vaultMetadata.symbol,
+      assetSymbol: vaultMetadata.underlyingSymbol,
+      assetDecimals: decimals,
+      underlying: vaultMetadata.underlying,
+      vaultDecimals: vaultMetadata.decimals,
+      isHub: vaultStatus.isHub,
+    };
+  }, [vaultStatus, vaultMetadata]);
+
+  // Merge: SDK data takes priority for core fields, legacy fills the rest
+  const selectedVault = useMemo(() => {
+    const legacy = vaultData?.data;
+    if (!sdkVault && !legacy) return undefined;
+    if (!sdkVault) return legacy;
+    return {
+      ...legacy,
+      id: selectedVaultId || legacy?.id || '',
+      chainId: sdkChainId,
+      overview: {
+        ...legacy?.overview,
+        name: legacy?.overview?.name || sdkVault.name,
+        symbol: legacy?.overview?.symbol || sdkVault.symbol,
+        sharePrice: sdkVault.sharePrice,
+        decimals: sdkVault.vaultDecimals,
+        asset: {
+          ...legacy?.overview?.asset,
+          symbol: legacy?.overview?.asset?.symbol || sdkVault.assetSymbol,
+          decimals: sdkVault.assetDecimals,
+          address: legacy?.overview?.asset?.address || sdkVault.underlying,
+        },
+      },
+      financials: {
+        ...legacy?.financials,
+        liquidity: {
+          ...legacy?.financials?.liquidity,
+          totalAssets: sdkVault.totalAssets,
+          totalSupply: sdkVault.totalSupply,
+        },
+      },
+      omni: legacy?.omni || (sdkVault.isHub ? { isHub: true, spokeVaults: [] } : undefined),
+    };
+  }, [sdkVault, vaultData?.data, selectedVaultId, sdkChainId]);
+
+  // Use SDK metadata for asset decimals (reliable for omni vaults), legacy as fallback
+  const assetDecimals = vaultMetadata?.underlyingDecimals ?? selectedVault?.overview?.asset?.decimals ?? 6;
+
+  // Prioritize SDK metadata (reads from correct hub chain) over legacy (may read wrong chain)
+  const routeVaultAsset = (vaultMetadata?.underlying || selectedVault?.overview?.asset?.address) as `0x${string}` | undefined;
+
+  const isOmniFromTopology = topology?.role === 'hub' || topology?.role === 'spoke';
+
+  // Debug: log useInboundRoutes inputs
+  // console.log('[VaultDetail] useInboundRoutes inputs:', {
+  //   isOmniFromTopology,
+  //   hubChainId: topology?.hubChainId,
+  //   vaultId: selectedVaultId,
+  //   routeVaultAsset,
+  //   vaultMetadataUnderlying: vaultMetadata?.underlying,
+  //   legacyAssetAddress: selectedVault?.overview?.asset?.address,
+  //   account: accountAddress,
+  //   topologyRole: topology?.role,
+  // });
+
+  const { routes: inboundRoutes } = useInboundRoutes(
+    isOmniFromTopology ? topology?.hubChainId : undefined,
+    isOmniFromTopology ? (selectedVaultId as `0x${string}`) : undefined,
+    isOmniFromTopology ? routeVaultAsset : undefined,
+    isOmniFromTopology ? (accountAddress as `0x${string}`) : undefined
+  );
+
+  // console.log('[VaultDetail] inboundRoutes result:', { routes: inboundRoutes, routesLoading, routesError });
+  const userVaultBalances = useUserVaultBalances(accountAddress, { enabled: !!accountAddress && isChainDetected });
   const theme = useTheme();
   const downToMd = useMediaQuery(theme.breakpoints.down('md'));
   const downToMdLg = useMediaQuery(theme.breakpoints.down('mdlg'));
   const xPadding = downToMd ? 5 : 7;
 
-  const baseUrl = useMemo(() => chainId && networkConfigs[chainId] && networkConfigs[chainId].explorerLink, [chainId]);
+  const baseUrl = useMemo(
+    () => chainId && networkConfigs[chainId] && networkConfigs[chainId].explorerLink,
+    [chainId]
+  );
 
-  const selectedVault = vaultData?.data;
   const hasNotes = !!selectedVault?.overview?.descriptionMarkdown;
   const [selectedTab, setSelectedTab] = useState<VaultTab>(hasNotes ? 'notes' : 'allocations');
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const [isWhitelistModalOpen, setIsWhitelistModalOpen] = useState(false);
-  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'sharePrice' | 'totalAssets'>('sharePrice');
+  const [isBridgeModalOpen, setIsBridgeModalOpen] = useState(false);
+  const [bridgeSpokeChainId, setBridgeSpokeChainId] = useState<number>(1);
 
-  // Get whitelist data from smart contract
+  const [bridgeSpokeShares, setBridgeSpokeShares] = useState<bigint>(BigInt(0));
+  const [bridgeRawSpokeShares, setBridgeRawSpokeShares] = useState<bigint>(BigInt(0));
+  const [selectedChartDataKey, setSelectedChartDataKey] = useState<'sharePrice' | 'totalAssets'>(
+    'sharePrice'
+  );
+
+  // Mono-chain vaults: whitelist check via direct contract calls
   const { isWhitelisted, whitelistAmount, isWhitelistEnabled } = useDepositWhitelist();
 
-  // Check if user is on the correct network for this specific vault
-  const vaultNetwork = selectedVault?.chainId;
+  // Omni hub vaults: whitelist check via SDK's canDeposit() (fixed in SDK to use
+  // getAvailableToDeposit rather than maxDeposit, which reverts on async hub vaults)
+  const hubPublicClient = usePublicClient({ chainId: sdkChainId });
+  const [omniDepositEligibility, setOmniDepositEligibility] = useState<{
+    allowed: boolean;
+    reason: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!isOmniHub || !selectedVaultId || !hubPublicClient || !accountAddress) return;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const eligibility = await canDeposit(
+          asSdkClient(hubPublicClient),
+          selectedVaultId as `0x${string}`,
+          accountAddress as `0x${string}`
+        );
+        if (!cancelled) setOmniDepositEligibility(eligibility);
+      } catch {
+        // Don't block on SDK failure — fail open
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [isOmniHub, selectedVaultId, hubPublicClient, accountAddress]);
+
+  // Only block when we have a confirmed not-whitelisted result — never blocks while loading
+  const isNotWhitelisted = isOmniHub
+    ? (omniDepositEligibility !== null && !omniDepositEligibility.allowed && omniDepositEligibility.reason === 'not-whitelisted')
+    : (isWhitelistEnabled && !isWhitelisted);
+
+  const vaultNetwork = selectedVault?.chainId || sdkChainId;
   const isOnCorrectNetwork = wagmiChainId === vaultNetwork;
-  const shouldShowNetworkBanner = address && vaultNetwork && !isOnCorrectNetwork;
-  // Keep loading state active when on wrong network
-  const isLoading = vaultData?.isLoading || shouldShowNetworkBanner;
-  const isUserVaultDataLoading = userVaultData?.[0]?.isLoading || shouldShowNetworkBanner;
+  const isOmniVault = isOmniHub || isOmniSpoke;
+  const sdkReady = !!sdkVault;
+  const isLoading = !topologyReady || (!sdkReady && statusLoading);
+  const isUserVaultDataLoading = userVaultData?.[0]?.isLoading;
   const isUserVaultBalancesLoading = userVaultBalances?.isLoading;
 
   // Get asset data using oracle + fallback to reserve
   const assetData = useAssetData(selectedVault?.overview?.asset?.address || '', {
-    enabled: !!selectedVault?.overview?.asset?.address
+    enabled: !!selectedVault?.overview?.asset?.address,
   });
-  const aum = selectedVault
-    ? BigInt(selectedVault?.financials?.liquidity?.totalAssets)
-    : BigInt(0);
+  const aum = selectedVault ? BigInt(selectedVault?.financials?.liquidity?.totalAssets) : BigInt(0);
   const aumFormatted = selectedVault
-    ? formatUnits(aum, selectedVault?.overview?.asset?.decimals || 18)
+    ? formatUnits(aum, assetDecimals)
     : '0';
   // const aumInUsd = new BigNumber(aumFormatted).multipliedBy(
   //   assetData.data?.price || 0
@@ -92,33 +258,65 @@ export const VaultDetail = () => {
   // const totalSupplyInUsd = new BigNumber(totalSupplyFormatted)
   //   .multipliedBy(selectedVault?.overview?.sharePrice || 0)
   //   .multipliedBy(assetData.data?.price || 0);
-  const maxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
+  const legacyMaxWithdraw = userVaultData?.[0]?.data?.maxWithdraw;
+  const sdkEstimatedAssets = userPosition?.estimatedAssets ?? BigInt(0);
+  const maxWithdraw = sdkEstimatedAssets > BigInt(0)
+    ? { gt: (n: number) => sdkEstimatedAssets > BigInt(n) }
+    : legacyMaxWithdraw;
+
+  // Debug: log SDK position data
+  // if (userPosition) {
+  //   console.log('[VaultDetail] SDK userPosition:', {
+  //     hubShares: userPosition.hubShares?.toString(),
+  //     spokeShares: userPosition.spokeShares ? Object.fromEntries(
+  //       Object.entries(userPosition.spokeShares).map(([k, v]) => [k, (v as bigint).toString()])
+  //     ) : null,
+  //     totalShares: userPosition.totalShares?.toString(),
+  //     estimatedAssets: userPosition.estimatedAssets?.toString(),
+  //     decimals: userPosition.decimals,
+  //     assetDecimals,
+  //     formatted: formatUnits(sdkEstimatedAssets, assetDecimals),
+  //   });
+  // }
 
   // const secondsSinceInception = Number(new Date().getTime() / 1000) - Number(selectedVault?.overview?.creationTimestamp);
 
   const canManageVault = vaultData?.data?.overview?.roles?.curator === accountAddress;
 
   // Calculate user's P&L for this specific vault using live recomputed metrics
-  const portfolioMetricsQuery = useUserPortfolioMetrics(accountAddress || '', '3m', { enabled: !!accountAddress });
+  const portfolioMetricsQuery = useUserPortfolioMetrics(accountAddress || '', '3m', {
+    enabled: !!accountAddress && isChainDetected,
+  });
   const perVaultMetrics = portfolioMetricsQuery.data?.perVaultMetrics || [];
-  const perVault = perVaultMetrics.find(m => m.vaultId.toLowerCase() === (selectedVaultId || '').toLowerCase());
+  const perVault = perVaultMetrics.find(
+    (m) => m.vaultId.toLowerCase() === (selectedVaultId || '').toLowerCase()
+  );
 
   // Compute P&L in asset denomination properly: realized (asset) + unrealized (shares*(sharePriceAsset - WACB))
   const thisVaultBalance = userVaultBalances?.data?.find(
     (b) => b.vault.id.toLowerCase() === (selectedVaultId || '').toLowerCase()
   );
-  const shareInfo = useVaultsSharePriceAsset(selectedVaultId ? [selectedVaultId] : [], { enabled: !!selectedVaultId });
-  const sharePriceAsset = shareInfo.data && shareInfo.data[0] ? shareInfo.data[0].sharePriceAsset : 0;
+  const shareInfo = useVaultsSharePriceAsset(selectedVaultId ? [selectedVaultId] : [], {
+    enabled: !!selectedVaultId,
+  });
+  const sharePriceAsset =
+    shareInfo.data && shareInfo.data[0] ? shareInfo.data[0].sharePriceAsset : 0;
 
-  const shares = thisVaultBalance ? parseFloat(thisVaultBalance.sharesBalance || '0') : 0;
+  const sdkSharesRaw = userPosition?.totalShares ?? BigInt(0);
+  const sdkDecimals = userPosition?.decimals ?? selectedVault?.overview?.decimals ?? 18;
+  const sdkShares = Number(formatUnits(sdkSharesRaw, sdkDecimals));
+  const shares = sdkShares > 0 ? sdkShares : (thisVaultBalance ? parseFloat(thisVaultBalance.sharesBalance || '0') : 0);
   const wacb = thisVaultBalance ? parseFloat(thisVaultBalance.weightedAverageCostBasis || '0') : 0;
   const realizedAssetPnL = thisVaultBalance ? parseFloat(thisVaultBalance.realizedPnL || '0') : 0;
   const unrealizedAssetPnL = shares * (sharePriceAsset - wacb);
   const totalPnLInAsset = realizedAssetPnL + unrealizedAssetPnL;
 
   // Asset-based invested and percent
-  const totalInvestedAsset = thisVaultBalance ? (parseFloat(thisVaultBalance.totalDeposited || '0') - parseFloat(thisVaultBalance.totalWithdrawn || '0')) : 0;
-  const pnlPercentageAsset = totalInvestedAsset > 0 ? (totalPnLInAsset / totalInvestedAsset) : 0;
+  const totalInvestedAsset = thisVaultBalance
+    ? parseFloat(thisVaultBalance.totalDeposited || '0') -
+    parseFloat(thisVaultBalance.totalWithdrawn || '0')
+    : 0;
+  const pnlPercentageAsset = totalInvestedAsset > 0 ? totalPnLInAsset / totalInvestedAsset : 0;
 
   const chartDataOptions = {
     // apy: {
@@ -154,16 +352,12 @@ export const VaultDetail = () => {
   const isFlowTheme = process.env.NEXT_PUBLIC_UI_THEME === 'flow';
 
   const handleDepositClick = () => {
-    // If whitelisting is not enabled, allow direct deposit
-    if (!isWhitelistEnabled) {
-      setIsDepositModalOpen(true);
-    } else if (isWhitelisted) {
-      // If whitelisting is enabled and user is whitelisted, allow deposit
-      setIsDepositModalOpen(true);
-    } else {
-      // If whitelisting is enabled but user is not whitelisted, show whitelist modal
-      setIsWhitelistModalOpen(true);
+    // Non-omni vault on wrong chain → switch first
+    if (!isOmniVault && !isOnCorrectNetwork) {
+      switchChain?.({ chainId: vaultNetwork || ChainIds.flowEVMMainnet });
+      return;
     }
+    setIsDepositModalOpen(true);
   };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
@@ -178,12 +372,12 @@ export const VaultDetail = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5, pt: 4, pb: 7, px: xPadding }}>
-
-      {/* Network Status Check */}
-      {shouldShowNetworkBanner && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
+      {/* Network hint for non-omni vaults — informational only, doesn't block the page */}
+      {address && !isOnCorrectNetwork && !isOmniVault && !isLoading && (
+        <Alert severity="info" sx={{ mb: 3 }}>
           <Typography variant="main14">
-            Wrong Network:{' '}
+            This vault is on{' '}
+            {networkConfigs[vaultNetwork || ChainIds.flowEVMMainnet]?.name || 'another network'}.{' '}
             <Typography
               component="span"
               variant="main14"
@@ -191,30 +385,38 @@ export const VaultDetail = () => {
               sx={{
                 textDecoration: 'underline',
                 cursor: 'pointer',
-                '&:hover': {
-                  color: 'primary.dark',
-                },
+                fontWeight: 600,
+                '&:hover': { color: 'primary.dark' },
               }}
             >
-              Please switch to {networkConfigs[vaultNetwork || ChainIds.flowEVMMainnet]?.name || 'the correct network'}
+              Switch to deposit or withdraw
             </Typography>
-            {' '}to view vault details
           </Typography>
         </Alert>
       )}
 
       {/* TOP DETAILS */}
-      <Box sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 2,
-        backgroundColor: 'background.surface',
-        p: 3,
-        borderRadius: 2,
-      }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+          backgroundColor: 'background.surface',
+          p: 3,
+          borderRadius: 2,
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <SvgIcon sx={{ fontSize: '20px', cursor: 'pointer', color: 'primary.main', '&:hover': { color: 'primary.light' } }} onClick={() => router.push('/vaults')}>
+          <SvgIcon
+            sx={{
+              fontSize: '20px',
+              cursor: 'pointer',
+              color: 'primary.main',
+              '&:hover': { color: 'primary.light' },
+            }}
+            onClick={() => router.push('/vaults')}
+          >
             <ArrowBackRoundedIcon />
           </SvgIcon>
           {isLoading ? (
@@ -228,7 +430,8 @@ export const VaultDetail = () => {
                     fontSize="large"
                   />
                   <Typography variant="main21" sx={{ color: 'primary.main' }}>
-                    {`${selectedVault?.overview?.asset?.symbol || selectedVault?.overview?.name || ''} Vault`}
+                    {`${selectedVault?.overview?.asset?.symbol || selectedVault?.overview?.name || ''
+                      } Vault`}
                   </Typography>
                 </>
               ) : (
@@ -245,7 +448,17 @@ export const VaultDetail = () => {
                 </>
               )}
               {isOmniHub && (
-                <Chip label="Omni-Chain Hub" size="small" color="primary" variant="outlined" sx={{ ml: 0.5 }} />
+                <Chip
+                  label="Omnichain"
+                  size="small"
+                  sx={{
+                    ml: 0.5,
+                    background: theme.palette.gradients.newGradient,
+                    color: '#fff',
+                    fontWeight: 600,
+                    border: 'none',
+                  }}
+                />
               )}
               <IconButton
                 size="small"
@@ -262,508 +475,183 @@ export const VaultDetail = () => {
             </>
           )}
         </Box>
-        <Box sx={{ display: downToMd ? 'none' : 'flex', alignItems: 'left', flexDirection: 'row', gap: 5 }}>
+        <Box
+          sx={{
+            display: downToMd ? 'none' : 'flex',
+            alignItems: 'left',
+            flexDirection: 'row',
+            gap: 5,
+          }}
+        >
           {isLoading ? (
             <Skeleton width={150} height={20} />
-          ) : selectedVault?.overview?.roles?.owner && (
-            <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
-              <Typography variant="secondary14" sx={{ pb: 2, color: 'primary.main' }}>
-                Owner
-              </Typography>
-              <Address
-                address={selectedVault?.overview?.roles.owner}
-                link={`${baseUrl}/address/${selectedVault?.overview?.roles.owner}`}
-                loading={isLoading}
-                isUser
-                variant="secondary12"
-                compactMode={CompactMode.SM}
-                sx={{ color: 'primary.main' }}
-              />
-            </Box>
+          ) : (
+            selectedVault?.overview?.roles?.owner && (
+              <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
+                <Typography variant="secondary14" sx={{ pb: 2, color: 'primary.main' }}>
+                  Owner
+                </Typography>
+                <Address
+                  address={selectedVault?.overview?.roles.owner}
+                  link={`${baseUrl}/address/${selectedVault?.overview?.roles.owner}`}
+                  loading={isLoading}
+                  isUser
+                  variant="secondary12"
+                  compactMode={CompactMode.SM}
+                  sx={{ color: 'primary.main' }}
+                />
+              </Box>
+            )
           )}
           {isLoading ? (
             <Skeleton width={150} height={20} />
-          ) : selectedVault?.overview?.roles?.curator && (
-            <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
-              <Typography variant="secondary14" sx={{ pb: 2, color: 'primary.main' }}>
-                Strategist
-              </Typography>
-              <Address
-                address={selectedVault?.overview?.roles.curator}
-                link={`${baseUrl}/address/${selectedVault?.overview?.roles.curator}`}
-                loading={isLoading}
-                isUser
-                variant="secondary12"
-                compactMode={CompactMode.SM}
-                sx={{ color: 'primary.main' }}
-              />
-            </Box>
+          ) : (
+            selectedVault?.overview?.roles?.curator && (
+              <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
+                <Typography variant="secondary14" sx={{ pb: 2, color: 'primary.main' }}>
+                  Strategist
+                </Typography>
+                <Address
+                  address={selectedVault?.overview?.roles.curator}
+                  link={`${baseUrl}/address/${selectedVault?.overview?.roles.curator}`}
+                  loading={isLoading}
+                  isUser
+                  variant="secondary12"
+                  compactMode={CompactMode.SM}
+                  sx={{ color: 'primary.main' }}
+                />
+              </Box>
+            )
           )}
           {isLoading ? (
             <Skeleton width={150} height={20} />
-          ) : selectedVault?.overview?.roles?.guardian && (
-            <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
-              <Typography variant="secondary14" sx={{ pb: 2, color: 'primary.main' }}>
-                Guardian
-              </Typography>
-              <Address
-                address={selectedVault?.overview?.roles.guardian}
-                link={`${baseUrl}/address/${selectedVault?.overview?.roles.guardian}`}
-                loading={isLoading}
-                isUser
-                variant="secondary12"
-                compactMode={CompactMode.SM}
-                sx={{ color: 'primary.main' }}
-              />
-            </Box>
+          ) : (
+            selectedVault?.overview?.roles?.guardian && (
+              <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
+                <Typography variant="secondary14" sx={{ pb: 2, color: 'primary.main' }}>
+                  Guardian
+                </Typography>
+                <Address
+                  address={selectedVault?.overview?.roles.guardian}
+                  link={`${baseUrl}/address/${selectedVault?.overview?.roles.guardian}`}
+                  loading={isLoading}
+                  isUser
+                  variant="secondary12"
+                  compactMode={CompactMode.SM}
+                  sx={{ color: 'primary.main' }}
+                />
+              </Box>
+            )
           )}
         </Box>
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'left',
-          flexDirection: downToMdLg ? 'column' : 'row',
-          gap: 2,
-        }}>
-          {!isLoading && (isOmniHub || !(vaultData?.data?.financials?.liquidity?.maxDeposit === '0')) && (
-            <Tooltip title={isOmniSpoke ? "Deposits and redeems are done on the hub chain (Base)" : ""} disableHoverListener={!isOmniSpoke}>
-              <span>
-                <Button variant="gradient" color="primary" onClick={handleDepositClick} disabled={isLoading || !accountAddress || isOmniSpoke}>
-                  Deposit
-                </Button>
-              </span>
-            </Tooltip>
-          )}
-          {!isLoading && !isUserVaultDataLoading && accountAddress && ((isOmniHub && shares > 0) || (maxWithdraw && maxWithdraw.gt(0))) &&
-            <Tooltip title={isOmniSpoke ? "Deposits and redeems are done on the hub chain (Base)" : ""} disableHoverListener={!isOmniSpoke}>
-              <span>
-                <Button
-                  variant="gradient"
-                  size="medium"
-                  onClick={() => setIsRedeemModalOpen(true)}
-                  disabled={isLoading || isUserVaultDataLoading || isOmniSpoke}
-                >
-                  Withdraw
-                </Button>
-              </span>
-            </Tooltip>
-          }
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'left',
+            flexDirection: downToMdLg ? 'column' : 'row',
+            gap: 2,
+          }}
+        >
+          {!isLoading &&
+            (isOmniHub || isOmniSpoke || !(vaultData?.data?.financials?.liquidity?.maxDeposit === '0')) && (
+              <Tooltip
+                title={isNotWhitelisted ? 'Your address is not whitelisted for deposits in this vault' : ''}
+                placement="top"
+              >
+                <span>
+                  <Button
+                    variant="gradient"
+                    color="primary"
+                    onClick={handleDepositClick}
+                    disabled={isLoading || !accountAddress || isNotWhitelisted}
+                  >
+                    Deposit
+                  </Button>
+                </span>
+              </Tooltip>
+            )}
+          {!isLoading &&
+            accountAddress &&
+            (shares > 0 || (maxWithdraw && maxWithdraw.gt(0))) && (
+              <Button
+                variant="gradient"
+                size="medium"
+                onClick={() => {
+                  if (!isOmniVault && !isOnCorrectNetwork) {
+                    switchChain?.({ chainId: vaultNetwork || ChainIds.flowEVMMainnet });
+                    return;
+                  }
+                  setIsRedeemModalOpen(true);
+                }}
+                disabled={isLoading}
+              >
+                Withdraw
+              </Button>
+            )}
         </Box>
       </Box>
 
       {/* MIDDLE DETAILS */}
-      <Box sx={{
-        display: 'flex',
-        alignItems: 'left',
-        flexDirection: { xs: 'column', md: 'row' },
-        gap: { xs: 2, md: 5 },
-        mt: 4,
-      }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'left',
+          flexDirection: { xs: 'column', md: 'row' },
+          gap: { xs: 2, md: 5 },
+          mt: 4,
+        }}
+      >
         {/* LEFT SIDE KPIS */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', flex: 2 }}>
-          <Box sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', xsm: '1fr 1fr' },
-            height: '100%',
-            gap: 3,
-            p: { xs: 4, md: 6 },
-            backgroundColor: 'background.paper',
-            borderRadius: 2,
-          }}>
-            {/* Row 1 - My deposits */}
-            <Box>
-              <Typography variant="secondary14" color="text.secondary">
-                My Deposits
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {!accountAddress ? (
-                    <Typography variant="main16">–</Typography>
-                  ) : isLoading || isUserVaultDataLoading ? (
-                    <Skeleton width={80} height={24} />
-                  ) : (
-                    <FormattedNumber
-                      value={formatUnits(
-                        maxWithdraw?.toBigInt() || BigInt(0),
-                        vaultData?.data?.overview?.asset?.decimals || 18
-                      ) || ''}
-                      symbol={vaultData?.data?.overview?.asset?.symbol || ''}
-                      variant="main16"
-                      compact
-                    />
-                  )}
-                </Box>
-                {accountAddress && !isLoading && !isUserVaultDataLoading && (
-                  <UsdChip
-                    value={new BigNumber(formatUnits(
-                      maxWithdraw?.toBigInt() || BigInt(0),
-                      vaultData?.data?.overview?.asset?.decimals || 18
-                    ) || '0').multipliedBy(
-                      assetData.data?.price || 0
-                    ).toString() || '0'}
-                  />
-                )}
-              </Box>
-            </Box>
-
-            {/* Row 1 - My Gains / Losses */}
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="secondary14" color="text.secondary">
-                  My Gains / Losses
-                </Typography>
-                <Tooltip
-                  title={
-                    <Box>
-                      <Typography variant="main12" sx={{ fontWeight: 600 }}>
-                        Unrealized PnL
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <FormattedNumber
-                          value={pnlPercentageAsset}
-                          percent
-                          variant="secondary12"
-                          compact
-                          symbolsColor="#F1F1F3"
-                        />
-                      </Box>
-                    </Box>
-                  }
-                  arrow
-                  placement="top"
-                >
-                  <InfoIcon sx={{ fontSize: '14px', color: 'text.secondary' }} />
-                </Tooltip>
-                {accountAddress && perVault && (
-                  <Tooltip title="Share on X" arrow placement="top">
-                    <IconButton
-                      size="small"
-                      aria-label="share PnL on X"
-                      sx={{ padding: '1px' }}
-                      onClick={() => {
-                        const rawPnLAsset = totalPnLInAsset || 0;
-                        const priceUsd = assetData.data?.price || 0;
-                        const rawPnLUsd = rawPnLAsset * priceUsd;
-                        const absAsset = Math.abs(rawPnLAsset);
-                        const absUsd = Math.abs(rawPnLUsd);
-                        const assetDecimals = absAsset >= 1 ? 2 : 6;
-                        const formattedAsset = new Intl.NumberFormat('en-US', {
-                          maximumFractionDigits: assetDecimals,
-                          minimumFractionDigits: 0,
-                        }).format(absAsset);
-                        const assetSymbol = selectedVault?.overview?.asset?.symbol || '';
-                        const valueStringUsd = new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                          maximumFractionDigits: 2,
-                        }).format(absUsd);
-                        const direction = rawPnLAsset > 0 ? 'gain' : rawPnLAsset < 0 ? 'loss' : 'break-even';
-                        const vaultName = selectedVault?.overview?.name || 'this vault';
-                        const text = `My PnL shows a ${formattedAsset} ${assetSymbol} (${valueStringUsd}) ${direction} on my LP to ${vaultName} on @MORE_DeFi.`;
-                        const url = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
-                        window.open(url, '_blank');
-                      }}
-                    >
-                      <ShareOutlinedIcon sx={{ fontSize: '14px', color: 'text.secondary' }} />
-                    </IconButton>
-                  </Tooltip>
-                )}
-              </Box>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                {!accountAddress ? (
-                  <Typography variant="main16" fontWeight={600}>
-                    –
-                  </Typography>
-                ) : isLoading || isUserVaultBalancesLoading || isUserVaultDataLoading || assetData.isLoading ? (
-                  <Skeleton width={80} height={24} />
-                ) : !perVault ? (
-                  <Typography variant="main16" fontWeight={600}>
-                    –
-                  </Typography>
-                ) : (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <FormattedNumber
-                      value={totalPnLInAsset}
-                      symbol={selectedVault?.overview?.asset?.symbol || ''}
-                      variant="main16"
-                      compact
-                    />
-                    <UsdChip
-                      value={new BigNumber(totalPnLInAsset).multipliedBy(assetData.data?.price || 0).toString() || '0'}
-                    />
-                  </Box>
-                )}
-              </Box>
-            </Box>
-
-            {/* Row 2 - Deposit Tokens */}
-            <Box>
-              <Typography variant="secondary14" color="text.secondary">
-                Deposit Tokens
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                {isLoading ? (
-                  <Skeleton width={80} height={24} />
-                ) : (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                    {(selectedVault?.overview?.depositableAssets && selectedVault.overview.depositableAssets.length > 0
-                      ? selectedVault.overview.depositableAssets
-                      : [
-                        {
-                          address: selectedVault?.overview?.asset?.address || '',
-                          symbol: selectedVault?.overview?.asset?.symbol || '',
-                        },
-                      ]
-                    ).map((token) => (
-                      <Box key={(token.address || token.symbol || Math.random().toString())} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TokenIcon symbol={token.symbol || ''} fontSize="medium" />
-                        <Typography variant="main16" fontWeight={600}>{token.symbol || ''}</Typography>
-                      </Box>
-                    ))}
-                  </Box>
-                )}
-              </Box>
-            </Box>
-
-            {/* Row 2 - Networks */}
-            <Box>
-              <Typography variant="secondary14" color="text.secondary">
-                Network
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-                {isLoading ? <Skeleton width={80} height={24} /> :
-                  <>
-                    <MarketLogo
-                      size={24}
-                      logo={networkConfigs[chainId]?.networkLogoPath}
-                    />
-                    <Typography variant="main16">{networkConfigs[chainId]?.name || 'Unknown Network'}</Typography>
-                  </>
-                }
-              </Box>
-            </Box>
-
-            {/* Spoke Chains - only shown for omni hub vaults */}
-            {/* {isOmniHub && vaultData?.data?.omni?.spokeVaults && vaultData.data.omni.spokeVaults.length > 0 && (
-              <Box>
-                <Typography variant="secondary14" color="text.secondary">
-                  Spoke Chains
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {vaultData.data.omni.spokeVaults.map((spoke) => {
-                    const spokeNetwork = networkConfigs[spoke.chainId];
-                    const spokeExplorer = spokeNetwork?.explorerLink;
-                    return (
-                      <Box key={spoke.chainId} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <MarketLogo size={20} logo={spokeNetwork?.networkLogoPath} />
-                        <Typography variant="main14">{spokeNetwork?.name || `Chain ${spoke.chainId}`}</Typography>
-                        <Address
-                          address={spoke.address}
-                          link={spokeExplorer ? `${spokeExplorer}/address/${spoke.address}` : undefined}
-                          variant="secondary12"
-                          compactMode={CompactMode.SM}
-                          sx={{ color: 'text.secondary' }}
-                        />
-                      </Box>
-                    );
-                  })}
-                </Box>
-              </Box>
-            )} */}
-
-            {/* Row 3 - Remaining Capacity */}
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="secondary14" color="text.secondary">
-                  Remaining Capacity
-                </Typography>
-                <Tooltip
-                  title={
-                    <Box>
-                      <Typography variant="main12" sx={{ fontWeight: 600 }}>
-                        Deposit Cap
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <FormattedNumber
-                          value={formatUnits(
-                            BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0'),
-                            vaultData?.data?.overview?.asset?.decimals || 18
-                          ) || ''}
-                          symbol={vaultData?.data?.overview?.asset?.symbol || ''}
-                          variant="secondary12"
-                          compact
-                          symbolsColor="#F1F1F3"
-                        />
-                        <UsdChip
-                          value={new BigNumber(formatUnits(
-                            BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0'),
-                            vaultData?.data?.overview?.asset?.decimals || 18
-                          ) || '0').multipliedBy(
-                            assetData.data?.price || 0
-                          ).toString() || '0'}
-                        />
-                      </Box>
-                    </Box>
-                  }
-                  arrow
-                  placement="top"
-                >
-                  <InfoIcon sx={{ fontSize: '14px', color: 'text.secondary' }} />
-                </Tooltip>
-              </Box>
-              <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {isLoading ? <Skeleton width={80} height={24} /> : <FormattedNumber
-                    value={formatUnits(
-                      // Omni hub vaults return 0 for maxDeposit (bridge routing); use depositCapacity - totalAssets instead
-                      isOmniHub
-                        ? BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0') - BigInt(vaultData?.data?.financials?.liquidity?.totalAssets || '0')
-                        : BigInt(vaultData?.data?.financials?.liquidity?.maxDeposit || '0'),
-                      vaultData?.data?.overview?.asset?.decimals || 18
-                    ) || ''}
-                    symbol={vaultData?.data?.overview?.asset?.symbol || ''}
-                    variant="main16"
-                    compact
-                  />}
-                </Box>
-                {!isLoading && (
-                  <UsdChip
-                    value={new BigNumber(formatUnits(
-                      isOmniHub
-                        ? BigInt(vaultData?.data?.financials?.liquidity?.depositCapacity || '0') - BigInt(vaultData?.data?.financials?.liquidity?.totalAssets || '0')
-                        : BigInt(vaultData?.data?.financials?.liquidity?.maxDeposit || '0'),
-                      vaultData?.data?.overview?.asset?.decimals || 18
-                    ) || '0').multipliedBy(
-                      assetData.data?.price || 0
-                    ).toString() || '0'}
-                  />
-                )}
-              </Box>
-            </Box>
-
-            {/* Row 3 - Available Liquidity */}
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="secondary14" color="text.secondary">
-                  7 Days APY
-                </Typography>
-                <Tooltip
-                  title={
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <Typography variant="main12" sx={{ fontWeight: 600 }}>
-                        Details
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 3 }}>
-                          <Typography variant="secondary12">1 Day APY:</Typography>
-                          <FormattedNumber
-                            value={vaultData?.data?.overview?.apy1Day || ''}
-                            percent
-                            variant="secondary12"
-                            compact
-                            symbolsColor="#F1F1F3"
-                          />
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 3 }}>
-                          <Typography variant="secondary12">30 Days APY:</Typography>
-                          <FormattedNumber
-                            value={vaultData?.data?.overview?.apy30Days || ''}
-                            percent
-                            variant="secondary12"
-                            compact
-                            symbolsColor="#F1F1F3"
-                          />
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 3 }}>
-                          <Typography variant="secondary12">APY:</Typography>
-                          <FormattedNumber
-                            value={vaultData?.data?.overview?.apy || ''}
-                            percent
-                            variant="secondary12"
-                            compact
-                            symbolsColor="#F1F1F3"
-                          />
-                        </Box>
-                      </Box>
-                    </Box>
-                  }
-                  arrow
-                  placement="top"
-                >
-                  <InfoIcon sx={{ fontSize: '14px', color: 'text.secondary' }} />
-                </Tooltip>
-              </Box>
-              <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {isLoading ? <Skeleton width={80} height={24} /> : <FormattedNumber
-                    value={vaultData?.data?.overview?.apy7Days || ''}
-                    percent
-                    variant="main16"
-                    compact
-                  />}
-                </Box>
-                {selectedVault?.incentives && selectedVault?.incentives.length > 0 && (
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="main14" color="text.secondary" sx={{ ml: 1, mr: 1 }}>
-                      +
-                    </Typography>
-                    <RewardsButton rewards={selectedVault?.incentives} />
-                  </Box>
-                )}
-              </Box>
-            </Box>
-
-            {/* Row 3 - Rebalance Timelock */}
-            <Box>
-              <Typography variant="secondary14" color="text.secondary">
-                Rebalance Timelock
-              </Typography>
-              <Typography variant="main16" fontWeight={600}>
-                {isLoading ? <Skeleton width={60} height={24} /> :
-                  vaultData?.data?.overview?.withdrawalTimelock ?
-                    formatTimeRemaining(Number(vaultData.data.overview.withdrawalTimelock)) :
-                    'N/A'
-                }
-              </Typography>
-            </Box>
-
-            {/* Row 4 - Fee */}
-            <Box>
-              <Typography variant="secondary14" color="text.secondary">
-                Fee
-              </Typography>
-              {isLoading ? <Skeleton width={60} height={24} /> : <FormattedNumber
-                value={Number(vaultData?.data?.overview?.fee || '0') / 10000}
-                percent
-                variant="main16"
-              />}
-            </Box>
-          </Box>
-        </Box>
+        <VaultKpiGrid
+          selectedVault={selectedVault}
+          legacyVault={vaultData?.data}
+          isLoading={isLoading}
+          isUserVaultBalancesLoading={isUserVaultBalancesLoading}
+          isUserVaultDataLoading={isUserVaultDataLoading}
+          accountAddress={accountAddress}
+          isOmniHub={isOmniHub}
+          sdkEstimatedAssets={sdkEstimatedAssets}
+          legacyMaxWithdrawBigInt={legacyMaxWithdraw?.toBigInt() || BigInt(0)}
+          assetDecimals={assetDecimals}
+          assetPrice={assetData.data?.price || 0}
+          assetIsLoading={assetData.isLoading}
+          totalPnLInAsset={totalPnLInAsset}
+          pnlPercentageAsset={pnlPercentageAsset}
+          perVault={perVault}
+          topology={topology}
+          chainId={chainId}
+        />
 
         {/* RIGHT SIDE CHART */}
-        <Box sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          flex: 3,
-          backgroundColor: 'background.paper',
-          borderRadius: 2,
-          position: 'relative'
-        }}>
-          <Box sx={{
-            position: 'absolute',
-            top: { xs: 8, md: 12 },
-            left: { xs: 8, md: 12 },
-            zIndex: 10,
+        <Box
+          sx={{
             display: 'flex',
-            alignItems: 'left',
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: { xs: 2, sm: 3 },
-            px: { xs: 2, md: 3 },
-            py: { xs: 1, md: 2 },
-          }}>
+            flexDirection: 'column',
+            flex: 3,
+            backgroundColor: 'background.paper',
+            borderRadius: 2,
+            position: 'relative',
+          }}
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              top: { xs: 8, md: 12 },
+              left: { xs: 8, md: 12 },
+              zIndex: 10,
+              display: 'flex',
+              alignItems: 'left',
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: { xs: 2, sm: 3 },
+              px: { xs: 2, md: 3 },
+              py: { xs: 1, md: 2 },
+            }}
+          >
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
-              <Typography variant="secondary14" color="text.secondary">Share Price</Typography>
+              <Typography variant="secondary14" color="text.secondary">
+                Share Price
+              </Typography>
               <Box
                 onClick={() => setSelectedChartDataKey('sharePrice')}
                 sx={{
@@ -785,27 +673,31 @@ export const VaultDetail = () => {
                     backgroundColor: theme.palette.background.surface,
                     border: `1.5px solid ${theme.palette.text.muted}`,
                   },
-                }}>
-                {isLoading ? <Skeleton width={60} height={24} /> : <>
-                  <FormattedNumber
-                    value={vaultData?.data?.overview?.sharePrice.toString() || '0'}
-                    symbol={vaultData?.data?.overview?.asset?.symbol || ''}
-                    variant="main16"
-                    sx={{ fontWeight: 800 }}
-                  />
-                  <SvgIcon
-                    sx={{
-                      fontSize: '20px',
-                      color:
-                        selectedChartDataKey === 'sharePrice'
-                          ? theme.palette.other.chartHighlight
-                          : theme.palette.text.muted,
-                    }}
-                  >
-                    <ShowChartIcon />
-                  </SvgIcon>
-                </>
-                }
+                }}
+              >
+                {isLoading ? (
+                  <Skeleton width={60} height={24} />
+                ) : (
+                  <>
+                    <FormattedNumber
+                      value={selectedVault?.overview?.sharePrice?.toString() || '0'}
+                      symbol={selectedVault?.overview?.asset?.symbol || ''}
+                      variant="main16"
+                      sx={{ fontWeight: 800 }}
+                    />
+                    <SvgIcon
+                      sx={{
+                        fontSize: '20px',
+                        color:
+                          selectedChartDataKey === 'sharePrice'
+                            ? theme.palette.other.chartHighlight
+                            : theme.palette.text.muted,
+                      }}
+                    >
+                      <ShowChartIcon />
+                    </SvgIcon>
+                  </>
+                )}
               </Box>
             </Box>
             {/* <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
@@ -911,7 +803,9 @@ export const VaultDetail = () => {
               </Box>
             </Box> */}
             <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
-              <Typography variant="secondary14" color="text.secondary">Net Asset Value</Typography>
+              <Typography variant="secondary14" color="text.secondary">
+                Net Asset Value
+              </Typography>
               <Box
                 onClick={() => setSelectedChartDataKey('totalAssets')}
                 sx={{
@@ -933,43 +827,48 @@ export const VaultDetail = () => {
                     backgroundColor: theme.palette.background.surface,
                     border: `1.5px solid ${theme.palette.text.muted}`,
                   },
-                }}>
-                {isLoading ? <Skeleton width={60} height={24} /> : <>
-                  <FormattedNumber
-                    value={aumFormatted || '0'}
-                    symbol={vaultData?.data?.overview?.asset?.symbol || ''}
-                    variant="main16"
-                    sx={{ fontWeight: 800 }}
-                  />
-                  <SvgIcon
-                    sx={{
-                      fontSize: '20px',
-                      color:
-                        selectedChartDataKey === 'totalAssets'
-                          ? theme.palette.other.chartHighlight
-                          : theme.palette.text.muted,
-                    }}
-                  >
-                    <ShowChartIcon />
-                  </SvgIcon>
-                </>
-                }
+                }}
+              >
+                {isLoading ? (
+                  <Skeleton width={60} height={24} />
+                ) : (
+                  <>
+                    <FormattedNumber
+                      value={aumFormatted || '0'}
+                      symbol={selectedVault?.overview?.asset?.symbol || ''}
+                      variant="main16"
+                      sx={{ fontWeight: 800 }}
+                    />
+                    <SvgIcon
+                      sx={{
+                        fontSize: '20px',
+                        color:
+                          selectedChartDataKey === 'totalAssets'
+                            ? theme.palette.other.chartHighlight
+                            : theme.palette.text.muted,
+                      }}
+                    >
+                      <ShowChartIcon />
+                    </SvgIcon>
+                  </>
+                )}
               </Box>
             </Box>
           </Box>
-          <Box sx={{
-            backgroundColor: 'background.paper',
-            py: { xs: 2, md: 6 },
-            pl: { xs: 2, md: 6 },
-            borderRadius: 2,
-          }}>
+          <Box
+            sx={{
+              backgroundColor: 'background.paper',
+              py: { xs: 2, md: 6 },
+              pl: { xs: 2, md: 6 },
+              borderRadius: 2,
+            }}
+          >
             {isLoading ? (
               <Box sx={{ width: '100%', height: 300, backgroundColor: 'transparent' }} />
             ) : currentChartData && currentChartData.length > 0 ? (
               <LineChart
                 height={300}
                 data={currentChartData}
-
                 yAxisFormat={vaultData?.data?.overview?.asset?.symbol}
                 showTimePeriodSelector={true}
               />
@@ -986,10 +885,13 @@ export const VaultDetail = () => {
       {process?.env?.NEXT_PUBLIC_UI_THEME && process.env.NEXT_PUBLIC_UI_THEME === 'flow' ? (
         <></>
       ) : (
-        <Box sx={{
-          display: 'flex', flexDirection: 'column',
-          pb: 10
-        }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            pb: 10,
+          }}
+        >
           <Tabs
             value={isLoading ? false : selectedTab}
             onChange={handleTabChange}
@@ -1012,7 +914,7 @@ export const VaultDetail = () => {
           >
             {hasNotes && <Tab label="Vault Info" value="notes" />}
             <Tab label="Allocations" value="allocations" />
-            <Tab label="Activity" value="activity" />
+            {!isOmniVault && <Tab label="Activity" value="activity" />}
             {canManageVault && <Tab label="Manage" value="manage" />}
           </Tabs>
 
@@ -1032,12 +934,28 @@ export const VaultDetail = () => {
         isOpen={isDepositModalOpen}
         setIsOpen={setIsDepositModalOpen}
         whitelistAmount={whitelistAmount}
+        inboundRoutes={inboundRoutes ?? []}
       />
       <VaultRedeemModal
         isOpen={isRedeemModalOpen}
         setIsOpen={setIsRedeemModalOpen}
+        onRedeemFromSpoke={(spokeChain, shares, rawShares) => {
+          setBridgeSpokeChainId(spokeChain);
+          setBridgeSpokeShares(shares);
+          setBridgeRawSpokeShares(rawShares);
+          setIsBridgeModalOpen(true);
+        }}
       />
       <VaultWhitelistModal isOpen={isWhitelistModalOpen} setIsOpen={setIsWhitelistModalOpen} />
+      <VaultBridgeSharesToHubModal
+        isOpen={isBridgeModalOpen}
+        setIsOpen={setIsBridgeModalOpen}
+        spokeChainId={bridgeSpokeChainId}
+        spokeShares={bridgeSpokeShares}
+        rawSpokeShares={bridgeRawSpokeShares}
+        vaultDecimals={userPosition?.decimals ?? 8}
+      />
+
     </Box>
   );
 };

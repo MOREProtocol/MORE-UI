@@ -39,6 +39,9 @@ module.exports = withBundleAnalyzer({
 
     return config;
   },
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
   reactStrictMode: true,
   // assetPrefix: "./",
   trailingSlash: true,

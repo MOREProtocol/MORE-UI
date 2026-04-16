@@ -1,8 +1,63 @@
 import { Badge, Box, Icon, IconProps, Tooltip } from '@mui/material';
-import { forwardRef, useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import LazyLoad from 'react-lazy-load';
+import { getAddress } from 'viem';
 import { MarketDataType } from 'src/ui-config/marketsConfig';
 import { networkConfigs } from 'src/ui-config/networksConfig';
+
+// Trust Wallet assets CDN — keyed by EVM chain ID
+const TRUST_WALLET_CHAINS: Record<number, string> = {
+  1: 'ethereum',
+  10: 'optimism',
+  56: 'smartchain',
+  137: 'polygon',
+  8453: 'base',
+  42161: 'arbitrum',
+};
+
+function getTrustWalletLogoUrl(address: string, chainId: number): string | null {
+  const chain = TRUST_WALLET_CHAINS[chainId];
+  if (!chain) return null;
+  try {
+    const checksummed = getAddress(address as `0x${string}`);
+    return `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/${chain}/assets/${checksummed}/logo.png`;
+  } catch {
+    return null;
+  }
+}
+
+// CoinGecko platform IDs — second fallback when Trust Wallet doesn't have the token
+const COINGECKO_PLATFORMS: Record<number, string> = {
+  1: 'ethereum',
+  10: 'optimistic-ethereum',
+  56: 'binance-smart-chain',
+  137: 'polygon-pos',
+  8453: 'base',
+  42161: 'arbitrum-one',
+};
+
+// Module-level cache: `${chainId}:${addressLower}` → image URL (or null if not found)
+const cgCache = new Map<string, string | null>();
+
+async function fetchCoinGeckoLogoUrl(address: string, chainId: number): Promise<string | null> {
+  const platform = COINGECKO_PLATFORMS[chainId];
+  if (!platform) return null;
+  const key = `${chainId}:${address.toLowerCase()}`;
+  if (cgCache.has(key)) return cgCache.get(key)!;
+  try {
+    const res = await fetch(
+      `https://api.coingecko.com/api/v3/coins/${platform}/contract/${address.toLowerCase()}`
+    );
+    if (!res.ok) { cgCache.set(key, null); return null; }
+    const data = await res.json();
+    const url: string | null = data?.image?.small || data?.image?.thumb || null;
+    cgCache.set(key, url);
+    return url;
+  } catch {
+    cgCache.set(key, null);
+    return null;
+  }
+}
 
 interface MTokenIconProps {
   symbol?: string;
@@ -145,6 +200,10 @@ interface TokenIconProps extends IconProps {
   symbol: string;
   market?: MarketDataType;
   mToken?: boolean;
+  /** Contract address — used to fetch logo from Trust Wallet CDN when no local SVG exists */
+  address?: string;
+  /** Chain ID of the token — used together with address for Trust Wallet CDN lookup */
+  chainId?: number;
 }
 
 /**
@@ -153,21 +212,47 @@ interface TokenIconProps extends IconProps {
  * @param param0
  * @returns
  */
-function SingleTokenIcon({ symbol, mToken, market, ...rest }: TokenIconProps) {
-  const [tokenSymbol, setTokenSymbol] = useState(symbol.toLowerCase());
+function SingleTokenIcon({ symbol, mToken, market, address, chainId, ...rest }: TokenIconProps) {
+  const localSrc = `/icons/tokens/${symbol.toLowerCase()}.svg`;
+  const [imgSrc, setImgSrc] = useState(localSrc);
+  const [coingeckoUrl, setCoingeckoUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    setTokenSymbol(symbol.toLowerCase());
+    setImgSrc(`/icons/tokens/${symbol.toLowerCase()}.svg`);
   }, [symbol]);
+
+  // Prefetch CoinGecko URL in parallel while the local/Trust Wallet image is loading,
+  // so it's ready if both fail — result is module-level cached for subsequent renders.
+  useEffect(() => {
+    if (!address || !chainId) return;
+    fetchCoinGeckoLogoUrl(address, chainId).then(setCoingeckoUrl);
+  }, [address, chainId]);
+
+  const trustWalletUrl = useMemo(
+    () => (address && chainId ? getTrustWalletLogoUrl(address, chainId) : null),
+    [address, chainId]
+  );
+
+  const handleError = () => {
+    if (imgSrc !== '/icons/tokens/default.svg') {
+      if (trustWalletUrl && imgSrc !== trustWalletUrl) {
+        setImgSrc(trustWalletUrl);
+      } else if (coingeckoUrl && imgSrc !== coingeckoUrl) {
+        setImgSrc(coingeckoUrl);
+      } else {
+        setImgSrc('/icons/tokens/default.svg');
+      }
+    }
+  };
 
   const tokenIcon = (
     <Icon {...rest} sx={{ display: 'flex', position: 'relative', borderRadius: '50%', ...rest.sx }}>
       {mToken ? (
-        <MTokenIcon symbol={tokenSymbol} />
+        <MTokenIcon symbol={symbol.toLowerCase()} />
       ) : (
         <img
-          src={`/icons/tokens/${tokenSymbol}.svg`}
-          onError={() => setTokenSymbol('default')}
+          src={imgSrc}
+          onError={handleError}
           width="100%"
           height="100%"
           alt={`${symbol} icon`}

@@ -11,7 +11,7 @@ import {
 import { parseActivity } from 'src/modules/vault-detail/utils/parseActivity';
 import { vaultsConfig } from 'src/modules/vault-detail/VaultManagement/facets/vaultsConfig';
 import { networkConfigs } from 'src/ui-config/networksConfig';
-import { ChainIds, OMNI_FACTORY_ADDRESS, OMNI_REGISTRY_ADDRESS, LZ_EIDS, EID_TO_CHAIN_ID, CHAIN_ID_TO_LZ_EID } from 'src/utils/const';
+import { ChainIds, OMNI_FACTORY_ADDRESS, OMNI_REGISTRY_ADDRESS, EID_TO_CHAIN_ID, CHAIN_ID_TO_LZ_EID } from 'src/utils/const';
 import { RotationProvider } from 'src/utils/rotationProvider';
 import { getVaultFactoryInfo, registerVaultFactoryInfo, markVaultAsOmniHub, markVaultAsOmniSpoke, isOmniHubVault, getOracleAddressesForChain } from './factoryRegistry';
 import type { FactoryConfig, NetworkVaultConfig } from './types';
@@ -151,11 +151,6 @@ export interface VaultDataHookOpts<TData, TResult = TData>
 export const useVaultProvider = (chainIdParam?: number) => {
   // const { data: walletClient } = useWalletClient();
   return useMemo(() => {
-    // If wallet is connected, use it as provider
-    // if (walletClient) {
-    //   return new ethers.providers.Web3Provider(walletClient as ethers.providers.ExternalProvider);
-    // }
-
     // Always use the configured RPC URLs for reads — never the wallet's injected provider,
     // which bypasses the RotationProvider and uses the wallet's own RPC (e.g. MetaMask's
     // mainnet.base.org) with no fallback, causing 429s to go unhandled.
@@ -640,7 +635,7 @@ const getVaultIncentives = (incentives: IncentiveItem[], vaultId: string): Incen
 };
 
 // Helper function to detect which network a vault exists on
-const detectVaultNetwork = async (vaultId: string, currentChainId?: number): Promise<number | null> => {
+export const detectVaultNetwork = async (vaultId: string, currentChainId?: number): Promise<number | null> => {
   const supportedChainIds = Object.keys(vaultsConfig).map(Number);
 
   // Prioritize current wallet network if provided
@@ -1239,9 +1234,8 @@ export const useVaultData = <TResult = VaultData>(
   const { reserves } = useAppDataContext();
 
   const baseQueryIsEnabled = !!provider && !!vaultId && (opts?.enabled !== false);
-  const reservesAreReady = reserves.length > 0;
 
-  const actualQueryExecutionIsEnabled = baseQueryIsEnabled && reservesAreReady;
+  const actualQueryExecutionIsEnabled = baseQueryIsEnabled;
 
   // Fetch incentives independently to avoid blocking vault query
   const { data: incentivesData } = useIncentives({
@@ -1251,17 +1245,36 @@ export const useVaultData = <TResult = VaultData>(
   const canExecuteMainQuery = actualQueryExecutionIsEnabled;
 
   const queryApiResult = useVaultQuery<VaultData, TResult>(
-    vaultQueryKeys.vaultDetailsWithSubgraph(vaultId, chainId),
+    vaultQueryKeys.vaultDetailsWithSubgraph(vaultId),
     async () => {
       if (!vaultId) {
         throw new Error('Missing vaultId');
       }
 
-      // If we know this vault's factory (via registry), skip network detection
+      // Resolve vault's actual chain:
+      // 1. Check registry across all known chains (synchronous, no RPC calls).
+      //    Registry is populated by useOmniDeployedVaults — vaults that have been discovered
+      //    on any chain are found instantly without touching the network.
+      // 2. Fall back to sequential RPC detection, keeping chainId as a hint so the wallet's
+      //    chain is tried first — this keeps the fast path for same-chain vaults (e.g. Flow
+      //    vault + wallet on Flow) while the cross-chain registry lookup above covers the
+      //    cross-chain warm case (e.g. Base vault + wallet on Flow, registry populated).
       let vaultActualChainId = chainId;
-      const reg = getVaultFactoryInfo(chainId, vaultId);
-      if (!reg) {
-        // Fallback: detect across networks
+      const allSupportedChainIds = Object.keys(vaultsConfig).map(Number);
+      // Prefer chains that have a subgraph configured. The same vault address can appear on
+      // multiple chains via deterministic CREATE2 deployment (e.g., Ethereum + Flow). Picking a
+      // chain without a subgraph would cause fetchVaultHistoricalSnapshots to return null and
+      // the chart would disappear after the omni registry populates.
+      const chainsWithSubgraph = allSupportedChainIds.filter((id) => {
+        const cfg = vaultsConfig[id as keyof typeof vaultsConfig];
+        return Array.isArray(cfg?.factories) && cfg.factories.some((f) => !!(f as { subgraphUrl?: string }).subgraphUrl);
+      });
+      const registeredChainId =
+        chainsWithSubgraph.find((id) => !!getVaultFactoryInfo(id, vaultId)) ||
+        allSupportedChainIds.find((id) => !!getVaultFactoryInfo(id, vaultId));
+      if (registeredChainId) {
+        vaultActualChainId = registeredChainId;
+      } else {
         const detected = await detectVaultNetwork(vaultId, chainId);
         if (!detected) {
           throw new Error(`Vault ${vaultId} not found on any supported network`);
@@ -1527,18 +1540,6 @@ export const useVaultData = <TResult = VaultData>(
     canExecuteMainQuery,
     opts
   );
-
-  if (baseQueryIsEnabled && !reservesAreReady) {
-    return {
-      ...queryApiResult,
-      status: 'loading',
-      isLoading: true,
-      isFetching: true,
-      isSuccess: false,
-      isError: false,
-      data: undefined,
-    } as UseQueryResult<TResult, Error>;
-  }
 
   return queryApiResult;
 };
@@ -2036,32 +2037,6 @@ export const useDeployedVaults = <TResult = string[]>(
             const oracleAddress = thisFactory?.addresses?.ORACLE;
             cleanIds.forEach((id) => registerVaultFactoryInfo(chainId, id, { subgraphUrl, oracleAddress }));
 
-            // If this is the omni factory, check each vault for cross-chain hub status
-            if (addr.toLowerCase() === OMNI_FACTORY_ADDRESS.toLowerCase()) {
-              const localEid = CHAIN_ID_TO_LZ_EID[chainId];
-              if (localEid) {
-                const omniFactory = new ethers.Contract(addr, omniVaultFactoryAbi, provider);
-                await Promise.all(cleanIds.map(async (vaultId) => {
-                  try {
-                    const isCrossChain: boolean = await omniFactory.isCrossChainVault(localEid, vaultId);
-                    if (isCrossChain) {
-                      const [eids, spokeAddresses]: [number[], string[]] = await omniFactory.hubToSpokes(localEid, vaultId);
-                      const spokeVaults = eids.map((eid, i) => ({
-                        eid,
-                        chainId: EID_TO_CHAIN_ID[eid] ?? 0,
-                        address: spokeAddresses[i],
-                      })).filter((s) => s.chainId !== 0);
-                      markVaultAsOmniHub(chainId, vaultId, spokeVaults);
-                      spokeVaults.forEach((spoke) => {
-                        markVaultAsOmniSpoke(spoke.chainId, spoke.address, chainId, vaultId);
-                        registerVaultFactoryInfo(spoke.chainId, spoke.address, {});
-                      });
-                    }
-                  } catch { /* not cross-chain or call not supported */ }
-                }));
-              }
-            }
-
             return cleanIds;
           } catch {
             return [];
@@ -2112,72 +2087,117 @@ export const useDeployedVaults = <TResult = string[]>(
 };
 
 export const useOmniDeployedVaults = () => {
-  const baseProvider = useVaultProvider(ChainIds.base);
+  // Only scan chains where OMNI_FACTORY_ADDRESS is actually configured as a factory.
+  // Chains with a different factory address (e.g. Ethereum) would time out or fail.
+  const omniChainIds = Object.keys(CHAIN_ID_TO_LZ_EID)
+    .map(Number)
+    .filter((id) => {
+      const cfg = vaultsConfig[id as keyof typeof vaultsConfig];
+      return (
+        Array.isArray(cfg?.factories) &&
+        cfg.factories.some(
+          (f) =>
+            (f.addresses?.VAULT_FACTORY || '').toLowerCase() ===
+            OMNI_FACTORY_ADDRESS.toLowerCase()
+        )
+      );
+    });
 
   return useQuery({
-    queryKey: ['omniDeployedVaults', ChainIds.base],
+    queryKey: ['omniDeployedVaults', omniChainIds],
     queryFn: async (): Promise<string[]> => {
-      if (!baseProvider) throw new Error('No Base provider');
+      const allHubVaults: string[] = [];
 
-      const factory = new ethers.Contract(OMNI_FACTORY_ADDRESS, omniVaultFactoryAbi, baseProvider);
-
-      const deployedVaults: string[] = await factory.getDeployedVaults();
-      const vaults = (Array.isArray(deployedVaults) ? deployedVaults : []).filter(Boolean);
-
-      // Check which vaults are hubs in parallel
-      const hubChecks = await Promise.all(
-        vaults.map(async (vaultAddr) => {
-          try {
-            const configFacet = new ethers.Contract(vaultAddr, configurationFacetAbi, baseProvider);
-            const isHub: boolean = await configFacet.isHub();
-            return { vaultAddr, isHub };
-          } catch {
-            return { vaultAddr, isHub: false };
-          }
-        })
-      );
-
-      const hubVaults = hubChecks.filter((v) => v.isHub).map((v) => v.vaultAddr);
-
-      const registry = new ethers.Contract(OMNI_REGISTRY_ADDRESS, registryAbi, baseProvider);
-
-      // For each hub vault, fetch spokes and oracle
+      // Query the factory on every chain that has a LZ EID
       await Promise.all(
-        hubVaults.map(async (hubAddr) => {
-          // Fetch oracle: try vault.oracle() first, then registry.getOracle(vault)
-          let oracleAddress: string | undefined;
+        omniChainIds.map(async (hubChainId) => {
+          let provider: ethers.providers.Provider;
           try {
-            const configFacet = new ethers.Contract(hubAddr, configurationFacetAbi, baseProvider);
-            const addr: string = await configFacet.oracle();
-            if (addr && addr !== ethers.constants.AddressZero) oracleAddress = addr;
-          } catch { /* oracle() not on this facet */ }
-
-          if (!oracleAddress) {
-            try {
-              const addr: string = await registry.getOracle(hubAddr);
-              if (addr && addr !== ethers.constants.AddressZero) oracleAddress = addr;
-            } catch { /* registry fallback also failed */ }
-          }
-
-          try {
-            const [eids, spokeAddresses]: [number[], string[]] = await factory.hubToSpokes(LZ_EIDS.base, hubAddr);
-            const spokeVaults = eids.map((eid, i) => ({
-              eid,
-              chainId: EID_TO_CHAIN_ID[eid] ?? 0,
-              address: spokeAddresses[i],
-            })).filter((s) => s.chainId !== 0);
-
-            markVaultAsOmniHub(ChainIds.base, hubAddr, spokeVaults);
-
-            spokeVaults.forEach((spoke) => {
-              markVaultAsOmniSpoke(spoke.chainId, spoke.address, ChainIds.base, hubAddr);
-              registerVaultFactoryInfo(spoke.chainId, spoke.address, {});
-            });
+            const cfg = networkConfigs[hubChainId];
+            if (!cfg) return;
+            const urls: string[] = [
+              ...(Array.isArray(cfg.publicJsonRPCUrl) ? cfg.publicJsonRPCUrl : []),
+              ...(cfg.privateJsonRPCUrl ? [cfg.privateJsonRPCUrl] : []),
+            ];
+            if (!urls.length) return;
+            provider = urls.length === 1
+              ? new ethers.providers.JsonRpcProvider(urls[0])
+              : new RotationProvider(urls, hubChainId);
           } catch {
-            markVaultAsOmniHub(ChainIds.base, hubAddr, []);
+            return;
           }
 
-          registerVaultFactoryInfo(ChainIds.base, hubAddr, { ...(oracleAddress ? { oracleAddress } : {}) });
+          let vaults: string[];
+          try {
+            const factory = new ethers.Contract(OMNI_FACTORY_ADDRESS, omniVaultFactoryAbi, provider);
+            const deployed: string[] = await factory.getDeployedVaults();
+            vaults = (Array.isArray(deployed) ? deployed : []).filter(Boolean);
+          } catch {
+            return; // factory not deployed on this chain
+          }
+          if (!vaults.length) return;
+
+          const hubEid = CHAIN_ID_TO_LZ_EID[hubChainId];
+
+          const hubChecks = await Promise.all(
+            vaults.map(async (vaultAddr) => {
+              try {
+                const cfg = new ethers.Contract(vaultAddr, configurationFacetAbi, provider);
+                const isHub: boolean = await cfg.isHub();
+                return { vaultAddr, isHub };
+              } catch {
+                return { vaultAddr, isHub: false };
+              }
+            })
+          );
+
+          const hubAddrs = hubChecks.filter((v) => v.isHub).map((v) => v.vaultAddr);
+
+          let registry: ethers.Contract | null = null;
+          try {
+            registry = new ethers.Contract(OMNI_REGISTRY_ADDRESS, registryAbi, provider);
+          } catch { /* no registry on this chain */ }
+
+          await Promise.all(
+            hubAddrs.map(async (hubAddr) => {
+              let oracleAddress: string | undefined;
+              try {
+                const cfgFacet = new ethers.Contract(hubAddr, configurationFacetAbi, provider);
+                const addr: string = await cfgFacet.oracle();
+                if (addr && addr !== ethers.constants.AddressZero) oracleAddress = addr;
+              } catch {}
+
+              if (!oracleAddress && registry) {
+                try {
+                  const addr: string = await registry.getOracle(hubAddr);
+                  if (addr && addr !== ethers.constants.AddressZero) oracleAddress = addr;
+                } catch {}
+              }
+
+              try {
+                const factory = new ethers.Contract(OMNI_FACTORY_ADDRESS, omniVaultFactoryAbi, provider);
+                const [eids, spokeAddresses]: [number[], string[]] = await factory.hubToSpokes(hubEid, hubAddr);
+                const spokeVaults = eids.map((eid, i) => ({
+                  eid,
+                  chainId: EID_TO_CHAIN_ID[eid] ?? 0,
+                  address: spokeAddresses[i],
+                })).filter((s) => s.chainId !== 0);
+
+                markVaultAsOmniHub(hubChainId, hubAddr, spokeVaults);
+
+                spokeVaults.forEach((spoke) => {
+                  markVaultAsOmniSpoke(spoke.chainId, spoke.address, hubChainId, hubAddr);
+                  registerVaultFactoryInfo(spoke.chainId, spoke.address, {});
+                });
+              } catch {
+                markVaultAsOmniHub(hubChainId, hubAddr, []);
+              }
+
+              registerVaultFactoryInfo(hubChainId, hubAddr, { ...(oracleAddress ? { oracleAddress } : {}) });
+            })
+          );
+
+          allHubVaults.push(...hubAddrs);
         })
       );
 
@@ -2193,16 +2213,15 @@ export const useOmniDeployedVaults = () => {
         .map((id) => id.trim().toLowerCase())
         .filter(Boolean);
 
-      let filteredHubVaults = hubVaults;
+      let filtered = allHubVaults;
       if (visibleVaultIds.length > 0) {
         const visibleSet = new Set(visibleVaultIds);
-        filteredHubVaults = filteredHubVaults.filter((v) => visibleSet.has(v.toLowerCase()));
+        filtered = filtered.filter((v) => visibleSet.has(v.toLowerCase()));
       }
-      filteredHubVaults = filteredHubVaults.filter((v) => !hiddenVaultIds.includes(v.toLowerCase()));
+      filtered = filtered.filter((v) => !hiddenVaultIds.includes(v.toLowerCase()));
 
-      return filteredHubVaults;
+      return filtered;
     },
-    enabled: !!baseProvider,
     staleTime: 5 * 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
   });
