@@ -50,6 +50,7 @@ interface LineChartProps {
   selectedPeriod?: TimePeriod;
   onPeriodChange?: (period: TimePeriod) => void;
   areaGradient?: boolean;
+  hideAxis?: boolean;
 }
 
 interface BaseChartProps {
@@ -61,6 +62,7 @@ interface BaseChartProps {
   isSmall?: boolean;
   yAxisFormat?: string;
   areaGradient?: boolean;
+  hideAxis?: boolean;
 }
 
 const BaseLightweightChart: React.FC<BaseChartProps> = ({
@@ -72,6 +74,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
   isSmall = false,
   yAxisFormat,
   areaGradient = false,
+  hideAxis = false,
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -153,6 +156,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
           minBarSpacing: 0.1,
           timeVisible: isSmall,
           secondsVisible: false,
+          visible: !hideAxis,
           tickMarkFormatter: (time: UTCTimestamp) => {
             const date = new Date(time * 1000);
             const day = date.getDate().toString().padStart(2, '0');
@@ -169,6 +173,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         rightPriceScale: {
           borderVisible: false,
           ticksVisible: isSmall,
+          visible: !hideAxis,
         },
         handleScroll: isInteractive,
         handleScale: isInteractive,
@@ -315,6 +320,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
     isSmall,
     yAxisFormat,
     areaGradient,
+    hideAxis,
   ]);
 
   useEffect(() => {
@@ -400,6 +406,7 @@ export const LineChart: React.FC<LineChartProps> = ({
   selectedPeriod: controlledSelectedPeriod,
   onPeriodChange,
   areaGradient = false,
+  hideAxis = false,
 }) => {
 
   const [uncontrolledSelectedPeriod, setUncontrolledSelectedPeriod] = useState<TimePeriod>('3m');
@@ -427,6 +434,7 @@ export const LineChart: React.FC<LineChartProps> = ({
         isSmall={isSmall}
         yAxisFormat={yAxisFormat}
         areaGradient={areaGradient}
+        hideAxis={hideAxis}
       />
 
       {showTimePeriodSelector && (

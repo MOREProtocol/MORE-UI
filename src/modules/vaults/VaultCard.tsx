@@ -158,6 +158,7 @@ export const VaultCard = ({ row, loading, onClick, onDeposit, disabled }: VaultC
             areaGradient
             isInteractive={false}
             isSmall
+            hideAxis
             showTimePeriodSelector={false}
             yAxisFormat={row?.depositTokenSymbol}
           />

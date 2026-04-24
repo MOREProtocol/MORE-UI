@@ -1,12 +1,11 @@
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import ShowChartIcon from '@mui/icons-material/ShowChart';
 import {
   Alert,
   Avatar,
   Box,
   Button,
-  Chip,
+  Divider,
   IconButton,
   Skeleton,
   SvgIcon,
@@ -52,6 +51,7 @@ import { VaultActivity } from './VaultActivity';
 import { VaultAllocations } from './VaultAllocations';
 import { VaultBridgeSharesToHubModal } from './VaultBridgeSharesToHubModal';
 import { VaultDepositModal } from './VaultDepositModal';
+import { VaultFlowRibbon } from './VaultFlowRibbon';
 import { VaultManagement } from './VaultManagement/VaultManagement';
 import { VaultNotes } from './VaultNotes';
 import { VaultKpiGrid } from './VaultKpiGrid';
@@ -173,7 +173,6 @@ export const VaultDetail = () => {
   const userVaultBalances = useUserVaultBalances(accountAddress, { enabled: !!accountAddress && isChainDetected });
   const theme = useTheme();
   const downToMd = useMediaQuery(theme.breakpoints.down('md'));
-  const downToMdLg = useMediaQuery(theme.breakpoints.down('mdlg'));
   const xPadding = downToMd ? 5 : 7;
 
   const baseUrl = useMemo(
@@ -352,7 +351,6 @@ export const VaultDetail = () => {
   const isFlowTheme = process.env.NEXT_PUBLIC_UI_THEME === 'flow';
 
   const handleDepositClick = () => {
-    // Non-omni vault on wrong chain → switch first
     if (!isOmniVault && !isOnCorrectNetwork) {
       switchChain?.({ chainId: vaultNetwork || ChainIds.flowEVMMainnet });
       return;
@@ -370,11 +368,13 @@ export const VaultDetail = () => {
     }
   }, [hasNotes]);
 
+  const isDark = theme.palette.mode === 'dark';
+
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5, pt: 4, pb: 7, px: xPadding }}>
-      {/* Network hint for non-omni vaults — informational only, doesn't block the page */}
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, pt: 4, pb: 7, px: xPadding }}>
+      {/* Network hint */}
       {address && !isOnCorrectNetwork && !isOmniVault && !isLoading && (
-        <Alert severity="info" sx={{ mb: 3 }}>
+        <Alert severity="info">
           <Typography variant="main14">
             This vault is on{' '}
             {networkConfigs[vaultNetwork || ChainIds.flowEVMMainnet]?.name || 'another network'}.{' '}
@@ -382,12 +382,7 @@ export const VaultDetail = () => {
               component="span"
               variant="main14"
               onClick={() => switchChain?.({ chainId: vaultNetwork || ChainIds.flowEVMMainnet })}
-              sx={{
-                textDecoration: 'underline',
-                cursor: 'pointer',
-                fontWeight: 600,
-                '&:hover': { color: 'primary.dark' },
-              }}
+              sx={{ textDecoration: 'underline', cursor: 'pointer', fontWeight: 600, '&:hover': { color: 'primary.dark' } }}
             >
               Switch to deposit or withdraw
             </Typography>
@@ -395,165 +390,200 @@ export const VaultDetail = () => {
         </Alert>
       )}
 
-      {/* TOP DETAILS */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          backgroundColor: 'background.surface',
-          p: 3,
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <SvgIcon
-            sx={{
-              fontSize: '20px',
-              cursor: 'pointer',
-              color: 'primary.main',
-              '&:hover': { color: 'primary.light' },
-            }}
-            onClick={() => router.push('/vaults')}
-          >
+      {/* HEADER */}
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+        {/* Back button */}
+        <Box
+          onClick={() => router.push('/vaults')}
+          sx={{
+            display: 'inline-grid',
+            placeItems: 'center',
+            width: 34,
+            height: 34,
+            borderRadius: '8px',
+            border: '1px solid',
+            borderColor: 'divider',
+            bgcolor: isDark ? 'rgba(255,255,255,.04)' : 'rgba(255,255,255,.9)',
+            color: 'text.secondary',
+            cursor: 'pointer',
+            flex: 'none',
+            mt: '5px',
+            '&:hover': { color: 'text.primary', borderColor: isDark ? 'rgba(255,255,255,.12)' : 'rgba(40,25,15,.16)' },
+          }}
+        >
+          <SvgIcon sx={{ fontSize: '16px' }}>
             <ArrowBackRoundedIcon />
           </SvgIcon>
-          {isLoading ? (
-            <Skeleton width={150} height={40} sx={{ my: 2 }} />
-          ) : (
-            <>
-              {isFlowTheme ? (
-                <>
-                  <TokenIcon
-                    symbol={selectedVault?.overview?.asset?.symbol || ''}
-                    fontSize="large"
-                  />
-                  <Typography variant="main21" sx={{ color: 'primary.main' }}>
-                    {`${selectedVault?.overview?.asset?.symbol || selectedVault?.overview?.name || ''
-                      } Vault`}
-                  </Typography>
-                </>
-              ) : (
-                <>
-                  {selectedVault?.overview?.curatorLogo && (
-                    <Avatar
-                      src={selectedVault.overview.curatorLogo}
-                      sx={{ width: 35, height: 35 }}
-                    />
-                  )}
-                  <Typography variant="main21" sx={{ color: 'primary.main' }}>
-                    {selectedVault?.overview?.name}
-                  </Typography>
-                </>
-              )}
-              {isOmniHub && (
-                <Chip
-                  label="Omnichain"
-                  size="small"
+        </Box>
+
+        {/* Token icon + name stack */}
+        {isLoading ? (
+          <Skeleton width={220} height={44} />
+        ) : (
+          <>
+            {isFlowTheme ? (
+              <TokenIcon symbol={selectedVault?.overview?.asset?.symbol || ''} fontSize="large" sx={{ alignSelf: 'flex-start', mt: '3px' }} />
+            ) : selectedVault?.overview?.curatorLogo ? (
+              <Avatar src={selectedVault.overview.curatorLogo} sx={{ width: 40, height: 40, borderRadius: '10px', alignSelf: 'flex-start', mt: '2px' }} />
+            ) : null}
+
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              {/* Name row */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <Typography
                   sx={{
-                    ml: 0.5,
-                    background: theme.palette.gradients.newGradient,
-                    color: '#fff',
-                    fontWeight: 600,
-                    border: 'none',
+                    fontFamily: theme.typography.h1.fontFamily,
+                    fontSize: { xs: 20, md: 26 },
+                    fontWeight: 500,
+                    letterSpacing: '-.02em',
+                    lineHeight: 1.1,
+                    color: 'text.primary',
                   }}
-                />
-              )}
-              <IconButton
-                size="small"
-                onClick={() => {
-                  if (baseUrl && selectedVaultId) {
-                    window.open(`${baseUrl}/address/${selectedVaultId}`, '_blank');
+                >
+                  {isFlowTheme
+                    ? `${selectedVault?.overview?.asset?.symbol || selectedVault?.overview?.name || ''} Vault`
+                    : selectedVault?.overview?.name}
+                </Typography>
+                {isOmniHub && (
+                  <Box
+                    component="span"
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      px: 1,
+                      py: 0.25,
+                      borderRadius: '6px',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: isDark ? '#FFA450' : '#D44E06',
+                      background: isDark ? 'rgba(242,106,21,.14)' : 'rgba(242,106,21,.10)',
+                      border: '1px solid',
+                      borderColor: isDark ? 'rgba(242,106,21,.28)' : 'rgba(242,106,21,.22)',
+                    }}
+                  >
+                    omnichain
+                  </Box>
+                )}
+                <IconButton
+                  size="small"
+                  onClick={() => baseUrl && selectedVaultId && window.open(`${baseUrl}/address/${selectedVaultId}`, '_blank')}
+                  aria-label="open in explorer"
+                  sx={{ padding: '2px', color: 'text.muted' }}
+                >
+                  <OpenInNewIcon sx={{ fontSize: '0.8rem' }} />
+                </IconButton>
+              </Box>
+
+              {/* Subtitle: curated by [name]  |  curator · strategist · guardian addresses */}
+              {!downToMd && (
+                selectedVault?.overview?.curatorName ||
+                selectedVault?.overview?.roles?.owner ||
+                selectedVault?.overview?.roles?.curator ||
+                selectedVault?.overview?.roles?.guardian
+              ) && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 10, mt: 1, flexWrap: 'wrap' }}>
+                  {/* Group 1: curated by [name] */}
+                  {selectedVault?.overview?.curatorName && selectedVault.overview.curatorName !== 'Unknown' && (
+                    <Typography sx={{ fontSize: 12, color: 'text.muted', whiteSpace: 'nowrap' }}>
+                      curated by{' '}
+                      <Box component="span" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                        {selectedVault.overview.curatorName}
+                      </Box>
+                    </Typography>
+                  )}
+
+                  {/* Vertical separator */}
+                  {selectedVault?.overview?.curatorName && selectedVault.overview.curatorName !== 'Unknown' &&
+                    (selectedVault?.overview?.roles?.owner || selectedVault?.overview?.roles?.curator || selectedVault?.overview?.roles?.guardian) && (
+                      <Box sx={{ width: '1px', height: 14, bgcolor: isDark ? 'rgba(255,255,255,.12)' : 'rgba(40,25,15,.16)', flexShrink: 0 }} />
+                    )
                   }
+
+                  {/* Group 2: address chips */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                    {selectedVault?.overview?.roles?.owner && (
+                      <Typography component="span" sx={{ fontSize: 12, color: 'text.muted' }}>
+                        curator{' '}
+                        <Address
+                          address={selectedVault.overview.roles.owner}
+                          link={`${baseUrl}/address/${selectedVault.overview.roles.owner}`}
+                          loading={false}
+                          isUser
+                          variant="secondary12"
+                          compactMode={CompactMode.SM}
+                          sx={{ color: 'text.secondary', display: 'inline' }}
+                        />
+                      </Typography>
+                    )}
+                    {selectedVault?.overview?.roles?.curator && (
+                      <>
+                        {selectedVault?.overview?.roles?.owner && (
+                          <Typography component="span" sx={{ fontSize: 12, color: 'text.muted', mx: 0.25 }}>·</Typography>
+                        )}
+                        <Typography component="span" sx={{ fontSize: 12, color: 'text.muted' }}>
+                          strategist{' '}
+                          <Address
+                            address={selectedVault.overview.roles.curator}
+                            link={`${baseUrl}/address/${selectedVault.overview.roles.curator}`}
+                            loading={false}
+                            isUser
+                            variant="secondary12"
+                            compactMode={CompactMode.SM}
+                            sx={{ color: 'text.secondary', display: 'inline' }}
+                          />
+                        </Typography>
+                      </>
+                    )}
+                    {selectedVault?.overview?.roles?.guardian && (
+                      <>
+                        {(selectedVault?.overview?.roles?.owner || selectedVault?.overview?.roles?.curator) && (
+                          <Typography component="span" sx={{ fontSize: 12, color: 'text.muted', mx: 0.25 }}>·</Typography>
+                        )}
+                        <Typography component="span" sx={{ fontSize: 12, color: 'text.muted' }}>
+                          guardian{' '}
+                          <Address
+                            address={selectedVault.overview.roles.guardian}
+                            link={`${baseUrl}/address/${selectedVault.overview.roles.guardian}`}
+                            loading={false}
+                            isUser
+                            variant="secondary12"
+                            compactMode={CompactMode.SM}
+                            sx={{ color: 'text.secondary', display: 'inline' }}
+                          />
+                        </Typography>
+                      </>
+                    )}
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          </>
+        )}
+
+        {/* Spacer */}
+        <Box sx={{ flex: 1 }} />
+
+        {/* Action buttons */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0, mt: '2px' }}>
+          {!isLoading &&
+            accountAddress &&
+            (shares > 0 || (maxWithdraw && maxWithdraw.gt(0))) && (
+              <Button
+                variant="soft"
+                size="medium"
+                onClick={() => {
+                  if (!isOmniVault && !isOnCorrectNetwork) {
+                    switchChain?.({ chainId: vaultNetwork || ChainIds.flowEVMMainnet });
+                    return;
+                  }
+                  setIsRedeemModalOpen(true);
                 }}
-                aria-label="open in explorer"
-                sx={{ padding: '2px' }}
+                disabled={isLoading}
               >
-                <OpenInNewIcon sx={{ fontSize: '0.875rem' }} />
-              </IconButton>
-            </>
-          )}
-        </Box>
-        <Box
-          sx={{
-            display: downToMd ? 'none' : 'flex',
-            alignItems: 'left',
-            flexDirection: 'row',
-            gap: 5,
-          }}
-        >
-          {isLoading ? (
-            <Skeleton width={150} height={20} />
-          ) : (
-            selectedVault?.overview?.roles?.owner && (
-              <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
-                <Typography variant="secondary14" sx={{ pb: 2, color: 'primary.main' }}>
-                  Owner
-                </Typography>
-                <Address
-                  address={selectedVault?.overview?.roles.owner}
-                  link={`${baseUrl}/address/${selectedVault?.overview?.roles.owner}`}
-                  loading={isLoading}
-                  isUser
-                  variant="secondary12"
-                  compactMode={CompactMode.SM}
-                  sx={{ color: 'primary.main' }}
-                />
-              </Box>
-            )
-          )}
-          {isLoading ? (
-            <Skeleton width={150} height={20} />
-          ) : (
-            selectedVault?.overview?.roles?.curator && (
-              <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
-                <Typography variant="secondary14" sx={{ pb: 2, color: 'primary.main' }}>
-                  Strategist
-                </Typography>
-                <Address
-                  address={selectedVault?.overview?.roles.curator}
-                  link={`${baseUrl}/address/${selectedVault?.overview?.roles.curator}`}
-                  loading={isLoading}
-                  isUser
-                  variant="secondary12"
-                  compactMode={CompactMode.SM}
-                  sx={{ color: 'primary.main' }}
-                />
-              </Box>
-            )
-          )}
-          {isLoading ? (
-            <Skeleton width={150} height={20} />
-          ) : (
-            selectedVault?.overview?.roles?.guardian && (
-              <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column' }}>
-                <Typography variant="secondary14" sx={{ pb: 2, color: 'primary.main' }}>
-                  Guardian
-                </Typography>
-                <Address
-                  address={selectedVault?.overview?.roles.guardian}
-                  link={`${baseUrl}/address/${selectedVault?.overview?.roles.guardian}`}
-                  loading={isLoading}
-                  isUser
-                  variant="secondary12"
-                  compactMode={CompactMode.SM}
-                  sx={{ color: 'primary.main' }}
-                />
-              </Box>
-            )
-          )}
-        </Box>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'left',
-            flexDirection: downToMdLg ? 'column' : 'row',
-            gap: 2,
-          }}
-        >
+                Withdraw
+              </Button>
+            )}
           {!isLoading &&
             (isOmniHub || isOmniSpoke || !(vaultData?.data?.financials?.liquidity?.maxDeposit === '0')) && (
               <Tooltip
@@ -572,38 +602,26 @@ export const VaultDetail = () => {
                 </span>
               </Tooltip>
             )}
-          {!isLoading &&
-            accountAddress &&
-            (shares > 0 || (maxWithdraw && maxWithdraw.gt(0))) && (
-              <Button
-                variant="gradient"
-                size="medium"
-                onClick={() => {
-                  if (!isOmniVault && !isOnCorrectNetwork) {
-                    switchChain?.({ chainId: vaultNetwork || ChainIds.flowEVMMainnet });
-                    return;
-                  }
-                  setIsRedeemModalOpen(true);
-                }}
-                disabled={isLoading}
-              >
-                Withdraw
-              </Button>
-            )}
         </Box>
       </Box>
 
-      {/* MIDDLE DETAILS */}
+      {/* FLOW RIBBON — omni vaults only */}
+      <VaultFlowRibbon
+        vaultName={selectedVault?.overview?.name}
+        vaultAssetSymbol={selectedVault?.overview?.asset?.symbol || vaultMetadata?.underlyingSymbol}
+        vaultAssetDecimals={assetDecimals}
+      />
+
+      {/* STATS + CHART GRID */}
       <Box
         sx={{
-          display: 'flex',
-          alignItems: 'left',
-          flexDirection: { xs: 'column', md: 'row' },
-          gap: { xs: 2, md: 5 },
-          mt: 4,
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1.5fr' },
+          gap: { xs: 3, md: 4 },
+          alignItems: 'stretch',
         }}
       >
-        {/* LEFT SIDE KPIS */}
+        {/* LEFT: KPI grid */}
         <VaultKpiGrid
           selectedVault={selectedVault}
           legacyVault={vaultData?.data}
@@ -624,278 +642,174 @@ export const VaultDetail = () => {
           chainId={chainId}
         />
 
-        {/* RIGHT SIDE CHART */}
+        {/* RIGHT: Chart panel */}
         <Box
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            flex: 3,
-            backgroundColor: 'background.paper',
-            borderRadius: '12px',
+            background: isDark
+              ? theme.palette.background.surface
+              : theme.palette.background.paper,
+            borderRadius: '14px',
             border: '1px solid',
-            borderColor: 'divider',
-            position: 'relative',
+            borderColor: isDark ? 'rgba(255,255,255,.08)' : 'rgba(40,25,15,.10)',
+            boxShadow: isDark
+              ? '0 1px 0 rgba(255,255,255,.04) inset, 0 20px 50px -25px rgba(0,0,0,.6)'
+              : '0 1px 0 rgba(255,255,255,.9) inset, 0 14px 36px -18px rgba(120,70,20,.12)',
+            overflow: 'hidden',
           }}
         >
+          {/* Chart header */}
           <Box
             sx={{
-              position: 'absolute',
-              top: { xs: 8, md: 12 },
-              left: { xs: 8, md: 12 },
-              zIndex: 10,
               display: 'flex',
-              alignItems: 'left',
-              flexDirection: 'row',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              px: { xs: 3, md: 4 },
+              pt: { xs: 3, md: 3.5 },
+              pb: 2,
+              gap: 2,
               flexWrap: 'wrap',
-              gap: { xs: 2, sm: 3 },
-              px: { xs: 2, md: 3 },
-              py: { xs: 1, md: 2 },
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
-              <Typography variant="secondary14" color="text.secondary">
-                Share Price
-              </Typography>
+            {/* Metric selectors */}
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 3, md: 4 } }}>
+              {/* Share Price */}
               <Box
                 onClick={() => setSelectedChartDataKey('sharePrice')}
-                sx={{
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  flexDirection: 'row',
-                  gap: 1,
-                  border: isLoading
-                    ? 'none'
-                    : selectedChartDataKey === 'sharePrice'
-                      ? `1.5px solid ${theme.palette.other.chartHighlight}`
-                      : `1.5px solid ${theme.palette.divider}`,
-                  borderRadius: '6px',
-                  padding: '2px 6px',
-                  width: 'fit-content',
-                  backdropFilter: 'blur(2px)',
-                  '&:hover': {
-                    backgroundColor: theme.palette.background.surface,
-                    border: `1.5px solid ${theme.palette.text.muted}`,
-                  },
-                }}
+                sx={{ cursor: 'pointer' }}
               >
-                {isLoading ? (
-                  <Skeleton width={60} height={24} />
-                ) : (
-                  <>
-                    <FormattedNumber
-                      value={selectedVault?.overview?.sharePrice?.toString() || '0'}
-                      symbol={selectedVault?.overview?.asset?.symbol || ''}
-                      variant="main16"
-                      sx={{ fontWeight: 800 }}
-                    />
-                    <SvgIcon
-                      sx={{
-                        fontSize: '20px',
-                        color:
-                          selectedChartDataKey === 'sharePrice'
-                            ? theme.palette.other.chartHighlight
-                            : theme.palette.text.muted,
-                      }}
-                    >
-                      <ShowChartIcon />
-                    </SvgIcon>
-                  </>
-                )}
-              </Box>
-            </Box>
-            {/* <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
-              <Typography variant="secondary14" color="text.secondary">Annualized APY</Typography>
-              <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'row', gap: 1 }}>
-                <Box
-                  onClick={() => setSelectedChartDataKey('apy')}
+                <Typography
                   sx={{
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    flexDirection: 'row',
-                    gap: 1,
-                    border: isLoading
-                      ? 'none'
-                      : selectedChartDataKey === 'apy'
-                        ? `1.5px solid ${theme.palette.other.chartHighlight}`
-                        : `1.5px solid ${theme.palette.divider}`,
-                    borderRadius: '6px',
-                    padding: '2px 6px',
-                    width: 'fit-content',
-                    backgroundColor: 'background.paper',
-                    '&:hover': {
-                      backgroundColor: theme.palette.background.surface,
-                      border: `1.5px solid ${theme.palette.text.muted}`,
-                    },
-                  }}>
-                  {isLoading ? <Skeleton width={60} height={24} /> : <>
-                    <FormattedNumber
-                      value={vaultData?.data?.overview?.apy || '0'}
-                      percent
-                      variant="main16"
-                      sx={{ fontWeight: 800 }}
-                    />
-                    <SvgIcon
+                    fontSize: '10.5px',
+                    letterSpacing: '.12em',
+                    textTransform: 'uppercase',
+                    color: selectedChartDataKey === 'sharePrice' ? 'secondary.main' : 'text.muted',
+                    fontWeight: 500,
+                    mb: 0.5,
+                    transition: 'color .15s',
+                  }}
+                >
+                  Share Price
+                </Typography>
+                {isLoading ? (
+                  <Skeleton width={80} height={28} />
+                ) : (
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
+                    <Typography
                       sx={{
-                        fontSize: '20px',
-                        color:
-                          selectedChartDataKey === 'apy'
-                            ? theme.palette.other.chartHighlight
-                            : theme.palette.text.muted,
+                        fontFamily: theme.typography.h1.fontFamily,
+                        fontSize: 24,
+                        fontWeight: 500,
+                        letterSpacing: '-.018em',
+                        lineHeight: 1,
+                        color: selectedChartDataKey === 'sharePrice' ? 'text.primary' : 'text.secondary',
+                        transition: 'color .15s',
                       }}
                     >
-                      <ShowChartIcon />
-                    </SvgIcon>
-                  </>
-                  }
-                </Box>
-                {selectedVault?.incentives && selectedVault?.incentives.length > 0 && (
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="main14" color="text.secondary" sx={{ ml: 1, mr: 1 }}>
-                      +
+                      <FormattedNumber
+                        value={selectedVault?.overview?.sharePrice?.toString() || '0'}
+                        compact
+                        variant="main21"
+                        sx={{
+                          fontFamily: theme.typography.h1.fontFamily,
+                          fontSize: 24,
+                          fontWeight: 500,
+                          letterSpacing: '-.018em',
+                          color: 'inherit',
+                        }}
+                      />
                     </Typography>
-                    <RewardsButton rewards={selectedVault?.incentives} />
+                    <Typography sx={{ fontSize: 11, color: 'text.muted', fontWeight: 500 }}>
+                      {selectedVault?.overview?.asset?.symbol || ''}
+                    </Typography>
                   </Box>
                 )}
               </Box>
-            </Box> */}
-            {/* <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
-              <Typography variant="secondary14" color="text.secondary">Total Supply</Typography>
-              <Box
-                onClick={() => setSelectedChartDataKey('totalSupply')}
-                sx={{
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  flexDirection: 'row',
-                  gap: 1,
-                    border: isLoading
-                      ? 'none'
-                      : selectedChartDataKey === 'totalSupply'
-                        ? `1.5px solid ${theme.palette.other.chartHighlight}`
-                        : `1.5px solid ${theme.palette.divider}`,
-                  borderRadius: '6px',
-                  padding: '2px 6px',
-                  width: 'fit-content',
-                  backdropFilter: 'blur(2px)',
-                  '&:hover': {
-                    backgroundColor: theme.palette.background.surface,
-                    border: `1.5px solid ${theme.palette.text.muted}`,
-                  },
-                }}>
-                {isLoading ? <Skeleton width={60} height={24} /> : <>
-                  <FormattedNumber
-                    value={totalSupplyInUsd.toString() || '0'}
-                    symbol={'USD'}
-                    variant="main16"
-                    sx={{ fontWeight: 800 }}
-                  />
-                  <SvgIcon
-                    sx={{
-                      fontSize: '20px',
-                      color:
-                        selectedChartDataKey === 'totalSupply'
-                          ? theme.palette.other.chartHighlight
-                          : theme.palette.text.muted,
-                    }}
-                  >
-                    <ShowChartIcon />
-                  </SvgIcon>
-                </>
-                }
-              </Box>
-            </Box> */}
-            <Box sx={{ display: 'flex', alignItems: 'left', flexDirection: 'column', gap: 0 }}>
-              <Typography variant="secondary14" color="text.secondary">
-                Net Asset Value
-              </Typography>
+
+              <Divider orientation="vertical" flexItem sx={{ alignSelf: 'center', height: 32 }} />
+
+              {/* Net Asset Value */}
               <Box
                 onClick={() => setSelectedChartDataKey('totalAssets')}
-                sx={{
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  flexDirection: 'row',
-                  gap: 1,
-                  border: isLoading
-                    ? 'none'
-                    : selectedChartDataKey === 'totalAssets'
-                      ? `1.5px solid ${theme.palette.other.chartHighlight}`
-                      : `1.5px solid ${theme.palette.divider}`,
-                  borderRadius: '6px',
-                  padding: '2px 6px',
-                  width: 'fit-content',
-                  backdropFilter: 'blur(2px)',
-                  '&:hover': {
-                    backgroundColor: theme.palette.background.surface,
-                    border: `1.5px solid ${theme.palette.text.muted}`,
-                  },
-                }}
+                sx={{ cursor: 'pointer' }}
               >
+                <Typography
+                  sx={{
+                    fontSize: '10.5px',
+                    letterSpacing: '.12em',
+                    textTransform: 'uppercase',
+                    color: selectedChartDataKey === 'totalAssets' ? 'secondary.main' : 'text.muted',
+                    fontWeight: 500,
+                    mb: 0.5,
+                    transition: 'color .15s',
+                  }}
+                >
+                  Net Asset Value
+                </Typography>
                 {isLoading ? (
-                  <Skeleton width={60} height={24} />
+                  <Skeleton width={100} height={28} />
                 ) : (
-                  <>
-                    <FormattedNumber
-                      value={aumFormatted || '0'}
-                      symbol={selectedVault?.overview?.asset?.symbol || ''}
-                      variant="main16"
-                      sx={{ fontWeight: 800 }}
-                    />
-                    <SvgIcon
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
+                    <Typography
                       sx={{
-                        fontSize: '20px',
-                        color:
-                          selectedChartDataKey === 'totalAssets'
-                            ? theme.palette.other.chartHighlight
-                            : theme.palette.text.muted,
+                        fontFamily: theme.typography.h1.fontFamily,
+                        fontSize: 24,
+                        fontWeight: 500,
+                        letterSpacing: '-.018em',
+                        lineHeight: 1,
+                        color: selectedChartDataKey === 'totalAssets' ? 'text.primary' : 'text.secondary',
+                        transition: 'color .15s',
                       }}
                     >
-                      <ShowChartIcon />
-                    </SvgIcon>
-                  </>
+                      <FormattedNumber
+                        value={aumFormatted || '0'}
+                        compact
+                        variant="main21"
+                        sx={{
+                          fontFamily: theme.typography.h1.fontFamily,
+                          fontSize: 24,
+                          fontWeight: 500,
+                          letterSpacing: '-.018em',
+                          color: 'inherit',
+                        }}
+                      />
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, color: 'text.muted', fontWeight: 500 }}>
+                      {selectedVault?.overview?.asset?.symbol || ''}
+                    </Typography>
+                  </Box>
                 )}
               </Box>
             </Box>
           </Box>
-          <Box
-            sx={{
-              backgroundColor: 'background.paper',
-              py: { xs: 2, md: 6 },
-              pl: { xs: 2, md: 6 },
-              borderRadius: '12px',
-            }}
-          >
+
+          {/* Chart */}
+          <Box sx={{ flex: 1, px: { xs: 0, md: 1 }, pb: 1 }}>
             {isLoading ? (
-              <Box sx={{ width: '100%', height: 300, backgroundColor: 'transparent' }} />
+              <Box sx={{ width: '100%', height: 280 }} />
             ) : currentChartData && currentChartData.length > 0 ? (
               <LineChart
-                height={300}
+                height={280}
                 data={currentChartData}
                 yAxisFormat={vaultData?.data?.overview?.asset?.symbol}
                 showTimePeriodSelector={true}
+                areaGradient
               />
             ) : (
-              <Typography sx={{ textAlign: 'center', pt: 30 }}>
-                No historical data available for {currentChartLabel}.
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 280 }}>
+                <Typography variant="secondary14" color="text.muted">
+                  No historical data available for {currentChartLabel}.
+                </Typography>
+              </Box>
             )}
           </Box>
         </Box>
       </Box>
 
       {/* BOTTOM TABS */}
-      {process?.env?.NEXT_PUBLIC_UI_THEME && process.env.NEXT_PUBLIC_UI_THEME === 'flow' ? (
-        <></>
-      ) : (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            pb: 10,
-          }}
-        >
+      {isFlowTheme ? null : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', pb: 10 }}>
           <Tabs
             value={isLoading ? false : selectedTab}
             onChange={handleTabChange}
@@ -906,9 +820,11 @@ export const VaultDetail = () => {
                 minWidth: 'auto',
                 marginRight: '24px',
                 padding: '12px 0',
-                fontWeight: '600',
+                fontWeight: 600,
                 fontSize: '14px',
                 textTransform: 'none',
+                color: 'text.muted',
+                '&.Mui-selected': { color: 'text.primary' },
               },
               borderBottom: '1px solid',
               borderColor: 'divider',
