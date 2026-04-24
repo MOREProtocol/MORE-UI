@@ -132,7 +132,7 @@ export const AssetInput = <T extends Asset = Asset>({
       <Box
         sx={(theme) => ({
           border: `1px solid ${theme.palette.divider}`,
-          borderRadius: '6px',
+          borderRadius: '10px',
           overflow: 'hidden',
         })}
       >

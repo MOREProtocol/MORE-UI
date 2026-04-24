@@ -404,7 +404,9 @@ export const VaultDetail = () => {
           gap: 2,
           backgroundColor: 'background.surface',
           p: 3,
-          borderRadius: 2,
+          borderRadius: '12px',
+          border: '1px solid',
+          borderColor: 'divider',
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -629,7 +631,9 @@ export const VaultDetail = () => {
             flexDirection: 'column',
             flex: 3,
             backgroundColor: 'background.paper',
-            borderRadius: 2,
+            borderRadius: '12px',
+            border: '1px solid',
+            borderColor: 'divider',
             position: 'relative',
           }}
         >
@@ -664,7 +668,7 @@ export const VaultDetail = () => {
                     ? 'none'
                     : selectedChartDataKey === 'sharePrice'
                       ? `1.5px solid ${theme.palette.other.chartHighlight}`
-                      : '1.5px solid #E0E0E0',
+                      : `1.5px solid ${theme.palette.divider}`,
                   borderRadius: '6px',
                   padding: '2px 6px',
                   width: 'fit-content',
@@ -715,7 +719,7 @@ export const VaultDetail = () => {
                       ? 'none'
                       : selectedChartDataKey === 'apy'
                         ? `1.5px solid ${theme.palette.other.chartHighlight}`
-                        : '1.5px solid #E0E0E0',
+                        : `1.5px solid ${theme.palette.divider}`,
                     borderRadius: '6px',
                     padding: '2px 6px',
                     width: 'fit-content',
@@ -770,7 +774,7 @@ export const VaultDetail = () => {
                       ? 'none'
                       : selectedChartDataKey === 'totalSupply'
                         ? `1.5px solid ${theme.palette.other.chartHighlight}`
-                        : '1.5px solid #E0E0E0',
+                        : `1.5px solid ${theme.palette.divider}`,
                   borderRadius: '6px',
                   padding: '2px 6px',
                   width: 'fit-content',
@@ -818,7 +822,7 @@ export const VaultDetail = () => {
                     ? 'none'
                     : selectedChartDataKey === 'totalAssets'
                       ? `1.5px solid ${theme.palette.other.chartHighlight}`
-                      : '1.5px solid #E0E0E0',
+                      : `1.5px solid ${theme.palette.divider}`,
                   borderRadius: '6px',
                   padding: '2px 6px',
                   width: 'fit-content',
@@ -860,7 +864,7 @@ export const VaultDetail = () => {
               backgroundColor: 'background.paper',
               py: { xs: 2, md: 6 },
               pl: { xs: 2, md: 6 },
-              borderRadius: 2,
+              borderRadius: '12px',
             }}
           >
             {isLoading ? (
@@ -906,7 +910,8 @@ export const VaultDetail = () => {
                 fontSize: '14px',
                 textTransform: 'none',
               },
-              borderBottom: '1px solid #E0E0E0',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
               '& .MuiTabs-indicator': {
                 background: theme.palette.gradients.newGradient,
               },

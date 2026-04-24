@@ -4,11 +4,13 @@ import {
   IChartApi,
   ISeriesApi,
   LineData,
+  AreaData,
   SeriesPartialOptionsMap,
   Time,
   UTCTimestamp,
   BusinessDay,
   LineSeries,
+  AreaSeries,
 } from 'lightweight-charts';
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Typography } from '@mui/material';
@@ -47,6 +49,7 @@ interface LineChartProps {
   showTimePeriodSelector?: boolean;
   selectedPeriod?: TimePeriod;
   onPeriodChange?: (period: TimePeriod) => void;
+  areaGradient?: boolean;
 }
 
 interface BaseChartProps {
@@ -57,6 +60,7 @@ interface BaseChartProps {
   title?: string;
   isSmall?: boolean;
   yAxisFormat?: string;
+  areaGradient?: boolean;
 }
 
 const BaseLightweightChart: React.FC<BaseChartProps> = ({
@@ -67,11 +71,12 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
   title,
   isSmall = false,
   yAxisFormat,
+  areaGradient = false,
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const spacerSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
-  const visibleSeriesRefs = useRef<Array<ISeriesApi<'Line'>>>([]);
+  const visibleSeriesRefs = useRef<Array<ISeriesApi<'Line' | 'Area'>>>([]);
   const theme = useTheme();
 
   const effectiveLineColor = lineColor ?? theme.palette.other.chartHighlight;
@@ -239,8 +244,28 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         for (const s of toRemove) chartRef.current.removeSeries(s);
       } else if (currentCount < desiredCount) {
         for (let i = currentCount; i < desiredCount; i++) {
-          const seriesOptions = makeLineSeriesOptions(effectiveLineColor, priceFormatter, yAxisFormat);
-          visibleSeriesRefs.current.push(chartRef.current.addSeries(LineSeries, seriesOptions));
+          if (areaGradient) {
+            const topColor = alpha(effectiveLineColor, 0.3);
+            const bottomColor = alpha(effectiveLineColor, 0.0);
+            visibleSeriesRefs.current.push(
+              chartRef.current.addSeries(AreaSeries, {
+                lineColor: effectiveLineColor,
+                lineWidth: 2,
+                topColor,
+                bottomColor,
+                priceLineVisible: false,
+                lastValueVisible: false,
+                crosshairMarkerVisible: false,
+                priceFormat: yAxisFormat ? {
+                  type: 'custom',
+                  formatter: priceFormatter,
+                } : undefined,
+              } as SeriesPartialOptionsMap['Area'])
+            );
+          } else {
+            const seriesOptions = makeLineSeriesOptions(effectiveLineColor, priceFormatter, yAxisFormat);
+            visibleSeriesRefs.current.push(chartRef.current.addSeries(LineSeries, seriesOptions));
+          }
         }
       }
     }
@@ -250,7 +275,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
       spacerSeriesRef.current.setData(sortedData as Array<LineData<Time>>);
 
       if (visibleSeriesRefs.current[0]) {
-        visibleSeriesRefs.current[0].setData(sortedData as Array<LineData<Time>>);
+        visibleSeriesRefs.current[0].setData(sortedData as Array<LineData<Time> | AreaData<Time>>);
       }
 
       if (chartRef.current) {
@@ -289,6 +314,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
     isInteractive,
     isSmall,
     yAxisFormat,
+    areaGradient,
   ]);
 
   useEffect(() => {
@@ -297,7 +323,7 @@ const BaseLightweightChart: React.FC<BaseChartProps> = ({
         chartRef.current.remove();
         chartRef.current = null;
         spacerSeriesRef.current = null;
-        visibleSeriesRefs.current = [];
+        if (visibleSeriesRefs.current) visibleSeriesRefs.current = [];
       }
     };
   }, []);
@@ -373,6 +399,7 @@ export const LineChart: React.FC<LineChartProps> = ({
   showTimePeriodSelector = true,
   selectedPeriod: controlledSelectedPeriod,
   onPeriodChange,
+  areaGradient = false,
 }) => {
 
   const [uncontrolledSelectedPeriod, setUncontrolledSelectedPeriod] = useState<TimePeriod>('3m');
@@ -399,6 +426,7 @@ export const LineChart: React.FC<LineChartProps> = ({
         title={title}
         isSmall={isSmall}
         yAxisFormat={yAxisFormat}
+        areaGradient={areaGradient}
       />
 
       {showTimePeriodSelector && (

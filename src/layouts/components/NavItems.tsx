@@ -105,22 +105,39 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
                 onClick={() => handleClick(item.title, false)}
                 href={item.link}
                 sx={(theme) => ({
-                  color: theme.palette.primary.main,
-                  p: '6px 8px',
+                  color: theme.palette.text.secondary,
+                  p: '8px 14px',
+                  borderRadius: '8px',
+                  fontWeight: 500,
+                  fontSize: '14px',
                   position: 'relative',
-                  '.active&:after, &:hover&:after': {
+                  transition: 'color .15s ease, background .15s ease',
+                  '&:hover': {
+                    color: theme.palette.text.primary,
+                    background: theme.palette.action.hover,
+                  },
+                  '.active&': {
+                    color: theme.palette.text.primary,
+                    background: theme.palette.action.hover,
+                  },
+                  '.active&:after': {
+                    transform: 'scaleX(1)',
+                    transformOrigin: 'bottom left',
+                  },
+                  '&:hover&:after': {
                     transform: 'scaleX(1)',
                     transformOrigin: 'bottom left',
                   },
                   '&:after': {
                     content: "''",
                     position: 'absolute',
-                    width: '100%',
+                    width: 'calc(100% - 28px)',
                     transform: 'scaleX(0)',
                     height: '2px',
-                    bottom: '-6px',
-                    left: '0',
+                    bottom: '3px',
+                    left: '14px',
                     background: theme.palette.gradients.newGradient,
+                    borderRadius: '2px',
                     transformOrigin: 'bottom right',
                     transition: 'transform 0.25s ease-out',
                   },

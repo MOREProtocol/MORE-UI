@@ -582,7 +582,9 @@ export function MarketsTable() {
         backgroundColor: { xs: 'background.surface', lg: 'background.surface3' },
         gap: 3,
         p: 3,
-        borderRadius: 2,
+        borderRadius: '12px',
+        border: '1px solid',
+        borderColor: 'divider',
         mb: { xs: 4, md: 6 }
       }}>
         <Box
@@ -696,7 +698,7 @@ export function MarketsTable() {
                 justifyContent: 'space-between',
                 backgroundColor: 'background.surface',
                 p: 3,
-                borderRadius: 2,
+                borderRadius: '12px',
                 mb: { xs: 4, md: 6 }
               }}>
                 <Typography sx={{ typography: { xs: 'main16', md: 'main21' }, textAlign: { xs: 'center', md: 'left' }, color: 'primary.main' }}>
@@ -744,7 +746,7 @@ export function MarketsTable() {
                 justifyContent: 'space-between',
                 backgroundColor: 'background.surface',
                 p: 3,
-                borderRadius: 2,
+                borderRadius: '12px',
                 mb: { xs: 4, md: 6 }
               }}>
                 <Typography sx={{ typography: { xs: 'main16', md: 'main21' }, textAlign: { xs: 'center', md: 'left' }, color: 'primary.main' }}>
@@ -831,7 +833,7 @@ export function MarketsTable() {
               backgroundColor: 'background.surface',
               gap: { xs: 3, md: 0 },
               p: 3,
-              borderRadius: 2,
+              borderRadius: '12px',
               mb: { xs: 4, md: 6 }
             }}>
               <Typography

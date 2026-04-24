@@ -20,7 +20,7 @@ import WalletWidget from './WalletWidget';
 import { useChainId, useSwitchChain } from 'wagmi';
 import { ChainIds } from 'src/utils/const';
 
-export const HEADER_HEIGHT = 48;
+export const HEADER_HEIGHT = 56;
 interface Props {
   children: React.ReactElement;
 }
@@ -104,21 +104,17 @@ export function AppHeader() {
         sx={(theme) => ({
           height: HEADER_HEIGHT,
           position: 'sticky',
-          top: 12,
-          mb: 5,
-          transition: theme.transitions.create('top'),
+          top: 0,
           zIndex: theme.zIndex.appBar + 1,
-          bgcolor: alpha(theme.palette.background.paper, 0.75),
-          backdropFilter: 'blur(10px)',
+          bgcolor: alpha(theme.palette.background.default, 0.85),
+          backdropFilter: 'blur(18px) saturate(1.2)',
+          borderBottom: `1px solid ${theme.palette.divider}`,
           padding: {
-            xs: '8px 8px 8px 20px',
-            xsm: '8px 20px',
+            xs: '14px 16px',
+            md: '14px 28px',
           },
           display: 'flex',
           alignItems: 'center',
-          flexDirection: 'space-between',
-          borderRadius: '30px',
-          mx: 2,
         })}
       >
         <Box sx={{ mr: 3 }}>

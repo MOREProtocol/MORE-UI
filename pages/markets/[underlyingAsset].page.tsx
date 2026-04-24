@@ -50,7 +50,8 @@ export default function ReserveOverview() {
   const TopBar = useMemo(() => (
     <Box sx={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2,
-      backgroundColor: 'background.surface', p: 3, borderRadius: 2
+      backgroundColor: 'background.surface', p: 3, borderRadius: '12px',
+      border: '1px solid', borderColor: 'divider',
     }}>
       {/* Left: Back + Asset */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -201,7 +202,7 @@ export default function ReserveOverview() {
 
             <Box sx={{
               backgroundColor: 'background.paper',
-              borderRadius: 2,
+              borderRadius: '12px',
               p: 3
             }}>
               <Box

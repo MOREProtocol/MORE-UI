@@ -66,7 +66,9 @@ export const VaultKpiGrid: React.FC<VaultKpiGridProps> = ({
           gap: 3,
           p: { xs: 4, md: 6 },
           backgroundColor: 'background.paper',
-          borderRadius: 2,
+          borderRadius: '12px',
+          border: '1px solid',
+          borderColor: 'divider',
         }}
       >
         {/* Row 1 - My deposits */}

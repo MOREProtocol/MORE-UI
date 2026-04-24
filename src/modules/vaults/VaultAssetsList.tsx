@@ -1,4 +1,4 @@
-import { Box, Typography, Skeleton, useTheme, useMediaQuery, Button } from '@mui/material';
+import { Box, Typography, Skeleton, useTheme, useMediaQuery, Button, alpha, Chip } from '@mui/material';
 import { useRouter } from 'next/router';
 import { BigNumber } from 'bignumber.js';
 import { formatUnits } from 'ethers/lib/utils';
@@ -7,15 +7,16 @@ import * as allChains from 'viem/chains';
 import { ethers } from 'ethers';
 
 import { ROUTES } from 'src/components/primitives/Link';
-import { BaseDataGrid } from 'src/components/primitives/DataGrid';
+import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { useVault, VaultData } from 'src/hooks/vault/useVault';
 import { useDeployedVaults, useVaultsListData, useUserVaultsData, useAssetsData, useUserData, useOmniDeployedVaults } from 'src/hooks/vault/useVaultData';
 import { getVaultFactoryInfo } from 'src/hooks/vault/factoryRegistry';
 import type { RewardItemEnriched } from 'src/hooks/vault/useVaultData';
 import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
 
-import { getStandardVaultColumns, getUserVaultColumns, DepositActionCell, ManageActionCell, VaultGridRow } from './VaultDataGridColumns';
+import { VaultGridRow } from './VaultDataGridColumns';
 import { FlowVaultsList } from './FlowVaultsList';
+import { VaultCard } from './VaultCard';
 import { valueToBigNumber } from '@aave/math-utils';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 // import { PortfolioChartsSection } from './PortfolioChartsSection';
@@ -110,6 +111,8 @@ const transformVaultsToGridRows = (
       tvm: tvmValue,
       tvmUsd: tvmUsd.toNumber(),
       isOmniHub: vault.omni?.isHub,
+      chainId: vaultChainId,
+      sharePriceHistory: vault.overview?.historicalSnapshots?.sharePrice,
     };
   });
 };
@@ -299,25 +302,6 @@ export const VaultAssetsList = () => {
     router.push(ROUTES.vaultDetail(row.id));
   };
 
-  // Column configurations
-  const standardColumns = getStandardVaultColumns(isMobile);
-  const userColumns = getUserVaultColumns(isMobile);
-
-  const depositActionColumn = {
-    render: (row: VaultGridRow) => (
-      <DepositActionCell
-        onDeposit={() => handleVaultClick(row)}
-        disabled={!accountAddress}
-      />
-    ),
-    skeletonRender: () => <Skeleton variant="rectangular" width={80} height={32} sx={{ borderRadius: 1 }} />,
-  };
-
-  const manageActionColumn = {
-    render: (row: VaultGridRow) => <ManageActionCell onManage={() => handleVaultClick(row)} />,
-    skeletonRender: () => <Skeleton variant="rectangular" width={80} height={32} sx={{ borderRadius: 1 }} />,
-  };
-
   return (
     <Box
       sx={{
@@ -326,54 +310,73 @@ export const VaultAssetsList = () => {
         pb: { xs: 4, md: 8 }
       }}
     >
-      {/* Portfolio Charts Section - Only show when user is connected, has data, and theme is not flow */}
+      {/* Hero plate — shown when user has deposits and theme is not flow */}
       {accountAddress && vaultsWithDeposits.length > 0 && process.env.NEXT_PUBLIC_UI_THEME !== 'flow' && (
-        <Box sx={{ mb: { xs: 4, md: 6 } }}>
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: 'background.surface',
-            p: 3,
-            borderRadius: 2,
-            mb: { xs: 4, md: 6 }
-          }}>
-            <Typography
-              variant={isMobile ? "main16" : "main21"}
-              sx={{
-                textAlign: { xs: 'center', md: 'left' },
-                color: 'primary.main'
-              }}
-            >
-              My Vaults
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'top', gap: { xs: 2, md: 5 } }}>
-              <Box>
-                <Typography variant="secondary14" color="text.secondary">
-                  Positions APY
-                </Typography>
-                {isLoadingVaults ? (
-                  <Skeleton width={80} height={24} />
-                ) : (!accountAddress || positionsApy === undefined) ? (
-                  <Typography variant="main16">–</Typography>
-                ) : (
-                  <FormattedNumber
-                    value={positionsApy}
-                    percent
-                    variant="main16"
-                    sx={{ fontWeight: 800 }}
-                  />
-                )}
-              </Box>
+        <Box
+          sx={(theme) => ({
+            background: alpha(theme.palette.background.paper, 1),
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: '12px',
+            p: { xs: 3, md: '28px 32px' },
+            mb: { xs: 4, md: 5 },
+          })}
+        >
+          {/* Headline + KPIs row */}
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', md: 'row' },
+              justifyContent: 'space-between',
+              alignItems: { xs: 'flex-start', md: 'flex-end' },
+              gap: 3,
+            }}
+          >
+            <Box>
+              <Typography
+                variant="secondary12"
+                color="text.secondary"
+                sx={{ textTransform: 'uppercase', letterSpacing: '.1em', mb: 1.25 }}
+              >
+                YOUR POSITIONS · VAULTS
+              </Typography>
+              <Typography
+                sx={(theme) => ({
+                  fontFamily: "'Instrument Sans', sans-serif",
+                  fontSize: { xs: 26, md: 34 },
+                  fontWeight: 400,
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.02em',
+                  color: theme.palette.text.primary,
+                })}
+              >
+                Earning{' '}
+                <Box
+                  component="span"
+                  sx={(theme) => ({
+                    background: theme.palette.gradients.newGradient,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  })}
+                >
+                  {isLoadingVaults ? '…' : positionsApy !== undefined
+                    ? `${(positionsApy * 100).toFixed(2)}%`
+                    : '—'}
+                </Box>{' '}
+                APY
+              </Typography>
+            </Box>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'left' }}>
-                <Typography variant="secondary14" color="text.secondary" sx={{ mb: 1 }}>
-                  Available Rewards
+            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', gap: { xs: 4, md: 6 } }}>
+              <Box>
+                <Typography variant="secondary12" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '.07em' }}>
+                  AVAILABLE REWARDS
                 </Typography>
                 {(!accountAddress || claimableRewardsUsd === 0) ? (
-                  <Typography variant="main16">–</Typography>
+                  <Typography variant="main16" sx={{ mt: 0.5 }}>–</Typography>
                 ) : (
-                  <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                     <FormattedNumber
                       value={claimableRewardsUsd}
                       variant="main16"
@@ -382,31 +385,167 @@ export const VaultAssetsList = () => {
                       symbol="USD"
                       symbolsColor="#A5A8B6"
                       symbolsVariant="secondary16"
+                      sx={{ fontWeight: 700 }}
                     />
                     <Button
                       variant="gradient"
                       size="small"
                       onClick={handleOpenRewardModal}
-                      sx={{ minWidth: 'unset', ml: { xs: 0, xsm: 2 } }}
+                      sx={{ minWidth: 'unset' }}
                     >
                       Claim
                     </Button>
                   </Box>
                 )}
               </Box>
+
+              <Box>
+                <Typography variant="secondary12" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '.07em' }}>
+                  AGGREGATE DEPOSIT
+                </Typography>
+                {isLoadingVaults ? (
+                  <Skeleton width={80} height={24} sx={{ mt: 0.5 }} />
+                ) : (
+                  <FormattedNumber
+                    value={aggregatedStats ? aggregatedStats.userDeposits.toString() : '0'}
+                    symbol="USD"
+                    variant="main16"
+                    visibleDecimals={2}
+                    compact
+                    symbolsVariant="secondary16"
+                    sx={{ fontWeight: 700, mt: 0.5 }}
+                  />
+                )}
+              </Box>
             </Box>
           </Box>
-          {/* <PortfolioChartsSection
-            accountAddress={accountAddress}
-            aggregatedUserDepositsUsd={aggregatedStats?.userDeposits?.toString() || '0'}
-            positionsApy={positionsApy}
-            isLoadingVaults={isLoadingVaults || false}
-            isLoading={isLoading}
-            claimableRewardsUsd={claimableRewardsUsd}
-            onOpenRewardModal={handleOpenRewardModal}
-            selectedPeriod={selectedPeriod}
-            onPeriodChange={setSelectedPeriod}
-          /> */}
+
+          {/* Vault position strips */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 3 }}>
+            {(isLoading || isLoadingUserVaults
+              ? Array.from({ length: 2 })
+              : vaultsWithDeposits
+            ).map((row, i) => {
+              const isRowLoading = isLoading || isLoadingUserVaults || !row;
+              const typedRow = row as VaultGridRow | undefined;
+              const apy = typedRow?.apy7Days ?? typedRow?.apy;
+              const apyPositive = apy === undefined || apy >= 0;
+              const symbols = typedRow?.depositTokenSymbols?.length
+                ? typedRow.depositTokenSymbols
+                : typedRow?.depositTokenSymbol
+                ? [typedRow.depositTokenSymbol]
+                : [];
+
+              return (
+                <Box
+                  key={isRowLoading ? i : typedRow!.id}
+                  onClick={() => !isRowLoading && typedRow && handleVaultClick(typedRow)}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 2,
+                    p: '14px 18px',
+                    bgcolor: 'background.surface',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: '10px',
+                    cursor: isRowLoading ? 'default' : 'pointer',
+                    transition: 'border-color 0.15s ease',
+                    '&:hover': isRowLoading ? {} : { borderColor: 'rgba(242,106,21,.3)' },
+                  }}
+                >
+                  {/* Left: token icons + vault info */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+                    {isRowLoading ? (
+                      <Skeleton variant="circular" width={32} height={32} />
+                    ) : (
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {symbols.slice(0, 3).map((sym, idx) => (
+                          <TokenIcon
+                            key={`${sym}-${idx}`}
+                            symbol={sym}
+                            sx={{ fontSize: '32px', ml: idx > 0 ? '-10px' : 0, zIndex: 3 - idx, position: 'relative' }}
+                          />
+                        ))}
+                      </Box>
+                    )}
+                    <Box sx={{ minWidth: 0 }}>
+                      {isRowLoading ? (
+                        <>
+                          <Skeleton width={140} height={16} />
+                          <Skeleton width={100} height={13} sx={{ mt: 0.5 }} />
+                        </>
+                      ) : (
+                        <>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            <Typography sx={{ fontSize: 14, fontWeight: 500 }}>
+                              {typedRow!.vaultName}
+                            </Typography>
+                            {typedRow!.isOmniHub && (
+                              <Chip
+                                label="omnichain"
+                                size="small"
+                                sx={(theme) => ({
+                                  height: 18,
+                                  fontSize: 10,
+                                  fontWeight: 600,
+                                  background: theme.palette.gradients.newGradient,
+                                  color: '#fff',
+                                  border: 'none',
+                                })}
+                              />
+                            )}
+                          </Box>
+                          <Typography variant="secondary12" color="text.secondary" sx={{ mt: 0.25 }}>
+                            Deposited{' '}
+                            {typedRow!.myDeposit
+                              ? `${parseFloat(typedRow!.myDeposit).toPrecision(4)} ${typedRow!.depositToken}`
+                              : '—'}
+                            {typedRow!.myDepositUsd && ` · $${parseFloat(typedRow!.myDepositUsd).toFixed(2)}`}
+                          </Typography>
+                        </>
+                      )}
+                    </Box>
+                  </Box>
+
+                  {/* Right: APY + Manage */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+                    {isRowLoading ? (
+                      <Skeleton width={64} height={24} />
+                    ) : (
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography sx={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', color: 'text.secondary' }}>
+                          7D APY
+                        </Typography>
+                        {apy !== undefined ? (
+                          <FormattedNumber
+                            value={apy}
+                            percent
+                            variant="main16"
+                            sx={{ fontWeight: 700, color: apyPositive ? '#FF8A2A' : 'error.main' }}
+                          />
+                        ) : (
+                          <Typography variant="main16" color="text.secondary">—</Typography>
+                        )}
+                      </Box>
+                    )}
+                    {isRowLoading ? (
+                      <Skeleton variant="rectangular" width={82} height={32} sx={{ borderRadius: '10px' }} />
+                    ) : (
+                      <Button
+                        variant="soft"
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); typedRow && handleVaultClick(typedRow); }}
+                      >
+                        Manage →
+                      </Button>
+                    )}
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
         </Box>
       )}
 
@@ -440,98 +579,95 @@ export const VaultAssetsList = () => {
         </Box>
       ) : (
         <>
-          {/* My Vaults Section (shown only if user has deposits and theme is not flow) */}
-          {accountAddress && vaultsWithDeposits.length > 0 && process.env.NEXT_PUBLIC_UI_THEME !== 'flow' && (
-            <Box sx={{ mb: { xs: 4, md: 6 } }}>
-              <Box
-                sx={{
-                  overflowX: isMobile ? 'auto' : 'visible',
-                  '& .MuiTableContainer-root': {
-                    minWidth: isMobile ? '800px' : 'auto'
-                  }
-                }}
-              >
-                <BaseDataGrid
-                  data={vaultsWithDeposits}
-                  columns={userColumns}
-                  loading={isLoading || isLoadingUserVaults}
-                  onRowClick={handleVaultClick}
-                  defaultSortColumn="myDeposit"
-                  defaultSortOrder="desc"
-                  actionColumn={manageActionColumn}
-                  rowIdGetter={(row) => row.id}
-                />
-              </Box>
-            </Box>
-          )}
-
-          {/* All Vaults Section (always rendered, includes user's vaults as well) */}
+          {/* All Vaults Section */}
           <Box>
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: 'background.surface',
-              p: 3,
-              borderRadius: 2,
-              mb: { xs: 4, md: 6 }
-            }}>
-              <Typography
-                variant={isMobile ? "main16" : "main21"}
-                sx={{
-                  textAlign: isMobile ? 'center' : 'left',
-                  color: 'primary.main'
-                }}
-              >
-                All Vaults
-              </Typography>
-              <Box>
-                <Typography variant="secondary14" color="text.secondary" sx={{ pb: 1 }}>
-                  Total Value Locked
-                </Typography>
-                {isLoading ? (
-                  <Skeleton width={100} height={24} />
-                ) : (
-                  <FormattedNumber
-                    value={aggregatedStats?.tvl?.toString() || '0'}
-                    symbol="USD"
-                    symbolsVariant="secondary16"
-                    symbolsColor="text.secondary"
-                    variant="main16"
-                    sx={{ fontWeight: 800 }}
-                  />
-                )}
-              </Box>
-            </Box>
+            {/* Section header */}
             <Box
               sx={{
-                overflowX: isMobile ? 'auto' : 'visible',
-                '& .MuiTableContainer-root': {
-                  minWidth: isMobile ? '800px' : 'auto'
-                }
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                mb: { xs: 2.5, md: 3 },
               }}
             >
-              {process.env.NEXT_PUBLIC_UI_THEME === 'flow' ? (
-                <FlowVaultsList
-                  data={allVaultRows}
-                  loading={isLoading}
-                  onRowClick={handleVaultClick}
-                  defaultSortColumn="tvmUsd"
-                  defaultSortOrder="desc"
-                />
-              ) : (
-                <BaseDataGrid
-                  data={allVaultRows}
-                  columns={standardColumns}
-                  loading={isLoading}
-                  onRowClick={handleVaultClick}
-                  defaultSortColumn="tvmUsd"
-                  defaultSortOrder="desc"
-                  actionColumn={depositActionColumn}
-                  rowIdGetter={(row) => row.id}
-                />
+              <Typography variant={isMobile ? 'main16' : 'main21'} color="text.primary">
+                All Vaults
+              </Typography>
+              {!isLoading && allVaultRows.length > 0 && (
+                <Box
+                  sx={{
+                    px: 1,
+                    py: 0.25,
+                    borderRadius: '6px',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: 'background.surface',
+                  }}
+                >
+                  <Typography variant="secondary12" color="text.secondary">
+                    {allVaultRows.length}
+                  </Typography>
+                </Box>
               )}
+              <Box sx={{ flexGrow: 1 }} />
+              <Box
+                sx={{
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: '8px',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'background.surface',
+                }}
+              >
+                <Typography variant="secondary12" color="text.secondary" sx={{ fontFamily: 'monospace', fontSize: 11 }}>
+                  TVL ·{' '}
+                  {isLoading ? '…' : (
+                    <FormattedNumber
+                      value={aggregatedStats?.tvl?.toString() || '0'}
+                      symbol="USD"
+                      compact
+                      variant="secondary12"
+                      color="text.secondary"
+                      component="span"
+                    />
+                  )}
+                </Typography>
+              </Box>
             </Box>
+
+            {/* Vault list (flow theme keeps its own component) */}
+            {process.env.NEXT_PUBLIC_UI_THEME === 'flow' ? (
+              <FlowVaultsList
+                data={allVaultRows}
+                loading={isLoading}
+                onRowClick={handleVaultClick}
+                defaultSortColumn="tvmUsd"
+                defaultSortOrder="desc"
+              />
+            ) : (
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                  gap: 2.25,
+                }}
+              >
+                {isLoading
+                  ? Array.from({ length: 4 }).map((_, i) => (
+                      <VaultCard key={i} loading />
+                    ))
+                  : allVaultRows.map((row) => (
+                      <VaultCard
+                        key={row.id}
+                        row={row}
+                        onClick={() => handleVaultClick(row)}
+                        onDeposit={() => handleVaultClick(row)}
+                        disabled={!accountAddress}
+                      />
+                    ))}
+              </Box>
+            )}
           </Box>
         </>
       )}

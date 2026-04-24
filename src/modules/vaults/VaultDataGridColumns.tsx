@@ -363,6 +363,8 @@ export interface VaultGridRow {
   tvm: string;
   tvmUsd: number;
   isOmniHub?: boolean;
+  chainId?: number;
+  sharePriceHistory?: Array<{ time: string; value: number }>;
 }
 
 // Column Definitions

@@ -351,7 +351,9 @@ export function MyPositions() {
       sx={{
         backgroundColor: headerHovered ? 'background.surface2' : (myPositionsOpen ? 'background.surface3' : 'background.surface'),
         p: 3,
-        borderRadius: 2,
+        borderRadius: '12px',
+        border: '1px solid',
+        borderColor: 'divider',
         mb: { xs: 4, md: 6 }
       }}
     >
@@ -517,7 +519,9 @@ export function MyPositions() {
               justifyContent: 'space-between',
               backgroundColor: 'background.surface',
               p: 3,
-              borderRadius: 2,
+              borderRadius: '12px',
+              border: '1px solid',
+              borderColor: 'divider',
               mb: { xs: 4, md: 6 }
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -634,7 +638,9 @@ export function MyPositions() {
               justifyContent: 'space-between',
               backgroundColor: 'background.surface',
               p: 3,
-              borderRadius: 2,
+              borderRadius: '12px',
+              border: '1px solid',
+              borderColor: 'divider',
               mb: { xs: 4, md: 6 }
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

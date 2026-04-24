@@ -17,7 +17,8 @@ const {
   typography: { pxToRem },
 } = theme;
 
-const FONT = 'Inter, Arial';
+const FONT = "'Instrument Sans', 'Geist', ui-sans-serif, system-ui, sans-serif";
+const FONT_DISPLAY = "'Instrument Sans', 'Geist', ui-sans-serif, sans-serif";
 
 declare module '@mui/material/styles/createPalette' {
   interface PaletteColor extends ColorPartial { }
@@ -142,6 +143,7 @@ declare module '@mui/material/Button' {
   interface ButtonPropsVariantOverrides {
     surface: true;
     gradient: true;
+    soft: true;
   }
 }
 
@@ -159,87 +161,79 @@ export const getDesignTokens = (mode: 'light' | 'dark', theme: UiThemeName = 'de
     palette: {
       mode,
       primary: {
-        main: getColor('#383D51', '#EAEBEF'),
-        light: getColor('#62677B', '#F1F1F3'),
-        dark: getColor('#292E41', '#D2D4DC'),
-        contrast: getColor('#FFFFFF', '#0F121D'),
+        main: getColor('#1A120C', '#F5EFE9'),
+        light: getColor('#4A3B30', '#C9BFB5'),
+        dark: getColor('#0D0B0A', '#897E73'),
+        contrast: getColor('#FFFFFF', '#0D0B0A'),
       },
       secondary: {
-        main: getColor('#FF607B', '#F48FB1'),
-        light: getColor('#FF607B', '#F6A5C0'),
-        dark: getColor('#B34356', '#AA647B'),
+        main: getColor('#F26A15', '#FF8A2A'),
+        light: getColor('#FFB547', '#FFA450'),
+        dark: getColor('#D44E06', '#F26A15'),
       },
       error: {
-        main: getColor('#BC0000B8', '#F44336'),
-        light: getColor('#D26666', '#E57373'),
-        dark: getColor('#BC0000', '#D32F2F'),
-        '100': getColor('#4F1919', '#FBB4AF'), // for alert text
-        '200': getColor('#F9EBEB', '#2E0C0A'), // for alert background
+        main: getColor('#E24C4B', '#E24C4B'),
+        light: getColor('#E87472', '#E87472'),
+        dark: getColor('#C63030', '#C63030'),
+        '100': getColor('#6B1A1A', '#FBB4AF'),
+        '200': getColor('#FDF0F0', '#2E0C0A'),
       },
       warning: {
-        main: getColor('#F89F1A', '#FFA726'),
-        light: getColor('#FFCE00', '#FFB74D'),
-        dark: getColor('#C67F15', '#F57C00'),
-        '100': getColor('#63400A', '#FFDCA8'), // for alert text
-        '200': getColor('#FEF5E8', '#301E04'), // for alert background
+        main: getColor('#F26A15', '#FF8A2A'),
+        light: getColor('#FFB547', '#FFB547'),
+        dark: getColor('#D44E06', '#D44E06'),
+        '100': getColor('#63300A', '#FFDCA8'),
+        '200': getColor('#FEF3E8', '#301404'),
       },
       info: {
         main: getColor('#0062D2', '#29B6F6'),
         light: getColor('#0062D2', '#4FC3F7'),
         dark: getColor('#002754', '#0288D1'),
-        '100': getColor('#002754', '#A9E2FB'), // for alert text
-        '200': getColor('#E5EFFB', '#071F2E'), // for alert background
+        '100': getColor('#002754', '#A9E2FB'),
+        '200': getColor('#E5EFFB', '#071F2E'),
       },
       success: {
-        main: getColor('#4CAF50', '#66BB6A'),
-        light: getColor('#90FF95', '#90FF95'),
-        dark: getColor('#318435', '#388E3C'),
-        '100': getColor('#1C4B1E', '#C2E4C3'), // for alert text
-        '200': getColor('#ECF8ED', '#0A130B'), // for alert background
+        main: getColor('#1FAE6A', '#1FAE6A'),
+        light: getColor('#4DC98A', '#4DC98A'),
+        dark: getColor('#157A4A', '#157A4A'),
+        '100': getColor('#0E4A2A', '#A8E8C6'),
+        '200': getColor('#EAF8F1', '#071F12'),
       },
       text: {
-        primary: getColor('#303549', '#F1F1F3'),
-        secondary: getColor('#62677B', '#A5A8B6'),
-        disabled: getColor('#D2D4DC', '#62677B'),
-        muted: getColor('#A5A8B6', '#8E92A3'),
-        highlight: getColor('#383D51', '#C9B3F9'),
+        primary: getColor('#1A120C', '#F5EFE9'),
+        secondary: getColor('#4A3B30', '#C9BFB5'),
+        disabled: getColor('#B8A898', '#5A5149'),
+        muted: getColor('#8B7867', '#897E73'),
+        highlight: getColor('#F26A15', '#FF8A2A'),
       },
       background: {
-        // Old values
-        // default: getColor('#E4E4ED', '#474E68'),
-        // surface: getColor('#F7F7F9', '#383D51'),
-        // surface2: getColor('#F1F1F5', '#3D4359'),
-        // surface3: getColor('#EAEAF1', '#424860'),
-        // bg: getColor('#E4E4ED', '#474E68'),
+        default: getColor('#FAF5EC', '#15110F'),
+        surface: getColor('#FFFCF6', '#1C1714'),
+        surface2: getColor('#FFF6E8', '#251E1A'),
+        surface3: getColor('#FFF0D6', '#2E2620'),
+        bg: getColor('#F4EEE5', '#0D0B0A'),
 
-        // New values
-        default: getColor('#D8D8E0', '#1A1E2A'),
-        surface: getColor('#F5F5F8', '#323B4A'),
-        surface2: getColor('#EBEBF0', '#2D3341'),
-        surface3: getColor('#E0E0EA', '#252B38'),
-        bg: getColor('#D8D8E0', '#1A1E2A'),
-
-        paper: getColor('#FFFFFF', '#292E41'),
-        header: getColor('#111017', '#111017'),
-        disabled: getColor('#EAEBEF', '#EBEBEF14'),
+        paper: getColor('#FFFFFF', '#1C1714'),
+        header: getColor('#FAF5EC', '#15110F'),
+        disabled: getColor('#E8E0D8', '#2E2620'),
       },
-      divider: getColor('#EAEBEF', '#EBEBEF14'),
+      divider: getColor('rgba(40,25,15,.08)', 'rgba(255,255,255,.06)'),
       action: {
-        active: getColor('#8E92A3', '#EBEBEF8F'),
-        hover: getColor('#F1F1F3', '#EBEBEF14'),
-        selected: getColor('#EAEBEF', '#EBEBEF29'),
-        disabled: getColor('#BBBECA', '#EBEBEF4D'),
-        disabledBackground: getColor('#EAEBEF', '#EBEBEF1F'),
-        focus: getColor('#F1F1F3', '#EBEBEF1F'),
+        active: getColor('#8B7867', 'rgba(255,255,255,.56)'),
+        hover: getColor('rgba(40,25,15,.06)', 'rgba(255,255,255,.08)'),
+        selected: getColor('rgba(40,25,15,.10)', 'rgba(255,255,255,.14)'),
+        disabled: getColor('#B8A898', 'rgba(255,255,255,.30)'),
+        disabledBackground: getColor('rgba(40,25,15,.08)', 'rgba(255,255,255,.12)'),
+        focus: getColor('rgba(40,25,15,.06)', 'rgba(255,255,255,.08)'),
       },
       other: {
-        standardInputLine: getColor('#383D511F', '#EBEBEF6B'),
-        chartHighlight: getColor('#FF9900', '#FF9900'),
+        standardInputLine: getColor('rgba(40,25,15,.14)', 'rgba(255,255,255,.10)'),
+        chartHighlight: getColor('#F26A15', '#FF8A2A'),
       },
       gradients: {
-        moreGradient: 'linear-gradient(248.86deg, #B6509E 10.51%, #2EBAC6 93.41%)',
-        newGradient: 'linear-gradient(79.67deg, #F58420 0%, #F58420 6%, #FCB319 100%)',
-        // Flow background gradients
+        moreGradient: 'linear-gradient(135deg, #FFB547 0%, #F26A15 45%, #D44E06 100%)',
+        newGradient: 'linear-gradient(135deg, #FFB547 0%, #F26A15 45%, #D44E06 100%)',
+        // Flow background gradients (unchanged)
         flowBackgroundLight: 'radial-gradient(circle at left top, rgb(252, 233, 254) 0%, transparent 50%), radial-gradient(circle at right bottom, rgb(252, 233, 254) 0%, transparent 50%), rgb(191, 246, 247) !important',
         flowBackgroundDark: 'radial-gradient(circle at left top, rgb(0, 76, 55) 0%, transparent 50%), radial-gradient(circle at right bottom, rgb(0, 30, 49) 0%, transparent 50%), rgb(0, 30, 49) !important',
       },
@@ -256,58 +250,58 @@ export const getDesignTokens = (mode: 'light' | 'dark', theme: UiThemeName = 'de
       button: undefined,
       overline: undefined,
       display1: {
-        fontFamily: FONT,
-        fontWeight: 700,
-        letterSpacing: pxToRem(0.25),
-        lineHeight: '123.5%',
+        fontFamily: FONT_DISPLAY,
+        fontWeight: 600,
+        letterSpacing: '-0.022em',
+        lineHeight: '1.1',
         fontSize: pxToRem(32),
       },
       h1: {
-        fontFamily: FONT,
-        fontWeight: 700,
-        letterSpacing: pxToRem(0.25),
-        lineHeight: '123.5%',
+        fontFamily: FONT_DISPLAY,
+        fontWeight: 600,
+        letterSpacing: '-0.02em',
+        lineHeight: '1.1',
         fontSize: pxToRem(28),
       },
       h2: {
-        fontFamily: FONT,
+        fontFamily: FONT_DISPLAY,
         fontWeight: 600,
-        letterSpacing: 'unset',
+        letterSpacing: '-0.018em',
         lineHeight: '133.4%',
         fontSize: pxToRem(21),
       },
       h3: {
-        fontFamily: FONT,
+        fontFamily: FONT_DISPLAY,
         fontWeight: 600,
-        letterSpacing: pxToRem(0.15),
+        letterSpacing: '-0.015em',
         lineHeight: '160%',
         fontSize: pxToRem(18),
       },
       h4: {
         fontFamily: FONT,
         fontWeight: 600,
-        letterSpacing: pxToRem(0.15),
+        letterSpacing: '-0.01em',
         lineHeight: pxToRem(24),
         fontSize: pxToRem(16),
       },
       subheader1: {
         fontFamily: FONT,
         fontWeight: 600,
-        letterSpacing: pxToRem(0.15),
+        letterSpacing: '-0.005em',
         lineHeight: pxToRem(20),
         fontSize: pxToRem(14),
       },
       subheader2: {
         fontFamily: FONT,
         fontWeight: 500,
-        letterSpacing: pxToRem(0.1),
+        letterSpacing: '0',
         lineHeight: pxToRem(16),
         fontSize: pxToRem(12),
       },
       description: {
         fontFamily: FONT,
         fontWeight: 400,
-        letterSpacing: pxToRem(0.15),
+        letterSpacing: '-0.005em',
         lineHeight: '143%',
         fontSize: pxToRem(14),
       },
@@ -515,8 +509,11 @@ export function getThemedComponents(theme: Theme) {
         },
         styleOverrides: {
           root: {
-            borderRadius: '6px',
+            borderRadius: '10px',
             boxShadow: 'none',
+            fontFamily: FONT,
+            fontWeight: 500,
+            letterSpacing: '-0.005em',
             '&:hover': {
               boxShadow: 'none',
             },
@@ -525,15 +522,17 @@ export function getThemedComponents(theme: Theme) {
             },
             '&:active': {
               boxShadow: 'none',
+              transform: 'translateY(1px)',
             },
           },
           outlined: {
-            borderColor: 'transparent',
-            borderWidth: 0,
+            borderColor: theme.palette.divider,
+            borderWidth: 1,
             backgroundColor: theme.palette.background.paper,
+            color: theme.palette.text.primary,
             '&:hover': {
-              borderColor: 'transparent',
-              borderWidth: 0,
+              borderColor: theme.palette.divider,
+              borderWidth: 1,
               backgroundColor: theme.palette.action.hover,
             },
           },
@@ -554,37 +553,61 @@ export function getThemedComponents(theme: Theme) {
           {
             props: { variant: 'surface' },
             style: {
-              color: theme.palette.common.white,
+              color: theme.palette.mode === 'dark' ? '#F5EFE9' : '#1A120C',
               border: '1px solid',
-              borderColor: '#EBEBED1F',
-              backgroundColor: '#383D51',
+              borderColor: theme.palette.divider,
+              backgroundColor: theme.palette.background.surface2,
               '&:hover, &.Mui-focusVisible': {
-                backgroundColor: theme.palette.background.header,
+                backgroundColor: theme.palette.background.surface3,
               },
             },
           },
           {
             props: { variant: 'gradient' },
             style: {
-              color: theme.palette.common.white,
+              color: '#FFF6EC',
               background: theme.palette.gradients.newGradient,
+              fontWeight: 600,
+              textShadow: '0 1px 0 rgba(120,40,0,.35)',
+              boxShadow:
+                '0 1px 0 rgba(255,255,255,.25) inset, 0 -4px 8px rgba(163,57,0,.35) inset, 0 8px 24px -8px rgba(242,106,21,.6)',
               transition: 'all 0.2s ease',
               '&:hover, &.Mui-focusVisible': {
                 background: theme.palette.gradients.newGradient,
-                opacity: '0.9',
+                opacity: 0.92,
+                boxShadow:
+                  '0 1px 0 rgba(255,255,255,.5) inset, 0 -4px 8px rgba(163,57,0,.25) inset, 0 12px 28px -6px rgba(242,106,21,.8)',
               },
               '&:disabled': {
                 background: theme.palette.background.surface,
                 color: theme.palette.text.disabled,
+                boxShadow: 'none',
+              },
+            },
+          },
+          {
+            /* Soft: translucent orange — used for primary CTAs throughout */
+            props: { variant: 'soft' },
+            style: {
+              background: 'rgba(242,106,21,.12)',
+              color: theme.palette.mode === 'dark' ? '#FF8A2A' : '#D44E06',
+              border: '1px solid rgba(242,106,21,.22)',
+              '&:hover, &.Mui-focusVisible': {
+                background: 'rgba(242,106,21,.18)',
+                border: '1px solid rgba(242,106,21,.35)',
+              },
+              '&:disabled': {
+                background: theme.palette.background.surface,
+                color: theme.palette.text.disabled,
+                border: `1px solid ${theme.palette.divider}`,
               },
             },
           },
           {
             props: { color: 'primary', variant: 'outlined' },
             style: {
-              background: theme.palette.background.surface3,
-              borderColor: 'transparent',
-              borderWidth: 0,
+              background: theme.palette.background.surface,
+              border: `1px solid ${theme.palette.divider}`,
             },
           },
         ],
@@ -723,7 +746,7 @@ export function getThemedComponents(theme: Theme) {
       MuiPaper: {
         styleOverrides: {
           root: {
-            borderRadius: '4px',
+            borderRadius: '12px',
           },
         },
         variants: [
@@ -731,7 +754,10 @@ export function getThemedComponents(theme: Theme) {
             props: { variant: 'outlined' },
             style: {
               border: `1px solid ${theme.palette.divider}`,
-              boxShadow: '0px 0px 2px rgba(0, 0, 0, 0.2), 0px 2px 10px rgba(0, 0, 0, 0.1)',
+              boxShadow:
+                theme.palette.mode === 'dark'
+                  ? '0 1px 0 rgba(255,255,255,.04) inset, 0 20px 40px -20px rgba(0,0,0,.6)'
+                  : '0 1px 0 rgba(255,255,255,.9) inset, 0 18px 40px -20px rgba(120,70,20,.12)',
               background:
                 theme.palette.mode === 'light'
                   ? theme.palette.background.paper
@@ -741,7 +767,10 @@ export function getThemedComponents(theme: Theme) {
           {
             props: { variant: 'elevation' },
             style: {
-              boxShadow: '0px 2px 1px rgba(0, 0, 0, 0.05), 0px 0px 1px rgba(0, 0, 0, 0.25)',
+              boxShadow:
+                theme.palette.mode === 'dark'
+                  ? '0 1px 0 rgba(255,255,255,.04) inset, 0 20px 40px -20px rgba(0,0,0,.6)'
+                  : '0 1px 0 rgba(255,255,255,.9) inset, 0 18px 40px -20px rgba(120,70,20,.12)',
               ...(theme.palette.mode === 'dark' ? { backgroundImage: 'none' } : {}),
             },
           },
@@ -985,7 +1014,10 @@ export function getThemedComponents(theme: Theme) {
             fontFamily: FONT,
             fontWeight: 400,
             fontSize: pxToRem(14),
+            letterSpacing: '-0.005em',
+            WebkitFontSmoothing: 'antialiased',
             minWidth: '375px',
+            backgroundColor: theme.palette.background.default,
             ...(isFlowUiTheme
               ? {
                 background:
@@ -996,11 +1028,23 @@ export function getThemedComponents(theme: Theme) {
                 backgroundSize: 'cover',
                 backgroundAttachment: 'fixed',
               }
-              : {}),
+              : {
+                background:
+                  theme.palette.mode === 'dark'
+                    ? `radial-gradient(1200px 600px at 80% -10%, rgba(242,106,21,.07), transparent 60%),
+                       radial-gradient(800px 500px at -10% 110%, rgba(255,181,71,.04), transparent 60%),
+                       ${theme.palette.background.default}`
+                    : `radial-gradient(1200px 600px at 80% -10%, rgba(242,106,21,.09), transparent 60%),
+                       radial-gradient(800px 500px at -10% 110%, rgba(255,181,71,.09), transparent 60%),
+                       ${theme.palette.background.default}`,
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'fixed',
+              }),
             '> div:first-of-type': {
               minHeight: '100vh',
               display: 'flex',
               flexDirection: 'column',
+              position: 'relative',
             },
           },
         },

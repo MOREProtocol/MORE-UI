@@ -372,12 +372,13 @@ export const BridgeContent: React.FC = () => {
   return (
     <Box sx={{
       maxWidth: 600,
-      minWidth: 400,
+      minWidth: { xs: 'unset', sm: 400 },
       mx: 'auto',
       backgroundColor: 'background.paper',
-      borderRadius: 2,
-      padding: '24px',
-      boxShadow: '0px 2px 1px rgba(0, 0, 0, 0.05),0px 0px 1px rgba(0, 0, 0, 0.25)',
+      borderRadius: '12px',
+      border: '1px solid',
+      borderColor: 'divider',
+      padding: '28px 28px 32px',
     }}>
       {/* Title */}
       <Box sx={{ mb: 4 }}>
@@ -422,13 +423,13 @@ export const BridgeContent: React.FC = () => {
       )}
 
       {/* Ethereum Source Section */}
-      <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+      <Box sx={{ mb: 2, backgroundColor: 'background.surface', borderRadius: '10px', p: 2.5, border: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
           <Avatar
             src="/icons/networks/ethereum.svg"
-            sx={{ width: 24, height: 24 }}
+            sx={{ width: 20, height: 20 }}
           />
-          <Typography variant="main16" fontWeight={600}>
+          <Typography variant="secondary12" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '.07em', fontWeight: 600 }}>
             From Ethereum Mainnet
           </Typography>
         </Box>
@@ -466,17 +467,35 @@ export const BridgeContent: React.FC = () => {
         )}
       </Box>
 
-      {/* Separator */}
-      <Divider sx={{ my: 3 }} />
+      {/* Arrow separator */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', my: 1.5 }}>
+        <Box
+          sx={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            border: '1px solid',
+            borderColor: 'divider',
+            bgcolor: 'background.surface',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'text.secondary',
+            fontSize: 16,
+          }}
+        >
+          ↓
+        </Box>
+      </Box>
 
       {/* Flow EVM Destination Section */}
-      <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+      <Box sx={{ mb: 3, backgroundColor: 'background.surface', borderRadius: '10px', p: 2.5, border: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
           <Avatar
             src='/icons/networks/flow.svg'
-            sx={{ width: 24, height: 24 }}
+            sx={{ width: 20, height: 20 }}
           />
-          <Typography variant="main16" fontWeight={600}>
+          <Typography variant="secondary12" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '.07em', fontWeight: 600 }}>
             To Flow EVM Mainnet
           </Typography>
         </Box>
@@ -517,7 +536,7 @@ export const BridgeContent: React.FC = () => {
               </Typography>
             </Box>
           ) : estimatedFees && (
-            <Paper sx={{ p: 3, bgcolor: 'background.surface', border: '1px solid', borderColor: 'divider' }}>
+            <Paper sx={{ p: 3, bgcolor: 'background.surface', border: '1px solid', borderColor: 'divider', borderRadius: '10px' }}>
               {/* Exchange Rate */}
               {selectedSourceToken && selectedDestinationToken && amount && outputAmount && (
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>

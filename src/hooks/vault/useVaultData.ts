@@ -920,6 +920,7 @@ export const useVaultsListData = <TResult = VaultData>(
         const vaultIncentives = incentivesData ? getVaultIncentives(incentivesData, vaultId) : [];
         const vaultData: VaultData = {
           id: vaultId,
+          chainId: chainId,
           overview: {
             name,
             curatorLogo: curatorInfo?.logo,
@@ -2224,5 +2225,21 @@ export const useOmniDeployedVaults = () => {
     },
     staleTime: 5 * 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
+  });
+};
+
+export const useVaultSharePriceHistory = (
+  vaultId: string | undefined,
+  chainId: number | undefined
+) => {
+  return useQuery({
+    queryKey: ['vaultSharePriceHistory', vaultId, chainId],
+    queryFn: async () => {
+      if (!vaultId || !chainId) return null;
+      const snapshots = await fetchVaultHistoricalSnapshots(chainId, vaultId);
+      return snapshots ? formatSnapshotsForChart(snapshots, 'sharePrice') : null;
+    },
+    enabled: !!vaultId && !!chainId,
+    staleTime: 5 * 60 * 1000,
   });
 };
