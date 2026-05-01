@@ -1,7 +1,5 @@
 import { Box, Typography } from '@mui/material';
 import {
-  useVaultAssetBreakdown,
-  useVaultDistribution,
   useVaultPortfolioMultiChain,
   useVaultTopology,
 } from '@oydual31/more-vaults-sdk/react';
@@ -41,23 +39,16 @@ export const VaultAllocations: React.FC = () => {
 
   const { topology } = useVaultTopology(selectedVaultId as `0x${string}` | undefined);
   const isOmni = isOmniHub || !!selectedVault?.omni?.isHub || topology?.role === 'hub' || topology?.role === 'spoke';
-  const { distribution } = useVaultDistribution(
-    isOmni ? (selectedVaultId as `0x${string}`) : undefined
-  );
-
-  // Per-asset breakdown for omni vaults (SDK hook with React Query caching)
-  const { data: assetBreakdown } = useVaultAssetBreakdown(
-    isOmni ? (selectedVaultId as `0x${string}`) : undefined,
-    hubChainId
-  );
 
   // Get price for underlying asset
   const underlyingAddress = selectedVault?.overview?.asset?.address || '';
   const underlyingAssetData = useAssetData(underlyingAddress);
   const underlyingPrice = underlyingAssetData.data?.price || 0;
 
-  // SDK multi-chain portfolio for sub-vault positions (Moonwell, ERC4626/7540)
-  const { data: portfolio } = useVaultPortfolioMultiChain(
+  // Single source of truth for omni allocations: per-chain portfolio (liquid + sub-vault).
+  // This avoids double counting: spoke `totalAssets()` already includes its sub-vault
+  // positions, so showing both spoke totals and sub-vault rows would double-count.
+  const { data: portfolio, isLoading: isPortfolioLoading } = useVaultPortfolioMultiChain(
     isOmni ? (selectedVaultId as `0x${string}`) : undefined,
     hubChainId
   );
@@ -65,148 +56,99 @@ export const VaultAllocations: React.FC = () => {
   const allocation = vaultAllocationData?.data?.allocation;
   const staking = vaultAllocationData?.data?.staked;
   const available = vaultAllocationData?.data?.available;
-  const isLoading = vaultAllocationData?.isLoading;
-  const error = vaultAllocationData?.isError;
+  const isLoading = isOmni ? isPortfolioLoading : vaultAllocationData?.isLoading;
+  const error = isOmni ? false : vaultAllocationData?.isError;
 
   // Collect all token symbols that need pricing (for Pyth oracle)
   const allSymbols = useMemo(() => {
     const syms = new Set<string>();
     const underSym = selectedVault?.overview?.asset?.symbol;
     if (underSym) syms.add(underSym);
-    if (assetBreakdown?.assets) {
-      for (const a of assetBreakdown.assets) {
-        if (a.symbol) syms.add(a.symbol);
-      }
-    }
-    if (portfolio?.allSubVaultPositions) {
-      for (const pos of portfolio.allSubVaultPositions) {
-        if (pos.underlyingSymbol) syms.add(pos.underlyingSymbol);
-        if (pos.symbol) syms.add(pos.symbol);
+    if (portfolio) {
+      for (const chain of portfolio.chains) {
+        for (const a of chain.portfolio.liquidAssets) {
+          if (a.symbol) syms.add(a.symbol);
+        }
+        for (const pos of chain.portfolio.subVaultPositions) {
+          if (pos.underlyingSymbol) syms.add(pos.underlyingSymbol);
+          if (pos.symbol) syms.add(pos.symbol);
+        }
       }
     }
     if (allocation) for (const a of allocation) { if (a.assetSymbol) syms.add(a.assetSymbol); }
     if (available) for (const a of available) { if (a.assetSymbol) syms.add(a.assetSymbol); }
     return Array.from(syms);
-  }, [selectedVault, assetBreakdown, portfolio, allocation, available]);
+  }, [selectedVault, portfolio, allocation, available]);
 
   // Fetch USD prices from Pyth Hermes API (free, no API key needed)
   const { prices: pythPrices } = usePythPrices(allSymbols);
 
-  // Build sub-vault position assets from portfolio (Moonwell, ERC4626/7540 positions)
-  const subVaultAssets: VaultAsset[] = React.useMemo(() => {
-    if (!portfolio || !portfolio.allSubVaultPositions?.length) return [];
-    return portfolio.allSubVaultPositions
-      .filter((pos) => pos.underlyingValue > BigInt(0))
-      .map((pos) => {
-        const cfg = networkConfigs[pos.chainId];
+  // Build the omni allocation rows from per-chain portfolio data.
+  // For each chain, show:
+  //   - liquid asset rows (idle balances) — only when balance > 0
+  //   - sub-vault position rows (deployed via ERC4626/7540) — denominated in underlying
+  // No spoke `totalAssets` rows: those are aggregates of the items above.
+  const omniAssets: VaultAsset[] = React.useMemo(() => {
+    if (!portfolio) return [];
+    const assets: VaultAsset[] = [];
+    for (const chain of portfolio.chains) {
+      const cfg = networkConfigs[chain.chainId];
+      const chainName = cfg?.name || `Chain ${chain.chainId}`;
+
+      for (const a of chain.portfolio.liquidAssets) {
+        if (a.balance <= BigInt(0)) continue;
+        const bal = parseFloat(formatUnits(a.balance, a.decimals));
+        const isUnderlying = a.address.toLowerCase() === underlyingAddress.toLowerCase();
+        const price = isUnderlying
+          ? underlyingPrice || getPythPrice(pythPrices, a.symbol)
+          : getPythPrice(pythPrices, a.symbol) || underlyingPrice;
+        assets.push({
+          assetName: `${a.symbol} on ${chainName}`,
+          assetSymbol: a.symbol,
+          balance: bal,
+          price,
+          value: bal * price,
+          category: chain.role === 'hub' ? 'Hub Available' : 'Spoke Available',
+          chainLogo: cfg?.networkLogoPath,
+        });
+      }
+
+      for (const pos of chain.portfolio.subVaultPositions) {
+        if (pos.underlyingValue <= BigInt(0)) continue;
         const bal = parseFloat(formatUnits(pos.underlyingValue, pos.underlyingDecimals));
         const sym = pos.underlyingSymbol || pos.symbol;
-        const price = underlyingPrice || getPythPrice(pythPrices, sym);
-        return {
-          assetName: `${pos.name} on ${cfg?.name || `Chain ${pos.chainId}`}`,
+        const isUnderlying = sym.toLowerCase() === (selectedVault?.overview?.asset?.symbol || '').toLowerCase();
+        const price = isUnderlying
+          ? underlyingPrice || getPythPrice(pythPrices, sym)
+          : getPythPrice(pythPrices, sym) || underlyingPrice;
+        assets.push({
+          assetName: `${pos.name} on ${chainName}`,
           assetSymbol: sym,
           balance: bal,
           price,
           value: bal * price,
           category: pos.type === 'erc7540' ? 'Async Vault' : 'Sub-vault',
           chainLogo: cfg?.networkLogoPath,
-        };
-      });
-  }, [portfolio, underlyingPrice, pythPrices]);
-
-  // Build cross-chain assets from distribution data (hub + spokes)
-  // Uses per-asset breakdown when available (SDK 0.3.0+) for detailed hub holdings
-  const distributionAssets: VaultAsset[] = React.useMemo(() => {
-    if (!distribution) return [];
-    const decimals = selectedVault?.overview?.asset?.decimals || 18;
-    const symbol = selectedVault?.overview?.asset?.symbol || '';
-    const fallbackPrice =
-      available?.find((a) => a.assetSymbol.toLowerCase() === symbol.toLowerCase())?.price ||
-      allocation?.find((a) => a.assetSymbol.toLowerCase() === symbol.toLowerCase())?.price ||
-      underlyingPrice || 0;
-
-    const assets: VaultAsset[] = [];
-    const hubCfg = networkConfigs[distribution.hubChainId];
-
-    // Per-asset hub holdings from breakdown (shows each token individually)
-    if (assetBreakdown && assetBreakdown.assets.length > 0) {
-      for (const asset of assetBreakdown.assets) {
-        if (asset.balance <= BigInt(0)) continue;
-        const bal = parseFloat(formatUnits(asset.balance, asset.decimals));
-        // Use known price for underlying; Pyth oracle price for other tokens
-        const isUnderlying = asset.address.toLowerCase() === underlyingAddress.toLowerCase();
-        const assetPrice = isUnderlying
-          ? fallbackPrice
-          : getPythPrice(pythPrices, asset.symbol) || fallbackPrice;
-        assets.push({
-          assetName: `${asset.symbol} on ${hubCfg?.name || 'Hub'}`,
-          assetSymbol: asset.symbol,
-          balance: bal,
-          price: assetPrice,
-          value: bal * assetPrice,
-          category: 'Hub Holdings',
-          chainLogo: hubCfg?.networkLogoPath,
-        });
-      }
-    } else {
-      // Fallback: single-token hub display
-      if (distribution.hubLiquidBalance > BigInt(0)) {
-        const bal = parseFloat(formatUnits(distribution.hubLiquidBalance, decimals));
-        assets.push({
-          assetName: `${symbol} available on ${hubCfg?.name || 'Hub'}`,
-          assetSymbol: symbol,
-          balance: bal,
-          price: fallbackPrice,
-          value: bal * fallbackPrice,
-          category: 'Hub Available',
-          chainLogo: hubCfg?.networkLogoPath,
-        });
-      }
-      if (distribution.hubStrategyBalance > BigInt(0)) {
-        const bal = parseFloat(formatUnits(distribution.hubStrategyBalance, decimals));
-        assets.push({
-          assetName: `${symbol} in strategies on ${hubCfg?.name || 'Hub'}`,
-          assetSymbol: symbol,
-          balance: bal,
-          price: fallbackPrice,
-          value: bal * fallbackPrice,
-          category: 'Hub Strategy',
-          chainLogo: hubCfg?.networkLogoPath,
         });
       }
     }
-
-    // Spoke balances
-    for (const spoke of distribution.spokeBalances) {
-      if (!spoke.isReachable || spoke.totalAssets <= BigInt(0)) continue;
-      const cfg = networkConfigs[spoke.chainId];
-      const bal = parseFloat(formatUnits(spoke.totalAssets, decimals));
-      assets.push({
-        assetName: `${symbol} on ${cfg?.name || `Chain ${spoke.chainId}`}`,
-        assetSymbol: symbol,
-        balance: bal,
-        price: fallbackPrice,
-        value: bal * fallbackPrice,
-        category: 'Spoke Chain',
-        chainLogo: cfg?.networkLogoPath,
-      });
-    }
-
     return assets;
-  }, [distribution, selectedVault, available, allocation, assetBreakdown, underlyingAddress, underlyingPrice, pythPrices]);
+  }, [portfolio, selectedVault, underlyingAddress, underlyingPrice, pythPrices]);
 
   // Combine all assets for display
-  const allAssets: VaultAsset[] = [
-    ...(allocation || []).map((asset) => ({ ...asset, category: 'LP Tokens' })),
-    ...(staking || []).map((asset) => ({
-      ...asset,
-      balance: asset.stakedAmount,
-      category: 'Staking',
-    })),
-    ...(available || []).map((asset) => ({ ...asset, category: 'Available' })),
-    ...distributionAssets,
-    ...subVaultAssets,
-  ]
+  const allAssets: VaultAsset[] = (
+    isOmni
+      ? omniAssets
+      : [
+          ...(allocation || []).map((asset) => ({ ...asset, category: 'LP Tokens' })),
+          ...(staking || []).map((asset) => ({
+            ...asset,
+            balance: asset.stakedAmount,
+            category: 'Staking',
+          })),
+          ...(available || []).map((asset) => ({ ...asset, category: 'Available' })),
+        ]
+  )
     .filter((asset) => (asset.balance || 0) > 0) // Hide allocations with zero balance
     .sort((a, b) => (b.value || 0) - (a.value || 0)); // Sort by descending allocation value
 
