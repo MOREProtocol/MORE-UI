@@ -1,6 +1,5 @@
 import { Box, Typography, useTheme } from '@mui/material';
 import {
-  useVaultDistribution,
   useVaultPortfolioMultiChain,
   useVaultTopology,
 } from '@oydual31/more-vaults-sdk/react';
@@ -48,8 +47,7 @@ function getY(idx: number, count: number, totalH: number): number {
 export const VaultFlowRibbon: React.FC<{
   vaultName?: string;
   vaultAssetSymbol?: string;
-  vaultAssetDecimals?: number;
-}> = ({ vaultName, vaultAssetSymbol, vaultAssetDecimals = 6 }) => {
+}> = ({ vaultName, vaultAssetSymbol }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const { selectedVaultId, chainId: vaultChainId, isOmniHub } = useVault();
@@ -58,9 +56,9 @@ export const VaultFlowRibbon: React.FC<{
   const isOmni = isOmniHub || topology?.role === 'hub' || topology?.role === 'spoke';
   const hubChainId = topology?.hubChainId ?? vaultChainId;
 
-  const { distribution } = useVaultDistribution(
-    isOmni ? (selectedVaultId as `0x${string}`) : undefined
-  );
+  // Single source of truth for omni allocations (matches VaultAllocations).
+  // Per-chain breakdown of liquid + sub-vault positions — avoids the double-counting
+  // we used to get from `distribution.spokeBalances` + `portfolio.allSubVaultPositions`.
   const { data: portfolio } = useVaultPortfolioMultiChain(
     isOmni ? (selectedVaultId as `0x${string}`) : undefined,
     hubChainId
@@ -96,33 +94,37 @@ export const VaultFlowRibbon: React.FC<{
       });
     }
 
-    // Allocation nodes — combine spoke liquid balances + sub-vault positions (same as VaultAllocations)
+    // Allocation nodes — per-chain liquid balances + sub-vault positions.
+    // Mirrors VaultAllocations: liquid and sub-vault rows are emitted separately,
+    // and a chain's `totalAssets` is never added (it's an aggregate of those rows).
     const rawAllocs: { label: string; chainId: number; value: number }[] = [];
 
-    if (distribution) {
-      // Spoke chain liquid balances
-      for (const spoke of distribution.spokeBalances) {
-        if (!spoke.isReachable || spoke.totalAssets <= BigInt(0)) continue;
-        const cfg = networkConfigs[spoke.chainId];
-        const bal = parseFloat(formatUnits(spoke.totalAssets, vaultAssetDecimals));
-        rawAllocs.push({
-          label: `${vaultAssetSymbol || 'Asset'} on ${cfg?.name || `Chain ${spoke.chainId}`}`,
-          chainId: spoke.chainId,
-          value: bal,
-        });
-      }
-    }
+    if (portfolio) {
+      for (const chain of portfolio.chains) {
+        const cfg = networkConfigs[chain.chainId];
+        const chainName = cfg?.name || `Chain ${chain.chainId}`;
 
-    if (portfolio?.allSubVaultPositions) {
-      for (const pos of portfolio.allSubVaultPositions) {
-        if (pos.underlyingValue <= BigInt(0)) continue;
-        const cfg = networkConfigs[pos.chainId];
-        const bal = parseFloat(formatUnits(pos.underlyingValue, pos.underlyingDecimals));
-        rawAllocs.push({
-          label: `${pos.name || pos.symbol} on ${cfg?.name || `Chain ${pos.chainId}`}`,
-          chainId: pos.chainId,
-          value: bal,
-        });
+        // Liquid asset rows (idle balances)
+        for (const a of chain.portfolio.liquidAssets) {
+          if (a.balance <= BigInt(0)) continue;
+          const bal = parseFloat(formatUnits(a.balance, a.decimals));
+          rawAllocs.push({
+            label: `${a.symbol || vaultAssetSymbol || 'Asset'} on ${chainName}`,
+            chainId: chain.chainId,
+            value: bal,
+          });
+        }
+
+        // Sub-vault position rows (deployed via ERC4626/7540 strategies)
+        for (const pos of chain.portfolio.subVaultPositions) {
+          if (pos.underlyingValue <= BigInt(0)) continue;
+          const bal = parseFloat(formatUnits(pos.underlyingValue, pos.underlyingDecimals));
+          rawAllocs.push({
+            label: `${pos.name || pos.symbol} on ${chainName}`,
+            chainId: chain.chainId,
+            value: bal,
+          });
+        }
       }
     }
 
@@ -167,7 +169,7 @@ export const VaultFlowRibbon: React.FC<{
     }));
 
     return { chainNodes: finalChains, allocNodes: finalAllocs, svgH: height };
-  }, [topology, distribution, portfolio, hubChainId, vaultAssetSymbol, vaultAssetDecimals]);
+  }, [topology, portfolio, hubChainId, vaultAssetSymbol]);
 
   if (!isOmni || chainNodes.length === 0) return null;
 

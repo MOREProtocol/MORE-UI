@@ -609,7 +609,6 @@ export const VaultDetail = () => {
       <VaultFlowRibbon
         vaultName={selectedVault?.overview?.name}
         vaultAssetSymbol={selectedVault?.overview?.asset?.symbol || vaultMetadata?.underlyingSymbol}
-        vaultAssetDecimals={assetDecimals}
       />
 
       {/* STATS + CHART GRID */}
