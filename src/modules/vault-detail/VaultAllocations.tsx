@@ -256,14 +256,31 @@ export const VaultAllocations: React.FC = () => {
 
   return (
     <Box sx={{ width: '100%', pt: 5 }}>
-      <BaseDataGrid
-        data={allAssets}
-        columns={columns}
-        loading={isLoading}
-        defaultSortColumn="value"
-        defaultSortOrder="desc"
-        rowIdGetter={(asset, index) => `${asset.assetSymbol}-${index}`}
-      />
+      <Box
+        sx={{
+          backgroundColor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: '14px',
+          p: { xs: 2, md: 3 },
+          // Stack above the fixed page grid texture so it stays opaque
+          position: 'relative',
+          zIndex: 1,
+          boxShadow: (theme) =>
+            theme.palette.mode === 'dark'
+              ? '0 1px 0 rgba(255,255,255,.04) inset, 0 18px 40px -22px rgba(0,0,0,.55)'
+              : '0 1px 0 rgba(255,255,255,.9) inset, 0 14px 32px -18px rgba(120,70,20,.10)',
+        }}
+      >
+        <BaseDataGrid
+          data={allAssets}
+          columns={columns}
+          loading={isLoading}
+          defaultSortColumn="value"
+          defaultSortOrder="desc"
+          rowIdGetter={(asset, index) => `${asset.assetSymbol}-${index}`}
+        />
+      </Box>
     </Box>
   );
 };

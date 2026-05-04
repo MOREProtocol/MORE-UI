@@ -1,22 +1,22 @@
 body {
   --wcm-z-index: 1300;
 
-  /* ── Molten brand tokens ─────────────────────────────────────────── */
-  --molten-300: #FFA450;
-  --molten-400: #FF8A2A;
-  --molten-500: #F26A15;
-  --molten-600: #D44E06;
-  --honey:      #FFB547;
-  --ember:      #FF5A1F;
+  /* ── Molten brand tokens (anchored on /icons/curators/more.svg gradient) ─ */
+  --molten-300: #FCB319;       /* logo gold stop  */
+  --molten-400: #FFA94A;       /* lighter orange (dark-mode accent) */
+  --molten-500: #F58420;       /* logo warm orange — primary */
+  --molten-600: #C66A18;       /* darker variant — pressed/hover */
+  --honey:      #FCB319;       /* alias of molten-300 */
+  --ember:      #F58420;
 
-  --grad-molten: linear-gradient(135deg, #FFB547 0%, #F26A15 45%, #D44E06 100%);
-  --grad-molten-soft: linear-gradient(135deg, rgba(255,181,71,.18) 0%, rgba(242,106,21,.14) 100%);
+  --grad-molten: linear-gradient(135deg, #F58420 0%, #FCB319 100%);
+  --grad-molten-soft: linear-gradient(135deg, rgba(252,179,25,.18) 0%, rgba(245,132,32,.14) 100%);
 
   /* ── Status ──────────────────────────────────────────────────────── */
   --positive:      #1FAE6A;
   --positive-soft: rgba(31,174,106,.14);
-  --negative:      #E24C4B;
-  --negative-soft: rgba(226,76,75,.14);
+  --negative:      #E04B40;
+  --negative-soft: rgba(224,75,64,.14);
 
   /* ── Radii ────────────────────────────────────────────────────────  */
   --r-sm:   6px;
@@ -31,8 +31,8 @@ body > div:first-of-type::before {
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+    linear-gradient(var(--grid-line, rgba(255,255,255,.045)) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line, rgba(255,255,255,.045)) 1px, transparent 1px);
   background-size: 64px 64px;
   pointer-events: none;
   mask-image: radial-gradient(ellipse at center, black 20%, transparent 80%);

@@ -24,7 +24,6 @@ export const VaultCard = ({ row, loading, onClick, onDeposit, disabled }: VaultC
     : [];
 
   const { data: sharePriceHistory } = useVaultSharePriceHistory(row?.id, row?.chainId);
-  console.log(sharePriceHistory)
   const hasChart = !!sharePriceHistory?.length;
 
   return (
@@ -37,11 +36,14 @@ export const VaultCard = ({ row, loading, onClick, onDeposit, disabled }: VaultC
         borderColor: 'divider',
         p: 2.75,
         cursor: loading ? 'default' : 'pointer',
+        // Establish a stacking context above the page grid texture
+        position: 'relative',
+        zIndex: 1,
         transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
         '&:hover': loading
           ? {}
           : {
-              borderColor: 'rgba(242,106,21,.25)',
+              borderColor: 'rgba(245,132,32,.25)',
               boxShadow: '0 4px 24px rgba(0,0,0,.18), 0 1px 3px rgba(0,0,0,.10)',
             },
       }}
@@ -149,7 +151,16 @@ export const VaultCard = ({ row, loading, onClick, onDeposit, disabled }: VaultC
         <Skeleton variant="rectangular" width="100%" height={80} sx={{ borderRadius: '6px', mt: 2.5 }} />
       ) : hasChart ? (
         <Box
-          sx={{ mt: 2.5, mx: -0.5 }}
+          sx={{
+            mt: 2.5,
+            mx: -0.5,
+            // Opaque inner surface so the page grid texture doesn't bleed through the chart canvas
+            bgcolor: 'background.paper',
+            borderRadius: '8px',
+            p: 0.5,
+            position: 'relative',
+            zIndex: 1,
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           <LineChart
@@ -202,7 +213,7 @@ export const VaultCard = ({ row, loading, onClick, onDeposit, disabled }: VaultC
                 fontSize: 24,
                 fontWeight: 700,
                 lineHeight: 1.15,
-                color: apyPositive ? '#FF8A2A' : 'error.main',
+                color: apyPositive ? '#FFA94A' : 'error.main',
               }}
             />
           ) : (

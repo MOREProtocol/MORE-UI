@@ -1,14 +1,11 @@
-import { Box, Button, ButtonGroup, Typography, Tooltip, Alert, Menu, MenuItem } from '@mui/material';
+import { Box, Button, ButtonGroup, Typography, Tooltip, Alert, Menu, MenuItem, useTheme } from '@mui/material';
 import { valueToBigNumber } from '@aave/math-utils';
 import { API_ETH_MOCK_ADDRESS, InterestRate } from '@aave/contract-helpers';
 import { useMemo, useState } from 'react';
 import type { ComputedReserveDataWithMarket } from 'src/hooks/app-data-provider/useAppDataProvider';
-import { BaseDataGrid, ColumnDefinition } from 'src/components/primitives/DataGrid';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
-import { TokenIcon } from 'src/components/primitives/TokenIcon';
-import { IncentivesCard } from 'src/components/incentives/IncentivesCard';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
-import { UsdChip } from 'src/components/primitives/UsdChip';
+import { MarketAssetsTable } from './MarketAssetsTable';
 import { useRewardsMaps, sumIncentivesApr, sumRewardsApr } from './hooks';
 import { MarketRow, TabKey } from './types';
 import { useModalContext } from 'src/hooks/useModal';
@@ -19,7 +16,98 @@ import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances
 import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableToSupply';
 import { getMaxAmountAvailableToBorrow, assetCanBeBorrowedByUser } from 'src/utils/getMaxAmountAvailableToBorrow';
 
+function StatChip({ label, value }: { label: string; value: string }) {
+  return (
+    <Box
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 0.75,
+        px: 1.25,
+        py: 0.5,
+        borderRadius: '8px',
+        background: (t) => (t.palette.mode === 'dark' ? 'rgba(255,255,255,.04)' : 'rgba(40,25,15,.04)'),
+        border: '1px solid',
+        borderColor: 'divider',
+        fontVariantNumeric: 'tabular-nums',
+      }}
+    >
+      <Typography component="span" sx={{ fontSize: 10, letterSpacing: '.10em', textTransform: 'uppercase', color: 'text.muted', fontWeight: 500 }}>
+        {label}
+      </Typography>
+      <FormattedNumber value={value} symbol="USD" variant="secondary12" symbolsVariant="secondary12" compact visibleDecimals={2} sx={{ fontWeight: 600 }} />
+    </Box>
+  );
+}
+
+function PlateRaised({ children }: { children: React.ReactNode }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  return (
+    <Box
+      sx={{
+        background: isDark
+          ? `linear-gradient(180deg, ${theme.palette.background.surface2}, ${theme.palette.background.surface})`
+          : `linear-gradient(180deg, ${theme.palette.background.surface2}, ${theme.palette.background.paper})`,
+        border: '1px solid',
+        borderColor: isDark ? 'rgba(255,255,255,.10)' : 'rgba(40,25,15,.12)',
+        borderRadius: '14px',
+        boxShadow: isDark
+          ? '0 1px 0 rgba(255,255,255,.04) inset, 0 30px 60px -30px rgba(0,0,0,.7)'
+          : '0 1px 0 rgba(255,255,255,.9) inset, 0 18px 40px -20px rgba(120,70,20,.14)',
+        px: { xs: 3, md: 6 },
+        py: { xs: 3, md: 5 },
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
+function PlateHeader({ eyebrow, title, rightEyebrow, rightValue }: { eyebrow: string; title: string; rightEyebrow: string; rightValue: string }) {
+  const theme = useTheme();
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 2.5, flexWrap: 'wrap' }}>
+      <Box>
+        <Typography sx={{ fontSize: '10.5px', letterSpacing: '.12em', textTransform: 'uppercase', color: 'text.muted', fontWeight: 500 }}>
+          {eyebrow}
+        </Typography>
+        <Typography
+          sx={{
+            fontFamily: theme.typography.h1.fontFamily,
+            fontSize: 22,
+            fontWeight: 500,
+            letterSpacing: '-.018em',
+            lineHeight: 1.1,
+            color: 'text.primary',
+            mt: 0.5,
+          }}
+        >
+          {title}
+        </Typography>
+      </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+        <Typography sx={{ fontSize: '10.5px', letterSpacing: '.12em', textTransform: 'uppercase', color: 'text.muted', fontWeight: 500 }}>
+          {rightEyebrow}
+        </Typography>
+        <FormattedNumber
+          value={rightValue}
+          symbol="USD"
+          variant="main16"
+          visibleDecimals={2}
+          compact
+          symbolsVariant="secondary14"
+          sx={{ fontWeight: 600, mt: 0.5 }}
+        />
+      </Box>
+    </Box>
+  );
+}
+
 export function MarketsTable() {
+  const theme = useTheme();
   const { reserves, user, loading } = useAppDataContext();
   const { rewardsByAddress } = useRewardsMaps();
   const [activeTab, setActiveTab] = useState<TabKey>('supply');
@@ -35,10 +123,6 @@ export function MarketsTable() {
   // Anchors for per-row action dropdowns when dealing with wrapped base assets
   const [supplyMenuAnchor, setSupplyMenuAnchor] = useState<null | HTMLElement>(null);
   const [supplyMenuRow, setSupplyMenuRow] = useState<string | null>(null);
-
-  // Helpers
-  const usdValue = (amount: string | number, priceInUSD?: string | number) =>
-    (Number(amount || 0) * Number(priceInUSD || 0)).toString();
 
   // Compute wallet balance in USD for a given row id and reserve
   const getWalletBalanceUsdFor = (rowId: string, reserve?: ComputedReserveDataWithMarket): number => {
@@ -61,68 +145,40 @@ export function MarketsTable() {
     return Number(balanceAmount) * Number(reserve.priceInUSD || 0);
   };
 
-  const renderBalanceCell = (row: MarketRow) => {
-    const assetKey = row.id.toLowerCase();
-    const isWrapped = row.reserve?.isWrappedBaseAsset;
-    const baseKey = API_ETH_MOCK_ADDRESS.toLowerCase();
-
-    if (isWrapped && assetKey === baseKey) {
-      const baseBal = walletBalances?.[baseKey]?.amount || '0';
-      const baseUsd = usdValue(baseBal, row.reserve?.priceInUSD);
-      return (
-        <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
-          <FormattedNumber compact value={Number(baseBal)} variant="secondary14" />
-          <UsdChip value={baseUsd} textVariant="secondary12" />
-        </Box>
-      );
-    }
-    if (isWrapped && assetKey !== baseKey) {
-      const wrappedBal = walletBalances?.[row.reserve?.underlyingAsset.toLowerCase() || assetKey]?.amount || '0';
-      const wrappedUsd = usdValue(wrappedBal, row.reserve?.priceInUSD);
-      return (
-        <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
-          <FormattedNumber compact value={Number(wrappedBal)} variant="secondary14" />
-          <UsdChip value={wrappedUsd} textVariant="secondary12" />
-        </Box>
-      );
-    }
-
-    const bal = walletBalances?.[assetKey]?.amount || '0';
-    const usd = usdValue(bal, row.reserve?.priceInUSD);
-    return (
-      <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
-        <FormattedNumber compact value={Number(bal)} variant="secondary14" />
-        <UsdChip value={usd} textVariant="secondary12" />
-      </Box>
-    );
-  };
-
   const renderSupplyAction = (row: MarketRow) => {
     const isWrapped = !!row.reserve?.isWrappedBaseAsset;
     const baseKey = API_ETH_MOCK_ADDRESS.toLowerCase();
+    const blockedByBorrow = !!eligibilityByAsset.get(row.id)?.supplyBlockedByBorrow;
+    const supplyTitle = blockedByBorrow
+      ? 'You have an active borrow position for this asset. Repay it before supplying.'
+      : '';
     if (isWrapped) {
       const wrappedDisabled = !row.reserve || !account || !!eligibilityByAsset.get(row.id)?.disableSupply;
       const baseDisabled = !row.reserve || !account || !!eligibilityByAsset.get(baseKey)?.disableSupply;
       return (
         <>
-          <Button
-            size="medium"
-            variant="gradient"
-            disabled={wrappedDisabled && baseDisabled}
-            sx={{ width: { xs: '100%', md: 'auto' } }}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!row.reserve) return;
-              if (!account) {
-                setWalletModalOpen(true);
-                return;
-              }
-              setSupplyMenuRow(row.id);
-              setSupplyMenuAnchor(e.currentTarget);
-            }}
-          >
-            Supply
-          </Button>
+          <Tooltip title={supplyTitle} disableHoverListener={!supplyTitle} placement="top">
+            <span>
+              <Button
+                size="small"
+                variant="soft"
+                disabled={wrappedDisabled && baseDisabled}
+                sx={{ px: 1.75, py: 0.75, fontSize: 12, minWidth: 'unset' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!row.reserve) return;
+                  if (!account) {
+                    setWalletModalOpen(true);
+                    return;
+                  }
+                  setSupplyMenuRow(row.id);
+                  setSupplyMenuAnchor(e.currentTarget);
+                }}
+              >
+                Supply
+              </Button>
+            </span>
+          </Tooltip>
           <Menu
             anchorEl={supplyMenuAnchor}
             open={Boolean(supplyMenuAnchor) && supplyMenuRow === row.id}
@@ -165,41 +221,49 @@ export function MarketsTable() {
       );
     }
     return (
-      <Button
-        size="medium"
-        variant="gradient"
-        disabled={!row.reserve || !account || !!eligibilityByAsset.get(row.id)?.disableSupply}
-        sx={{ width: { xs: '100%', md: 'auto' } }}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (!row.reserve) return;
-          if (!account) {
-            setWalletModalOpen(true);
-            return;
-          }
-          openSupply(row.id, currentMarket, row.assetName, 'market-list');
-          trackEvent(GENERAL.OPEN_MODAL, { modal: 'Supply', assetName: row.assetName });
-        }}
-      >
-        Supply
-      </Button>
+      <Tooltip title={supplyTitle} disableHoverListener={!supplyTitle} placement="top">
+        <span>
+          <Button
+            size="small"
+            variant="soft"
+            disabled={!row.reserve || !account || !!eligibilityByAsset.get(row.id)?.disableSupply}
+            sx={{ px: 1.75, py: 0.75, fontSize: 12, minWidth: 'unset' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!row.reserve) return;
+              if (!account) {
+                setWalletModalOpen(true);
+                return;
+              }
+              openSupply(row.id, currentMarket, row.assetName, 'market-list');
+              trackEvent(GENERAL.OPEN_MODAL, { modal: 'Supply', assetName: row.assetName });
+            }}
+          >
+            Supply
+          </Button>
+        </span>
+      </Tooltip>
     );
   };
 
   const renderBorrowAction = (row: MarketRow) => {
-    const eModeDisabled = !!eligibilityByAsset.get(row.id)?.eModeBorrowDisabled;
-    const isDisabled = !row.reserve || !account || !!eligibilityByAsset.get(row.id)?.disableBorrow;
-    const title = eModeDisabled
-      ? 'In E-Mode some assets are not borrowable. Exit MOST Mode to get access to all assets'
-      : '';
+    const eligibility = eligibilityByAsset.get(row.id);
+    const eModeDisabled = !!eligibility?.eModeBorrowDisabled;
+    const blockedBySupply = !!eligibility?.borrowBlockedBySupply;
+    const isDisabled = !row.reserve || !account || !!eligibility?.disableBorrow;
+    const title = blockedBySupply
+      ? 'You have an active supply position for this asset. Withdraw it before borrowing.'
+      : eModeDisabled
+        ? 'In E-Mode some assets are not borrowable. Exit MOST Mode to get access to all assets'
+        : '';
     return (
-      <Tooltip title={title} disableHoverListener={!eModeDisabled} placement="top">
+      <Tooltip title={title} disableHoverListener={!title} placement="top">
         <span>
           <Button
-            size="medium"
-            variant="gradient"
+            size="small"
+            variant="soft"
             disabled={isDisabled}
-            sx={{ width: { xs: '100%', md: 'auto' } }}
+            sx={{ px: 1.75, py: 0.75, fontSize: 12, minWidth: 'unset' }}
             onClick={(e) => {
               e.stopPropagation();
               if (!row.reserve) return;
@@ -251,10 +315,26 @@ export function MarketsTable() {
   };
 
   const eligibilityByAsset = useMemo(() => {
-    const map = new Map<string, { disableSupply: boolean; disableBorrow: boolean; maxBorrow?: string; eModeBorrowDisabled?: boolean }>();
+    const map = new Map<string, {
+      disableSupply: boolean;
+      disableBorrow: boolean;
+      maxBorrow?: string;
+      eModeBorrowDisabled?: boolean;
+      supplyBlockedByBorrow?: boolean;
+      borrowBlockedBySupply?: boolean;
+    }>();
     (reserves || []).forEach((r) => {
       const asset = r.underlyingAsset?.toLowerCase();
       const balanceAmount = walletBalances?.[asset]?.amount || '0';
+
+      // Position checks: prevent looping (supplying what's borrowed, borrowing what's supplied)
+      const isReserveAlreadySupplied = (user?.userReservesData || []).some(
+        (ur) => ur.reserve.underlyingAsset === r.underlyingAsset && ur.underlyingBalance !== '0'
+      );
+      const isReserveAlreadyBorrowed = (user?.userReservesData || []).some(
+        (ur) => ur.reserve.underlyingAsset === r.underlyingAsset &&
+          (ur.variableBorrows !== '0' || ur.stableBorrows !== '0')
+      );
 
       // Supply eligibility
       const maxAmountToSupply = getMaxAmountAvailableToSupply(
@@ -263,12 +343,14 @@ export function MarketsTable() {
         r.underlyingAsset,
         minRemainingBaseTokenBalance
       ).toString();
-      const disableSupply = !account || !r || maxAmountToSupply === '0' || balanceAmount === '0';
+      const disableSupply =
+        !account ||
+        !r ||
+        maxAmountToSupply === '0' ||
+        balanceAmount === '0' ||
+        isReserveAlreadyBorrowed;
 
       // Borrow eligibility
-      const isReserveAlreadySupplied = (user?.userReservesData || []).some(
-        (ur) => ur.reserve.underlyingAsset === r.underlyingAsset && ur.underlyingBalance !== '0'
-      );
       const userHasNoCollateralSupplied = user?.totalCollateralMarketReferenceCurrency === '0';
       const assetBorrowable = user ? assetCanBeBorrowedByUser(r, user) : false;
       const eModeBorrowDisabled = !!(user?.isInEmode && r.eModeCategoryId !== user.userEmodeCategoryId);
@@ -283,7 +365,14 @@ export function MarketsTable() {
         isReserveAlreadySupplied ||
         maxAmountToBorrow === '0';
 
-      map.set(r.underlyingAsset, { disableSupply, disableBorrow, maxBorrow: maxAmountToBorrow, eModeBorrowDisabled });
+      map.set(r.underlyingAsset, {
+        disableSupply,
+        disableBorrow,
+        maxBorrow: maxAmountToBorrow,
+        eModeBorrowDisabled,
+        supplyBlockedByBorrow: isReserveAlreadyBorrowed,
+        borrowBlockedBySupply: isReserveAlreadySupplied,
+      });
 
       // Add synthetic base-asset eligibility for FLOW alongside WFLOW
       if (r.isWrappedBaseAsset) {
@@ -295,12 +384,24 @@ export function MarketsTable() {
           API_ETH_MOCK_ADDRESS.toLowerCase(),
           minRemainingBaseTokenBalance
         ).toString();
-        const baseDisableSupply = !account || !r || baseMaxAmountToSupply === '0' || baseBalanceAmount === '0';
+        const baseDisableSupply =
+          !account ||
+          !r ||
+          baseMaxAmountToSupply === '0' ||
+          baseBalanceAmount === '0' ||
+          isReserveAlreadyBorrowed;
         // Borrow eligibility mirrors the wrapped reserve
         const baseDisableBorrow = disableBorrow;
         const baseMaxBorrow = maxAmountToBorrow;
         const baseEmodeBorrowDisabled = eModeBorrowDisabled;
-        map.set(baseKey, { disableSupply: baseDisableSupply, disableBorrow: baseDisableBorrow, maxBorrow: baseMaxBorrow, eModeBorrowDisabled: baseEmodeBorrowDisabled });
+        map.set(baseKey, {
+          disableSupply: baseDisableSupply,
+          disableBorrow: baseDisableBorrow,
+          maxBorrow: baseMaxBorrow,
+          eModeBorrowDisabled: baseEmodeBorrowDisabled,
+          supplyBlockedByBorrow: isReserveAlreadyBorrowed,
+          borrowBlockedBySupply: isReserveAlreadySupplied,
+        });
       }
     });
     return map;
@@ -309,240 +410,6 @@ export function MarketsTable() {
   const supplyRows: MarketRow[] = useMemo(() => buildRowsForMode('supply'), [reserves, rewardsByAddress, currentNetworkConfig.baseAssetSymbol, account]);
 
   const borrowRows: MarketRow[] = useMemo(() => buildRowsForMode('borrow'), [reserves, rewardsByAddress, currentNetworkConfig.baseAssetSymbol, account]);
-
-  const columns: ColumnDefinition<MarketRow>[] = useMemo(() => {
-    const baseColumns: ColumnDefinition<MarketRow>[] = [
-      {
-        key: 'assetName',
-        label: 'Asset',
-        sortable: true,
-        render: (row) => (
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-            justifyContent: { xs: 'flex-end', md: 'flex-start' },
-            flexDirection: { xs: 'row-reverse', md: 'row' }
-          }}>
-            {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
-            <Box sx={{ my: 1 }}>
-              <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
-            </Box>
-          </Box>
-        ),
-      },
-      {
-        key: 'effectiveApy',
-        label: activeTab === 'supply' ? 'Supply APY' : 'Borrow Rate',
-        sortable: true,
-        render: (row) => (
-          <IncentivesCard
-            value={activeTab === 'supply' ? row.apy : (row.variableApy ?? row.apy)}
-            incentives={activeTab === 'supply' ? (row.reserve?.aIncentivesData || []) : (row.reserve?.vIncentivesData || [])}
-            rewards={activeTab === 'supply' ? (row.rewardsSupply || []) : (row.rewardsBorrow || [])}
-            symbol={row.assetSymbol}
-            variant="secondary14"
-            symbolsVariant="secondary14"
-            align="center"
-          />
-        ),
-      },
-    ];
-
-    const supplyColumns: ColumnDefinition<MarketRow>[] = [
-      {
-        key: 'totalLiquidity',
-        label: 'Total Supply',
-        sortable: true,
-        render: (row: MarketRow) => (
-          row.reserve ? (
-            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
-              <FormattedNumber compact value={row.reserve.totalLiquidity} variant="secondary14" />
-              <UsdChip value={row.reserve.totalLiquidityUSD} textVariant="secondary12" />
-            </Box>
-          ) : null
-        ),
-      },
-    ];
-
-    // Add Balance column only when a wallet is connected
-    if (account) {
-      supplyColumns.push({
-        key: 'balance',
-        label: 'Balance',
-        sortable: true,
-        render: (row: MarketRow) => renderBalanceCell(row),
-      });
-    }
-
-    const borrowColumns: ColumnDefinition<MarketRow>[] = [
-      {
-        key: 'totalLiquidity',
-        label: 'Total Borrowed',
-        sortable: true,
-        render: (row: MarketRow) => (
-          row.reserve ? (
-            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
-              <FormattedNumber compact value={row.reserve.totalDebt} variant="secondary14" />
-              <UsdChip value={row.reserve.totalDebtUSD} textVariant="secondary12" />
-            </Box>
-          ) : null
-        ),
-      },
-    ];
-
-    // Add Available column (independent of user collateral or wallet connection)
-    borrowColumns.push({
-      key: 'availableLiquidity',
-      label: 'Available',
-      sortable: true,
-      render: (row: MarketRow) => {
-        if (!row.reserve) return null;
-        const availableLiquidity = Number(row.reserve.formattedAvailableLiquidity ?? row.reserve.availableLiquidity ?? 0);
-        const usd = (availableLiquidity * Number(row.reserve.priceInUSD || 0)).toString();
-        return (
-          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
-            <FormattedNumber compact value={availableLiquidity} variant="secondary14" />
-            <UsdChip value={usd} textVariant="secondary12" />
-          </Box>
-        );
-      },
-    });
-
-    return [...baseColumns, ...(activeTab === 'supply' ? supplyColumns : borrowColumns)];
-  }, [activeTab, walletBalances, account]);
-
-  // Large-screen specific columns (fixed per table)
-  const supplyColumnsLg: ColumnDefinition<MarketRow>[] = useMemo(() => {
-    const assetColumn: ColumnDefinition<MarketRow> = {
-      key: 'assetName',
-      label: 'Asset',
-      sortable: true,
-      render: (row) => (
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          justifyContent: { xs: 'flex-end', md: 'flex-start' },
-          flexDirection: { xs: 'row-reverse', md: 'row' }
-        }}>
-          {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
-          <Box sx={{ my: 1 }}>
-            <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
-          </Box>
-        </Box>
-      ),
-    };
-    const apyColumn: ColumnDefinition<MarketRow> = {
-      key: 'effectiveApy',
-      label: 'Supply APY',
-      sortable: true,
-      render: (row) => (
-        <IncentivesCard
-          value={row.apy}
-          incentives={row.reserve?.aIncentivesData || []}
-          rewards={row.rewardsSupply || []}
-          symbol={row.assetSymbol}
-          variant="secondary14"
-          symbolsVariant="secondary14"
-          align="center"
-        />
-      ),
-    };
-    const totalsColumn: ColumnDefinition<MarketRow> = {
-      key: 'totalLiquidity',
-      label: 'Total Supply',
-      sortable: true,
-      render: (row: MarketRow) => (
-        row.reserve ? (
-          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
-            <FormattedNumber compact value={row.reserve.totalLiquidity} variant="secondary14" />
-            <UsdChip value={row.reserve.totalLiquidityUSD} textVariant="secondary12" />
-          </Box>
-        ) : null
-      ),
-    };
-    const cols: ColumnDefinition<MarketRow>[] = [assetColumn, apyColumn, totalsColumn];
-    if (account) {
-      cols.push({
-        key: 'balance',
-        label: 'Balance',
-        sortable: true,
-        render: (row: MarketRow) => renderBalanceCell(row),
-      });
-    }
-    return cols;
-  }, [account, walletBalances]);
-
-  const borrowColumnsLg: ColumnDefinition<MarketRow>[] = [
-    {
-      key: 'assetName',
-      label: 'Asset',
-      sortable: true,
-      render: (row) => (
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          justifyContent: { xs: 'flex-end', md: 'flex-start' },
-          flexDirection: { xs: 'row-reverse', md: 'row' }
-        }}>
-          {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
-          <Box sx={{ my: 1 }}>
-            <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
-          </Box>
-        </Box>
-      ),
-    },
-    {
-      key: 'effectiveApy',
-      label: 'Borrow Rate',
-      sortable: true,
-      render: (row) => (
-        <IncentivesCard
-          value={row.variableApy ?? row.apy}
-          incentives={row.reserve?.vIncentivesData || []}
-          rewards={row.rewardsBorrow || []}
-          symbol={row.assetSymbol}
-          variant="secondary14"
-          symbolsVariant="secondary14"
-          align="center"
-        />
-      ),
-    },
-    {
-      key: 'totalLiquidity',
-      label: 'Total Borrowed',
-      sortable: true,
-      render: (row: MarketRow) => (
-        row.reserve ? (
-          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
-            <FormattedNumber compact value={row.reserve.totalDebt} variant="secondary14" />
-            <UsdChip value={row.reserve.totalDebtUSD} textVariant="secondary12" />
-          </Box>
-        ) : null
-      ),
-    },
-    {
-      key: 'availableLiquidity',
-      label: 'Available',
-      sortable: true,
-      render: (row: MarketRow) => {
-        if (!row.reserve) return null;
-        const availableLiquidity = Number(row.reserve.formattedAvailableLiquidity ?? row.reserve.availableLiquidity ?? 0);
-        const usd = (availableLiquidity * Number(row.reserve.priceInUSD || 0)).toString();
-        return (
-          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
-            <FormattedNumber compact value={availableLiquidity} variant="secondary14" />
-            <UsdChip value={usd} textVariant="secondary12" />
-          </Box>
-        );
-      },
-    },
-  ];
 
   // Row sets per mode for large screens
   const supplyNonFrozenRows = useMemo(() => (supplyRows || []).filter((r) => !r.reserve || (!r.reserve.isPaused && !r.reserve.isFrozen)), [supplyRows]);
@@ -576,296 +443,175 @@ export function MarketsTable() {
 
   return (
     <Box>
-      <Box sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: { xs: 'background.surface', lg: 'background.surface3' },
-        gap: 3,
-        p: 3,
-        borderRadius: '12px',
-        border: '1px solid',
-        borderColor: 'divider',
-        mb: { xs: 4, md: 6 }
-      }}>
-        <Box
-          display="flex"
-          flexDirection={{ xs: "column", md: "row" }}
-          alignItems="center"
-          justifyContent="space-between"
-          gap={5}
+      {/* Section header: "Markets" + count chip + total stat chips */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: { xs: 2, md: 3 },
+          flexWrap: 'wrap',
+          mb: { xs: 3, md: 4 },
+        }}
+      >
+        <Typography
+          sx={{
+            fontFamily: theme.typography.h1.fontFamily,
+            fontSize: { xs: 24, md: 30 },
+            fontWeight: 500,
+            letterSpacing: '-.022em',
+            lineHeight: 1.1,
+            color: 'text.primary',
+            margin: 0,
+          }}
         >
-          <Box display="flex" width={{ xs: '100%', md: 'unset' }} flexDirection={{ xs: "column", md: "row" }} alignItems="center" gap={{ xs: 2, md: 5 }}>
-            <Typography
-              sx={{
-                typography: { xs: 'main16', md: 'main21' },
-                textAlign: { xs: 'center', md: 'left' },
-                color: 'primary.main'
-              }}
-            >
-              Markets
-            </Typography>
-            <Box sx={{ display: { xs: 'flex', lg: 'none' }, width: { xs: '100%', md: 'unset' } }}>
-              <ButtonGroup fullWidth>
-                <Button
-                  onClick={() => setActiveTab('supply')}
-                  aria-pressed={activeTab === 'supply'}
-                  variant={activeTab === 'supply' ? 'contained' : 'outlined'}
-                >
-                  Supply
-                </Button>
-                <Button
-                  onClick={() => setActiveTab('borrow')}
-                  aria-pressed={activeTab === 'borrow'}
-                  variant={activeTab === 'borrow' ? 'contained' : 'outlined'}
-                >
-                  Borrow
-                </Button>
-              </ButtonGroup>
-            </Box>
-          </Box>
-          <Box
-            display="flex"
-            alignItems="center"
-            gap={4}
-            flexDirection={{ xs: 'column', md: 'row' }}
-            width={{ xs: '100%', md: 'unset' }}
-          >
-            <Box sx={{
-              display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              width: '100%',
-              justifyContent: { xs: 'space-between', md: 'flex-start' },
-              gap: { xs: 2, md: 10 }
-            }}>
-              <Box display='flex' flexDirection='column' alignItems='flex-start' sx={{ display: { xs: 'flex', lg: 'none' } }}>
-                <Typography variant="secondary14" color="text.secondary">
-                  Total Market Size
-                </Typography>
-                <FormattedNumber
-                  value={aggregatedStats.totalLiquidity.toString()}
-                  symbol="USD"
-                  variant="main16"
-                  visibleDecimals={2}
-                  compact
-                  toggleCompactOnClick
-                  symbolsVariant="secondary16"
-                  sx={{ fontWeight: 800 }}
-                />
-              </Box>
-              <Box display="flex" flexDirection='column' alignItems='flex-start'>
-                <Typography variant="secondary14" color="text.secondary">
-                  Total Available
-                </Typography>
-                <FormattedNumber
-                  value={aggregatedStats.totalAvailable.toString()}
-                  symbol="USD"
-                  variant="main16"
-                  visibleDecimals={2}
-                  compact
-                  toggleCompactOnClick
-                  symbolsVariant="secondary16"
-                  sx={{ fontWeight: 800 }}
-                />
-              </Box>
-              <Box display="flex" flexDirection='column' alignItems='flex-start' sx={{ display: { xs: 'flex', lg: 'none' } }}>
-                <Typography variant="secondary14" color="text.secondary">
-                  Total Borrowed
-                </Typography>
-                <FormattedNumber
-                  value={aggregatedStats.totalDebt.toString()}
-                  symbol="USD"
-                  variant="main16"
-                  visibleDecimals={2}
-                  compact
-                  toggleCompactOnClick
-                  symbolsVariant="secondary16"
-                  sx={{ fontWeight: 800 }}
-                />
-              </Box>
-            </Box>
-          </Box>
+          Markets
+        </Typography>
+        <Box
+          sx={{
+            fontSize: 11,
+            color: 'text.muted',
+            px: 1,
+            py: '2px',
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: '8px',
+            fontWeight: 500,
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {(supplyNonFrozenRows || []).length}
         </Box>
 
-        {/* Large: dual-pane supply/borrow tables within Markets container */}
-        <Box sx={{ display: { xs: 'none', lg: 'block' }, mt: 2 }}>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 5 }}>
-            {/* Supply column */}
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Box sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                backgroundColor: 'background.surface',
-                p: 3,
-                borderRadius: '12px',
-                mb: { xs: 4, md: 6 }
-              }}>
-                <Typography sx={{ typography: { xs: 'main16', md: 'main21' }, textAlign: { xs: 'center', md: 'left' }, color: 'primary.main' }}>
-                  Supply
-                </Typography>
-                <Box display="flex" flexDirection='column' alignItems='flex-start' sx={{ display: { xs: 'none', lg: 'flex' } }}>
-                  <Typography variant="secondary14" color="text.secondary">
-                    Total Market Size
-                  </Typography>
-                  <FormattedNumber
-                    value={aggregatedStats.totalLiquidity.toString()}
-                    symbol="USD"
-                    variant="main16"
-                    visibleDecimals={2}
-                    compact
-                    toggleCompactOnClick
-                    symbolsVariant="secondary16"
-                    sx={{ fontWeight: 800 }}
-                  />
-                </Box>
-              </Box>
-              <BaseDataGrid<MarketRow>
-                data={supplyNonFrozenRows}
-                columns={supplyColumnsLg}
-                loading={loading}
-                minWidth={500}
-                defaultSortColumn={'effectiveApy'}
-                defaultSortOrder={'desc'}
-                actionColumn={{
-                  render: (row) => renderSupplyAction(row),
-                }}
-                rowIdGetter={(row) => row.id}
-                onRowClick={(row) => {
-                  if (!row.reserve) return;
-                  window.location.href = `/markets/${row.reserve.underlyingAsset}`;
-                }}
-              />
-            </Box>
+        {/* Mobile: supply/borrow toggle */}
+        <Box sx={{ display: { xs: 'flex', xl: 'none' }, width: { xs: '100%', md: 'unset' }, mt: { xs: 1, md: 0 } }}>
+          <ButtonGroup fullWidth>
+            <Button onClick={() => setActiveTab('supply')} aria-pressed={activeTab === 'supply'} variant={activeTab === 'supply' ? 'contained' : 'outlined'}>
+              Supply
+            </Button>
+            <Button onClick={() => setActiveTab('borrow')} aria-pressed={activeTab === 'borrow'} variant={activeTab === 'borrow' ? 'contained' : 'outlined'}>
+              Borrow
+            </Button>
+          </ButtonGroup>
+        </Box>
 
-            {/* Borrow column */}
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Box sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                backgroundColor: 'background.surface',
-                p: 3,
-                borderRadius: '12px',
-                mb: { xs: 4, md: 6 }
-              }}>
-                <Typography sx={{ typography: { xs: 'main16', md: 'main21' }, textAlign: { xs: 'center', md: 'left' }, color: 'primary.main' }}>
-                  Borrow
-                </Typography>
-                <Box display="flex" flexDirection='column' alignItems='flex-start' sx={{ display: { xs: 'none', lg: 'flex' } }}>
-                  <Typography variant="secondary14" color="text.secondary">
-                    Total Borrowed
-                  </Typography>
-                  <FormattedNumber
-                    value={aggregatedStats.totalDebt.toString()}
-                    symbol="USD"
-                    variant="main16"
-                    visibleDecimals={2}
-                    compact
-                    toggleCompactOnClick
-                    symbolsVariant="secondary16"
-                    sx={{ fontWeight: 800 }}
-                  />
-                </Box>
-              </Box>
-              <BaseDataGrid<MarketRow>
-                data={borrowNonFrozenRows}
-                columns={borrowColumnsLg}
-                loading={loading}
-                minWidth={500}
-                defaultSortColumn={'availableLiquidity'}
-                defaultSortOrder={'desc'}
-                headerMessage={user?.isInEmode ? (
-                  <Alert severity="info" sx={{ borderRadius: 0 }}>
-                    In MOST Mode some assets are not borrowable. Exit MOST Mode to get access to all assets
-                  </Alert>
-                ) : undefined}
-                actionColumn={{
-                  render: (row) => renderBorrowAction(row),
-                }}
-                rowIdGetter={(row) => row.id}
-                onRowClick={(row) => {
-                  if (!row.reserve) return;
-                  window.location.href = `/markets/${row.reserve.underlyingAsset}`;
-                }}
-              />
-            </Box>
-          </Box>
+        <Box sx={{ flex: 1 }} />
+
+        {/* Right-side stat chips */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+          <StatChip label="TOTAL MARKET" value={aggregatedStats.totalLiquidity.toString()} />
+          <StatChip label="AVAIL" value={aggregatedStats.totalAvailable.toString()} />
+          <StatChip label="BORROWED" value={aggregatedStats.totalDebt.toString()} />
         </Box>
       </Box>
 
-      {/* Small/Medium: single table with toggle */}
-      <Box sx={{ display: { xs: 'block', lg: 'none' } }}>
-        <BaseDataGrid<MarketRow>
-          data={nonFrozenRows}
-          columns={columns}
-          loading={loading}
-          minWidth={900}
-          defaultSortColumn={activeTab === 'borrow' ? 'availableLiquidity' : 'effectiveApy'}
-          defaultSortOrder={'desc'}
-          headerMessage={user?.isInEmode && activeTab === 'borrow' ? (
-            <Alert severity="info" sx={{ borderRadius: 0 }}>
-              In MOST Mode some assets are not borrowable. Exit MOST Mode to get access to all assets
-            </Alert>
-          ) : undefined}
-          actionColumn={{
-            render: (row) => (activeTab === 'supply' ? renderSupplyAction(row) : renderBorrowAction(row)),
-          }}
-          rowIdGetter={(row) => row.id}
-          onRowClick={(row) => {
-            if (!row.reserve) return;
-            // Always navigate to the wrapped reserve page for details
-            window.location.href = `/markets/${row.reserve.underlyingAsset}`;
-          }}
-        />
-      </Box>
-
-      {/* Large content is now inside the Markets container above */}
-
-      <Box sx={{ display: { xs: (userHasFrozenOrPaused && frozenRows.length > 0) ? 'block' : 'none', lg: 'none' } }}>
-        {(userHasFrozenOrPaused && frozenRows.length > 0) && (
-          <Box sx={{ mt: 4 }}>
-            <Box sx={{
-              display: 'flex',
-              flexDirection: { xs: 'column', md: 'row' },
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: 'background.surface',
-              gap: { xs: 3, md: 0 },
-              p: 3,
-              borderRadius: '12px',
-              mb: { xs: 4, md: 6 }
-            }}>
-              <Typography
-                sx={{
-                  typography: { xs: 'main16', md: 'main21' },
-                  textAlign: { xs: 'center', md: 'left' },
-                  color: 'primary.main'
-                }}
-              >
-                Paused assets
-              </Typography>
-
-            </Box>
-            <BaseDataGrid<MarketRow>
-              data={frozenRows}
-              columns={columns}
+      {/* Large: dual-pane supply/borrow plate cards */}
+      <Box sx={{ display: { xs: 'none', xl: 'block' }, mb: { xs: 4, md: 6 } }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 4 }}>
+          <PlateRaised>
+            <PlateHeader
+              eyebrow="SUPPLY"
+              title="Earn on idle assets"
+              rightEyebrow="TOTAL MARKET SIZE"
+              rightValue={aggregatedStats.totalLiquidity.toString()}
+            />
+            <MarketAssetsTable
+              rows={supplyNonFrozenRows}
+              mode="supply"
               loading={loading}
-              minWidth={900}
-              defaultSortColumn={activeTab === 'borrow' ? 'availableLiquidity' : 'effectiveApy'}
-              defaultSortOrder={'desc'}
-              actionColumn={{
-                render: (row) => (activeTab === 'supply' ? renderSupplyAction(row) : renderBorrowAction(row)),
-              }}
-              rowIdGetter={(row) => row.id}
+              showBalance={!!account}
+              renderAction={renderSupplyAction}
               onRowClick={(row) => {
                 if (!row.reserve) return;
                 window.location.href = `/markets/${row.reserve.underlyingAsset}`;
               }}
             />
-          </Box>
-        )}
+          </PlateRaised>
+
+          <PlateRaised>
+            <PlateHeader
+              eyebrow="BORROW"
+              title="Take a position"
+              rightEyebrow="TOTAL BORROWED"
+              rightValue={aggregatedStats.totalDebt.toString()}
+            />
+            {user?.isInEmode && (
+              <Alert severity="info" sx={{ mb: 2, borderRadius: '10px' }}>
+                In MOST Mode some assets are not borrowable. Exit MOST Mode to get access to all assets
+              </Alert>
+            )}
+            <MarketAssetsTable
+              rows={borrowNonFrozenRows}
+              mode="borrow"
+              loading={loading}
+              renderAction={renderBorrowAction}
+              onRowClick={(row) => {
+                if (!row.reserve) return;
+                window.location.href = `/markets/${row.reserve.underlyingAsset}`;
+              }}
+            />
+          </PlateRaised>
+        </Box>
       </Box>
+
+      {/* Small/Medium: single table with toggle */}
+      <Box sx={{ display: { xs: 'block', xl: 'none' } }}>
+        <PlateRaised>
+          <PlateHeader
+            eyebrow={activeTab === 'supply' ? 'SUPPLY' : 'BORROW'}
+            title={activeTab === 'supply' ? 'Earn on idle assets' : 'Take a position'}
+            rightEyebrow={activeTab === 'supply' ? 'TOTAL MARKET SIZE' : 'TOTAL BORROWED'}
+            rightValue={(activeTab === 'supply' ? aggregatedStats.totalLiquidity : aggregatedStats.totalDebt).toString()}
+          />
+          {user?.isInEmode && activeTab === 'borrow' && (
+            <Alert severity="info" sx={{ mb: 2, borderRadius: '10px' }}>
+              In MOST Mode some assets are not borrowable. Exit MOST Mode to get access to all assets
+            </Alert>
+          )}
+          <Box sx={{ overflowX: 'auto' }}>
+            <Box sx={{ minWidth: 700 }}>
+              <MarketAssetsTable
+                rows={nonFrozenRows}
+                mode={activeTab}
+                loading={loading}
+                showBalance={!!account}
+                renderAction={(row) => (activeTab === 'supply' ? renderSupplyAction(row) : renderBorrowAction(row))}
+                onRowClick={(row) => {
+                  if (!row.reserve) return;
+                  window.location.href = `/markets/${row.reserve.underlyingAsset}`;
+                }}
+              />
+            </Box>
+          </Box>
+        </PlateRaised>
+      </Box>
+
+      {(userHasFrozenOrPaused && frozenRows.length > 0) && (
+        <Box sx={{ display: { xs: 'block', xl: 'none' }, mt: 4 }}>
+          <PlateRaised>
+            <PlateHeader
+              eyebrow="PAUSED"
+              title="Paused assets"
+              rightEyebrow=""
+              rightValue=""
+            />
+            <Box sx={{ overflowX: 'auto' }}>
+              <Box sx={{ minWidth: 700 }}>
+                <MarketAssetsTable
+                  rows={frozenRows}
+                  mode={activeTab}
+                  loading={loading}
+                  showBalance={!!account}
+                  renderAction={(row) => (activeTab === 'supply' ? renderSupplyAction(row) : renderBorrowAction(row))}
+                  onRowClick={(row) => {
+                    if (!row.reserve) return;
+                    window.location.href = `/markets/${row.reserve.underlyingAsset}`;
+                  }}
+                />
+              </Box>
+            </Box>
+          </PlateRaised>
+        </Box>
+      )}
     </Box>
   );
 }

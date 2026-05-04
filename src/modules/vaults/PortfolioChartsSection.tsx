@@ -216,7 +216,7 @@ export const PortfolioChartsSection = ({
                 alignItems: 'center',
                 flexDirection: 'row',
                 gap: 1,
-                border: isLoading ? 'none' : selectedChartDataKey === 'portfolioValue' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
+                border: isLoading ? 'none' : selectedChartDataKey === 'portfolioValue' ? '1.5px solid #F58420' : '1.5px solid #E0E0E0',
                 borderRadius: '6px',
                 padding: '2px 6px',
                 width: 'fit-content',
@@ -235,7 +235,7 @@ export const PortfolioChartsSection = ({
                 />
                 <SvgIcon sx={{
                   fontSize: '20px',
-                  color: selectedChartDataKey === 'portfolioValue' ? "#FF9900" : theme.palette.text.muted,
+                  color: selectedChartDataKey === 'portfolioValue' ? "#F58420" : theme.palette.text.muted,
                 }}
                 >
                   <ShowChartIcon />
@@ -254,7 +254,7 @@ export const PortfolioChartsSection = ({
                   alignItems: 'center',
                   flexDirection: 'row',
                   gap: 1,
-                  border: isLoading ? 'none' : selectedChartDataKey === 'pnl' ? '1.5px solid #FF9900' : '1.5px solid #E0E0E0',
+                  border: isLoading ? 'none' : selectedChartDataKey === 'pnl' ? '1.5px solid #F58420' : '1.5px solid #E0E0E0',
                   borderRadius: '6px',
                   padding: '2px 6px',
                   width: 'fit-content',
@@ -273,7 +273,7 @@ export const PortfolioChartsSection = ({
                   />
                   <SvgIcon sx={{
                     fontSize: '20px',
-                    color: selectedChartDataKey === 'pnl' ? "#FF9900" : theme.palette.text.muted,
+                    color: selectedChartDataKey === 'pnl' ? "#F58420" : theme.palette.text.muted,
                   }}
                   >
                     <ShowChartIcon />

@@ -67,9 +67,9 @@ export const VaultKpiGrid: React.FC<VaultKpiGridProps> = ({
         flexDirection: 'column',
         flex: 2,
         background: isDark
-          ? `radial-gradient(120% 140% at 85% -20%, rgba(242,106,21,.16), transparent 55%),
+          ? `radial-gradient(120% 140% at 85% -20%, rgba(245,132,32,.16), transparent 55%),
              linear-gradient(180deg, ${theme.palette.background.surface2}, ${theme.palette.background.surface})`
-          : `radial-gradient(120% 140% at 85% -20%, rgba(242,106,21,.12), transparent 55%),
+          : `radial-gradient(120% 140% at 85% -20%, rgba(245,132,32,.12), transparent 55%),
              linear-gradient(180deg, ${theme.palette.background.surface2}, ${theme.palette.background.paper})`,
         border: '1px solid',
         borderColor: isDark ? 'rgba(255,255,255,.10)' : 'rgba(40,25,15,.12)',

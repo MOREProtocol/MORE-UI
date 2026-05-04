@@ -456,10 +456,10 @@ export const VaultDetail = () => {
                       borderRadius: '6px',
                       fontSize: 11,
                       fontWeight: 600,
-                      color: isDark ? '#FFA450' : '#D44E06',
-                      background: isDark ? 'rgba(242,106,21,.14)' : 'rgba(242,106,21,.10)',
+                      color: isDark ? '#FFA94A' : '#C66A18',
+                      background: isDark ? 'rgba(245,132,32,.14)' : 'rgba(245,132,32,.10)',
                       border: '1px solid',
-                      borderColor: isDark ? 'rgba(242,106,21,.28)' : 'rgba(242,106,21,.22)',
+                      borderColor: isDark ? 'rgba(245,132,32,.28)' : 'rgba(245,132,32,.22)',
                     }}
                   >
                     omnichain
@@ -647,9 +647,12 @@ export const VaultDetail = () => {
           sx={{
             display: 'flex',
             flexDirection: 'column',
+            // Solid base + soft orange wash at the top so KPIs read clean over the page grid
             background: isDark
-              ? theme.palette.background.surface
-              : theme.palette.background.paper,
+              ? `linear-gradient(180deg, rgba(245,132,32,.06), rgba(245,132,32,0) 140px),
+                 ${theme.palette.background.surface}`
+              : `linear-gradient(180deg, rgba(245,132,32,.06), rgba(245,132,32,0) 140px),
+                 ${theme.palette.background.paper}`,
             borderRadius: '14px',
             border: '1px solid',
             borderColor: isDark ? 'rgba(255,255,255,.08)' : 'rgba(40,25,15,.10)',
@@ -657,6 +660,8 @@ export const VaultDetail = () => {
               ? '0 1px 0 rgba(255,255,255,.04) inset, 0 20px 50px -25px rgba(0,0,0,.6)'
               : '0 1px 0 rgba(255,255,255,.9) inset, 0 14px 36px -18px rgba(120,70,20,.12)',
             overflow: 'hidden',
+            position: 'relative',
+            zIndex: 1,
           }}
         >
           {/* Chart header */}

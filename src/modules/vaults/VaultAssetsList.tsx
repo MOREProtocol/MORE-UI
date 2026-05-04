@@ -452,7 +452,7 @@ export const VaultAssetsList = () => {
                     borderRadius: '10px',
                     cursor: isRowLoading ? 'default' : 'pointer',
                     transition: 'border-color 0.15s ease',
-                    '&:hover': isRowLoading ? {} : { borderColor: 'rgba(242,106,21,.3)' },
+                    '&:hover': isRowLoading ? {} : { borderColor: 'rgba(245,132,32,.3)' },
                   }}
                 >
                   {/* Left: token icons + vault info */}
@@ -523,7 +523,7 @@ export const VaultAssetsList = () => {
                             value={apy}
                             percent
                             variant="main16"
-                            sx={{ fontWeight: 700, color: apyPositive ? '#FF8A2A' : 'error.main' }}
+                            sx={{ fontWeight: 700, color: apyPositive ? '#FFA94A' : 'error.main' }}
                           />
                         ) : (
                           <Typography variant="main16" color="text.secondary">—</Typography>
@@ -650,7 +650,8 @@ export const VaultAssetsList = () => {
                 sx={{
                   display: 'grid',
                   gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-                  gap: 2.25,
+                  columnGap: { xs: 3, md: 5 },
+                  rowGap: { xs: 3, md: 5 },
                 }}
               >
                 {isLoading

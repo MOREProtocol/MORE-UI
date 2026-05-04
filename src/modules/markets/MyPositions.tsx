@@ -1,13 +1,10 @@
-import { Box, Button, IconButton, Typography, Collapse, Switch, Tooltip } from '@mui/material';
+import { Box, IconButton, Typography, Collapse, Switch, useTheme } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useMemo, useState } from 'react';
 import { normalize, UserIncentiveData, valueToBigNumber } from '@aave/math-utils';
 import { UserAccruingReward, useUserPoolReservesRewardsHumanized } from 'src/hooks/pool/useUserPoolReservesRewards';
-import { BaseDataGrid, ColumnDefinition } from 'src/components/primitives/DataGrid';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
-import { UsdChip } from 'src/components/primitives/UsdChip';
-import { IncentivesCard } from 'src/components/incentives/IncentivesCard';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { PositionRow } from './types';
@@ -22,11 +19,13 @@ import { GENERAL } from 'src/utils/mixPanelEvents';
 import { TextWithTooltip } from 'src/components/TextWithTooltip';
 import { EmodeModalType } from 'src/components/transactions/Emode/EmodeModalContent';
 import { Link } from 'src/components/primitives/Link';
+import { SupplyPositionRow, BorrowPositionRow, PositionRowSkeleton } from './PositionRowPlate';
 
 export function MyPositions() {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const { user, loading, reserves } = useAppDataContext();
   const [myPositionsOpen, setMyPositionsOpen] = useState(true);
-  const [headerHovered, setHeaderHovered] = useState(false);
   const reserveByUnderlying = useReserveMap();
   const { rewardsByAddress } = useRewardsMaps();
   const { openSupply, openWithdraw, openBorrow, openRepay, openClaimRewards, openEmode } = useModalContext();
@@ -203,141 +202,34 @@ export function MyPositions() {
     return map;
   }, [reserves, walletBalances, user, account, minRemainingBaseTokenBalance]);
 
-  const supplyColumns: ColumnDefinition<PositionRow>[] = useMemo(() => [
-    {
-      key: 'assetName',
-      label: 'Asset',
-      sortable: true,
-      render: (row) => (
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          justifyContent: { xs: 'flex-end', md: 'flex-start' },
-          flexDirection: { xs: 'row-reverse', md: 'row' }
-        }}>
-          {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
-          <Box sx={{ my: 1 }}>
-            <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
-          </Box>
-        </Box>
-      ),
-    },
-    {
-      key: 'balance',
-      label: 'Balance',
-      sortable: true,
-      render: (row) => (
-        <Box sx={{
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 1.5
-        }}>
-          <FormattedNumber compact value={row.tokenBalance} variant="secondary14" />
-          <UsdChip value={row.balance} textVariant="secondary12" />
-        </Box>
-      ),
-    },
-    {
-      key: 'effectiveApy',
-      label: 'APY',
-      sortable: true,
-      render: (row) => (
-        <IncentivesCard
-          symbol={row.assetSymbol}
-          value={row.apy}
-          incentives={row.reserve?.aIncentivesData}
-          rewards={row.rewardsSupply}
-          variant="secondary14"
-          symbolsVariant="secondary14"
-          align="flex-start"
-        />
-      ),
-    },
-  ], []);
+  // Sort by balance desc to match the design's "biggest first" arrangement
+  const sortedSupplies = useMemo(() => [...supplies].sort((a, b) => b.balance - a.balance), [supplies]);
+  const sortedBorrows = useMemo(() => [...borrows].sort((a, b) => b.balance - a.balance), [borrows]);
 
-  const borrowColumns: ColumnDefinition<PositionRow>[] = useMemo(() => [
-    {
-      key: 'assetName',
-      label: 'Asset',
-      sortable: true,
-      render: (row) => (
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          justifyContent: { xs: 'flex-end', md: 'flex-start' },
-          flexDirection: { xs: 'row-reverse', md: 'row' }
-        }}>
-          {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
-          <Box sx={{ my: 1 }}>
-            <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
-          </Box>
-        </Box>
-      ),
-    },
-    {
-      key: 'balance',
-      label: 'Debt',
-      sortable: true,
-      render: (row) => (
-        <Box sx={{
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 1.5
-        }}>
-          <FormattedNumber compact value={row.tokenBalance} variant="secondary14" />
-          <UsdChip value={row.balance} textVariant="secondary12" />
-        </Box>
-      ),
-    },
-    {
-      key: 'effectiveApy',
-      label: 'Borrow APY',
-      sortable: true,
-      render: (row) => (
-        <IncentivesCard
-          symbol={row.assetSymbol}
-          value={row.apy}
-          incentives={row.reserve?.vIncentivesData}
-          rewards={row.rewardsBorrow}
-          variant="secondary14"
-          symbolsVariant="secondary14"
-          align="flex-start"
-        />
-      ),
-    },
-    {
-      key: 'lltv',
-      label: 'LLTV',
-      sortable: true,
-      render: (row) => (
-        <FormattedNumber
-          value={Number(row.reserve?.formattedReserveLiquidationThreshold ?? 0)}
-          percent
-          variant="secondary14"
-          symbolsVariant="secondary14"
-        />
-      ),
-    },
-    {
-      key: 'utilization',
-      label: 'Utilization',
-      sortable: true,
-      render: (row) => (
-        <FormattedNumber
-          value={Number(row.utilization ?? row.reserve?.borrowUsageRatio ?? 0)}
-          percent
-          variant="secondary14"
-          symbolsVariant="secondary14"
-        />
-      ),
-    },
-  ], []);
+  const onOpenSupplyRow = (row: PositionRow) => {
+    if (!row.reserve) return;
+    openSupply(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
+    trackEvent(GENERAL.OPEN_MODAL, { modal: 'Supply', assetName: row.assetName });
+  };
+  const onWithdrawRow = (row: PositionRow) => {
+    if (!row.reserve) return;
+    openWithdraw(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
+    trackEvent(GENERAL.OPEN_MODAL, { modal: 'Withdraw', assetName: row.assetName });
+  };
+  const onOpenBorrowRow = (row: PositionRow) => {
+    if (!row.reserve) return;
+    openBorrow(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
+    trackEvent(GENERAL.OPEN_MODAL, { modal: 'Borrow', assetName: row.assetName });
+  };
+  const onRepayRow = (row: PositionRow) => {
+    if (!row.reserve) return;
+    openRepay(row.reserve.underlyingAsset, InterestRate.Variable, row.reserve.isFrozen, currentMarket, row.assetName, 'dashboard');
+    trackEvent(GENERAL.OPEN_MODAL, { modal: 'Repay', assetName: row.assetName });
+  };
+  const onNavigateRow = (row: PositionRow) => {
+    if (!row.reserve) return;
+    window.location.href = `/markets/${row.reserve.underlyingAsset}`;
+  };
 
   const hasPositionsOrRewards =
     supplies.length > 0 ||
@@ -346,448 +238,481 @@ export function MyPositions() {
     accruingRewardsUsdNew > 0;
   if (!hasPositionsOrRewards) return null;
 
+  const netAPY = Number(user?.netAPY || 0);
+  const isNetApyPositive = netAPY > 0;
+  const healthFactor = Number(user?.healthFactor || 0);
+  const hasHealthFactor = user?.healthFactor !== '-1';
+  const hfColor =
+    healthFactor >= 3 ? 'success.main' : healthFactor < 1.1 ? 'error.main' : 'warning.main';
+
   return (
     <Box
       sx={{
-        backgroundColor: headerHovered ? 'background.surface2' : (myPositionsOpen ? 'background.surface3' : 'background.surface'),
-        p: 3,
-        borderRadius: '12px',
+        background: isDark
+          ? `radial-gradient(120% 140% at 85% -20%, rgba(245,132,32,.16), transparent 55%),
+             linear-gradient(180deg, ${theme.palette.background.surface2}, ${theme.palette.background.surface})`
+          : `radial-gradient(120% 140% at 85% -20%, rgba(245,132,32,.12), transparent 55%),
+             linear-gradient(180deg, ${theme.palette.background.surface2}, ${theme.palette.background.paper})`,
         border: '1px solid',
-        borderColor: 'divider',
-        mb: { xs: 4, md: 6 }
+        borderColor: isDark ? 'rgba(255,255,255,.10)' : 'rgba(40,25,15,.12)',
+        borderRadius: '14px',
+        boxShadow: isDark
+          ? '0 1px 0 rgba(255,255,255,.04) inset, 0 30px 60px -30px rgba(0,0,0,.7)'
+          : '0 1px 0 rgba(255,255,255,.9) inset, 0 18px 40px -20px rgba(120,70,20,.14)',
+        px: { xs: 4, md: 8 },
+        py: { xs: 4, md: 7 },
+        mb: { xs: 4, md: 6 },
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
+      {/* Top: eyebrow + Net Worth + (Health Factor / collapse) */}
       <Box
-        onClick={() => setMyPositionsOpen((p) => !p)}
-        onMouseEnter={() => setHeaderHovered(true)}
-        onMouseLeave={() => setHeaderHovered(false)}
         sx={{
           display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          alignItems: 'center',
+          alignItems: 'flex-start',
           justifyContent: 'space-between',
-          cursor: 'pointer',
-          gap: { xs: 3, md: 0 },
-        }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography sx={{ typography: { xs: 'main16', md: 'main21' }, color: 'primary.main' }}>
-            My Positions
+          gap: 2,
+          flexWrap: 'wrap',
+          mb: 2.5,
+        }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            sx={{
+              fontSize: '10.5px',
+              letterSpacing: '.12em',
+              textTransform: 'uppercase',
+              color: 'text.muted',
+              fontWeight: 500,
+            }}
+          >
+            Your Positions · Markets
           </Typography>
-          <IconButton aria-label="Toggle My Positions" size="small">
+          <Typography
+            sx={{
+              fontFamily: theme.typography.h1.fontFamily,
+              fontSize: { xs: 28, md: 36 },
+              fontWeight: 500,
+              letterSpacing: '-.02em',
+              lineHeight: 1.05,
+              color: 'text.primary',
+              mt: 1,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            Net worth $
+            <FormattedNumber
+              value={Number(user?.netWorthUSD || 0)}
+              visibleDecimals={2}
+              compact
+              symbolsVariant="secondary21"
+              sx={{
+                fontFamily: theme.typography.h1.fontFamily,
+                fontSize: { xs: 28, md: 36 },
+                fontWeight: 500,
+                letterSpacing: '-.02em',
+                lineHeight: 1.05,
+              }}
+            />
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {hasHealthFactor && healthFactor > 0 && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <Typography variant="secondary12" color="text.muted" sx={{ letterSpacing: '.04em' }}>
+                HEALTH FACTOR
+              </Typography>
+              <FormattedNumber
+                value={healthFactor}
+                visibleDecimals={2}
+                variant="main21"
+                symbolsVariant="secondary16"
+                color={hfColor}
+                sx={{ fontWeight: 700, mt: 0.5, fontVariantNumeric: 'tabular-nums' }}
+              />
+            </Box>
+          )}
+          <IconButton
+            aria-label="Toggle My Positions"
+            size="small"
+            onClick={() => setMyPositionsOpen((p) => !p)}
+            sx={{ color: 'text.muted' }}
+          >
             {myPositionsOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </Box>
+      </Box>
 
+      {/* KPI strip with vertical dividers */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', md: 'repeat(5, 1fr)' },
+          py: { xs: 3, md: 4 },
+          borderTop: '1px solid',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        {/* Net APY */}
         <Box
           sx={{
             display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'flex-start',
-            justifyContent: { xs: 'space-between', md: 'flex-start' },
-            gap: { xs: 3, md: 10 },
-            flexWrap: 'wrap'
-          }}>
-          <Box>
-            <Typography variant="secondary14" color="text.secondary">Net Worth</Typography>
-            <FormattedNumber
-              value={Number(user?.netWorthUSD || 0)}
-              symbol="USD"
-              variant="main16"
-              visibleDecimals={2}
-              compact
-              symbolsVariant="secondary16"
-              sx={{ fontWeight: 800 }}
-            />
-          </Box>
-          <Box>
-            <Typography variant="secondary14" color="text.secondary">Net APY</Typography>
-            <FormattedNumber
-              value={Number(user?.netAPY || 0)}
-              percent
-              variant="main16"
-              symbolsVariant="secondary16"
-              sx={{ fontWeight: 800 }}
-            />
-          </Box>
-          {user?.healthFactor !== '-1' && (
-            <Box>
-              <Typography variant="secondary14" color="text.secondary">Health Factor</Typography>
-              <FormattedNumber
-                value={Number(user?.healthFactor || 0)}
-                variant="main16"
-                symbolsVariant="secondary16"
-                color={Number(user?.healthFactor || 0) >= 3 ? 'success.main' : Number(user?.healthFactor || 0) < 1.1 ? 'error.main' : 'warning.main'}
-                sx={{ fontWeight: 800 }}
-              />
-            </Box>
-          )}
-          {totalClaimableUsd > 0 && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <Typography variant="secondary14" color="text.secondary">Available Rewards</Typography>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  flexDirection: 'row',
-                  gap: 1,
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center' }} data-cy={'Claim_Box'}>
-                  <FormattedNumber
-                    value={totalClaimableUsd}
-                    variant='main16'
-                    visibleDecimals={2}
-                    compact
-                    symbol="USD"
-                    symbolsVariant='secondary16'
-                    sx={{ fontWeight: 800 }}
-                  />
-                </Box>
+            flexDirection: 'column',
+            px: { xs: 1.5, md: 2.5 },
+            py: { xs: 1, md: 0 },
+          }}
+        >
+          <Typography sx={{ fontSize: 10, letterSpacing: '.10em', textTransform: 'uppercase', color: 'text.muted', fontWeight: 500 }}>
+            Net APY
+          </Typography>
+          <FormattedNumber
+            value={netAPY}
+            percent
+            visibleDecimals={2}
+            sx={{
+              fontFamily: theme.typography.h1.fontFamily,
+              fontSize: 26,
+              fontWeight: 500,
+              letterSpacing: '-.018em',
+              lineHeight: 1.05,
+              color: isNetApyPositive ? (isDark ? '#FFA94A' : '#C66A18') : 'text.primary',
+              mt: 0.75,
+            }}
+            symbolsVariant="secondary14"
+            symbolsColor={isNetApyPositive ? (isDark ? 'rgba(255,169,74,.7)' : 'rgba(198,106,24,.7)') : 'text.muted'}
+          />
+        </Box>
 
-                <Button
-                  variant="gradient"
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openClaimRewards();
-                  }}
-                  sx={{ minWidth: 'unset', ml: { xs: 0, xsm: 2 } }}
-                  data-cy={'Dashboard_Claim_Button'}
-                >
-                  Claim
-                </Button>
-              </Box>
+        {/* Total Supply */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            px: { xs: 1.5, md: 2.5 },
+            py: { xs: 1, md: 0 },
+            borderLeft: { xs: 'none', sm: '1px solid' },
+            borderColor: { xs: 'transparent', sm: 'divider' },
+          }}
+        >
+          <Typography sx={{ fontSize: 10, letterSpacing: '.10em', textTransform: 'uppercase', color: 'text.muted', fontWeight: 500 }}>
+            Total Supply
+          </Typography>
+          <FormattedNumber
+            value={Number(user?.totalLiquidityUSD || 0)}
+            symbol="USD"
+            visibleDecimals={2}
+            compact
+            sx={{ fontSize: 18, fontWeight: 600, mt: 0.75, fontVariantNumeric: 'tabular-nums' }}
+            symbolsVariant="secondary14"
+          />
+          <Typography variant="secondary12" color="text.muted" sx={{ mt: 0.25, fontVariantNumeric: 'tabular-nums' }}>
+            {supplies.length} {supplies.length === 1 ? 'asset' : 'assets'}
+          </Typography>
+        </Box>
+
+        {/* Total Borrow */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            px: { xs: 1.5, md: 2.5 },
+            py: { xs: 1, md: 0 },
+            borderLeft: { xs: 'none', sm: '1px solid' },
+            borderColor: { xs: 'transparent', sm: 'divider' },
+          }}
+        >
+          <Typography sx={{ fontSize: 10, letterSpacing: '.10em', textTransform: 'uppercase', color: 'text.muted', fontWeight: 500 }}>
+            Total Borrow
+          </Typography>
+          <FormattedNumber
+            value={Number(user?.totalBorrowsUSD || 0)}
+            symbol="USD"
+            visibleDecimals={2}
+            compact
+            sx={{ fontSize: 18, fontWeight: 600, mt: 0.75, fontVariantNumeric: 'tabular-nums' }}
+            symbolsVariant="secondary14"
+          />
+          <Typography variant="secondary12" color="text.muted" sx={{ mt: 0.25, fontVariantNumeric: 'tabular-nums' }}>
+            {borrows.length} {borrows.length === 1 ? 'asset' : 'assets'}
+          </Typography>
+        </Box>
+
+        {/* Available Rewards */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            px: { xs: 1.5, md: 2.5 },
+            py: { xs: 1, md: 0 },
+            borderLeft: { xs: 'none', md: '1px solid' },
+            borderColor: { xs: 'transparent', md: 'divider' },
+          }}
+        >
+          <Typography sx={{ fontSize: 10, letterSpacing: '.10em', textTransform: 'uppercase', color: 'text.muted', fontWeight: 500 }}>
+            Available Rewards
+          </Typography>
+          <FormattedNumber
+            value={totalClaimableUsd}
+            symbol="USD"
+            visibleDecimals={2}
+            compact
+            sx={{ fontSize: 18, fontWeight: 600, mt: 0.75, fontVariantNumeric: 'tabular-nums' }}
+            symbolsVariant="secondary14"
+          />
+          {totalClaimableUsd > 0 ? (
+            <Box
+              component="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openClaimRewards();
+              }}
+              data-cy={'Dashboard_Claim_Button'}
+              sx={{
+                mt: 0.5,
+                alignSelf: 'flex-start',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.5,
+                px: 1,
+                py: 0.25,
+                borderRadius: '8px',
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: '.10em',
+                color: isDark ? '#FFA94A' : '#C66A18',
+                background: 'rgba(245,132,32,.14)',
+                border: '1px solid rgba(245,132,32,.22)',
+                cursor: 'pointer',
+                fontFamily: theme.typography.fontFamily,
+                '&:hover': { background: 'rgba(245,132,32,.18)' },
+              }}
+            >
+              CLAIM →
             </Box>
+          ) : (
+            <Typography variant="secondary12" color="text.muted" sx={{ mt: 0.25 }}>
+              —
+            </Typography>
           )}
-          {accruingRewardsUsdNew > 0 && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Typography variant="secondary14" color="text.secondary">
-                  Accruing Rewards
-                </Typography>
-                <TextWithTooltip iconMargin={0.5}>
-                  <>
-                    {accruingRewards.map((reward) => {
-                      const reserve = reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === reward.reward_token_address.toLowerCase());
-                      const decimals = reserve ? Number(reserve.decimals || 18) : 18;
-                      return (
-                        <Box key={reward.reward_token_address} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <TokenIcon
-                            symbol={reserve?.symbol || ''}
-                            sx={{ fontSize: `12px`, ml: -1 }}
-                          />
-                          <FormattedNumber
-                            value={valueToBigNumber(reward.amount_wei_estimated).dividedBy(valueToBigNumber(10).pow(decimals)).toString()}
-                            compact
-                            toggleCompactOnClick
-                            visibleDecimals={2}
-                            symbol={reserve?.symbol || ''}
-                            variant="secondary12"
-                          />
-                        </Box>
-                      )
-                    })}
-                    {lastAccruingUpdateAtDate && (
-                      <Typography variant="secondary12" color="text.main" pt={1}>
-                        Last update: {lastAccruingUpdateAtDate.toLocaleString()}
-                      </Typography>
-                    )}
-                  </>
-                </TextWithTooltip>
-              </Box>
-              <FormattedNumber
-                value={accruingRewardsUsdNew}
-                variant='main16'
-                visibleDecimals={2}
-                compact
-                symbol="USD"
-                symbolsVariant='secondary16'
-                sx={{ fontWeight: 800 }}
-              />
-            </Box>
-          )}
+        </Box>
+
+        {/* Accruing Rewards */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            px: { xs: 1.5, md: 2.5 },
+            py: { xs: 1, md: 0 },
+            borderLeft: { xs: 'none', md: '1px solid' },
+            borderColor: { xs: 'transparent', md: 'divider' },
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Typography sx={{ fontSize: 10, letterSpacing: '.10em', textTransform: 'uppercase', color: 'text.muted', fontWeight: 500 }}>
+              Accruing Rewards
+            </Typography>
+            {accruingRewardsUsdNew > 0 && (
+              <TextWithTooltip iconMargin={0}>
+                <>
+                  {accruingRewards.map((reward) => {
+                    const reserve = reserves.find((r) => r.underlyingAsset.toLowerCase() === reward.reward_token_address.toLowerCase());
+                    const decimals = reserve ? Number(reserve.decimals || 18) : 18;
+                    return (
+                      <Box key={reward.reward_token_address} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <TokenIcon symbol={reserve?.symbol || ''} sx={{ fontSize: `12px`, ml: -1 }} />
+                        <FormattedNumber
+                          value={valueToBigNumber(reward.amount_wei_estimated).dividedBy(valueToBigNumber(10).pow(decimals)).toString()}
+                          compact
+                          toggleCompactOnClick
+                          visibleDecimals={2}
+                          symbol={reserve?.symbol || ''}
+                          variant="secondary12"
+                        />
+                      </Box>
+                    );
+                  })}
+                  {lastAccruingUpdateAtDate && (
+                    <Typography variant="secondary12" color="text.main" pt={1}>
+                      Last update: {lastAccruingUpdateAtDate.toLocaleString()}
+                    </Typography>
+                  )}
+                </>
+              </TextWithTooltip>
+            )}
+          </Box>
+          <FormattedNumber
+            value={accruingRewardsUsdNew}
+            symbol="USD"
+            visibleDecimals={2}
+            compact
+            sx={{ fontSize: 18, fontWeight: 600, mt: 0.75, fontVariantNumeric: 'tabular-nums' }}
+            symbolsVariant="secondary14"
+          />
+          <Typography variant="secondary12" color="text.muted" sx={{ mt: 0.25, fontVariantNumeric: 'tabular-nums' }}>
+            {accruingRewardsUsdNew > 0 ? 'estimated' : '—'}
+          </Typography>
         </Box>
       </Box>
 
       <Collapse in={myPositionsOpen} timeout="auto" unmountOnExit>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 5, mt: 5 }}>
-
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: { xs: 4, lg: 7 }, mt: 4 }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: 'background.surface',
-              p: 3,
-              borderRadius: '12px',
-              border: '1px solid',
-              borderColor: 'divider',
-              mb: { xs: 4, md: 6 }
-            }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {/* Inline supplies header */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Typography
                   sx={{
-                    typography: { xs: 'main16', md: 'main21' },
-                    textAlign: { xs: 'center', md: 'left' },
-                    color: 'primary.main'
+                    fontFamily: theme.typography.h1.fontFamily,
+                    fontSize: 20,
+                    fontWeight: 500,
+                    letterSpacing: '-.018em',
+                    lineHeight: 1.1,
+                    color: 'text.primary',
                   }}
                 >
                   My Supplies
                 </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: { xs: 2, md: 10 } }}>
-                <Box>
-                  <Typography variant="secondary14" color="text.secondary">
-                    My Total Supply
-                  </Typography>
-                  <FormattedNumber
-                    value={Number(user?.totalLiquidityUSD || 0)}
-                    symbol="USD"
-                    variant="main16"
-                    visibleDecimals={2}
-                    compact
-                    symbolsVariant="secondary16"
-                    sx={{ fontWeight: 800 }}
-                  />
-                </Box>
-                <Box>
-                  <Typography variant="secondary14" color="text.secondary">
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    px: 1,
+                    py: 0.5,
+                    borderRadius: '8px',
+                    background: isDark ? 'rgba(255,255,255,.04)' : 'rgba(40,25,15,.04)',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  <Typography component="span" sx={{ fontSize: 10, letterSpacing: '.10em', textTransform: 'uppercase', color: 'text.muted', fontWeight: 500 }}>
                     APY
                   </Typography>
-                  <FormattedNumber
-                    value={Number(user?.earnedAPY || 0)}
-                    percent
-                    variant="main16"
-                    symbolsVariant="secondary16"
-                    sx={{ fontWeight: 800 }}
-                  />
-                </Box>
-                <Box>
-                  <Typography variant="secondary14" color="text.secondary">
-                    Collateral
-                  </Typography>
-                  <FormattedNumber
-                    value={Number(user?.totalCollateralUSD || 0)}
-                    symbol="USD"
-                    variant="main16"
-                    visibleDecimals={2}
-                    compact
-                    symbolsVariant="secondary16"
-                    sx={{ fontWeight: 800 }}
-                  />
+                  <FormattedNumber value={Number(user?.earnedAPY || 0)} percent variant="secondary12" sx={{ fontWeight: 600 }} />
                 </Box>
               </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="secondary12" color="text.muted">Collateral</Typography>
+                <FormattedNumber
+                  value={Number(user?.totalCollateralUSD || 0)}
+                  symbol="USD"
+                  visibleDecimals={2}
+                  compact
+                  variant="secondary14"
+                  sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}
+                />
+              </Box>
             </Box>
-            <Collapse in={myPositionsOpen} timeout="auto" unmountOnExit>
-              <BaseDataGrid<PositionRow>
-                data={supplies}
-                columns={supplyColumns}
-                loading={loading}
-                minWidth={500}
-                defaultSortColumn={'balance'}
-                defaultSortOrder={'desc'}
-                actionColumn={{
-                  render: (row) => (
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'stretch', md: 'flex-end' }, width: '100%' }}>
-                      <Button
-                        size="medium"
-                        variant="gradient"
-                        disabled={
-                          !row.reserve ||
-                          (row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableSupply) ||
-                          false
-                        }
-                        sx={{ width: { xs: '100%', md: 'auto' } }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (row.reserve) openSupply(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
-                          trackEvent(GENERAL.OPEN_MODAL, { modal: 'Supply', assetName: row.assetName });
-                        }}
-                      >
-                        Supply
-                      </Button>
-                      <Button
-                        size="medium"
-                        variant="outlined"
-                        sx={{ width: { xs: '100%', md: 'auto' } }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (row.reserve) openWithdraw(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
-                          trackEvent(GENERAL.OPEN_MODAL, { modal: 'Withdraw', assetName: row.assetName });
-                        }}
-                      >
-                        Withdraw
-                      </Button>
-                    </Box>
-                  ),
-                }}
-                rowIdGetter={(row) => row.id}
-                onRowClick={(row) => {
-                  if (row.reserve) {
-                    window.location.href = `/markets/${row.reserve.underlyingAsset}`;
-                  }
-                }}
-              />
-            </Collapse>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {loading
+                ? Array.from({ length: 2 }).map((_, i) => <PositionRowSkeleton key={i} />)
+                : sortedSupplies.map((row) => (
+                    <SupplyPositionRow
+                      key={row.id}
+                      row={row}
+                      onSupply={onOpenSupplyRow}
+                      onWithdraw={onWithdrawRow}
+                      disableSupply={!!(row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableSupply)}
+                      onClick={onNavigateRow}
+                    />
+                  ))}
+            </Box>
           </Box>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: 'background.surface',
-              p: 3,
-              borderRadius: '12px',
-              border: '1px solid',
-              borderColor: 'divider',
-              mb: { xs: 4, md: 6 }
-            }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {/* Inline borrows header */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, flexWrap: 'wrap', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Typography
                   sx={{
-                    typography: { xs: 'main16', md: 'main21' },
-                    textAlign: { xs: 'center', md: 'left' },
-                    color: 'primary.main'
+                    fontFamily: theme.typography.h1.fontFamily,
+                    fontSize: 20,
+                    fontWeight: 500,
+                    letterSpacing: '-.018em',
+                    lineHeight: 1.1,
+                    color: 'text.primary',
                   }}
                 >
                   My Borrows
                 </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: { xs: 2, md: 10 } }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="secondary14" color="text.secondary">
-                      MOST Mode
-                    </Typography>
-                    <TextWithTooltip iconMargin={0.5}>
-                      <>
-                        MOST Mode increases your LTV for a selected category of assets up to 97%.{' '}
-                        <Link
-                          href="https://docs.more.markets/more-markets/editor-1/most-mode"
-                          sx={{ textDecoration: 'underline' }}
-                          variant="caption"
-                          color="text.secondary"
-                        >
-                          Learn more
-                        </Link>
-                      </>
-                    </TextWithTooltip>
-                  </Box>
-                  <Switch
-                    checked={(user?.userEmodeCategoryId || 0) !== 0}
-                    size='small'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const isInEmode = (user?.userEmodeCategoryId || 0) !== 0;
-                      if (isInEmode) {
-                        openEmode(EmodeModalType.DISABLE);
-                      } else {
-                        openEmode(EmodeModalType.ENABLE);
-                      }
-                    }}
-                  />
-                </Box>
-                <Box>
-                  <Typography variant="secondary14" color="text.secondary">
-                    My Total Borrow
-                  </Typography>
-                  <FormattedNumber
-                    value={Number(user?.totalBorrowsUSD || 0)}
-                    symbol="USD"
-                    variant="main16"
-                    visibleDecimals={2}
-                    compact
-                    symbolsVariant="secondary16"
-                    sx={{ fontWeight: 800 }}
-                  />
-                </Box>
-                <Box>
-                  <Typography variant="secondary14" color="text.secondary">
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    px: 1,
+                    py: 0.5,
+                    borderRadius: '8px',
+                    background: isDark ? 'rgba(255,255,255,.04)' : 'rgba(40,25,15,.04)',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  <Typography component="span" sx={{ fontSize: 10, letterSpacing: '.10em', textTransform: 'uppercase', color: 'text.muted', fontWeight: 500 }}>
                     APY
                   </Typography>
-                  <FormattedNumber
-                    value={Number(user?.debtAPY || 0)}
-                    percent
-                    variant="main16"
-                    symbolsVariant="secondary16"
-                    sx={{ fontWeight: 800 }}
-                  />
+                  <FormattedNumber value={Number(user?.debtAPY || 0)} percent variant="secondary12" sx={{ fontWeight: 600 }} />
                 </Box>
-                <Box>
-                  <Typography variant="secondary14" color="text.secondary">
-                    LTV
-                  </Typography>
-                  <FormattedNumber
-                    value={ltv}
-                    percent
-                    variant="main16"
-                    symbolsVariant="secondary16"
-                    sx={{ fontWeight: 800 }}
-                  />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography variant="secondary12" color="text.muted">LTV</Typography>
+                  <FormattedNumber value={ltv} percent variant="secondary12" sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }} />
                 </Box>
               </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="secondary12" color="text.muted">MOST Mode</Typography>
+                <TextWithTooltip iconMargin={0.25}>
+                  <>
+                    MOST Mode increases your LTV for a selected category of assets up to 97%.{' '}
+                    <Link
+                      href="https://docs.more.markets/more-markets/editor-1/most-mode"
+                      sx={{ textDecoration: 'underline' }}
+                      variant="caption"
+                      color="text.secondary"
+                    >
+                      Learn more
+                    </Link>
+                  </>
+                </TextWithTooltip>
+                <Switch
+                  checked={(user?.userEmodeCategoryId || 0) !== 0}
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const isInEmode = (user?.userEmodeCategoryId || 0) !== 0;
+                    if (isInEmode) {
+                      openEmode(EmodeModalType.DISABLE);
+                    } else {
+                      openEmode(EmodeModalType.ENABLE);
+                    }
+                  }}
+                />
+              </Box>
             </Box>
-            <Collapse in={myPositionsOpen} timeout="auto" unmountOnExit>
-              <BaseDataGrid<PositionRow>
-                data={borrows}
-                columns={borrowColumns}
-                loading={loading}
-                minWidth={500}
-                defaultSortColumn={'balance'}
-                defaultSortOrder={'desc'}
-                actionColumn={{
-                  render: (row) => {
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {loading
+                ? Array.from({ length: 1 }).map((_, i) => <PositionRowSkeleton key={i} />)
+                : sortedBorrows.map((row) => {
                     const eModeDisabled = !!(row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.eModeBorrowDisabled);
-                    const isDisabled = !row.reserve || (row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableBorrow) || false;
-                    const title = eModeDisabled
-                      ? 'In E-Mode some assets are not borrowable. Exit MOST Mode to get access to all assets'
-                      : '';
+                    const disableBorrow =
+                      !row.reserve || !!(row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableBorrow);
                     return (
-                      <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'stretch', md: 'flex-end' }, width: '100%' }}>
-                        <Tooltip title={title} disableHoverListener={!eModeDisabled} placement="top">
-                          <span>
-                            <Button
-                              size="medium"
-                              variant="gradient"
-                              disabled={isDisabled}
-                              sx={{ width: { xs: '100%', md: 'auto' } }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (row.reserve) openBorrow(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
-                                trackEvent(GENERAL.OPEN_MODAL, { modal: 'Borrow', assetName: row.assetName });
-                              }}
-                            >
-                              Borrow
-                            </Button>
-                          </span>
-                        </Tooltip>
-                        <Button
-                          size="medium"
-                          variant="outlined"
-                          sx={{ width: { xs: '100%', md: 'auto' } }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (row.reserve) {
-                              openRepay(row.reserve.underlyingAsset, InterestRate.Variable, row.reserve.isFrozen, currentMarket, row.assetName, 'dashboard');
-                            }
-                            trackEvent(GENERAL.OPEN_MODAL, { modal: 'Repay', assetName: row.assetName });
-                          }}
-                        >
-                          Repay
-                        </Button>
-                      </Box>
+                      <BorrowPositionRow
+                        key={row.id}
+                        row={row}
+                        onBorrow={onOpenBorrowRow}
+                        onRepay={onRepayRow}
+                        disableBorrow={disableBorrow}
+                        borrowDisabledReason={eModeDisabled ? 'In MOST Mode some assets are not borrowable. Exit MOST Mode to get access to all assets' : undefined}
+                        onClick={onNavigateRow}
+                      />
                     );
-                  },
-                }}
-                rowIdGetter={(row) => row.id}
-                onRowClick={(row) => {
-                  if (row.reserve) {
-                    window.location.href = `/markets/${row.reserve.underlyingAsset}`;
-                  }
-                }}
-              />
-            </Collapse>
+                  })}
+            </Box>
           </Box>
         </Box>
       </Collapse>

@@ -11,7 +11,7 @@ const StyledSelect = styled(Select)(({ theme }) => ({
     lineHeight: '22px',
   },
   '&:hover .MuiOutlinedInput-notchedOutline': {
-    border: '1px solid #F5871F',
+    border: '1px solid #F58420',
   },
   '& .MuiOutlinedInput-notchedOutline': {
     border: '1px solid #EAEBEF',

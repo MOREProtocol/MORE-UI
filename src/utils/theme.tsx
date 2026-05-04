@@ -167,21 +167,21 @@ export const getDesignTokens = (mode: 'light' | 'dark', theme: UiThemeName = 'de
         contrast: getColor('#FFFFFF', '#0D0B0A'),
       },
       secondary: {
-        main: getColor('#F26A15', '#FF8A2A'),
-        light: getColor('#FFB547', '#FFA450'),
-        dark: getColor('#D44E06', '#F26A15'),
+        main: getColor('#F58420', '#FFA94A'),
+        light: getColor('#FCB319', '#FCB319'),
+        dark: getColor('#C66A18', '#F58420'),
       },
       error: {
-        main: getColor('#E24C4B', '#E24C4B'),
+        main: getColor('#E04B40', '#E04B40'),
         light: getColor('#E87472', '#E87472'),
         dark: getColor('#C63030', '#C63030'),
         '100': getColor('#6B1A1A', '#FBB4AF'),
         '200': getColor('#FDF0F0', '#2E0C0A'),
       },
       warning: {
-        main: getColor('#F26A15', '#FF8A2A'),
-        light: getColor('#FFB547', '#FFB547'),
-        dark: getColor('#D44E06', '#D44E06'),
+        main: getColor('#F58420', '#FFA94A'),
+        light: getColor('#FCB319', '#FCB319'),
+        dark: getColor('#C66A18', '#C66A18'),
         '100': getColor('#63300A', '#FFDCA8'),
         '200': getColor('#FEF3E8', '#301404'),
       },
@@ -204,7 +204,7 @@ export const getDesignTokens = (mode: 'light' | 'dark', theme: UiThemeName = 'de
         secondary: getColor('#4A3B30', '#C9BFB5'),
         disabled: getColor('#B8A898', '#5A5149'),
         muted: getColor('#8B7867', '#897E73'),
-        highlight: getColor('#F26A15', '#FF8A2A'),
+        highlight: getColor('#F58420', '#FFA94A'),
       },
       background: {
         default: getColor('#FAF5EC', '#15110F'),
@@ -228,11 +228,11 @@ export const getDesignTokens = (mode: 'light' | 'dark', theme: UiThemeName = 'de
       },
       other: {
         standardInputLine: getColor('rgba(40,25,15,.14)', 'rgba(255,255,255,.10)'),
-        chartHighlight: getColor('#F26A15', '#FF8A2A'),
+        chartHighlight: getColor('#F58420', '#FFA94A'),
       },
       gradients: {
-        moreGradient: 'linear-gradient(135deg, #FFB547 0%, #F26A15 45%, #D44E06 100%)',
-        newGradient: 'linear-gradient(135deg, #FFB547 0%, #F26A15 45%, #D44E06 100%)',
+        moreGradient: 'linear-gradient(135deg, #F58420 0%, #FCB319 100%)',
+        newGradient: 'linear-gradient(135deg, #F58420 0%, #FCB319 100%)',
         // Flow background gradients (unchanged)
         flowBackgroundLight: 'radial-gradient(circle at left top, rgb(252, 233, 254) 0%, transparent 50%), radial-gradient(circle at right bottom, rgb(252, 233, 254) 0%, transparent 50%), rgb(191, 246, 247) !important',
         flowBackgroundDark: 'radial-gradient(circle at left top, rgb(0, 76, 55) 0%, transparent 50%), radial-gradient(circle at right bottom, rgb(0, 30, 49) 0%, transparent 50%), rgb(0, 30, 49) !important',
@@ -570,13 +570,13 @@ export function getThemedComponents(theme: Theme) {
               fontWeight: 600,
               textShadow: '0 1px 0 rgba(120,40,0,.35)',
               boxShadow:
-                '0 1px 0 rgba(255,255,255,.25) inset, 0 -4px 8px rgba(163,57,0,.35) inset, 0 8px 24px -8px rgba(242,106,21,.6)',
+                '0 1px 0 rgba(255,255,255,.25) inset, 0 -4px 8px rgba(128,51,0,.35) inset, 0 8px 24px -8px rgba(245,132,32,.6)',
               transition: 'all 0.2s ease',
               '&:hover, &.Mui-focusVisible': {
                 background: theme.palette.gradients.newGradient,
                 opacity: 0.92,
                 boxShadow:
-                  '0 1px 0 rgba(255,255,255,.5) inset, 0 -4px 8px rgba(163,57,0,.25) inset, 0 12px 28px -6px rgba(242,106,21,.8)',
+                  '0 1px 0 rgba(255,255,255,.5) inset, 0 -4px 8px rgba(128,51,0,.25) inset, 0 12px 28px -6px rgba(245,132,32,.8)',
               },
               '&:disabled': {
                 background: theme.palette.background.surface,
@@ -589,12 +589,12 @@ export function getThemedComponents(theme: Theme) {
             /* Soft: translucent orange — used for primary CTAs throughout */
             props: { variant: 'soft' },
             style: {
-              background: 'rgba(242,106,21,.12)',
-              color: theme.palette.mode === 'dark' ? '#FF8A2A' : '#D44E06',
-              border: '1px solid rgba(242,106,21,.22)',
+              background: 'rgba(245,132,32,.12)',
+              color: theme.palette.mode === 'dark' ? '#FFA94A' : '#C66A18',
+              border: '1px solid rgba(245,132,32,.22)',
               '&:hover, &.Mui-focusVisible': {
-                background: 'rgba(242,106,21,.18)',
-                border: '1px solid rgba(242,106,21,.35)',
+                background: 'rgba(245,132,32,.18)',
+                border: '1px solid rgba(245,132,32,.35)',
               },
               '&:disabled': {
                 background: theme.palette.background.surface,
@@ -690,11 +690,20 @@ export function getThemedComponents(theme: Theme) {
         },
         styleOverrides: {
           paper: {
-            boxShadow: 'none',
-            border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-            backgroundColor: alpha(theme.palette.background.paper, 0.75),
-            backdropFilter: 'blur(10px)',
+            // Use a soft white-tinted border (light alpha) so it never appears as a hard black outline
+            border: `1px solid ${
+              theme.palette.mode === 'dark' ? 'rgba(255,255,255,.10)' : 'rgba(40,25,15,.10)'
+            }`,
+            backgroundColor:
+              theme.palette.mode === 'dark'
+                ? alpha(theme.palette.background.surface, 0.92)
+                : alpha(theme.palette.background.paper, 0.92),
+            backdropFilter: 'blur(12px) saturate(1.2)',
             borderRadius: '10px',
+            boxShadow:
+              theme.palette.mode === 'dark'
+                ? '0 1px 0 rgba(255,255,255,.04) inset, 0 18px 40px -16px rgba(0,0,0,.6)'
+                : '0 1px 0 rgba(255,255,255,.9) inset, 0 14px 32px -16px rgba(120,70,20,.14)',
           },
         },
       },
@@ -1017,7 +1026,11 @@ export function getThemedComponents(theme: Theme) {
             letterSpacing: '-0.005em',
             WebkitFontSmoothing: 'antialiased',
             minWidth: '375px',
-            backgroundColor: theme.palette.background.default,
+            backgroundColor: theme.palette.mode === 'light' ? '#FFFFFF' : theme.palette.background.default,
+            // Grid texture color, switched per mode (consumed by variables.css)
+            '--grid-line': theme.palette.mode === 'dark'
+              ? 'rgba(255,255,255,.045)'
+              : 'rgba(245,132,32,.10)',
             ...(isFlowUiTheme
               ? {
                 background:
@@ -1031,12 +1044,12 @@ export function getThemedComponents(theme: Theme) {
               : {
                 background:
                   theme.palette.mode === 'dark'
-                    ? `radial-gradient(1200px 600px at 80% -10%, rgba(242,106,21,.07), transparent 60%),
-                       radial-gradient(800px 500px at -10% 110%, rgba(255,181,71,.04), transparent 60%),
+                    ? `radial-gradient(1200px 600px at 80% -10%, rgba(245,132,32,.07), transparent 60%),
+                       radial-gradient(800px 500px at -10% 110%, rgba(252,179,25,.04), transparent 60%),
                        ${theme.palette.background.default}`
-                    : `radial-gradient(1200px 600px at 80% -10%, rgba(242,106,21,.09), transparent 60%),
-                       radial-gradient(800px 500px at -10% 110%, rgba(255,181,71,.09), transparent 60%),
-                       ${theme.palette.background.default}`,
+                    : `radial-gradient(1200px 600px at 80% -10%, rgba(245,132,32,.05), transparent 60%),
+                       radial-gradient(800px 500px at -10% 110%, rgba(252,179,25,.04), transparent 60%),
+                       #FFFFFF`,
                 backgroundRepeat: 'no-repeat',
                 backgroundAttachment: 'fixed',
               }),

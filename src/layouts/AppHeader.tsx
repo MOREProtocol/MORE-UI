@@ -106,9 +106,16 @@ export function AppHeader() {
           position: 'sticky',
           top: 0,
           zIndex: theme.zIndex.appBar + 1,
-          bgcolor: alpha(theme.palette.background.default, 0.85),
-          backdropFilter: 'blur(18px) saturate(1.2)',
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          // Frosted-glass: translucent white surface, blurred + saturated so page content shows softly through
+          bgcolor:
+            theme.palette.mode === 'dark'
+              ? alpha('#FFFFFF', 0.05)
+              : alpha('#FFFFFF', 0.65),
+          backdropFilter: 'blur(22px) saturate(1.6)',
+          WebkitBackdropFilter: 'blur(22px) saturate(1.6)',
+          borderBottom: `1px solid ${
+            theme.palette.mode === 'dark' ? 'rgba(255,255,255,.06)' : 'rgba(40,25,15,.06)'
+          }`,
           padding: {
             xs: '14px 16px',
             md: '14px 28px',

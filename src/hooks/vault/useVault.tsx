@@ -236,6 +236,11 @@ export const VaultProvider = ({ children }: { children: ReactNode }): JSX.Elemen
     const idFromUrl = selectedVaultIdFromUrl || selectedPortfolioIdFromUrl;
     if (idFromUrl) {
       setSelectedVaultId(idFromUrl as string);
+    } else {
+      // Clear when leaving a vault detail page so chainId falls back to the user's
+      // selected wallet chain (otherwise the previous vault's detected hub chain — e.g. Ethereum
+      // for an omni-hub vault — leaks into the /vaults list and fetches the wrong chain's vaults)
+      setSelectedVaultId(null);
     }
   }, [selectedVaultIdFromUrl, selectedPortfolioIdFromUrl]);
 

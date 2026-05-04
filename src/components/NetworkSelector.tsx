@@ -144,8 +144,9 @@ export default function NetworkSelector() {
           gap: 1,
           alignItems: 'center',
           mr: 2,
-          overflow: 'hidden', // Ensure button itself doesn't overflow
-          bgcolor: 'background.surface',
+          overflow: 'hidden',
+          bgcolor: 'background.surface2',
+          borderColor: 'divider',
           '&:hover': {
             bgcolor: 'background.surface3',
           },

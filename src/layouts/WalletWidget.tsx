@@ -303,10 +303,11 @@ export default function WalletWidget({ open, setOpen }: WalletWidgetProps) {
           sx={{
             p: connected ? '5px 8px' : undefined,
             minWidth: hideWalletAccountText ? 'unset' : undefined,
-            overflow: 'hidden', // Ensure button itself doesn't overflow
-            bgcolor: 'background.surface',
+            overflow: 'hidden',
+            bgcolor: connected ? 'background.surface2' : undefined,
+            borderColor: connected ? 'divider' : undefined,
             '&:hover': {
-              bgcolor: 'background.surface3',
+              bgcolor: connected ? 'background.surface3' : undefined,
             },
             borderRadius: isFlowTheme ? '999px' : undefined,
             color: connected ? 'text.primary' : isFlowTheme ? '#00ef8b' : null,

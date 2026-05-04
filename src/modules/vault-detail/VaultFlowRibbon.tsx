@@ -8,7 +8,6 @@ import React, { useMemo } from 'react';
 import { formatUnits } from 'viem';
 import { useVault } from 'src/hooks/vault/useVault';
 import { networkConfigs } from 'src/utils/marketsAndNetworksConfig';
-import { useAccount } from 'wagmi';
 
 interface ChainNode {
   chainId: number;
@@ -31,10 +30,11 @@ interface AllocNode {
 }
 
 const SVG_W = 1160;
-const X_WALLET = 68;
 const X_CHAIN = 318;
 const X_VAULT = 622;
 const X_ALLOC = 930;
+// Crop left edge: viewBox starts here so the now-empty wallet area is removed
+const VIEW_X_MIN = X_CHAIN - 110;
 const NODE_H = 60;
 const TOP_PAD = 68; // increased so column headers at y=22 are not hidden by first nodes
 const BOT_PAD = 28;
@@ -52,8 +52,7 @@ export const VaultFlowRibbon: React.FC<{
 }> = ({ vaultName, vaultAssetSymbol, vaultAssetDecimals = 6 }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const { selectedVaultId, accountAddress, chainId: vaultChainId, isOmniHub } = useVault();
-  const { address } = useAccount();
+  const { selectedVaultId, chainId: vaultChainId, isOmniHub } = useVault();
 
   const { topology } = useVaultTopology(selectedVaultId as `0x${string}` | undefined);
   const isOmni = isOmniHub || topology?.role === 'hub' || topology?.role === 'spoke';
@@ -172,8 +171,6 @@ export const VaultFlowRibbon: React.FC<{
 
   if (!isOmni || chainNodes.length === 0) return null;
 
-  const walletAddr = accountAddress || address;
-  const shortAddr = walletAddr ? `${walletAddr.slice(0, 4)}…${walletAddr.slice(-4)}` : '0x…';
   const VAULT_CY = svgH / 2;
 
   const textPrimary = isDark ? '#F5EFE9' : '#1A120C';
@@ -190,8 +187,8 @@ export const VaultFlowRibbon: React.FC<{
       sx={{
         display: { xs: 'none', md: 'block' },
         background: isDark
-          ? 'linear-gradient(180deg, rgba(242,106,21,.05), rgba(242,106,21,.01))'
-          : 'linear-gradient(180deg, rgba(242,106,21,.06), transparent)',
+          ? 'linear-gradient(180deg, rgba(245,132,32,.05), rgba(245,132,32,.01))'
+          : 'linear-gradient(180deg, rgba(245,132,32,.06), transparent)',
         border: '1px solid',
         borderColor: 'divider',
         borderRadius: '14px',
@@ -202,14 +199,14 @@ export const VaultFlowRibbon: React.FC<{
       {/* SVG flow diagram */}
       <Box sx={{ width: '100%', overflowX: 'auto' }}>
         <svg
-          viewBox={`0 0 ${SVG_W} ${svgH}`}
-          style={{ width: '100%', height: svgH, display: 'block', minWidth: 580 }}
+          viewBox={`${VIEW_X_MIN} 0 ${SVG_W - VIEW_X_MIN} ${svgH}`}
+          style={{ width: '100%', height: svgH, display: 'block', minWidth: 480 }}
         >
           <defs>
             <linearGradient id="vfr-flow" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#FFB547" stopOpacity="0.15" />
-              <stop offset="50%" stopColor="#F26A15" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#F26A15" stopOpacity="0.85" />
+              <stop offset="0%" stopColor="#FCB319" stopOpacity="0.15" />
+              <stop offset="50%" stopColor="#F58420" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#F58420" stopOpacity="0.85" />
             </linearGradient>
             {/* Per-chain clip paths */}
             {chainNodes.map((c, i) => (
@@ -226,8 +223,7 @@ export const VaultFlowRibbon: React.FC<{
 
           {/* Column headers — y=22 is well above first node top (TOP_PAD - 24 = 44) */}
           {[
-            { x: X_WALLET, label: 'DEPOSIT' },
-            { x: X_CHAIN, label: 'SOURCE CHAINS' },
+            { x: X_CHAIN, label: 'DEPOSIT CHAINS' },
             { x: X_VAULT, label: 'VAULT' },
             { x: X_ALLOC + 102, label: 'ALLOCATIONS' },
           ].map((col) => (
@@ -245,40 +241,6 @@ export const VaultFlowRibbon: React.FC<{
             </text>
           ))}
 
-          {/* WALLET node */}
-          <g>
-            <rect x={X_WALLET - 40} y={VAULT_CY - 34} width="80" height="68" rx="10" fill={plateBg} stroke={borderStrong} />
-            <rect x={X_WALLET - 40} y={VAULT_CY - 34} width="80" height="24" rx="10" fill={plate2Bg} />
-            <text x={X_WALLET} y={VAULT_CY - 18} fontFamily={font} fontSize="9.5" fill={textMuted} textAnchor="middle" letterSpacing="1">WALLET</text>
-            <g transform={`translate(${X_WALLET - 9} ${VAULT_CY - 6})`}>
-              <rect x="0" y="4" width="18" height="14" rx="2.5" fill="none" stroke={textPrimary} strokeWidth="1.4" />
-              <path d="M0 8 L 14 8 L 14 4 L 3 4 Z" fill={textPrimary} />
-              <circle cx="15" cy="12" r="1.5" fill="#FF8A2A" />
-            </g>
-            <text x={X_WALLET} y={VAULT_CY + 46} fontFamily={font} fontSize="10.5" fill={textMuted} textAnchor="middle">{shortAddr}</text>
-          </g>
-
-          {/* Wallet → Chains */}
-          {chainNodes.map((c, i) => {
-            if (c.isOverflow) return null;
-            const id = `vfr-w2c-${i}`;
-            const x1 = X_WALLET + 40, y1 = VAULT_CY;
-            const x2 = X_CHAIN - 93, y2 = c.y;
-            const d = `M ${x1} ${y1} C ${x1 + 70} ${y1}, ${x2 - 70} ${y2}, ${x2} ${y2}`;
-            return (
-              <g key={id}>
-                <path id={id} d={d} fill="none" stroke="url(#vfr-flow)" strokeWidth="1.3" strokeDasharray="2 5" opacity="0.9" />
-                {[0, 1].map((k) => (
-                  <circle key={k} r="2.5" fill="#FFB547">
-                    <animateMotion dur={`${3.4 + i * 0.25}s`} repeatCount="indefinite" begin={`${k * 1.7 + i * 0.3}s`}>
-                      <mpath href={`#${id}`} />
-                    </animateMotion>
-                  </circle>
-                ))}
-              </g>
-            );
-          })}
-
           {/* Chain nodes */}
           {chainNodes.map((c, i) => (
             <g key={c.isOverflow ? `chain-overflow` : c.chainId}>
@@ -289,7 +251,7 @@ export const VaultFlowRibbon: React.FC<{
                 height="48"
                 rx="10"
                 fill={c.isOverflow ? 'none' : c.isHub ? plate2Bg : plateBg}
-                stroke={c.isOverflow ? overflowBorder : c.isHub ? 'rgba(242,106,21,.55)' : borderStrong}
+                stroke={c.isOverflow ? overflowBorder : c.isHub ? 'rgba(245,132,32,.55)' : borderStrong}
                 strokeWidth={c.isHub ? '1.5' : '1'}
                 strokeDasharray={c.isOverflow ? '4 3' : undefined}
               />
@@ -299,7 +261,7 @@ export const VaultFlowRibbon: React.FC<{
                 </text>
               ) : (
                 <>
-                  <circle cx={X_CHAIN - 76} cy={c.y} r="11" fill={plateBg} stroke={c.isHub ? 'rgba(242,106,21,.4)' : borderStrong} strokeWidth="1.5" />
+                  <circle cx={X_CHAIN - 76} cy={c.y} r="11" fill={plateBg} stroke={c.isHub ? 'rgba(245,132,32,.4)' : borderStrong} strokeWidth="1.5" />
                   {c.logoPath && (
                     <image
                       href={c.logoPath}
@@ -317,7 +279,7 @@ export const VaultFlowRibbon: React.FC<{
                     y={c.y + 10}
                     fontFamily={font}
                     fontSize="10"
-                    fill={c.isHub ? '#FF8A2A' : textMuted}
+                    fill={c.isHub ? '#FFA94A' : textMuted}
                     fontWeight={c.isHub ? '600' : '400'}
                     letterSpacing={c.isHub ? '0.8' : '0'}
                   >
@@ -339,7 +301,7 @@ export const VaultFlowRibbon: React.FC<{
               <g key={id}>
                 <path id={id} d={d} fill="none" stroke="url(#vfr-flow)" strokeWidth={c.isHub ? 2 : 1.2} opacity="0.85" />
                 {[0, 1, 2].map((k) => (
-                  <circle key={k} r={c.isHub ? 3.5 : 2.5} fill={c.isHub ? '#F26A15' : '#FFB547'}>
+                  <circle key={k} r={c.isHub ? 3.5 : 2.5} fill={c.isHub ? '#F58420' : '#FCB319'}>
                     <animateMotion dur={`${2.8 + i * 0.3}s`} repeatCount="indefinite" begin={`${k * 0.9 + i * 0.4}s`}>
                       <mpath href={`#${id}`} />
                     </animateMotion>
@@ -390,7 +352,7 @@ export const VaultFlowRibbon: React.FC<{
               <g key={id}>
                 <path id={id} d={d} fill="none" stroke="url(#vfr-flow)" strokeWidth="1.3" opacity="0.85" />
                 {[0, 1, 2].map((k) => (
-                  <circle key={k} r="2.5" fill="#FFB547">
+                  <circle key={k} r="2.5" fill="#FCB319">
                     <animateMotion dur={`${3 + i * 0.25}s`} repeatCount="indefinite" begin={`${k + i * 0.35}s`}>
                       <mpath href={`#${id}`} />
                     </animateMotion>
@@ -443,7 +405,7 @@ export const VaultFlowRibbon: React.FC<{
                     fontFamily={font}
                     fontSize="13"
                     fontWeight="600"
-                    fill={a.ratio === '—' ? textMuted : '#FF8A2A'}
+                    fill={a.ratio === '—' ? textMuted : '#FFA94A'}
                     textAnchor="end"
                   >
                     {a.ratio}

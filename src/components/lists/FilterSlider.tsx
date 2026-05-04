@@ -1,18 +1,18 @@
 import { Box, Slider, styled, Typography } from '@mui/material';
 
 const StyledSlider = styled(Slider)({
-  color: '#F5871F',
+  color: '#F58420',
   height: 6,
   pb: 2,
   '& .MuiSlider-track': {
-    color: '#F5871F',
+    color: '#F58420',
     border: 'none',
   },
   '& .MuiSlider-thumb': {
     height: 16,
     width: 16,
     backgroundColor: '#fff',
-    border: '2px solid #F5871F',
+    border: '2px solid #F58420',
     '&:focus, &:hover, &.Mui-active, &.Mui-focusVisible': {
       boxShadow: 'inherit',
     },
@@ -35,7 +35,7 @@ const StyledSlider = styled(Slider)({
     '&::before': { display: 'none' },
     '&.MuiSlider-valueLabelOpen': {
       transform: 'translate(50%, -80%) rotate(-45deg) scale(1)',
-      backgroundColor: '#F5871F',
+      backgroundColor: '#F58420',
       color: '#fff',
     },
     '& > *': {
