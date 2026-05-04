@@ -6,7 +6,6 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  Skeleton,
   Switch,
   SvgIcon,
   Tooltip,
