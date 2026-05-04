@@ -60,7 +60,7 @@ export const DashboardEModeButton = ({ userEmodeCategoryId }: DashboardEModeButt
         data-cy={`emode-open`}
         size="small"
         variant="outlined"
-        sx={(theme) => ({
+        sx={{
           ml: 1,
           borderRadius: '4px',
           p: 0,
@@ -71,10 +71,10 @@ export const DashboardEModeButton = ({ userEmodeCategoryId }: DashboardEModeButt
             right: -1,
             bottom: -1,
             top: -1,
-            background: isEModeDisabled ? 'transparent' : theme.palette.gradients.newGradient,
+            background: isEModeDisabled ? 'transparent' : '#F58420',
             borderRadius: '4px',
           },
-        })}
+        }}
       >
         <Box
           sx={(theme) => ({

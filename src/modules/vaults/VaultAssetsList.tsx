@@ -1,4 +1,4 @@
-import { Box, Typography, Skeleton, useTheme, useMediaQuery, Button, alpha, Chip } from '@mui/material';
+import { Box, Typography, Skeleton, useTheme, useMediaQuery, Button, Chip } from '@mui/material';
 import { useRouter } from 'next/router';
 import { BigNumber } from 'bignumber.js';
 import { formatUnits } from 'ethers/lib/utils';
@@ -234,7 +234,8 @@ export const VaultAssetsList = () => {
 
   // Transform all vaults to grid rows
   const allVaultRows = useMemo(() => {
-    return transformVaultsToGridRows(vaults || [], userVaults, assetPriceMap, networkInfo);
+    const rows = transformVaultsToGridRows(vaults || [], userVaults, assetPriceMap, networkInfo);
+    return [...rows].sort((a, b) => (b.tvmUsd || 0) - (a.tvmUsd || 0));
   }, [vaults, userVaults, assetPriceMap, networkInfo]);
 
   // Filter vaults based on user deposits
@@ -247,14 +248,9 @@ export const VaultAssetsList = () => {
 
     const withDeposits: VaultGridRow[] = [];
 
-    allVaultRows.forEach((row, index) => {
-      const userVaultData = userVaults[index];
-      const userDeposit = userVaultData?.maxWithdraw || '0';
-      const assetDecimals = userVaultData?.assetDecimals || 18;
-      const hasDeposit = userVaultData && userDeposit.toString() !== '0' &&
-        parseFloat(formatUnits(userDeposit.toString(), assetDecimals)) > 0;
-
-      if (hasDeposit) {
+    allVaultRows.forEach((row) => {
+      const deposit = row.myDeposit !== undefined ? parseFloat(row.myDeposit) : 0;
+      if (Number.isFinite(deposit) && deposit > 0) {
         withDeposits.push(row);
       }
     });
@@ -262,7 +258,7 @@ export const VaultAssetsList = () => {
     return {
       vaultsWithDeposits: withDeposits,
     } as { vaultsWithDeposits: VaultGridRow[] };
-  }, [allVaultRows, userVaults, accountAddress]);
+  }, [allVaultRows, accountAddress]);
 
   const aggregatedStats = useMemo(
     () =>
@@ -313,14 +309,23 @@ export const VaultAssetsList = () => {
       {/* Hero plate — shown when user has deposits and theme is not flow */}
       {accountAddress && vaultsWithDeposits.length > 0 && process.env.NEXT_PUBLIC_UI_THEME !== 'flow' && (
         <Box
-          sx={(theme) => ({
-            background: alpha(theme.palette.background.paper, 1),
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: '12px',
-            p: { xs: 3, md: '28px 32px' },
-            mb: { xs: 4, md: 5 },
-          })}
+          sx={(theme) => {
+            const isDark = theme.palette.mode === 'dark';
+            return {
+              background: isDark
+                ? `radial-gradient(120% 140% at 85% -20%, rgba(245,132,32,.16), transparent 55%),
+                   linear-gradient(180deg, ${theme.palette.background.surface2}, ${theme.palette.background.surface})`
+                : `radial-gradient(120% 140% at 85% -20%, rgba(245,132,32,.12), transparent 55%),
+                   linear-gradient(180deg, ${theme.palette.background.surface2}, ${theme.palette.background.paper})`,
+              border: '1px solid',
+              borderColor: isDark ? 'rgba(255,255,255,.10)' : 'rgba(40,25,15,.12)',
+              borderRadius: '12px',
+              p: { xs: 3, md: '28px 32px' },
+              mb: { xs: 4, md: 5 },
+              position: 'relative',
+              overflow: 'hidden',
+            };
+          }}
         >
           {/* Headline + KPIs row */}
           <Box

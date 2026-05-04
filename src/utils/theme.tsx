@@ -563,20 +563,20 @@ export function getThemedComponents(theme: Theme) {
             },
           },
           {
+            /* "gradient" variant kept for backwards compat — now a flat solid orange CTA */
             props: { variant: 'gradient' },
             style: {
-              color: '#FFF6EC',
-              background: theme.palette.gradients.newGradient,
+              color: '#FFFFFF',
+              background: '#F58420',
               fontWeight: 600,
-              textShadow: '0 1px 0 rgba(120,40,0,.35)',
-              boxShadow:
-                '0 1px 0 rgba(255,255,255,.25) inset, 0 -4px 8px rgba(128,51,0,.35) inset, 0 8px 24px -8px rgba(245,132,32,.6)',
-              transition: 'all 0.2s ease',
+              boxShadow: 'none',
+              transition: 'background-color 0.15s ease',
               '&:hover, &.Mui-focusVisible': {
-                background: theme.palette.gradients.newGradient,
-                opacity: 0.92,
-                boxShadow:
-                  '0 1px 0 rgba(255,255,255,.5) inset, 0 -4px 8px rgba(128,51,0,.25) inset, 0 12px 28px -6px rgba(245,132,32,.8)',
+                background: '#DA7416',
+                boxShadow: 'none',
+              },
+              '&:active': {
+                background: '#C46810',
               },
               '&:disabled': {
                 background: theme.palette.background.surface,

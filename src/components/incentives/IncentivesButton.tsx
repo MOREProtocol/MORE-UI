@@ -208,7 +208,7 @@ const Content = ({
 
   return (
     <Box
-      sx={(theme) => ({
+      sx={{
         p: { xs: '0 4px', xsm: '1px 6px' },
         // border: `1px solid ${open ? theme.palette.action.disabled : theme.palette.divider}`,
         borderRadius: '20px',
@@ -217,13 +217,12 @@ const Content = ({
         alignItems: 'center',
         justifyContent: 'center',
         transition: 'filter 0.2s ease, opacity 0.2s ease',
-        background: theme.palette.gradients.newGradient,
-        filter: open ? 'brightness(0.95)' : 'brightness(1.03)',
+        background: '#F58420',
         '&:hover': {
-          filter: 'brightness(0.95)',
+          background: '#DA7416',
           borderColor: 'action.disabled',
         },
-      })}
+      }}
       onClick={() => {
         // TODO: How to handle this for event props?
         trackEvent(DASHBOARD.VIEW_LM_DETAILS_DASHBOARD, {});

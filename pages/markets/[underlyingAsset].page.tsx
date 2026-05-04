@@ -260,7 +260,7 @@ export default function ReserveOverview() {
                     Supply
                   </Button>
                 )}
-                {reserve.borrowingEnabled && (() => {
+                {reserve.borrowingEnabled && !hasSupply && (() => {
                   const eModeBorrowDisabled = !!(user?.isInEmode && reserve.eModeCategoryId !== (user?.userEmodeCategoryId || 0));
                   const title = eModeBorrowDisabled
                     ? 'In MOST Mode some assets are not borrowable. Exit MOST Mode to get access to all assets'
@@ -269,8 +269,7 @@ export default function ReserveOverview() {
                     <Tooltip title={title} disableHoverListener={!eModeBorrowDisabled} placement="top">
                       <span>
                         <Button
-                          variant="gradient"
-                          color="primary"
+                          variant="soft"
                           disabled={eModeBorrowDisabled}
                           onClick={() => openBorrow(reserve.underlyingAsset, currentMarket, reserve.name, 'reserve-page', true)}
                         >

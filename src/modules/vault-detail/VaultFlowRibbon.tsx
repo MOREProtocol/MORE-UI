@@ -28,12 +28,16 @@ interface AllocNode {
   y: number;
 }
 
-const SVG_W = 1160;
-const X_CHAIN = 318;
-const X_VAULT = 622;
-const X_ALLOC = 930;
-// Crop left edge: viewBox starts here so the now-empty wallet area is removed
-const VIEW_X_MIN = X_CHAIN - 110;
+// Layout is symmetric around X_VAULT, which is set to the horizontal center of the viewBox
+// so the MORE logo lines up with the centered "Liquidity Flow" title underneath.
+const SVG_W = 1260;
+const CHAIN_BOX_W = 380;
+const CHAIN_BOX_HALF = CHAIN_BOX_W / 2;
+const ALLOC_BOX_W = 380;
+const X_CHAIN = 270;       // center of chain box → chain box spans [80, 460]
+const X_VAULT = 660;       // center of viewBox (= (VIEW_X_MIN + SVG_W) / 2)
+const X_ALLOC = 860;       // left edge of alloc box → alloc box spans [860, 1240]
+const VIEW_X_MIN = X_CHAIN - CHAIN_BOX_HALF - 20;  // = 60, leaves 20px margin left of chain box
 const NODE_H = 60;
 const TOP_PAD = 68; // increased so column headers at y=22 are not hidden by first nodes
 const BOT_PAD = 28;
@@ -81,9 +85,13 @@ export const VaultFlowRibbon: React.FC<{
       isHub: cId === hubChainId,
       logoPath: networkConfigs[cId]?.networkLogoPath || '',
     }));
-    const visibleChains: Omit<ChainNode, 'y'>[] = allChains.slice(0, MAX_VISIBLE);
-    const hiddenChainCount = Math.max(0, allChains.length - MAX_VISIBLE);
-    if (hiddenChainCount > 0) {
+    // If only one would be hidden, show it directly (no "+1 more" overflow box).
+    // Show the dashed overflow box only when hidden count > 1.
+    const chainOverflowThreshold =
+      allChains.length > MAX_VISIBLE + 1 ? MAX_VISIBLE : allChains.length;
+    const visibleChains: Omit<ChainNode, 'y'>[] = allChains.slice(0, chainOverflowThreshold);
+    const hiddenChainCount = Math.max(0, allChains.length - chainOverflowThreshold);
+    if (hiddenChainCount > 1) {
       visibleChains.push({
         chainId: -1,
         name: `+${hiddenChainCount} more`,
@@ -132,9 +140,12 @@ export const VaultFlowRibbon: React.FC<{
     rawAllocs.sort((a, b) => b.value - a.value);
     const combinedTotal = rawAllocs.reduce((sum, a) => sum + a.value, 0);
 
-    // Cap at MAX_VISIBLE + optional overflow node
-    const visibleRaw = rawAllocs.slice(0, MAX_VISIBLE);
-    const hiddenAllocCount = Math.max(0, rawAllocs.length - MAX_VISIBLE);
+    // If only one would be hidden, show it directly (no "+1 more" overflow box).
+    // Show the dashed overflow box only when hidden count > 1.
+    const allocOverflowThreshold =
+      rawAllocs.length > MAX_VISIBLE + 1 ? MAX_VISIBLE : rawAllocs.length;
+    const visibleRaw = rawAllocs.slice(0, allocOverflowThreshold);
+    const hiddenAllocCount = Math.max(0, rawAllocs.length - allocOverflowThreshold);
 
     const visibleAllocs: Omit<AllocNode, 'y'>[] = visibleRaw.map((a) => ({
       label: a.label,
@@ -143,7 +154,7 @@ export const VaultFlowRibbon: React.FC<{
       ratio: combinedTotal > 0 ? `${Math.round((a.value / combinedTotal) * 100)}%` : '—',
     }));
 
-    if (hiddenAllocCount > 0) {
+    if (hiddenAllocCount > 1) {
       visibleAllocs.push({
         label: `+${hiddenAllocCount} more`,
         chainId: -1,
@@ -171,6 +182,14 @@ export const VaultFlowRibbon: React.FC<{
     return { chainNodes: finalChains, allocNodes: finalAllocs, svgH: height };
   }, [topology, portfolio, hubChainId, vaultAssetSymbol]);
 
+  // Stable random offsets in ±0.3s — adds ~20% timing variation per dot without
+  // reshuffling on every render (which would restart the animations).
+  const dotJitter = React.useMemo(
+    () => Array.from({ length: 64 }, () => (Math.random() - 0.5) * 0.6),
+    []
+  );
+  const jitter = (idx: number) => dotJitter[Math.abs(idx) % dotJitter.length];
+
   if (!isOmni || chainNodes.length === 0) return null;
 
   const VAULT_CY = svgH / 2;
@@ -181,6 +200,7 @@ export const VaultFlowRibbon: React.FC<{
   const plate2Bg = isDark ? '#251E1A' : '#FFF6E8';
   const borderStrong = isDark ? 'rgba(255,255,255,.12)' : 'rgba(40,25,15,.16)';
   const overflowBorder = isDark ? 'rgba(255,255,255,.08)' : 'rgba(40,25,15,.10)';
+  const fwdDotFill = isDark ? '#FFFFFF' : '#3E342B';
   const font = theme.typography.fontFamily ?? 'sans-serif';
   const fontDisplay = (theme.typography.h1 as { fontFamily?: string })?.fontFamily ?? font;
 
@@ -213,7 +233,7 @@ export const VaultFlowRibbon: React.FC<{
             {/* Per-chain clip paths */}
             {chainNodes.map((c, i) => (
               <clipPath key={`clip-c-${i}`} id={`vfr-clip-c-${i}`}>
-                <circle cx={X_CHAIN - 76} cy={c.y} r="10" />
+                <circle cx={X_CHAIN - CHAIN_BOX_HALF + 17} cy={c.y} r="10" />
               </clipPath>
             ))}
             {allocNodes.map((a, i) => (
@@ -225,9 +245,9 @@ export const VaultFlowRibbon: React.FC<{
 
           {/* Column headers — y=22 is well above first node top (TOP_PAD - 24 = 44) */}
           {[
-            { x: X_CHAIN, label: 'DEPOSIT CHAINS' },
+            { x: X_CHAIN, label: 'DEPOSIT & WITHDRAWAL CHAINS' },
             { x: X_VAULT, label: 'VAULT' },
-            { x: X_ALLOC + 102, label: 'ALLOCATIONS' },
+            { x: X_ALLOC + ALLOC_BOX_W / 2, label: 'ALLOCATIONS' },
           ].map((col) => (
             <text
               key={col.label}
@@ -247,9 +267,9 @@ export const VaultFlowRibbon: React.FC<{
           {chainNodes.map((c, i) => (
             <g key={c.isOverflow ? `chain-overflow` : c.chainId}>
               <rect
-                x={X_CHAIN - 93}
+                x={X_CHAIN - CHAIN_BOX_HALF}
                 y={c.y - 24}
-                width="186"
+                width={CHAIN_BOX_W}
                 height="48"
                 rx="10"
                 fill={c.isOverflow ? 'none' : c.isHub ? plate2Bg : plateBg}
@@ -258,16 +278,39 @@ export const VaultFlowRibbon: React.FC<{
                 strokeDasharray={c.isOverflow ? '4 3' : undefined}
               />
               {c.isOverflow ? (
-                <text x={X_CHAIN} y={c.y + 5} fontFamily={font} fontSize="13" fontWeight="600" fill={textMuted} textAnchor="middle">
-                  {c.name}
-                </text>
+                <>
+                  {/* Ribbon banner */}
+                  <rect
+                    x={X_CHAIN - 32}
+                    y={c.y - 24 - 9}
+                    width="64"
+                    height="16"
+                    rx="3"
+                    fill="#F58420"
+                  />
+                  <text
+                    x={X_CHAIN}
+                    y={c.y - 24 - 9 + 11}
+                    fontFamily={font}
+                    fontSize="9"
+                    fontWeight="700"
+                    fill="#FFFFFF"
+                    textAnchor="middle"
+                    letterSpacing="0.8"
+                  >
+                    MORE
+                  </text>
+                  <text x={X_CHAIN} y={c.y + 5} fontFamily={font} fontSize="13" fontWeight="600" fill={textMuted} textAnchor="middle">
+                    {c.name}
+                  </text>
+                </>
               ) : (
                 <>
-                  <circle cx={X_CHAIN - 76} cy={c.y} r="11" fill={plateBg} stroke={c.isHub ? 'rgba(245,132,32,.4)' : borderStrong} strokeWidth="1.5" />
+                  <circle cx={X_CHAIN - CHAIN_BOX_HALF + 17} cy={c.y} r="11" fill={plateBg} stroke={c.isHub ? 'rgba(245,132,32,.4)' : borderStrong} strokeWidth="1.5" />
                   {c.logoPath && (
                     <image
                       href={c.logoPath}
-                      x={X_CHAIN - 86}
+                      x={X_CHAIN - CHAIN_BOX_HALF + 7}
                       y={c.y - 10}
                       width="20"
                       height="20"
@@ -275,9 +318,9 @@ export const VaultFlowRibbon: React.FC<{
                       preserveAspectRatio="xMidYMid slice"
                     />
                   )}
-                  <text x={X_CHAIN - 58} y={c.y - 5} fontFamily={font} fontSize="12" fontWeight="600" fill={textPrimary}>{c.name}</text>
+                  <text x={X_CHAIN - CHAIN_BOX_HALF + 35} y={c.y - 5} fontFamily={font} fontSize="12" fontWeight="600" fill={textPrimary}>{c.name}</text>
                   <text
-                    x={X_CHAIN - 58}
+                    x={X_CHAIN - CHAIN_BOX_HALF + 35}
                     y={c.y + 10}
                     fontFamily={font}
                     fontSize="10"
@@ -296,15 +339,32 @@ export const VaultFlowRibbon: React.FC<{
           {chainNodes.map((c, i) => {
             if (c.isOverflow) return null;
             const id = `vfr-c2v-${i}`;
-            const x1 = X_CHAIN + 93, y1 = c.y;
+            const x1 = X_CHAIN + CHAIN_BOX_HALF, y1 = c.y;
             const x2 = X_VAULT - 42, y2 = VAULT_CY;
             const d = `M ${x1} ${y1} C ${x1 + 76} ${y1}, ${x2 - 76} ${y2}, ${x2} ${y2}`;
+            const dur = 2.8 + i * 0.3;
             return (
               <g key={id}>
                 <path id={id} d={d} fill="none" stroke="url(#vfr-flow)" strokeWidth={c.isHub ? 2 : 1.2} opacity="0.85" />
-                {[0, 1, 2].map((k) => (
-                  <circle key={k} r={c.isHub ? 3.5 : 2.5} fill={c.isHub ? '#F58420' : '#FCB319'}>
-                    <animateMotion dur={`${2.8 + i * 0.3}s`} repeatCount="indefinite" begin={`${k * 0.9 + i * 0.4}s`}>
+                {/* Forward (left → right): white */}
+                {[0, 1].map((k) => (
+                  <circle key={`fwd-${k}`} r={c.isHub ? 3.5 : 2.5} fill={fwdDotFill}>
+                    <animateMotion dur={`${dur}s`} repeatCount="indefinite" begin={`${Math.max(0, k * 1.4 + i * 0.4 + jitter(i * 4 + k))}s`}>
+                      <mpath href={`#${id}`} />
+                    </animateMotion>
+                  </circle>
+                ))}
+                {/* Reverse (right → left): orange */}
+                {[0, 1].map((k) => (
+                  <circle key={`rev-${k}`} r={c.isHub ? 3.5 : 2.5} fill="#F58420">
+                    <animateMotion
+                      dur={`${dur}s`}
+                      repeatCount="indefinite"
+                      begin={`${Math.max(0, k * 1.4 + i * 0.4 + 0.7 + jitter(i * 4 + k + 2))}s`}
+                      keyPoints="1;0"
+                      keyTimes="0;1"
+                      calcMode="linear"
+                    >
                       <mpath href={`#${id}`} />
                     </animateMotion>
                   </circle>
@@ -350,12 +410,29 @@ export const VaultFlowRibbon: React.FC<{
             const x1 = X_VAULT + 42, y1 = VAULT_CY;
             const x2 = X_ALLOC, y2 = a.y;
             const d = `M ${x1} ${y1} C ${x1 + 76} ${y1}, ${x2 - 76} ${y2}, ${x2} ${y2}`;
+            const dur = 3 + i * 0.25;
             return (
               <g key={id}>
                 <path id={id} d={d} fill="none" stroke="url(#vfr-flow)" strokeWidth="1.3" opacity="0.85" />
-                {[0, 1, 2].map((k) => (
-                  <circle key={k} r="2.5" fill="#FCB319">
-                    <animateMotion dur={`${3 + i * 0.25}s`} repeatCount="indefinite" begin={`${k + i * 0.35}s`}>
+                {/* Forward (left → right): white */}
+                {[0, 1].map((k) => (
+                  <circle key={`fwd-${k}`} r="2.5" fill={fwdDotFill}>
+                    <animateMotion dur={`${dur}s`} repeatCount="indefinite" begin={`${Math.max(0, k * 1.5 + i * 0.35 + jitter(32 + i * 4 + k))}s`}>
+                      <mpath href={`#${id}`} />
+                    </animateMotion>
+                  </circle>
+                ))}
+                {/* Reverse (right → left): orange */}
+                {[0, 1].map((k) => (
+                  <circle key={`rev-${k}`} r="2.5" fill="#F58420">
+                    <animateMotion
+                      dur={`${dur}s`}
+                      repeatCount="indefinite"
+                      begin={`${Math.max(0, k * 1.5 + i * 0.35 + 0.75 + jitter(32 + i * 4 + k + 2))}s`}
+                      keyPoints="1;0"
+                      keyTimes="0;1"
+                      calcMode="linear"
+                    >
                       <mpath href={`#${id}`} />
                     </animateMotion>
                   </circle>
@@ -370,7 +447,7 @@ export const VaultFlowRibbon: React.FC<{
               <rect
                 x={X_ALLOC}
                 y={a.y - 26}
-                width="212"
+                width={ALLOC_BOX_W}
                 height="52"
                 rx="10"
                 fill={a.isOverflow ? 'none' : plate2Bg}
@@ -378,9 +455,32 @@ export const VaultFlowRibbon: React.FC<{
                 strokeDasharray={a.isOverflow ? '4 3' : undefined}
               />
               {a.isOverflow ? (
-                <text x={X_ALLOC + 106} y={a.y + 5} fontFamily={font} fontSize="13" fontWeight="600" fill={textMuted} textAnchor="middle">
-                  {a.label}
-                </text>
+                <>
+                  {/* Ribbon banner */}
+                  <rect
+                    x={X_ALLOC + ALLOC_BOX_W / 2 - 32}
+                    y={a.y - 26 - 9}
+                    width="64"
+                    height="16"
+                    rx="3"
+                    fill="#F58420"
+                  />
+                  <text
+                    x={X_ALLOC + ALLOC_BOX_W / 2}
+                    y={a.y - 26 - 9 + 11}
+                    fontFamily={font}
+                    fontSize="9"
+                    fontWeight="700"
+                    fill="#FFFFFF"
+                    textAnchor="middle"
+                    letterSpacing="0.8"
+                  >
+                    MORE
+                  </text>
+                  <text x={X_ALLOC + ALLOC_BOX_W / 2} y={a.y + 5} fontFamily={font} fontSize="13" fontWeight="600" fill={textMuted} textAnchor="middle">
+                    {a.label}
+                  </text>
+                </>
               ) : (
                 <>
                   <circle cx={X_ALLOC + 17} cy={a.y} r="11" fill={plateBg} stroke={borderStrong} strokeWidth="1.5" />
@@ -396,13 +496,13 @@ export const VaultFlowRibbon: React.FC<{
                     />
                   )}
                   <text x={X_ALLOC + 33} y={a.y - 5} fontFamily={font} fontSize="11.5" fontWeight="600" fill={textPrimary}>
-                    {a.label.length > 20 ? `${a.label.slice(0, 18)}…` : a.label}
+                    {a.label.length > 38 ? `${a.label.slice(0, 36)}…` : a.label}
                   </text>
                   <text x={X_ALLOC + 33} y={a.y + 10} fontFamily={font} fontSize="10" fill={textMuted}>
                     {networkConfigs[a.chainId]?.name || `Chain ${a.chainId}`}
                   </text>
                   <text
-                    x={X_ALLOC + 200}
+                    x={X_ALLOC + ALLOC_BOX_W - 12}
                     y={a.y + 5}
                     fontFamily={font}
                     fontSize="13"
