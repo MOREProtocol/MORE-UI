@@ -6,6 +6,8 @@ import React, { ReactNode, useEffect, useMemo, useState } from 'react';
 
 import { getDesignTokens, getThemedComponents, UiThemeName } from '../utils/theme';
 
+export type ColorModePreference = 'light' | 'dark' | 'auto';
+
 export const ColorModeContext = React.createContext({
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   toggleColorMode: () => { },
@@ -13,9 +15,15 @@ export const ColorModeContext = React.createContext({
   setModeLight: () => { },
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   setModeDark: () => { },
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  setModeAuto: () => { },
+  preference: 'auto' as ColorModePreference,
 });
 
 type Mode = 'light' | 'dark';
+const STORAGE_KEY = 'colorMode';
+const isPreference = (v: unknown): v is ColorModePreference =>
+  v === 'light' || v === 'dark' || v === 'auto';
 
 const resolveUiThemeFromEnv = (): UiThemeName => {
   const envValue = process.env.NEXT_PUBLIC_UI_THEME;
@@ -40,36 +48,47 @@ const UI_THEME: UiThemeName = resolveUiThemeFromEnv();
  * @returns
  */
 export function AppGlobalStyles({ children }: { children: ReactNode }) {
+  // Reactive media query — re-evaluates whenever the OS theme flips, so 'auto'
+  // mode follows scheduled OS dark/light changes mid-session without a reload.
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
-  const [mode, setMode] = useState<Mode>(prefersDarkMode ? 'dark' : 'light');
+  const [preference, setPreference] = useState<ColorModePreference>('auto');
+
+  // Resolved theme mode: explicit preference wins; 'auto' defers to the OS.
+  const mode: Mode = preference === 'auto' ? (prefersDarkMode ? 'dark' : 'light') : preference;
+
   const colorMode = useMemo(
     () => ({
       toggleColorMode: () => {
-        setMode((prevMode) => {
-          const newMode = prevMode === 'light' ? 'dark' : 'light';
-          localStorage.setItem('colorMode', newMode);
-          return newMode;
+        setPreference((prev) => {
+          const current: Mode = prev === 'auto' ? (prefersDarkMode ? 'dark' : 'light') : prev;
+          const next: ColorModePreference = current === 'light' ? 'dark' : 'light';
+          localStorage.setItem(STORAGE_KEY, next);
+          return next;
         });
       },
       setModeLight: () => {
-        setMode('light');
-        localStorage.setItem('colorMode', 'light');
+        setPreference('light');
+        localStorage.setItem(STORAGE_KEY, 'light');
       },
       setModeDark: () => {
-        setMode('dark');
-        localStorage.setItem('colorMode', 'dark');
+        setPreference('dark');
+        localStorage.setItem(STORAGE_KEY, 'dark');
       },
+      setModeAuto: () => {
+        setPreference('auto');
+        localStorage.setItem(STORAGE_KEY, 'auto');
+      },
+      preference,
     }),
-    []
+    [preference, prefersDarkMode]
   );
 
   useEffect(() => {
-    const initialMode = localStorage?.getItem('colorMode') as Mode;
-    if (initialMode) {
-      setMode(initialMode);
-    } else if (prefersDarkMode) {
-      setMode('dark');
+    const stored = localStorage?.getItem(STORAGE_KEY);
+    if (isPreference(stored)) {
+      setPreference(stored);
     }
+    // Otherwise default 'auto' stands and tracks the OS preference.
   }, []);
 
   const theme = useMemo(() => {

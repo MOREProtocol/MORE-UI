@@ -9,7 +9,7 @@ import { ethers } from 'ethers';
 import { ROUTES } from 'src/components/primitives/Link';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { useVault, VaultData } from 'src/hooks/vault/useVault';
-import { useDeployedVaults, useVaultsListData, useUserVaultsData, useAssetsData, useUserData, useOmniDeployedVaults } from 'src/hooks/vault/useVaultData';
+import { useDeployedVaults, useVaultsListData, useUserVaultsData, useAssetsData, useUserData, useOmniDeployedVaults, useVaultSharePriceHistory } from 'src/hooks/vault/useVaultData';
 import { getVaultFactoryInfo } from 'src/hooks/vault/factoryRegistry';
 import type { RewardItemEnriched } from 'src/hooks/vault/useVaultData';
 import { getNetworkConfig } from 'src/utils/marketsAndNetworksConfig';
@@ -19,6 +19,7 @@ import { FlowVaultsList } from './FlowVaultsList';
 import { VaultCard } from './VaultCard';
 import { valueToBigNumber } from '@aave/math-utils';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
+import { LineChart } from '../charts/LineChart';
 // import { PortfolioChartsSection } from './PortfolioChartsSection';
 import { VaultsRewardModal } from './VaultsRewardModal';
 
@@ -115,6 +116,145 @@ const transformVaultsToGridRows = (
       sharePriceHistory: vault.overview?.historicalSnapshots?.sharePrice,
     };
   });
+};
+
+const VaultPositionStrip = ({
+  row,
+  onClick,
+}: {
+  row: VaultGridRow;
+  onClick: () => void;
+}) => {
+  const apy = row.apy7Days ?? row.apy;
+  const apyPositive = apy === undefined || apy >= 0;
+  const symbols = row.depositTokenSymbols?.length
+    ? row.depositTokenSymbols
+    : row.depositTokenSymbol
+    ? [row.depositTokenSymbol]
+    : [];
+
+  const { data: sharePriceHistory } = useVaultSharePriceHistory(row.id, row.chainId);
+  const oneMonthHistory = useMemo(() => {
+    if (!sharePriceHistory?.length) return [];
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return sharePriceHistory.filter((p) => new Date(p.time).getTime() >= cutoff);
+  }, [sharePriceHistory]);
+  const hasChart = oneMonthHistory.length > 1;
+
+  return (
+    <Box
+      onClick={onClick}
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 2,
+        p: '14px 18px',
+        bgcolor: 'background.surface',
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: '10px',
+        cursor: 'pointer',
+        transition: 'border-color 0.15s ease',
+        '&:hover': { borderColor: 'rgba(245,132,32,.3)' },
+      }}
+    >
+      {/* Left: token icons + vault info */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0, flexShrink: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', width: 76, flexShrink: 0 }}>
+          {symbols.slice(0, 3).map((sym, idx) => (
+            <TokenIcon
+              key={`${sym}-${idx}`}
+              symbol={sym}
+              sx={{ fontSize: '32px', ml: idx > 0 ? '-10px' : 0, zIndex: 3 - idx, position: 'relative' }}
+            />
+          ))}
+        </Box>
+        <Box sx={{ minWidth: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            <Typography sx={{ fontSize: 14, fontWeight: 500 }}>
+              {row.vaultName}
+            </Typography>
+            {row.isOmniHub && (
+              <Chip
+                label="omnichain"
+                size="small"
+                variant="outlined"
+                sx={{
+                  height: 20,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color: '#F58420',
+                  borderColor: 'rgba(245,132,32,.5)',
+                  bgcolor: 'transparent',
+                  '& .MuiChip-label': { px: 1 },
+                }}
+              />
+            )}
+          </Box>
+          <Typography variant="secondary12" color="text.secondary" sx={{ mt: 0.25 }}>
+            Deposited{' '}
+            {row.myDeposit
+              ? `${parseFloat(row.myDeposit).toPrecision(4)} ${row.depositToken}`
+              : '—'}
+            {row.myDepositUsd && ` · $${parseFloat(row.myDepositUsd).toFixed(2)}`}
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Middle: spark chart */}
+      <Box sx={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'flex-end', px: 2 }}>
+        {hasChart && (
+          <Box
+            sx={{ width: '100%', maxWidth: 110, height: 44 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <LineChart
+              data={oneMonthHistory}
+              height={44}
+              areaGradient
+              isInteractive={false}
+              isSmall
+              hideAxis
+              showTimePeriodSelector={false}
+              yAxisFormat={row.depositTokenSymbol}
+            />
+          </Box>
+        )}
+      </Box>
+
+      {/* Right: APY + Manage */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, flexShrink: 0 }}>
+        <Box sx={{ textAlign: 'right' }}>
+          <Typography sx={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', color: 'text.secondary' }}>
+            7D APY
+          </Typography>
+          {apy !== undefined ? (
+            <Box sx={{ display: 'inline-flex', alignItems: 'baseline', color: apyPositive ? '#FFA94A' : 'error.main' }}>
+              {apyPositive && apy > 0 && (
+                <Typography component="span" sx={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>+</Typography>
+              )}
+              <FormattedNumber
+                value={apy}
+                percent
+                sx={{ fontSize: 18, fontWeight: 700, lineHeight: 1.2, color: 'inherit' }}
+              />
+            </Box>
+          ) : (
+            <Typography variant="main16" color="text.secondary">—</Typography>
+          )}
+        </Box>
+        <Button
+          variant="soft"
+          size="medium"
+          onClick={(e) => { e.stopPropagation(); onClick(); }}
+          sx={{ flexShrink: 0, px: 2.5, py: 1 }}
+        >
+          Manage →
+        </Button>
+      </Box>
+    </Box>
+  );
 };
 
 export const VaultAssetsList = () => {
@@ -427,129 +567,44 @@ export const VaultAssetsList = () => {
 
           {/* Vault position strips */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 3 }}>
-            {(isLoading || isLoadingUserVaults
-              ? Array.from({ length: 2 })
-              : vaultsWithDeposits
-            ).map((row, i) => {
-              const isRowLoading = isLoading || isLoadingUserVaults || !row;
-              const typedRow = row as VaultGridRow | undefined;
-              const apy = typedRow?.apy7Days ?? typedRow?.apy;
-              const apyPositive = apy === undefined || apy >= 0;
-              const symbols = typedRow?.depositTokenSymbols?.length
-                ? typedRow.depositTokenSymbols
-                : typedRow?.depositTokenSymbol
-                ? [typedRow.depositTokenSymbol]
-                : [];
-
-              return (
-                <Box
-                  key={isRowLoading ? i : typedRow!.id}
-                  onClick={() => !isRowLoading && typedRow && handleVaultClick(typedRow)}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 2,
-                    p: '14px 18px',
-                    bgcolor: 'background.surface',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: '10px',
-                    cursor: isRowLoading ? 'default' : 'pointer',
-                    transition: 'border-color 0.15s ease',
-                    '&:hover': isRowLoading ? {} : { borderColor: 'rgba(245,132,32,.3)' },
-                  }}
-                >
-                  {/* Left: token icons + vault info */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
-                    {isRowLoading ? (
-                      <Skeleton variant="circular" width={32} height={32} />
-                    ) : (
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        {symbols.slice(0, 3).map((sym, idx) => (
-                          <TokenIcon
-                            key={`${sym}-${idx}`}
-                            symbol={sym}
-                            sx={{ fontSize: '32px', ml: idx > 0 ? '-10px' : 0, zIndex: 3 - idx, position: 'relative' }}
-                          />
-                        ))}
+            {isLoading || isLoadingUserVaults
+              ? Array.from({ length: 2 }).map((_, i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 2,
+                      p: '14px 18px',
+                      bgcolor: 'background.surface',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: '10px',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', width: 76, flexShrink: 0 }}>
+                        <Skeleton variant="circular" width={32} height={32} />
                       </Box>
-                    )}
-                    <Box sx={{ minWidth: 0 }}>
-                      {isRowLoading ? (
-                        <>
-                          <Skeleton width={140} height={16} />
-                          <Skeleton width={100} height={13} sx={{ mt: 0.5 }} />
-                        </>
-                      ) : (
-                        <>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                            <Typography sx={{ fontSize: 14, fontWeight: 500 }}>
-                              {typedRow!.vaultName}
-                            </Typography>
-                            {typedRow!.isOmniHub && (
-                              <Chip
-                                label="omnichain"
-                                size="small"
-                                sx={(theme) => ({
-                                  height: 18,
-                                  fontSize: 10,
-                                  fontWeight: 600,
-                                  background: theme.palette.gradients.newGradient,
-                                  color: '#fff',
-                                  border: 'none',
-                                })}
-                              />
-                            )}
-                          </Box>
-                          <Typography variant="secondary12" color="text.secondary" sx={{ mt: 0.25 }}>
-                            Deposited{' '}
-                            {typedRow!.myDeposit
-                              ? `${parseFloat(typedRow!.myDeposit).toPrecision(4)} ${typedRow!.depositToken}`
-                              : '—'}
-                            {typedRow!.myDepositUsd && ` · $${parseFloat(typedRow!.myDepositUsd).toFixed(2)}`}
-                          </Typography>
-                        </>
-                      )}
+                      <Box>
+                        <Skeleton width={140} height={16} />
+                        <Skeleton width={100} height={13} sx={{ mt: 0.5 }} />
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                      <Skeleton width={64} height={24} />
+                      <Skeleton variant="rectangular" width={96} height={36} sx={{ borderRadius: '10px' }} />
                     </Box>
                   </Box>
-
-                  {/* Right: APY + Manage */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-                    {isRowLoading ? (
-                      <Skeleton width={64} height={24} />
-                    ) : (
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography sx={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', color: 'text.secondary' }}>
-                          7D APY
-                        </Typography>
-                        {apy !== undefined ? (
-                          <FormattedNumber
-                            value={apy}
-                            percent
-                            variant="main16"
-                            sx={{ fontWeight: 700, color: apyPositive ? '#FFA94A' : 'error.main' }}
-                          />
-                        ) : (
-                          <Typography variant="main16" color="text.secondary">—</Typography>
-                        )}
-                      </Box>
-                    )}
-                    {isRowLoading ? (
-                      <Skeleton variant="rectangular" width={82} height={32} sx={{ borderRadius: '10px' }} />
-                    ) : (
-                      <Button
-                        variant="soft"
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); typedRow && handleVaultClick(typedRow); }}
-                      >
-                        Manage →
-                      </Button>
-                    )}
-                  </Box>
-                </Box>
-              );
-            })}
+                ))
+              : vaultsWithDeposits.map((row) => (
+                  <VaultPositionStrip
+                    key={row.id}
+                    row={row}
+                    onClick={() => handleVaultClick(row)}
+                  />
+                ))}
           </Box>
         </Box>
       )}

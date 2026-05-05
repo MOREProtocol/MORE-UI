@@ -1,6 +1,7 @@
-import { Box, Button, ButtonGroup, Divider, IconButton, Menu, MenuItem, SvgIcon, useTheme } from '@mui/material';
+import { Box, Button, ButtonGroup, Divider, IconButton, Menu, MenuItem, SvgIcon } from '@mui/material';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
+import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
 import React from 'react';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -18,8 +19,7 @@ export const LogoMenu: React.FC<LogoMenuProps> = ({ logo }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const colorMode = React.useContext(ColorModeContext);
-  const theme = useTheme();
-  const isLight = theme.palette.mode === 'light';
+  const preference = colorMode.preference;
   const logoRef = React.useRef<HTMLButtonElement | null>(null);
 
   const handleOpen = () => setAnchorEl(logoRef.current);
@@ -88,16 +88,24 @@ export const LogoMenu: React.FC<LogoMenuProps> = ({ logo }) => {
             <Button
               onClick={() => { colorMode.setModeLight(); }}
               startIcon={<LightModeIcon />}
-              variant={isLight ? 'contained' : 'outlined'}
-              aria-pressed={isLight}
+              variant={preference === 'light' ? 'contained' : 'outlined'}
+              aria-pressed={preference === 'light'}
             >
               Light
             </Button>
             <Button
+              onClick={() => { colorMode.setModeAuto(); }}
+              startIcon={<SettingsBrightnessIcon />}
+              variant={preference === 'auto' ? 'contained' : 'outlined'}
+              aria-pressed={preference === 'auto'}
+            >
+              Auto
+            </Button>
+            <Button
               onClick={() => { colorMode.setModeDark(); }}
               startIcon={<DarkModeIcon />}
-              variant={!isLight ? 'contained' : 'outlined'}
-              aria-pressed={!isLight}
+              variant={preference === 'dark' ? 'contained' : 'outlined'}
+              aria-pressed={preference === 'dark'}
             >
               Dark
             </Button>
