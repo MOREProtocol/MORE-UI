@@ -379,6 +379,8 @@ export const BridgeContent: React.FC = () => {
       border: '1px solid',
       borderColor: 'divider',
       padding: '28px 28px 32px',
+      position: 'relative',
+      zIndex: 1,
     }}>
       {/* Title */}
       <Box sx={{ mb: 4 }}>

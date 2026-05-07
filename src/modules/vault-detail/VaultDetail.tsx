@@ -605,12 +605,6 @@ export const VaultDetail = () => {
         </Box>
       </Box>
 
-      {/* FLOW RIBBON — omni vaults only */}
-      <VaultFlowRibbon
-        vaultName={selectedVault?.overview?.name}
-        vaultAssetSymbol={selectedVault?.overview?.asset?.symbol || vaultMetadata?.underlyingSymbol}
-      />
-
       {/* STATS + CHART GRID */}
       <Box
         sx={{
@@ -811,9 +805,28 @@ export const VaultDetail = () => {
         </Box>
       </Box>
 
+      {/* FLOW RIBBON — omni vaults only */}
+      <VaultFlowRibbon
+        vaultName={selectedVault?.overview?.name}
+        vaultAssetSymbol={selectedVault?.overview?.asset?.symbol || vaultMetadata?.underlyingSymbol}
+      />
+
       {/* BOTTOM TABS */}
       {isFlowTheme ? null : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', pb: 10 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            pb: 4,
+            px: { xs: 2, md: 3 },
+            bgcolor: isDark ? 'background.surface' : 'background.paper',
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: '14px',
+            position: 'relative',
+            zIndex: 1,
+          }}
+        >
           <Tabs
             value={isLoading ? false : selectedTab}
             onChange={handleTabChange}

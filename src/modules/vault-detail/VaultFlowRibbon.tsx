@@ -209,13 +209,17 @@ export const VaultFlowRibbon: React.FC<{
       sx={{
         display: { xs: 'none', md: 'block' },
         background: isDark
-          ? 'linear-gradient(180deg, rgba(245,132,32,.05), rgba(245,132,32,.01))'
-          : 'linear-gradient(180deg, rgba(245,132,32,.06), transparent)',
+          ? `linear-gradient(180deg, rgba(245,132,32,.05), rgba(245,132,32,.01)),
+             ${theme.palette.background.surface}`
+          : `linear-gradient(180deg, rgba(245,132,32,.06), rgba(245,132,32,0)),
+             ${theme.palette.background.paper}`,
         border: '1px solid',
         borderColor: 'divider',
         borderRadius: '14px',
         p: { md: 3 },
         overflow: 'hidden',
+        position: 'relative',
+        zIndex: 1,
       }}
     >
       {/* SVG flow diagram */}
