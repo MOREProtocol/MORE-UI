@@ -568,7 +568,9 @@ export function MarketsTable() {
             </Alert>
           )}
           <Box sx={{ overflowX: 'auto' }}>
-            <Box sx={{ minWidth: 700 }}>
+            {/* Phones: fit the viewport (secondary columns are hidden in the table,
+                so Asset/APY/action fit without scroll). md+: keep the 700px scroll. */}
+            <Box sx={{ minWidth: { xs: 'auto', md: 700 } }}>
               <MarketAssetsTable
                 rows={nonFrozenRows}
                 mode={activeTab}

@@ -230,7 +230,7 @@ const VaultPositionStrip = ({
             7D APY
           </Typography>
           {apy !== undefined ? (
-            <Box sx={{ display: 'inline-flex', alignItems: 'baseline', color: apyPositive ? '#FFA94A' : 'error.main' }}>
+            <Box sx={{ display: 'inline-flex', alignItems: 'baseline', color: apyPositive ? 'success.main' : 'error.main' }}>
               {apyPositive && apy > 0 && (
                 <Typography component="span" sx={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>+</Typography>
               )}

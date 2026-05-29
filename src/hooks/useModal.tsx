@@ -1,5 +1,6 @@
 import { ChainId, InterestRate, Stake } from '@aave/contract-helpers';
-import { createContext, useContext, useState } from 'react';
+import { useRouter } from 'next/router';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { EmodeModalType } from 'src/components/transactions/Emode/EmodeModalContent';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
@@ -143,6 +144,15 @@ export const ModalContextProvider: React.FC<IProps> = ({ children }) => {
   const [loadingTxns, setLoadingTxns] = useState(false);
   const [txError, setTxError] = useState<TxErrorType>();
   const trackEvent = useRootStore((store) => store.trackEvent);
+  const router = useRouter();
+
+  // Dismiss any open modal when the route changes so it can't linger over the
+  // destination page (e.g. on browser back/forward while a modal is open).
+  useEffect(() => {
+    const handleRouteChange = () => setType(undefined);
+    router.events.on('routeChangeStart', handleRouteChange);
+    return () => router.events.off('routeChangeStart', handleRouteChange);
+  }, [router.events]);
 
   return (
     <ModalContext.Provider

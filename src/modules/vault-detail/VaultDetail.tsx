@@ -370,6 +370,17 @@ export const VaultDetail = () => {
 
   const isDark = theme.palette.mode === 'dark';
 
+  // Title with fallbacks: name → "<symbol> Vault" → truncated address. Prevents a
+  // blank header when overview.name fails to load (e.g. omni vault, RPC degraded).
+  const assetSymbol = selectedVault?.overview?.asset?.symbol;
+  const shortVaultId = selectedVaultId
+    ? `${selectedVaultId.slice(0, 6)}…${selectedVaultId.slice(-4)}`
+    : 'Vault';
+  const vaultTitle = isFlowTheme
+    ? `${assetSymbol || selectedVault?.overview?.name || ''} Vault`
+    : selectedVault?.overview?.name ||
+      (assetSymbol ? `${assetSymbol} Vault` : shortVaultId);
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, pt: 4, pb: 7, px: xPadding }}>
       {/* Network hint */}
@@ -440,9 +451,7 @@ export const VaultDetail = () => {
                     color: 'text.primary',
                   }}
                 >
-                  {isFlowTheme
-                    ? `${selectedVault?.overview?.asset?.symbol || selectedVault?.overview?.name || ''} Vault`
-                    : selectedVault?.overview?.name}
+                  {vaultTitle}
                 </Typography>
                 {isOmniHub && (
                   <Box
@@ -482,7 +491,7 @@ export const VaultDetail = () => {
                 selectedVault?.overview?.roles?.curator ||
                 selectedVault?.overview?.roles?.guardian
               ) && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 10, mt: 1, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1, flexWrap: 'wrap' }}>
                   {/* Group 1: curated by [name] */}
                   {selectedVault?.overview?.curatorName && selectedVault.overview.curatorName !== 'Unknown' && (
                     <Typography sx={{ fontSize: 12, color: 'text.muted', whiteSpace: 'nowrap' }}>
@@ -501,7 +510,7 @@ export const VaultDetail = () => {
                   }
 
                   {/* Group 2: address chips */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                     {selectedVault?.overview?.roles?.owner && (
                       <Typography component="span" sx={{ fontSize: 12, color: 'text.muted' }}>
                         curator{' '}

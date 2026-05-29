@@ -1,6 +1,7 @@
 import { Avatar, Box, Button, Chip, Divider, Skeleton, Typography, useTheme } from '@mui/material';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
+import { UsdChip } from 'src/components/primitives/UsdChip';
 import { LineChart } from '../charts/LineChart';
 import { VaultGridRow } from './VaultDataGridColumns';
 import { useVaultSharePriceHistory } from 'src/hooks/vault/useVaultData';
@@ -213,7 +214,7 @@ export const VaultCard = ({ row, loading, onClick, onDeposit, disabled }: VaultC
                 fontSize: 24,
                 fontWeight: 700,
                 lineHeight: 1.15,
-                color: apyPositive ? '#FFA94A' : 'error.main',
+                color: apyPositive ? 'success.main' : 'error.main',
               }}
             />
           ) : (
@@ -251,13 +252,9 @@ export const VaultCard = ({ row, loading, onClick, onDeposit, disabled }: VaultC
                 sx={{ fontWeight: 600 }}
               />
               {(row?.tvmUsd ?? 0) > 0 && (
-                <FormattedNumber
-                  value={row?.tvmUsd ?? 0}
-                  symbol="USD"
-                  compact
-                  variant="secondary12"
-                  color="text.secondary"
-                />
+                <Box sx={{ mt: 0.5 }}>
+                  <UsdChip value={row?.tvmUsd ?? 0} textVariant="secondary12" />
+                </Box>
               )}
             </>
           )}

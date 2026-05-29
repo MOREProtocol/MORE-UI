@@ -31,12 +31,15 @@ const HeaderCell = ({
   current,
   onSort,
   align = 'left',
+  mobileHidden = false,
 }: {
   children: React.ReactNode;
   sortKey?: SortKey['key'];
   current?: SortKey;
   onSort?: (k: SortKey['key']) => void;
   align?: 'left' | 'right';
+  /** Hide below the md breakpoint to keep Asset/APY/action visible on phones. */
+  mobileHidden?: boolean;
 }) => {
   const active = sortKey && current?.key === sortKey;
   return (
@@ -44,13 +47,14 @@ const HeaderCell = ({
       component="th"
       onClick={() => sortKey && onSort?.(sortKey)}
       sx={{
+        display: mobileHidden ? { xs: 'none', md: 'table-cell' } : 'table-cell',
         textAlign: align,
         fontSize: 11,
         letterSpacing: '.10em',
         textTransform: 'uppercase',
         color: 'text.muted',
         fontWeight: 500,
-        padding: '14px 10px',
+        padding: { xs: '14px 6px', md: '14px 10px' },
         borderBottom: '1px solid',
         borderColor: 'divider',
         cursor: sortKey ? 'pointer' : 'default',
@@ -121,12 +125,16 @@ export function MarketAssetsTable({ rows, mode, loading, showBalance, renderActi
   }, [rows, sort, mode]);
 
   const cellSx = {
-    padding: '16px 10px',
+    padding: { xs: '16px 6px', md: '16px 10px' },
     borderBottom: '1px solid',
     borderColor: 'divider',
     fontSize: 14,
     verticalAlign: 'middle' as const,
   };
+
+  // Secondary columns are hidden on phones so Asset / APY / action always fit
+  // without clipping; the full breakdown stays one tap away on the detail page.
+  const mobileHiddenCell = { display: { xs: 'none', md: 'table-cell' } };
 
   return (
     <Box
@@ -148,16 +156,16 @@ export function MarketAssetsTable({ rows, mode, loading, showBalance, renderActi
           <HeaderCell sortKey="apy" current={sort} onSort={onSort}>
             {mode === 'supply' ? 'Supply APY' : 'Borrow Rate'}
           </HeaderCell>
-          <HeaderCell sortKey="totalLiquidity" current={sort} onSort={onSort}>
+          <HeaderCell sortKey="totalLiquidity" current={sort} onSort={onSort} mobileHidden>
             {mode === 'supply' ? 'Total Supply' : 'Borrowed'}
           </HeaderCell>
           {mode === 'supply' && showBalance && (
-            <HeaderCell sortKey="balance" current={sort} onSort={onSort}>
+            <HeaderCell sortKey="balance" current={sort} onSort={onSort} mobileHidden>
               Your balance
             </HeaderCell>
           )}
           {mode === 'borrow' && (
-            <HeaderCell sortKey="utilization" current={sort} onSort={onSort}>
+            <HeaderCell sortKey="utilization" current={sort} onSort={onSort} mobileHidden>
               Util
             </HeaderCell>
           )}
@@ -197,7 +205,7 @@ export function MarketAssetsTable({ rows, mode, loading, showBalance, renderActi
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
-                            maxWidth: 160,
+                            maxWidth: { xs: 104, md: 160 },
                           }}
                           title={row.assetName}
                         >
@@ -221,7 +229,7 @@ export function MarketAssetsTable({ rows, mode, loading, showBalance, renderActi
                   </Box>
 
                   {/* Total liquidity / borrowed */}
-                  <Box component="td" sx={cellSx}>
+                  <Box component="td" sx={{ ...cellSx, ...mobileHiddenCell }}>
                     {row.reserve ? (
                       <Box>
                         <FormattedNumber
@@ -242,14 +250,14 @@ export function MarketAssetsTable({ rows, mode, loading, showBalance, renderActi
 
                   {/* Supply: your balance */}
                   {mode === 'supply' && showBalance && (
-                    <Box component="td" sx={cellSx}>
+                    <Box component="td" sx={{ ...cellSx, ...mobileHiddenCell }}>
                       <BalanceCell row={row} />
                     </Box>
                   )}
 
                   {/* Borrow: util arc */}
                   {mode === 'borrow' && (
-                    <Box component="td" sx={cellSx}>
+                    <Box component="td" sx={{ ...cellSx, ...mobileHiddenCell }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <UtilArc pct={util} size={28} thick={3} />
                         <Typography sx={{ fontSize: 12, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
