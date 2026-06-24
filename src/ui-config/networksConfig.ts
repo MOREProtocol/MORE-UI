@@ -78,7 +78,7 @@ export const networkConfigs: Record<string, BaseNetworkConfig> = {
     baseAssetSymbol: 'FLOW',
     wrappedBaseAssetSymbol: 'WFLOW',
     baseAssetDecimals: 18,
-    explorerLink: 'https://evm.flowscan.io',
+    explorerLink: 'https://evm.flow.com',
     explorerName: 'Flowscan',
     networkLogoPath: '/icons/networks/flow.svg',
   },
