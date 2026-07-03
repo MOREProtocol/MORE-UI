@@ -1,20 +1,23 @@
 import { Box, MenuItem, Select, SelectChangeEvent, styled, Typography } from '@mui/material';
 
 const StyledSelect = styled(Select)(({ theme }) => ({
-  borderRadius: '18px',
-  height: '29px',
+  borderRadius: '9999px',
+  height: '36px',
+  backgroundColor: theme.palette.background.paper,
+  fontSize: '13px',
+  fontWeight: 500,
   '& .MuiSelect-select': {
-    padding: '4px 12px',
-    borderRadius: '18px',
+    padding: '0 12px',
+    borderRadius: '9999px',
     color: theme.palette.text.primary,
     backgroundColor: 'transparent !important',
     lineHeight: '22px',
   },
   '&:hover .MuiOutlinedInput-notchedOutline': {
-    border: '1px solid #F5871F',
+    borderColor: theme.palette.text.secondary,
   },
   '& .MuiOutlinedInput-notchedOutline': {
-    border: '1px solid #EAEBEF',
+    borderColor: theme.palette.divider,
   },
 }));
 

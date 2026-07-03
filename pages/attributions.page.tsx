@@ -1,7 +1,8 @@
-import { Box, Container, Paper, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import Head from 'next/head';
-import { MainLayout } from 'src/layouts/MainLayout';
+import { PageMasthead } from 'src/components/PageMasthead';
 import { Link } from 'src/components/primitives/Link';
+import { MainLayout } from 'src/layouts/MainLayout';
 
 export default function AttributionsPage() {
   return (
@@ -11,16 +12,29 @@ export default function AttributionsPage() {
         <meta name="description" content="Library attributions and licenses for MORE Markets" />
       </Head>
 
-      <Container sx={{ mt: 4, mb: 4 }}>
-        <Typography variant="h3" component="h1" sx={{ mb: 4 }}>
-          Attributions & Licenses
-        </Typography>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: 1600,
+          mx: 'auto',
+          px: { xs: 2, md: 4 },
+          pt: { xs: 3, md: 3 },
+          pb: { xs: 6, md: 12 },
+        }}
+      >
+        <PageMasthead
+          title="Attributions & Licenses"
+          subtitle="This page lists the open source libraries and their respective licenses used in MORE."
+        />
 
-        <Typography variant="description" sx={{ mb: 4, color: 'text.secondary' }}>
-          This page lists the open source libraries and their respective licenses used in MORE.
-        </Typography>
-
-        <Paper sx={{ p: 3, mb: 3 }}>
+        <Box
+          sx={{
+            borderRadius: '24px',
+            border: '1px solid',
+            borderColor: 'divider',
+            p: { xs: 3, md: 4 },
+          }}
+        >
           <Typography variant="h2" component="h2" sx={{ mb: 2 }}>
             TradingView Lightweight Charts
           </Typography>
@@ -56,19 +70,20 @@ export default function AttributionsPage() {
             </Typography>
           </Box>
           <Typography variant="description" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
-            Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-            and associated documentation files (the &quot;Software&quot;), to deal in the Software without restriction,
-            including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-            and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-            subject to the following conditions: The above copyright notice and this permission notice shall be
-            included in all copies or substantial portions of the Software.
+            Permission is hereby granted, free of charge, to any person obtaining a copy of this
+            software and associated documentation files (the &quot;Software&quot;), to deal in the
+            Software without restriction, including without limitation the rights to use, copy,
+            modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+            to permit persons to whom the Software is furnished to do so, subject to the following
+            conditions: The above copyright notice and this permission notice shall be included in
+            all copies or substantial portions of the Software.
           </Typography>
-        </Paper>
-      </Container>
+        </Box>
+      </Box>
     </>
   );
 }
 
 AttributionsPage.getLayout = function getLayout(page: React.ReactElement) {
   return <MainLayout>{page}</MainLayout>;
-}; 
+};

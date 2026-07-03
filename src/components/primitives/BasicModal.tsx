@@ -32,6 +32,10 @@ export const BasicModal = ({
         '.MuiPaper-root': {
           outline: 'none',
         },
+        '.MuiBackdrop-root': {
+          backgroundColor: 'rgba(20, 15, 8, 0.45)',
+          backdropFilter: 'blur(5px)',
+        },
       }}
       onClick={(e) => {
         e.stopPropagation();
@@ -48,25 +52,37 @@ export const BasicModal = ({
           maxWidth: { xs: '359px', xsm: `${contentMaxWidth}px` },
           maxHeight: 'calc(100vh - 20px)',
           p: 6,
-          borderRadius: '6px',
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: '24px',
         }}
       >
         {children}
 
         {withCloseButton && (
-          <Box sx={{ position: 'absolute', top: '24px', right: '50px', zIndex: 5 }}>
+          <Box sx={{ position: 'absolute', top: '16px', right: '16px', zIndex: 5 }}>
             <IconButton
               sx={{
-                borderRadius: '50%',
+                width: '36px',
+                height: '36px',
+                borderRadius: '9999px',
                 p: 0,
                 minWidth: 0,
-                position: 'absolute',
-                bgcolor: 'background.paper',
+                bgcolor: 'transparent',
+                color: 'text.secondary',
+                border: '1px solid transparent',
+                transition:
+                  'background-color 150ms ease, border-color 150ms ease, color 150ms ease',
+                '&:hover': {
+                  bgcolor: 'background.surface',
+                  borderColor: 'divider',
+                  color: 'text.primary',
+                },
               }}
               onClick={handleClose}
               data-cy={'close-button'}
             >
-              <SvgIcon sx={{ fontSize: '28px', color: 'text.primary' }}>
+              <SvgIcon sx={{ fontSize: '16px' }}>
                 <XIcon data-cy={'CloseModalIcon'} />
               </SvgIcon>
             </IconButton>

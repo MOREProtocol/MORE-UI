@@ -1,13 +1,19 @@
-import { VaultAssetsList } from './VaultAssetsList';
 import { Box } from '@mui/material';
+
+import { VaultAssetsList } from './VaultAssetsList';
 
 export const VaultAssetsListContainer = () => {
   return (
-    <Box sx={{
-      mt: 2,
-      px: { xs: 2, sm: 4, md: 6 },
-      pb: 8
-    }}>
+    <Box
+      sx={{
+        width: '100%',
+        maxWidth: 1600,
+        mx: 'auto',
+        px: { xs: 2, md: 4 },
+        pt: { xs: 3, md: 3 },
+        pb: { xs: 6, md: 12 },
+      }}
+    >
       <VaultAssetsList />
     </Box>
   );

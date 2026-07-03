@@ -1,17 +1,16 @@
 import { styled, ToggleButtonGroup, ToggleButtonGroupProps } from '@mui/material';
 
-const CustomToggleGroup = styled(ToggleButtonGroup)<ToggleButtonGroupProps>({
-  backgroundColor: '#383D51',
-  border: '1px solid rgba(235, 235, 237, 0.12)',
-  padding: '4px',
-}) as typeof ToggleButtonGroup;
+// Colors/shape/padding now come from the theme-level MuiToggleButtonGroup
+// segmented style (see src/utils/theme.tsx). Defer to it here.
+const CustomToggleGroup = styled(ToggleButtonGroup)<ToggleButtonGroupProps>(
+  {}
+) as typeof ToggleButtonGroup;
 
-const CustomTxModalToggleGroup = styled(ToggleButtonGroup)<ToggleButtonGroupProps>(({ theme }) => ({
-  backgroundColor: theme.palette.background.header,
-  padding: '2px',
+// Keep only structural sizing for the in-modal group.
+const CustomTxModalToggleGroup = styled(ToggleButtonGroup)<ToggleButtonGroupProps>({
   height: '36px',
   width: '100%',
-})) as typeof ToggleButtonGroup;
+}) as typeof ToggleButtonGroup;
 
 export function StyledTxModalToggleGroup(props: ToggleButtonGroupProps) {
   return <CustomTxModalToggleGroup {...props} />;

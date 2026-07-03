@@ -1,20 +1,16 @@
-import React, { useState } from 'react';
-import {
-  Button,
-  Menu,
-  MenuItem,
-  Box,
-  Typography,
-  SvgIcon,
-  Avatar,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/solid';
-import { useChainId, useSwitchChain } from 'wagmi';
+import { Avatar, Box, Button, Menu, MenuItem, Typography } from '@mui/material';
 import { useRouter } from 'next/router';
+import React, { useState } from 'react';
+import { useChainId, useSwitchChain } from 'wagmi';
+
 import { useRootStore } from '../store/root';
-import { availableMarkets, marketsData, getNetworkConfig, ENABLE_TESTNET, NetworkConfig } from '../utils/marketsAndNetworksConfig';
+import {
+  availableMarkets,
+  ENABLE_TESTNET,
+  getNetworkConfig,
+  marketsData,
+  NetworkConfig,
+} from '../utils/marketsAndNetworksConfig';
 import { ROUTES } from './primitives/Link';
 
 export default function NetworkSelector() {
@@ -25,9 +21,6 @@ export default function NetworkSelector() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
-  const { breakpoints } = useTheme();
-  const isMobile = useMediaQuery(breakpoints.down('md'));
-
   // Get current network config using unified configuration
   const getCurrentNetworkConfig = () => {
     return getNetworkConfig(chainId || 747); // Default to Flow EVM
@@ -36,20 +29,23 @@ export default function NetworkSelector() {
   const currentNetworkConfig = getCurrentNetworkConfig();
 
   // Get available networks from available markets
-  const marketNetworks = availableMarkets.map(marketId => {
-    const marketData = marketsData[marketId];
-    const networkConfig = getNetworkConfig(marketData.chainId);
-    return {
-      marketId,
-      marketData,
-      networkConfig,
-      isMarket: true,
-    };
-  }).filter((network, index, self) =>
-    // Remove duplicates based on chainId and filter testnet in production
-    index === self.findIndex(n => n.marketData.chainId === network.marketData.chainId) &&
-    (ENABLE_TESTNET || !network.networkConfig.isTestnet)
-  );
+  const marketNetworks = availableMarkets
+    .map((marketId) => {
+      const marketData = marketsData[marketId];
+      const networkConfig = getNetworkConfig(marketData.chainId);
+      return {
+        marketId,
+        marketData,
+        networkConfig,
+        isMarket: true,
+      };
+    })
+    .filter(
+      (network, index, self) =>
+        // Remove duplicates based on chainId and filter testnet in production
+        index === self.findIndex((n) => n.marketData.chainId === network.marketData.chainId) &&
+        (ENABLE_TESTNET || !network.networkConfig.isTestnet)
+    );
 
   /* DISABLED FOR NOW
   // Add Ethereum mainnet for bridging (even though it's not a market)
@@ -96,7 +92,7 @@ export default function NetworkSelector() {
     setAnchorEl(null);
   };
 
-  const handleNetworkSwitch = async (network: typeof availableNetworks[0]) => {
+  const handleNetworkSwitch = async (network: (typeof availableNetworks)[0]) => {
     try {
       // Check if we're currently on a vault detail page
       const isOnVaultPage = router.pathname === '/vault-detail';
@@ -108,9 +104,13 @@ export default function NetworkSelector() {
       // and only if it's a market network (not Ethereum)
       if (network.isMarket && network.marketId) {
         setCurrentMarket(network.marketId, true);
-        console.log(`Switched to market: ${network.marketId} on network: ${network.marketData.chainId}`);
+        console.log(
+          `Switched to market: ${network.marketId} on network: ${network.marketData.chainId}`
+        );
       } else {
-        console.log(`Switched to non-market network: ${network.marketData.chainId} (${network.networkConfig.name})`);
+        console.log(
+          `Switched to non-market network: ${network.marketData.chainId} (${network.networkConfig.name})`
+        );
       }
 
       // If user manually switches network while on vault page, redirect to vaults list
@@ -135,48 +135,19 @@ export default function NetworkSelector() {
     <>
       <Button
         onClick={handleClick}
-        variant="surface"
+        variant="outlined"
         sx={{
-          p: '7px 8px',
+          p: 0,
           minWidth: 'unset',
-          maxWidth: { xs: '120px', sm: '140px', md: '180px' },
-          height: '36px',
-          gap: 1,
-          alignItems: 'center',
-          mr: 2,
-          overflow: 'hidden', // Ensure button itself doesn't overflow
-          bgcolor: 'background.surface',
-          '&:hover': {
-            bgcolor: 'background.surface3',
-          },
-          color: 'text.primary',
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          overflow: 'hidden',
         }}
-        endIcon={
-          <SvgIcon>
-            {open ? <ChevronUpIcon /> : <ChevronDownIcon />}
-          </SvgIcon>
-        }
+        title={getNetworkDisplayName(currentNetworkConfig)}
         aria-label="Network selector"
       >
-        <Avatar
-          src={currentNetworkConfig.networkLogoPath}
-          sx={{ width: 20, height: 20 }}
-        />
-        {!isMobile && (
-          <Typography
-            variant="subheader2"
-            title={getNetworkDisplayName(currentNetworkConfig)} // Show full name on hover
-            sx={{
-              fontSize: '14px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              maxWidth: { xs: '80px', sm: '100px', md: '120px' } // Responsive width
-            }}
-          >
-            {getNetworkDisplayName(currentNetworkConfig)}
-          </Typography>
-        )}
+        <Avatar src={currentNetworkConfig.networkLogoPath} sx={{ width: 22, height: 22 }} />
       </Button>
 
       <Menu
@@ -203,10 +174,7 @@ export default function NetworkSelector() {
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Avatar
-                src={network.networkConfig.networkLogoPath}
-                sx={{ width: 20, height: 20 }}
-              />
+              <Avatar src={network.networkConfig.networkLogoPath} sx={{ width: 20, height: 20 }} />
               <Box>
                 <Typography variant="secondary14">
                   {getNetworkDisplayName(network.networkConfig)}
@@ -228,4 +196,4 @@ export default function NetworkSelector() {
       </Menu>
     </>
   );
-} 
+}

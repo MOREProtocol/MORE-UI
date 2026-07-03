@@ -1,27 +1,35 @@
-import { Box, Button, IconButton, Typography, Collapse, Switch, Tooltip } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import { useMemo, useState } from 'react';
+import { ChainId, InterestRate } from '@aave/contract-helpers';
 import { normalize, UserIncentiveData, valueToBigNumber } from '@aave/math-utils';
-import { UserAccruingReward, useUserPoolReservesRewardsHumanized } from 'src/hooks/pool/useUserPoolReservesRewards';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { Box, Button, Collapse, IconButton, Switch, Tooltip, Typography } from '@mui/material';
+import { useMemo, useState } from 'react';
+import { IncentivesCard } from 'src/components/incentives/IncentivesCard';
 import { BaseDataGrid, ColumnDefinition } from 'src/components/primitives/DataGrid';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
-import { UsdChip } from 'src/components/primitives/UsdChip';
-import { IncentivesCard } from 'src/components/incentives/IncentivesCard';
+import { Link } from 'src/components/primitives/Link';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
-import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
-import { PositionRow } from './types';
-import { useReserveMap, useRewardsMaps, sumIncentivesApr, sumRewardsApr } from './hooks';
-import { useModalContext } from 'src/hooks/useModal';
-import { ChainId, InterestRate } from '@aave/contract-helpers';
-import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
-import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableToSupply';
-import { getMaxAmountAvailableToBorrow, assetCanBeBorrowedByUser } from 'src/utils/getMaxAmountAvailableToBorrow';
-import { useRootStore } from 'src/store/root';
-import { GENERAL } from 'src/utils/mixPanelEvents';
+import { UsdChip } from 'src/components/primitives/UsdChip';
 import { TextWithTooltip } from 'src/components/TextWithTooltip';
 import { EmodeModalType } from 'src/components/transactions/Emode/EmodeModalContent';
-import { Link } from 'src/components/primitives/Link';
+import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
+import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
+import {
+  UserAccruingReward,
+  useUserPoolReservesRewardsHumanized,
+} from 'src/hooks/pool/useUserPoolReservesRewards';
+import { useModalContext } from 'src/hooks/useModal';
+import { useRootStore } from 'src/store/root';
+import {
+  assetCanBeBorrowedByUser,
+  getMaxAmountAvailableToBorrow,
+} from 'src/utils/getMaxAmountAvailableToBorrow';
+import { getMaxAmountAvailableToSupply } from 'src/utils/getMaxAmountAvailableToSupply';
+import { GENERAL } from 'src/utils/mixPanelEvents';
+import { FONT_DISPLAY } from 'src/utils/theme';
+
+import { sumIncentivesApr, sumRewardsApr, useReserveMap, useRewardsMaps } from './hooks';
+import { PositionRow } from './types';
 
 export function MyPositions() {
   const { user, loading, reserves } = useAppDataContext();
@@ -29,10 +37,13 @@ export function MyPositions() {
   const [headerHovered, setHeaderHovered] = useState(false);
   const reserveByUnderlying = useReserveMap();
   const { rewardsByAddress } = useRewardsMaps();
-  const { openSupply, openWithdraw, openBorrow, openRepay, openClaimRewards, openEmode } = useModalContext();
+  const { openSupply, openWithdraw, openBorrow, openRepay, openClaimRewards, openEmode } =
+    useModalContext();
   const { currentMarket, trackEvent, currentMarketData, currentNetworkConfig } = useRootStore();
   const account = useRootStore((s) => s.account);
-  const minRemainingBaseTokenBalance = useRootStore((s) => s.poolComputed.minRemainingBaseTokenBalance);
+  const minRemainingBaseTokenBalance = useRootStore(
+    (s) => s.poolComputed.minRemainingBaseTokenBalance
+  );
   const { walletBalances } = useWalletBalances(currentMarketData);
   const ltv = useMemo(() => {
     const collateralRef = user?.totalCollateralMarketReferenceCurrency || '0';
@@ -43,44 +54,44 @@ export function MyPositions() {
 
   const { claimableRewardsUsd } = user
     ? Object.keys(user.calculatedUserIncentives).reduce(
-      (acc, rewardTokenAddress) => {
-        const incentive: UserIncentiveData = user.calculatedUserIncentives[rewardTokenAddress];
-        const rewardBalance = normalize(
-          incentive.claimableRewards,
-          incentive.rewardTokenDecimals
-        );
+        (acc, rewardTokenAddress) => {
+          const incentive: UserIncentiveData = user.calculatedUserIncentives[rewardTokenAddress];
+          const rewardBalance = normalize(
+            incentive.claimableRewards,
+            incentive.rewardTokenDecimals
+          );
 
-        let tokenPrice = 0;
-        // getting price from reserves for the native rewards for v2 markets
-        if (!currentMarketData.v3 && Number(rewardBalance) > 0) {
-          if (currentMarketData.chainId === ChainId.mainnet) {
-            const moreToken = reserves.find((reserve) => reserve.symbol === 'MORE');
-            tokenPrice = moreToken ? Number(moreToken.priceInUSD) : 0;
+          let tokenPrice = 0;
+          // getting price from reserves for the native rewards for v2 markets
+          if (!currentMarketData.v3 && Number(rewardBalance) > 0) {
+            if (currentMarketData.chainId === ChainId.mainnet) {
+              const moreToken = reserves.find((reserve) => reserve.symbol === 'MORE');
+              tokenPrice = moreToken ? Number(moreToken.priceInUSD) : 0;
+            } else {
+              reserves.forEach((reserve) => {
+                if (reserve.symbol === currentNetworkConfig.wrappedBaseAssetSymbol) {
+                  tokenPrice = Number(reserve.priceInUSD);
+                }
+              });
+            }
           } else {
-            reserves.forEach((reserve) => {
-              if (reserve.symbol === currentNetworkConfig.wrappedBaseAssetSymbol) {
-                tokenPrice = Number(reserve.priceInUSD);
-              }
-            });
-          }
-        } else {
-          tokenPrice = Number(incentive.rewardPriceFeed);
-        }
-
-        const rewardBalanceUsd = Number(rewardBalance) * tokenPrice;
-
-        if (rewardBalanceUsd > 0) {
-          if (acc.assets.indexOf(incentive.rewardTokenSymbol) === -1) {
-            acc.assets.push(incentive.rewardTokenSymbol);
+            tokenPrice = Number(incentive.rewardPriceFeed);
           }
 
-          acc.claimableRewardsUsd += Number(rewardBalanceUsd);
-        }
+          const rewardBalanceUsd = Number(rewardBalance) * tokenPrice;
 
-        return acc;
-      },
-      { claimableRewardsUsd: 0, assets: [] } as { claimableRewardsUsd: number; assets: string[] }
-    )
+          if (rewardBalanceUsd > 0) {
+            if (acc.assets.indexOf(incentive.rewardTokenSymbol) === -1) {
+              acc.assets.push(incentive.rewardTokenSymbol);
+            }
+
+            acc.claimableRewardsUsd += Number(rewardBalanceUsd);
+          }
+
+          return acc;
+        },
+        { claimableRewardsUsd: 0, assets: [] } as { claimableRewardsUsd: number; assets: string[] }
+      )
     : { claimableRewardsUsd: 0 };
 
   // Rewards summary (adapted from DashboardTopPanel)
@@ -95,17 +106,25 @@ export function MyPositions() {
     ? new Date(lastAccruingUpdateAt > 1e12 ? lastAccruingUpdateAt : lastAccruingUpdateAt * 1000)
     : undefined;
   const claimableRewardsUsdNew = distributedRewards.reduce((acc, r) => {
-    const reserve = (reserves || []).find((res) => res.underlyingAsset.toLowerCase() === r.reward_token_address.toLowerCase());
+    const reserve = (reserves || []).find(
+      (res) => res.underlyingAsset.toLowerCase() === r.reward_token_address.toLowerCase()
+    );
     const decimals = reserve ? Number(reserve.decimals || 18) : 18;
     const price = reserve ? Number(reserve.priceInUSD || 0) : 0;
-    const netTokens = valueToBigNumber(r.net_claimable_amount).dividedBy(valueToBigNumber(10).pow(decimals));
+    const netTokens = valueToBigNumber(r.net_claimable_amount).dividedBy(
+      valueToBigNumber(10).pow(decimals)
+    );
     return acc + netTokens.multipliedBy(price).toNumber();
   }, 0);
   const accruingRewardsUsdNew = accruingRewards.reduce((acc, r) => {
-    const reserve = (reserves || []).find((res) => res.underlyingAsset.toLowerCase() === r.reward_token_address.toLowerCase());
+    const reserve = (reserves || []).find(
+      (res) => res.underlyingAsset.toLowerCase() === r.reward_token_address.toLowerCase()
+    );
     const decimals = reserve ? Number(reserve.decimals || 18) : 18;
     const price = reserve ? Number(reserve.priceInUSD || 0) : 0;
-    const estTokens = valueToBigNumber(r.amount_wei_estimated).dividedBy(valueToBigNumber(10).pow(decimals));
+    const estTokens = valueToBigNumber(r.amount_wei_estimated).dividedBy(
+      valueToBigNumber(10).pow(decimals)
+    );
     return acc + estTokens.multipliedBy(price).toNumber();
   }, 0);
   const totalClaimableUsd = claimableRewardsUsd + claimableRewardsUsdNew;
@@ -116,7 +135,10 @@ export function MyPositions() {
       .filter((ur) => ur.underlyingBalance !== '0')
       .map((ur) => {
         const reserve = reserveByUnderlying.get(ur.reserve.underlyingAsset.toLowerCase());
-        const baseApy = typeof ur.reserve.supplyAPY === 'number' ? ur.reserve.supplyAPY : parseFloat(String(ur.reserve.supplyAPY || 0));
+        const baseApy =
+          typeof ur.reserve.supplyAPY === 'number'
+            ? ur.reserve.supplyAPY
+            : parseFloat(String(ur.reserve.supplyAPY || 0));
         const rewards = rewardsByAddress.get((reserve?.underlyingAsset || '').toLowerCase());
         const incApr = sumIncentivesApr(reserve?.aIncentivesData);
         const rewApr = sumRewardsApr(rewards?.supply, 'supply');
@@ -145,9 +167,14 @@ export function MyPositions() {
         const variableUsd = parseFloat(ur.variableBorrowsUSD || '0');
         const stableUsd = parseFloat(ur.stableBorrowsUSD || '0');
         const reserve = reserveByUnderlying.get(ur.reserve.underlyingAsset.toLowerCase());
-        const baseApy = variableUsd > 0
-          ? (typeof ur.reserve.variableBorrowAPY === 'number' ? ur.reserve.variableBorrowAPY : parseFloat(String(ur.reserve.variableBorrowAPY || 0)))
-          : (typeof ur.reserve.stableBorrowAPY === 'number' ? ur.reserve.stableBorrowAPY : parseFloat(String(ur.reserve.stableBorrowAPY || 0)));
+        const baseApy =
+          variableUsd > 0
+            ? typeof ur.reserve.variableBorrowAPY === 'number'
+              ? ur.reserve.variableBorrowAPY
+              : parseFloat(String(ur.reserve.variableBorrowAPY || 0))
+            : typeof ur.reserve.stableBorrowAPY === 'number'
+            ? ur.reserve.stableBorrowAPY
+            : parseFloat(String(ur.reserve.stableBorrowAPY || 0));
         const rewards = rewardsByAddress.get((reserve?.underlyingAsset || '').toLowerCase());
         const incApr = sumIncentivesApr(reserve?.vIncentivesData);
         const rewApr = sumRewardsApr(rewards?.borrow, 'borrow');
@@ -169,7 +196,10 @@ export function MyPositions() {
   }, [user, reserveByUnderlying, rewardsByAddress]);
 
   const eligibilityByAsset = useMemo(() => {
-    const map = new Map<string, { disableSupply: boolean; disableBorrow: boolean; eModeBorrowDisabled?: boolean }>();
+    const map = new Map<
+      string,
+      { disableSupply: boolean; disableBorrow: boolean; eModeBorrowDisabled?: boolean }
+    >();
     (reserves || []).forEach((r) => {
       const asset = (r.underlyingAsset || '').toLowerCase();
       const balanceAmount = walletBalances?.[asset]?.amount || '0';
@@ -187,7 +217,9 @@ export function MyPositions() {
       );
       const userHasNoCollateralSupplied = user?.totalCollateralMarketReferenceCurrency === '0';
       const assetBorrowable = user ? assetCanBeBorrowedByUser(r, user) : false;
-      const eModeBorrowDisabled = !!(user?.isInEmode && r.eModeCategoryId !== user.userEmodeCategoryId);
+      const eModeBorrowDisabled = !!(
+        user?.isInEmode && r.eModeCategoryId !== user.userEmodeCategoryId
+      );
       const maxAmountToBorrow = user
         ? getMaxAmountAvailableToBorrow(r, user, InterestRate.Variable).toString()
         : '0';
@@ -203,156 +235,186 @@ export function MyPositions() {
     return map;
   }, [reserves, walletBalances, user, account, minRemainingBaseTokenBalance]);
 
-  const supplyColumns: ColumnDefinition<PositionRow>[] = useMemo(() => [
-    {
-      key: 'assetName',
-      label: 'Asset',
-      sortable: true,
-      render: (row) => (
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          justifyContent: { xs: 'flex-end', md: 'flex-start' },
-          flexDirection: { xs: 'row-reverse', md: 'row' }
-        }}>
-          {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
-          <Box sx={{ my: 1 }}>
-            <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
+  const supplyColumns: ColumnDefinition<PositionRow>[] = useMemo(
+    () => [
+      {
+        key: 'assetName',
+        label: 'Asset',
+        sortable: true,
+        render: (row) => (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              justifyContent: { xs: 'flex-end', md: 'flex-start' },
+              flexDirection: { xs: 'row-reverse', md: 'row' },
+            }}
+          >
+            {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
+            <Box sx={{ my: 1 }}>
+              <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>
+                {row.assetName}
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ textAlign: { xs: 'right', md: 'left' } }}
+              >
+                {row.assetSymbol}
+              </Typography>
+            </Box>
           </Box>
-        </Box>
-      ),
-    },
-    {
-      key: 'balance',
-      label: 'Balance',
-      sortable: true,
-      render: (row) => (
-        <Box sx={{
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 1.5
-        }}>
-          <FormattedNumber compact value={row.tokenBalance} variant="secondary14" />
-          <UsdChip value={row.balance} textVariant="secondary12" />
-        </Box>
-      ),
-    },
-    {
-      key: 'effectiveApy',
-      label: 'APY',
-      sortable: true,
-      render: (row) => (
-        <IncentivesCard
-          symbol={row.assetSymbol}
-          value={row.apy}
-          incentives={row.reserve?.aIncentivesData}
-          rewards={row.rewardsSupply}
-          variant="secondary14"
-          symbolsVariant="secondary14"
-          align="flex-start"
-        />
-      ),
-    },
-  ], []);
+        ),
+      },
+      {
+        key: 'balance',
+        label: 'Balance',
+        sortable: true,
+        render: (row) => (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 1.5,
+            }}
+          >
+            <FormattedNumber compact value={row.tokenBalance} variant="secondary14" />
+            <UsdChip value={row.balance} textVariant="secondary12" />
+          </Box>
+        ),
+      },
+      {
+        key: 'effectiveApy',
+        label: 'APY',
+        sortable: true,
+        render: (row) => (
+          <IncentivesCard
+            symbol={row.assetSymbol}
+            value={row.apy}
+            incentives={row.reserve?.aIncentivesData}
+            rewards={row.rewardsSupply}
+            variant="secondary14"
+            symbolsVariant="secondary14"
+            align="flex-start"
+          />
+        ),
+      },
+    ],
+    []
+  );
 
-  const borrowColumns: ColumnDefinition<PositionRow>[] = useMemo(() => [
-    {
-      key: 'assetName',
-      label: 'Asset',
-      sortable: true,
-      render: (row) => (
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          justifyContent: { xs: 'flex-end', md: 'flex-start' },
-          flexDirection: { xs: 'row-reverse', md: 'row' }
-        }}>
-          {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
-          <Box sx={{ my: 1 }}>
-            <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
+  const borrowColumns: ColumnDefinition<PositionRow>[] = useMemo(
+    () => [
+      {
+        key: 'assetName',
+        label: 'Asset',
+        sortable: true,
+        render: (row) => (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              justifyContent: { xs: 'flex-end', md: 'flex-start' },
+              flexDirection: { xs: 'row-reverse', md: 'row' },
+            }}
+          >
+            {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
+            <Box sx={{ my: 1 }}>
+              <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>
+                {row.assetName}
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ textAlign: { xs: 'right', md: 'left' } }}
+              >
+                {row.assetSymbol}
+              </Typography>
+            </Box>
           </Box>
-        </Box>
-      ),
-    },
-    {
-      key: 'balance',
-      label: 'Debt',
-      sortable: true,
-      render: (row) => (
-        <Box sx={{
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 1.5
-        }}>
-          <FormattedNumber compact value={row.tokenBalance} variant="secondary14" />
-          <UsdChip value={row.balance} textVariant="secondary12" />
-        </Box>
-      ),
-    },
-    {
-      key: 'effectiveApy',
-      label: 'Borrow APY',
-      sortable: true,
-      render: (row) => (
-        <IncentivesCard
-          symbol={row.assetSymbol}
-          value={row.apy}
-          incentives={row.reserve?.vIncentivesData}
-          rewards={row.rewardsBorrow}
-          variant="secondary14"
-          symbolsVariant="secondary14"
-          align="flex-start"
-        />
-      ),
-    },
-    {
-      key: 'lltv',
-      label: 'LLTV',
-      sortable: true,
-      render: (row) => (
-        <FormattedNumber
-          value={Number(row.reserve?.formattedReserveLiquidationThreshold ?? 0)}
-          percent
-          variant="secondary14"
-          symbolsVariant="secondary14"
-        />
-      ),
-    },
-    {
-      key: 'utilization',
-      label: 'Utilization',
-      sortable: true,
-      render: (row) => (
-        <FormattedNumber
-          value={Number(row.utilization ?? row.reserve?.borrowUsageRatio ?? 0)}
-          percent
-          variant="secondary14"
-          symbolsVariant="secondary14"
-        />
-      ),
-    },
-  ], []);
+        ),
+      },
+      {
+        key: 'balance',
+        label: 'Debt',
+        sortable: true,
+        render: (row) => (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 1.5,
+            }}
+          >
+            <FormattedNumber compact value={row.tokenBalance} variant="secondary14" />
+            <UsdChip value={row.balance} textVariant="secondary12" />
+          </Box>
+        ),
+      },
+      {
+        key: 'effectiveApy',
+        label: 'Borrow APY',
+        sortable: true,
+        render: (row) => (
+          <IncentivesCard
+            symbol={row.assetSymbol}
+            value={row.apy}
+            incentives={row.reserve?.vIncentivesData}
+            rewards={row.rewardsBorrow}
+            variant="secondary14"
+            symbolsVariant="secondary14"
+            align="flex-start"
+          />
+        ),
+      },
+      {
+        key: 'lltv',
+        label: 'LLTV',
+        sortable: true,
+        render: (row) => (
+          <FormattedNumber
+            value={Number(row.reserve?.formattedReserveLiquidationThreshold ?? 0)}
+            percent
+            variant="secondary14"
+            symbolsVariant="secondary14"
+          />
+        ),
+      },
+      {
+        key: 'utilization',
+        label: 'Utilization',
+        sortable: true,
+        render: (row) => (
+          <FormattedNumber
+            value={Number(row.utilization ?? row.reserve?.borrowUsageRatio ?? 0)}
+            percent
+            variant="secondary14"
+            symbolsVariant="secondary14"
+          />
+        ),
+      },
+    ],
+    []
+  );
 
   const hasPositionsOrRewards =
-    supplies.length > 0 ||
-    borrows.length > 0 ||
-    totalClaimableUsd > 0 ||
-    accruingRewardsUsdNew > 0;
+    supplies.length > 0 || borrows.length > 0 || totalClaimableUsd > 0 || accruingRewardsUsdNew > 0;
   if (!hasPositionsOrRewards) return null;
 
   return (
     <Box
       sx={{
-        backgroundColor: headerHovered ? 'background.surface2' : (myPositionsOpen ? 'background.surface3' : 'background.surface'),
+        backgroundColor: 'background.paper',
+        border: '1px solid',
+        borderColor: headerHovered ? 'primary.main' : 'divider',
+        transition: 'border-color 150ms ease',
         p: 3,
-        borderRadius: 2,
-        mb: { xs: 4, md: 6 }
+        borderRadius: '20px',
+        mb: { xs: 4, md: 5 },
       }}
     >
       <Box
@@ -366,12 +428,15 @@ export function MyPositions() {
           justifyContent: 'space-between',
           cursor: 'pointer',
           gap: { xs: 3, md: 0 },
-        }}>
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography sx={{ typography: { xs: 'main16', md: 'main21' }, color: 'primary.main' }}>
-            My Positions
+          <Typography
+            sx={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 18, color: 'text.primary' }}
+          >
+            Your positions
           </Typography>
-          <IconButton aria-label="Toggle My Positions" size="small">
+          <IconButton aria-label="Toggle Your positions" size="small">
             {myPositionsOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </Box>
@@ -383,10 +448,13 @@ export function MyPositions() {
             alignItems: 'flex-start',
             justifyContent: { xs: 'space-between', md: 'flex-start' },
             gap: { xs: 3, md: 10 },
-            flexWrap: 'wrap'
-          }}>
+            flexWrap: 'wrap',
+          }}
+        >
           <Box>
-            <Typography variant="secondary14" color="text.secondary">Net Worth</Typography>
+            <Typography variant="secondary14" color="text.secondary">
+              Net Worth
+            </Typography>
             <FormattedNumber
               value={Number(user?.netWorthUSD || 0)}
               symbol="USD"
@@ -398,7 +466,9 @@ export function MyPositions() {
             />
           </Box>
           <Box>
-            <Typography variant="secondary14" color="text.secondary">Net APY</Typography>
+            <Typography variant="secondary14" color="text.secondary">
+              Net APY
+            </Typography>
             <FormattedNumber
               value={Number(user?.netAPY || 0)}
               percent
@@ -409,19 +479,29 @@ export function MyPositions() {
           </Box>
           {user?.healthFactor !== '-1' && (
             <Box>
-              <Typography variant="secondary14" color="text.secondary">Health Factor</Typography>
+              <Typography variant="secondary14" color="text.secondary">
+                Health Factor
+              </Typography>
               <FormattedNumber
                 value={Number(user?.healthFactor || 0)}
                 variant="main16"
                 symbolsVariant="secondary16"
-                color={Number(user?.healthFactor || 0) >= 3 ? 'success.main' : Number(user?.healthFactor || 0) < 1.1 ? 'error.main' : 'warning.main'}
+                color={
+                  Number(user?.healthFactor || 0) >= 3
+                    ? 'success.main'
+                    : Number(user?.healthFactor || 0) < 1.1
+                    ? 'error.main'
+                    : 'warning.main'
+                }
                 sx={{ fontWeight: 800 }}
               />
             </Box>
           )}
           {totalClaimableUsd > 0 && (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <Typography variant="secondary14" color="text.secondary">Available Rewards</Typography>
+              <Typography variant="secondary14" color="text.secondary">
+                Available Rewards
+              </Typography>
               <Box
                 sx={{
                   display: 'flex',
@@ -433,11 +513,11 @@ export function MyPositions() {
                 <Box sx={{ display: 'flex', alignItems: 'center' }} data-cy={'Claim_Box'}>
                   <FormattedNumber
                     value={totalClaimableUsd}
-                    variant='main16'
+                    variant="main16"
                     visibleDecimals={2}
                     compact
                     symbol="USD"
-                    symbolsVariant='secondary16'
+                    symbolsVariant="secondary16"
                     sx={{ fontWeight: 800 }}
                   />
                 </Box>
@@ -466,16 +546,25 @@ export function MyPositions() {
                 <TextWithTooltip iconMargin={0.5}>
                   <>
                     {accruingRewards.map((reward) => {
-                      const reserve = reserves.find((reserve) => reserve.underlyingAsset.toLowerCase() === reward.reward_token_address.toLowerCase());
+                      const reserve = reserves.find(
+                        (reserve) =>
+                          reserve.underlyingAsset.toLowerCase() ===
+                          reward.reward_token_address.toLowerCase()
+                      );
                       const decimals = reserve ? Number(reserve.decimals || 18) : 18;
                       return (
-                        <Box key={reward.reward_token_address} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          key={reward.reward_token_address}
+                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                        >
                           <TokenIcon
                             symbol={reserve?.symbol || ''}
                             sx={{ fontSize: `12px`, ml: -1 }}
                           />
                           <FormattedNumber
-                            value={valueToBigNumber(reward.amount_wei_estimated).dividedBy(valueToBigNumber(10).pow(decimals)).toString()}
+                            value={valueToBigNumber(reward.amount_wei_estimated)
+                              .dividedBy(valueToBigNumber(10).pow(decimals))
+                              .toString()}
                             compact
                             toggleCompactOnClick
                             visibleDecimals={2}
@@ -483,7 +572,7 @@ export function MyPositions() {
                             variant="secondary12"
                           />
                         </Box>
-                      )
+                      );
                     })}
                     {lastAccruingUpdateAtDate && (
                       <Typography variant="secondary12" color="text.main" pt={1}>
@@ -495,11 +584,11 @@ export function MyPositions() {
               </Box>
               <FormattedNumber
                 value={accruingRewardsUsdNew}
-                variant='main16'
+                variant="main16"
                 visibleDecimals={2}
                 compact
                 symbol="USD"
-                symbolsVariant='secondary16'
+                symbolsVariant="secondary16"
                 sx={{ fontWeight: 800 }}
               />
             </Box>
@@ -508,30 +597,40 @@ export function MyPositions() {
       </Box>
 
       <Collapse in={myPositionsOpen} timeout="auto" unmountOnExit>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 5, mt: 5 }}>
-
+        <Box
+          sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 5, mt: 5 }}
+        >
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: 'background.surface',
-              p: 3,
-              borderRadius: 2,
-              mb: { xs: 4, md: 6 }
-            }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: 'background.surface',
+                p: 3,
+                borderRadius: 2,
+                mb: { xs: 4, md: 6 },
+              }}
+            >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography
                   sx={{
                     typography: { xs: 'main16', md: 'main21' },
                     textAlign: { xs: 'center', md: 'left' },
-                    color: 'primary.main'
+                    color: 'primary.main',
                   }}
                 >
                   My Supplies
                 </Typography>
               </Box>
-              <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: { xs: 2, md: 10 } }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: { xs: 2, md: 10 },
+                }}
+              >
                 <Box>
                   <Typography variant="secondary14" color="text.secondary">
                     My Total Supply
@@ -584,20 +683,37 @@ export function MyPositions() {
                 defaultSortOrder={'desc'}
                 actionColumn={{
                   render: (row) => (
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'stretch', md: 'flex-end' }, width: '100%' }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        gap: 1,
+                        justifyContent: { xs: 'stretch', md: 'flex-end' },
+                        width: '100%',
+                      }}
+                    >
                       <Button
                         size="medium"
                         variant="gradient"
                         disabled={
                           !row.reserve ||
-                          (row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableSupply) ||
+                          (row.reserve &&
+                            eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableSupply) ||
                           false
                         }
                         sx={{ width: { xs: '100%', md: 'auto' } }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (row.reserve) openSupply(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
-                          trackEvent(GENERAL.OPEN_MODAL, { modal: 'Supply', assetName: row.assetName });
+                          if (row.reserve)
+                            openSupply(
+                              row.reserve.underlyingAsset,
+                              currentMarket,
+                              row.assetName,
+                              'dashboard'
+                            );
+                          trackEvent(GENERAL.OPEN_MODAL, {
+                            modal: 'Supply',
+                            assetName: row.assetName,
+                          });
                         }}
                       >
                         Supply
@@ -608,8 +724,17 @@ export function MyPositions() {
                         sx={{ width: { xs: '100%', md: 'auto' } }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (row.reserve) openWithdraw(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
-                          trackEvent(GENERAL.OPEN_MODAL, { modal: 'Withdraw', assetName: row.assetName });
+                          if (row.reserve)
+                            openWithdraw(
+                              row.reserve.underlyingAsset,
+                              currentMarket,
+                              row.assetName,
+                              'dashboard'
+                            );
+                          trackEvent(GENERAL.OPEN_MODAL, {
+                            modal: 'Withdraw',
+                            assetName: row.assetName,
+                          });
                         }}
                       >
                         Withdraw
@@ -628,27 +753,36 @@ export function MyPositions() {
           </Box>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: 'background.surface',
-              p: 3,
-              borderRadius: 2,
-              mb: { xs: 4, md: 6 }
-            }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: 'background.surface',
+                p: 3,
+                borderRadius: 2,
+                mb: { xs: 4, md: 6 },
+              }}
+            >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography
                   sx={{
                     typography: { xs: 'main16', md: 'main21' },
                     textAlign: { xs: 'center', md: 'left' },
-                    color: 'primary.main'
+                    color: 'primary.main',
                   }}
                 >
                   My Borrows
                 </Typography>
               </Box>
-              <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: { xs: 2, md: 10 } }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: { xs: 2, md: 10 },
+                }}
+              >
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="secondary14" color="text.secondary">
@@ -670,7 +804,7 @@ export function MyPositions() {
                   </Box>
                   <Switch
                     checked={(user?.userEmodeCategoryId || 0) !== 0}
-                    size='small'
+                    size="small"
                     onClick={(e) => {
                       e.stopPropagation();
                       const isInEmode = (user?.userEmodeCategoryId || 0) !== 0;
@@ -732,14 +866,32 @@ export function MyPositions() {
                 defaultSortOrder={'desc'}
                 actionColumn={{
                   render: (row) => {
-                    const eModeDisabled = !!(row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.eModeBorrowDisabled);
-                    const isDisabled = !row.reserve || (row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableBorrow) || false;
+                    const eModeDisabled = !!(
+                      row.reserve &&
+                      eligibilityByAsset.get(row.reserve.underlyingAsset)?.eModeBorrowDisabled
+                    );
+                    const isDisabled =
+                      !row.reserve ||
+                      (row.reserve &&
+                        eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableBorrow) ||
+                      false;
                     const title = eModeDisabled
                       ? 'In E-Mode some assets are not borrowable. Exit MOST Mode to get access to all assets'
                       : '';
                     return (
-                      <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'stretch', md: 'flex-end' }, width: '100%' }}>
-                        <Tooltip title={title} disableHoverListener={!eModeDisabled} placement="top">
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          gap: 1,
+                          justifyContent: { xs: 'stretch', md: 'flex-end' },
+                          width: '100%',
+                        }}
+                      >
+                        <Tooltip
+                          title={title}
+                          disableHoverListener={!eModeDisabled}
+                          placement="top"
+                        >
                           <span>
                             <Button
                               size="medium"
@@ -748,8 +900,17 @@ export function MyPositions() {
                               sx={{ width: { xs: '100%', md: 'auto' } }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (row.reserve) openBorrow(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
-                                trackEvent(GENERAL.OPEN_MODAL, { modal: 'Borrow', assetName: row.assetName });
+                                if (row.reserve)
+                                  openBorrow(
+                                    row.reserve.underlyingAsset,
+                                    currentMarket,
+                                    row.assetName,
+                                    'dashboard'
+                                  );
+                                trackEvent(GENERAL.OPEN_MODAL, {
+                                  modal: 'Borrow',
+                                  assetName: row.assetName,
+                                });
                               }}
                             >
                               Borrow
@@ -763,9 +924,19 @@ export function MyPositions() {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (row.reserve) {
-                              openRepay(row.reserve.underlyingAsset, InterestRate.Variable, row.reserve.isFrozen, currentMarket, row.assetName, 'dashboard');
+                              openRepay(
+                                row.reserve.underlyingAsset,
+                                InterestRate.Variable,
+                                row.reserve.isFrozen,
+                                currentMarket,
+                                row.assetName,
+                                'dashboard'
+                              );
                             }
-                            trackEvent(GENERAL.OPEN_MODAL, { modal: 'Repay', assetName: row.assetName });
+                            trackEvent(GENERAL.OPEN_MODAL, {
+                              modal: 'Repay',
+                              assetName: row.assetName,
+                            });
                           }}
                         >
                           Repay
@@ -788,5 +959,3 @@ export function MyPositions() {
     </Box>
   );
 }
-
-

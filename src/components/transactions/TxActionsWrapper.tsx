@@ -161,10 +161,11 @@ export const TxActionsWrapper = ({
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Button
           variant="contained"
+          fullWidth
           disabled={disabled || blocked || readOnlyModeAddress !== undefined}
           onClick={handleClick}
           size="large"
-          sx={{ minHeight: '44px', ...(approvalParams ? { mt: 2 } : {}) }}
+          sx={{ minHeight: '52px', borderRadius: '22px', ...(approvalParams ? { mt: 2 } : {}) }}
           data-cy="actionButton"
         >
           {loading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}

@@ -62,7 +62,7 @@ export default function AnalyticsBanner() {
           padding: '16px 16px',
           zIndex: 100,
           borderRadius: '12px',
-          border: '0.5px solid rgba(235, 235, 239, 0.42)',
+          border: `1px solid ${theme.palette.divider}`,
           boxShadow: '0px 0px 2px rgba(0, 0, 0, 0.2), 0px 2px 10px rgba(0, 0, 0, 0.1)',
           transition: 'transform 0.5s ease-out', // Add this
 
@@ -73,34 +73,30 @@ export default function AnalyticsBanner() {
             : 'translateX(100%) translateY(100%)',
         }}
         buttonStyle={{
-          background: theme.palette.mode === 'dark' ? '#F7F7F9' : '#383D51',
-          color: theme.palette.mode === 'dark' ? '#383D51' : '#F7F7F9',
-
+          background: theme.palette.primary.main,
+          color: theme.palette.primary.contrastText,
+          fontFamily: 'Inter',
           fontSize: '14px',
-          borderRadius: '4px',
+          borderRadius: '8px',
           margin: '0px',
-          border: '1px solid #000',
+          border: `1px solid ${theme.palette.primary.main}`,
           width: '172px',
           height: '36px',
           fontWeight: '700',
           cursor: 'pointer',
         }}
         declineButtonStyle={{
-          // background:  '#F7F7F9',
-          background: theme.palette.mode === 'dark' ? '#383D51' : '#F7F7F9',
-          color: theme.palette.mode === 'dark' ? '#EAEBEF' : '#383D51',
-
+          background: theme.palette.background.surface,
+          color: theme.palette.text.primary,
           fontFamily: 'Inter',
           fontWeight: '500',
           lineHeight: '24px',
           fontSize: '14px',
-          borderRadius: '4px',
+          borderRadius: '8px',
           margin: '10px',
-          // padding: '10px 20px',
-          border: `1px solid ${theme.palette.mode === 'dark' ? '#383D51' : '#EAEBEF'}`,
+          border: `1px solid ${theme.palette.divider}`,
           width: '172px',
           height: '36px',
-          // padding: '0px',
           cursor: 'pointer',
         }}
         enableDeclineButton

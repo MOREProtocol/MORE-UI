@@ -11,9 +11,7 @@ export default function Vaults() {
       'Page Name': 'Vaults',
     });
   }, [trackEvent]);
-  return (
-    <VaultAssetsListContainer />
-  );
+  return <VaultAssetsListContainer />;
 }
 
 Vaults.getLayout = function getLayout(page: React.ReactElement) {

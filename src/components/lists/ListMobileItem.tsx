@@ -1,4 +1,4 @@
-import { Box, Divider, Skeleton, Typography } from '@mui/material';
+import { Box, Skeleton, Typography } from '@mui/material';
 import { ReactNode } from 'react';
 import { IsolatedEnabledBadge } from 'src/components/isolationMode/IsolatedBadge';
 import { useAssetCaps } from 'src/hooks/useAssetCaps';
@@ -39,8 +39,18 @@ export const ListMobileItem = ({
   const { supplyCap, borrowCap, debtCeiling } = useAssetCaps();
   return (
     <Box>
-      <Divider />
-      <Box sx={{ px: 4, pt: 4, pb: 6 }}>
+      <Box
+        sx={{
+          bgcolor: 'background.paper',
+          borderRadius: '20px',
+          border: '1px solid',
+          borderColor: 'divider',
+          mb: 3,
+          px: 4,
+          pt: 4,
+          pb: 6,
+        }}
+      >
         <Box sx={{ mb: 4, display: 'flex', alignItems: 'center' }}>
           {loading ? (
             <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>

@@ -1,38 +1,211 @@
-import { Box, Button, IconButton, Skeleton, SvgIcon, Tooltip, Typography, Menu, MenuItem, Switch } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { useRouter } from 'next/router';
-import { useEffect, useMemo, useState } from 'react';
-import { MainLayout } from 'src/layouts/MainLayout';
-import { useRootStore } from 'src/store/root';
-import { useAppDataContext, ComputedReserveData, ComputedUserReserveData } from 'src/hooks/app-data-provider/useAppDataProvider';
-import { TokenIconAddDropdown } from 'src/modules/reserve-overview/TokenIconAddDropdown';
-import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
-import { useModalContext } from 'src/hooks/useModal';
-import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
-import { SupplyInfo } from 'src/modules/reserve-overview/SupplyInfo';
-import { BorrowInfo } from 'src/modules/reserve-overview/BorrowInfo';
-import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
-import { AssetCapsProvider, useAssetCaps } from 'src/hooks/useAssetCaps';
-import { InterestRateModelGraphContainer } from 'src/modules/reserve-overview/graphs/InterestRateModelGraphContainer';
+import {
+  Box,
+  LinearProgress,
+  SvgIcon,
+  Switch,
+  Tab,
+  Tabs,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from '@mui/material';
+import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { UsdChip } from 'src/components/primitives/UsdChip';
+import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
+import {
+  ComputedReserveData,
+  ComputedUserReserveData,
+  useAppDataContext,
+} from 'src/hooks/app-data-provider/useAppDataProvider';
+import { AssetCapsProvider, useAssetCaps } from 'src/hooks/useAssetCaps';
+import { useModalContext } from 'src/hooks/useModal';
+import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
+import { MainLayout } from 'src/layouts/MainLayout';
+import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
+import { BorrowInfo } from 'src/modules/reserve-overview/BorrowInfo';
 import { CollateralUsage } from 'src/modules/reserve-overview/CollateralUsage';
 import { CollateralUsageHeader } from 'src/modules/reserve-overview/CollateralUsageHeader';
+import { ApyGraphContainer } from 'src/modules/reserve-overview/graphs/ApyGraphContainer';
+import { InterestRateModelGraphContainer } from 'src/modules/reserve-overview/graphs/InterestRateModelGraphContainer';
+import { ReserveActionsPanel } from 'src/modules/reserve-overview/ReserveActionsPanel';
+import { ReserveHeroCard } from 'src/modules/reserve-overview/ReserveHeroCard';
+import { SupplyInfo } from 'src/modules/reserve-overview/SupplyInfo';
+import { TokenIconAddDropdown } from 'src/modules/reserve-overview/TokenIconAddDropdown';
+import { useRootStore } from 'src/store/root';
+import { FONT_BODY, FONT_DISPLAY, FONT_MONO } from 'src/utils/theme';
+
+// Shared card shell for the Overview panels — transcribed from the mockup's
+// `.vault-panel` (surface + hairline border + 20px radius).
+const panelSx = {
+  backgroundColor: 'background.paper',
+  border: '1px solid',
+  borderColor: 'divider',
+  borderRadius: '20px',
+  p: { xs: '22px 20px', md: '28px 32px' },
+} as const;
+
+const PanelTitle = ({ children }: { children: React.ReactNode }) => (
+  <Typography
+    sx={{
+      fontFamily: FONT_DISPLAY,
+      fontSize: 18,
+      fontWeight: 600,
+      letterSpacing: '-0.01em',
+      color: 'text.primary',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 1,
+    }}
+  >
+    {children}
+  </Typography>
+);
+
+// Single reserve-status metric, rendered as a soft-surface tile (mockup
+// `market-tab-overview` stat grid). Numerals stay mono via FormattedNumber.
+const StatTile = ({
+  label,
+  value,
+  usd,
+  sub,
+}: {
+  label: string;
+  value: React.ReactNode;
+  usd?: string | number;
+  sub?: React.ReactNode;
+}) => (
+  <Box
+    sx={{
+      backgroundColor: 'background.surface',
+      border: '1px solid',
+      borderColor: 'divider',
+      borderRadius: '14px',
+      p: '16px 18px',
+      minWidth: 0,
+    }}
+  >
+    <Typography
+      sx={{
+        fontSize: 11,
+        fontWeight: 600,
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        color: 'text.secondary',
+      }}
+    >
+      {label}
+    </Typography>
+    <Box
+      sx={{
+        mt: 1.25,
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: 1,
+        flexWrap: 'wrap',
+        fontFamily: FONT_MONO,
+        fontSize: 22,
+        fontWeight: 600,
+        lineHeight: 1.1,
+        color: 'text.primary',
+      }}
+    >
+      {value}
+    </Box>
+    {usd !== undefined && (
+      <Box sx={{ mt: 1 }}>
+        <UsdChip value={usd} />
+      </Box>
+    )}
+    {sub && (
+      <Typography sx={{ mt: 0.75, fontFamily: FONT_MONO, fontSize: 12, color: 'text.secondary' }}>
+        {sub}
+      </Typography>
+    )}
+  </Box>
+);
+
+// Supply/borrow cap utilization bar shown below the stat tiles when a cap exists.
+const CapBar = ({
+  label,
+  pct,
+  used,
+  total,
+}: {
+  label: string;
+  pct: number;
+  used: React.ReactNode;
+  total: React.ReactNode;
+}) => (
+  <Box>
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        gap: 2,
+        mb: 1,
+      }}
+    >
+      <Typography variant="secondary14" color="text.secondary">
+        {label}
+      </Typography>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 0.75,
+          fontFamily: FONT_MONO,
+          fontSize: 13,
+          color: 'text.primary',
+        }}
+      >
+        {used}
+        <Box component="span" sx={{ color: 'text.secondary' }}>
+          of
+        </Box>
+        {total}
+      </Box>
+    </Box>
+    <LinearProgress
+      variant="determinate"
+      value={Math.min(100, Math.max(0, pct))}
+      sx={{
+        height: 6,
+        borderRadius: '9999px',
+        backgroundColor: 'divider',
+        '& .MuiLinearProgress-bar': { backgroundColor: 'primary.main', borderRadius: 'inherit' },
+      }}
+    />
+  </Box>
+);
 
 export default function ReserveOverview() {
   const router = useRouter();
   const { reserves, user } = useAppDataContext();
-  const { currentMarketData, currentNetworkConfig, currentMarket, currentChainId } = useProtocolDataContext();
-  const { currentAccount, addERC20Token, switchNetwork, chainId: connectedChainId } = useWeb3Context();
-  const { openSupply, openBorrow, openCollateralChange } = useModalContext();
+  const { currentMarketData, currentNetworkConfig, currentMarket, currentChainId } =
+    useProtocolDataContext();
+  const {
+    currentAccount,
+    addERC20Token,
+    switchNetwork,
+    chainId: connectedChainId,
+  } = useWeb3Context();
+  const { openCollateralChange } = useModalContext();
   const trackEvent = useRootStore((store) => store.trackEvent);
-  const [supplyMenuAnchor, setSupplyMenuAnchor] = useState<null | HTMLElement>(null);
 
-  const underlyingAsset = (router.query.underlyingAsset as string) || (router.query.vaultId as string) || (router.query.asset as string);
+  const underlyingAsset =
+    (router.query.underlyingAsset as string) ||
+    (router.query.vaultId as string) ||
+    (router.query.asset as string);
 
-  const reserve = reserves.find((r) => r.underlyingAsset === underlyingAsset) as ComputedReserveData | undefined;
+  const reserve = reserves.find((r) => r.underlyingAsset === underlyingAsset) as
+    | ComputedReserveData
+    | undefined;
 
   const [pageEventCalled, setPageEventCalled] = useState(false);
+  const [chartMode, setChartMode] = useState<'history' | 'model'>('history');
 
   useEffect(() => {
     if (!pageEventCalled && reserve && reserve.iconSymbol && underlyingAsset) {
@@ -45,180 +218,141 @@ export default function ReserveOverview() {
     }
   }, [trackEvent, reserve, underlyingAsset, pageEventCalled]);
 
-
-
-  const TopBar = useMemo(() => (
-    <Box sx={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2,
-      backgroundColor: 'background.surface', p: 3, borderRadius: 2
-    }}>
-      {/* Left: Back + Asset */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <SvgIcon sx={{ fontSize: '20px', cursor: 'pointer', color: 'primary.main', '&:hover': { color: 'primary.light' } }} onClick={() => router.push('/markets')}>
-          <ArrowBackRoundedIcon />
-        </SvgIcon>
-        {reserve ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <TokenIconAddDropdown
-              reserve={reserve}
-              switchNetwork={switchNetwork}
-              addERC20Token={addERC20Token}
-              currentChainId={currentChainId}
-              connectedChainId={connectedChainId}
-            />
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', flexDirection: 'column' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Typography variant="main21" sx={{ color: 'primary.main' }}>{reserve.name}</Typography>
-                <Tooltip title="View token contract" placement="top" arrow>
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      const url = currentNetworkConfig.explorerLinkBuilder({ address: reserve.underlyingAsset });
-                      window.open(url, '_blank');
-                    }}
-                    aria-label="open in explorer"
-                    sx={{ padding: '2px' }}
-                  >
-                    <OpenInNewIcon sx={{ fontSize: '0.875rem' }} />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-              <Tooltip title="Oracle price" placement="bottom" arrow>
-                <Box component="span" sx={{ display: 'inline-flex' }}>
-                  <UsdChip value={Number(reserve.priceInUSD || 0)} textVariant="secondary12" />
-                </Box>
-              </Tooltip>
-            </Box>
-
-          </Box>
-        ) : (
-          <Skeleton width={150} height={40} sx={{ my: 2 }} />
-        )}
-      </Box>
-
-      {/* Right: Actions */}
-      <Box sx={{ display: 'flex', alignItems: 'center', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
-        {currentAccount && reserve && (
-          <>
-            {reserve.isWrappedBaseAsset ? (
-              <>
-                <Button
-                  variant="gradient"
-                  color="primary"
-                  onClick={(e) => setSupplyMenuAnchor(e.currentTarget)}
-                >
-                  Supply
-                </Button>
-                <Menu
-                  anchorEl={supplyMenuAnchor}
-                  open={Boolean(supplyMenuAnchor)}
-                  onClose={() => setSupplyMenuAnchor(null)}
-                  PaperProps={{ sx: { minWidth: 'unset', width: 'auto' } }}
-                  anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
-                  transformOrigin={{ horizontal: 'left', vertical: 'top' }}
-                >
-                  <MenuItem
-                    onClick={() => {
-                      openSupply(API_ETH_MOCK_ADDRESS.toLowerCase(), currentMarket, reserve.name, 'reserve-page', true);
-                      setSupplyMenuAnchor(null);
-                    }}
-                  >
-                    {`Supply ${currentNetworkConfig.baseAssetSymbol}`}
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      openSupply(reserve.underlyingAsset, currentMarket, reserve.name, 'reserve-page', true);
-                      setSupplyMenuAnchor(null);
-                    }}
-                  >
-                    {`Supply ${reserve.symbol}`}
-                  </MenuItem>
-                </Menu>
-              </>
-            ) : (
-              <Button
-                variant="gradient"
-                color="primary"
-                onClick={() => openSupply(reserve.underlyingAsset, currentMarket, reserve.name, 'reserve-page', true)}
-              >
-                Supply
-              </Button>
-            )}
-            {reserve.borrowingEnabled && (() => {
-              const eModeBorrowDisabled = !!(user?.isInEmode && reserve.eModeCategoryId !== (user?.userEmodeCategoryId || 0));
-              const title = eModeBorrowDisabled
-                ? 'In MOST Mode some assets are not borrowable. Exit MOST Mode to get access to all assets'
-                : '';
-              return (
-                <Tooltip title={title} disableHoverListener={!eModeBorrowDisabled} placement="top">
-                  <span>
-                    <Button
-                      variant="gradient"
-                      color="primary"
-                      disabled={eModeBorrowDisabled}
-                      onClick={() => openBorrow(reserve.underlyingAsset, currentMarket, reserve.name, 'reserve-page', true)}
-                    >
-                      Borrow
-                    </Button>
-                  </span>
-                </Tooltip>
-              );
-            })()}
-          </>
-        )}
-      </Box>
-    </Box>
-  ), [reserve, currentAccount, openSupply, openBorrow, currentMarket, connectedChainId, currentChainId, currentNetworkConfig, supplyMenuAnchor]);
-
   if (!reserve) return null;
+
+  const explorerLink = currentNetworkConfig.explorerLinkBuilder({
+    address: reserve.underlyingAsset,
+  });
 
   return (
     <AssetCapsProvider asset={reserve}>
-      <Box sx={{
-        mt: { xs: 2, md: 3 },
-        px: { xs: 2, sm: 4, md: 6 },
-        pb: { xs: 4, md: 8 },
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4
-      }}>
-        {TopBar}
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: 1600,
+          mx: 'auto',
+          px: { xs: 2, md: 4 },
+          pt: { xs: 3, md: 3 },
+          pb: { xs: 6, md: 12 },
+        }}
+      >
+        {/* Slim top bar: back navigation + add-token / network-switch dropdown */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
+            mb: 2,
+          }}
+        >
+          <SvgIcon
+            sx={{
+              fontSize: '20px',
+              cursor: 'pointer',
+              color: 'text.secondary',
+              '&:hover': { color: 'text.primary' },
+            }}
+            onClick={() => router.push('/markets')}
+          >
+            <ArrowBackRoundedIcon />
+          </SvgIcon>
+          <TokenIconAddDropdown
+            reserve={reserve}
+            switchNetwork={switchNetwork}
+            addERC20Token={addERC20Token}
+            currentChainId={currentChainId}
+            connectedChainId={connectedChainId}
+          />
+        </Box>
 
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-          gap: 4
-        }}>
-          {/* Left column: Supply & Borrow panels */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <SupplyPanel />
-            <BorrowPanel />
+        {/* Two-column layout: hero + tabs/panels (left), action panel (right). */}
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 3,
+            gridTemplateColumns: { xs: '1fr', lg: '1fr 400px' },
+            gridTemplateAreas: {
+              xs: `"hero" "panel" "main"`,
+              lg: `"hero panel" "main panel"`,
+            },
+            alignItems: 'start',
+          }}
+        >
+          <Box sx={{ gridArea: 'hero' }}>
+            <ReserveHeroCard
+              reserve={reserve}
+              chainName={currentNetworkConfig.name}
+              explorerLink={explorerLink}
+            />
           </Box>
 
-          {/* Right column: Collateral usage & Interest rate model */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <CollateralUsageCard />
+          <Box sx={{ gridArea: 'panel' }}>
+            <ReserveActionsPanel underlyingAsset={reserve.underlyingAsset} />
+          </Box>
 
-            <Box sx={{
-              backgroundColor: 'background.paper',
-              borderRadius: 2,
-              p: 3
-            }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  cursor: 'pointer',
-                }}
-              >
-                <Typography sx={{
-                  typography: { xs: 'main16', md: 'main19' },
-                }}>
-                  Interest rate model
-                </Typography>
+          <Box sx={{ gridArea: 'main', minWidth: 0, mt: { xs: 1, lg: 2 } }}>
+            {/* Underline tab bar (Activity omitted — no history data source exists). */}
+            <Tabs
+              value={0}
+              sx={{
+                minHeight: 'unset',
+                mb: 2,
+                '& .MuiTabs-indicator': { backgroundColor: 'primary.main', height: 2 },
+                '& .MuiTab-root': {
+                  fontFamily: FONT_BODY,
+                  fontWeight: 600,
+                  fontSize: 14,
+                  textTransform: 'none',
+                  minHeight: 'unset',
+                  p: '4px 2px',
+                  mr: 3,
+                  minWidth: 'unset',
+                },
+              }}
+            >
+              <Tab label="Overview" />
+            </Tabs>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {/* Chart card: Rate history <-> Interest rate model */}
+              <Box sx={panelSx}>
+                <ToggleButtonGroup
+                  value={chartMode}
+                  exclusive
+                  onChange={(_e, next) => next && setChartMode(next)}
+                  sx={{ mb: 1 }}
+                >
+                  <ToggleButton value="history">Rate history</ToggleButton>
+                  <ToggleButton value="model">Interest rate model</ToggleButton>
+                </ToggleButtonGroup>
+
+                {chartMode === 'history' ? (
+                  <Box>
+                    <ApyGraphContainer
+                      graphKey="supply"
+                      reserve={reserve}
+                      currentMarketData={currentMarketData}
+                    />
+                    <ApyGraphContainer
+                      graphKey="borrow"
+                      reserve={reserve}
+                      currentMarketData={currentMarketData}
+                    />
+                  </Box>
+                ) : (
+                  <InterestRateModelGraphContainer reserve={reserve} />
+                )}
               </Box>
-              <InterestRateModelGraphContainer reserve={reserve} />
+
+              {/* Reserve status */}
+              <Box sx={panelSx}>
+                <PanelTitle>Reserve status</PanelTitle>
+                <ReserveStatusBody />
+              </Box>
+
+              {/* Collateral parameters */}
+              <CollateralUsageCard />
             </Box>
           </Box>
         </Box>
@@ -226,42 +360,115 @@ export default function ReserveOverview() {
     </AssetCapsProvider>
   );
 
-  function SupplyPanel() {
-    const { supplyCap, debtCeiling } = useAssetCaps();
-    return (
-      <Box sx={{ backgroundColor: 'background.paper', borderRadius: 2, p: 3 }}>
-        <Typography sx={{
-          typography: { xs: 'main16', md: 'main19' },
-        }}>
-          Supply Info
-        </Typography>
-        <SupplyInfo
-          reserve={reserve as ComputedReserveData}
-          currentMarketData={currentMarketData}
-          showSupplyCapStatus={(reserve as ComputedReserveData).supplyCap !== '0'}
-          supplyCap={supplyCap}
-          debtCeiling={debtCeiling}
-        />
-      </Box>
-    );
-  }
+  function ReserveStatusBody() {
+    const { supplyCap, borrowCap, debtCeiling } = useAssetCaps();
+    const r = reserve as ComputedReserveData;
 
-  function BorrowPanel() {
-    const { borrowCap } = useAssetCaps();
+    const hasSupplyCap = r.supplyCap !== '0';
+    const hasBorrowCap = r.borrowCap !== '0';
+    const supplyCapPct =
+      hasSupplyCap && Number(r.supplyCap) > 0
+        ? (Number(r.totalLiquidity) / Number(r.supplyCap)) * 100
+        : 0;
+    const borrowCapPct =
+      hasBorrowCap && Number(r.borrowCap) > 0
+        ? (Number(r.totalDebt) / Number(r.borrowCap)) * 100
+        : 0;
+
     return (
-      <Box sx={{ backgroundColor: 'background.paper', borderRadius: 2, p: 3 }}>
-        <Typography sx={{
-          typography: { xs: 'main16', md: 'main19' },
-        }}>
-          Borrow Info
-        </Typography>
-        <BorrowInfo
-          reserve={reserve as ComputedReserveData}
-          currentMarketData={currentMarketData}
-          currentNetworkConfig={currentNetworkConfig}
-          showBorrowCapStatus={(reserve as ComputedReserveData).borrowCap !== '0'}
-          borrowCap={borrowCap}
-        />
+      <Box sx={{ mt: 3 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
+            gap: 1.5,
+          }}
+        >
+          <StatTile
+            label="Total supplied"
+            value={<FormattedNumber value={r.totalLiquidity} compact variant="inherit" />}
+            usd={r.totalLiquidityUSD}
+            sub={
+              hasSupplyCap ? (
+                <>
+                  of <FormattedNumber value={r.supplyCap} compact variant="inherit" /> cap
+                </>
+              ) : undefined
+            }
+          />
+          <StatTile
+            label="Total borrowed"
+            value={<FormattedNumber value={r.totalDebt} compact variant="inherit" />}
+            usd={r.totalDebtUSD}
+            sub={
+              hasBorrowCap ? (
+                <>
+                  of <FormattedNumber value={r.borrowCap} compact variant="inherit" /> cap
+                </>
+              ) : undefined
+            }
+          />
+          <StatTile
+            label="Available liquidity"
+            value={
+              <FormattedNumber
+                value={r.formattedAvailableLiquidity ?? '0'}
+                compact
+                variant="inherit"
+              />
+            }
+            usd={r.availableLiquidityUSD}
+          />
+          <StatTile
+            label="Reserve factor"
+            value={<FormattedNumber value={r.reserveFactor} percent variant="inherit" />}
+          />
+          {r.unbacked && r.unbacked !== '0' && (
+            <StatTile
+              label="Unbacked"
+              value={<FormattedNumber value={r.unbacked} compact variant="inherit" />}
+              usd={r.unbackedUSD}
+            />
+          )}
+        </Box>
+
+        {(hasSupplyCap || hasBorrowCap) && (
+          <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            {hasSupplyCap && (
+              <CapBar
+                label="Supply cap utilization"
+                pct={supplyCapPct}
+                used={<FormattedNumber value={r.totalLiquidity} compact variant="inherit" />}
+                total={<FormattedNumber value={r.supplyCap} compact variant="inherit" />}
+              />
+            )}
+            {hasBorrowCap && (
+              <CapBar
+                label="Borrow cap utilization"
+                pct={borrowCapPct}
+                used={<FormattedNumber value={r.totalDebt} compact variant="inherit" />}
+                total={<FormattedNumber value={r.borrowCap} compact variant="inherit" />}
+              />
+            )}
+          </Box>
+        )}
+
+        <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <SupplyInfo
+            reserve={r}
+            currentMarketData={currentMarketData}
+            showSupplyCapStatus={hasSupplyCap}
+            supplyCap={supplyCap}
+            debtCeiling={debtCeiling}
+          />
+          <BorrowInfo
+            reserve={r}
+            currentMarketData={currentMarketData}
+            currentNetworkConfig={currentNetworkConfig}
+            showBorrowCapStatus={hasBorrowCap}
+            borrowCap={borrowCap}
+          />
+        </Box>
       </Box>
     );
   }
@@ -281,11 +488,11 @@ export default function ReserveOverview() {
     // Match the eligibility rules already used on dashboard lists, but also require the user to have supplied this asset.
     const canEnableAsCollateral = user
       ? hasSupply &&
-      !debtCeiling.isMaxed &&
-      canBeCollateral &&
-      ((!reserve.isIsolated && !user.isInIsolationMode) ||
-        user.isolatedReserve?.underlyingAsset === reserve.underlyingAsset ||
-        (reserve.isIsolated && user.totalCollateralMarketReferenceCurrency === '0'))
+        !debtCeiling.isMaxed &&
+        canBeCollateral &&
+        ((!reserve.isIsolated && !user.isInIsolationMode) ||
+          user.isolatedReserve?.underlyingAsset === reserve.underlyingAsset ||
+          (reserve.isIsolated && user.totalCollateralMarketReferenceCurrency === '0'))
       : false;
 
     // "Smart" visibility:
@@ -302,19 +509,29 @@ export default function ReserveOverview() {
       (!usageAsCollateralEnabledOnUser && !canEnableAsCollateral);
 
     return (
-      <Box sx={{ backgroundColor: 'background.paper', borderRadius: 2, p: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography sx={{ typography: { xs: 'main16', md: 'main19' } }}>
-              Collateral usage
-            </Typography>
+      <Box sx={panelSx}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
+            flexWrap: 'wrap',
+          }}
+        >
+          <PanelTitle>
+            Collateral parameters
             <CollateralUsageHeader reserve={reserve} />
-          </Box>
+          </PanelTitle>
 
           {/* Same control type as the "MOST Mode" toggle (MUI Switch). */}
           {shouldShowToggle && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="secondary14" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+              <Typography
+                variant="secondary14"
+                color="text.secondary"
+                sx={{ whiteSpace: 'nowrap' }}
+              >
                 Use as collateral
               </Typography>
               <Switch

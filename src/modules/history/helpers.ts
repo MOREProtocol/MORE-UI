@@ -23,6 +23,34 @@ export const unixTimestampToFormattedTime = ({ unixTimestamp }: { unixTimestamp:
   return `${formattedHours}:${formattedMinutes} ${amOrPm}`;
 };
 
+// Short, muted relative-time label for the activity table's Time column, e.g. "5h ago".
+// Falls back to a short date once the transaction is old enough that a duration reads poorly.
+export const formatRelativeTime = (unixTimestamp: number): string => {
+  const diffSeconds = Math.max(0, Math.floor(Date.now() / 1000) - unixTimestamp);
+
+  if (diffSeconds < 60) return 'Just now';
+
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  const diffWeeks = Math.floor(diffDays / 7);
+  if (diffWeeks < 5) return `${diffWeeks}w ago`;
+
+  const date = new Date(unixTimestamp * 1000);
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: sameYear ? undefined : 'numeric',
+  }).format(date);
+};
+
 export const downloadData = (fileName: string, content: string, mimeType: string) => {
   const file = new Blob([content], { type: mimeType });
   const downloadUrl = URL.createObjectURL(file);

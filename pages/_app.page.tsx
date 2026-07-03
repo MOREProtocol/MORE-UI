@@ -1,7 +1,10 @@
 'use client';
 
+import '/public/fonts/general-sans/general-sans.css';
+import '/public/fonts/jetbrains-mono/jetbrains-mono.css';
 import '/public/fonts/inter/inter.css';
 import '/src/styles/variables.css';
+import '/src/styles/tokens.css';
 import '@rainbow-me/rainbowkit/styles.css';
 
 import { CacheProvider, EmotionCache } from '@emotion/react';
@@ -13,9 +16,8 @@ import { AppProps } from 'next/app';
 import dynamic from 'next/dynamic';
 import { ReactNode, useEffect, useState } from 'react';
 import { AddressBlocked } from 'src/components/AddressBlocked';
-import { SanctionRegion } from "src/components/SanctionRegion";
-import { Meta as DefaultMeta } from 'src/components/Meta/Meta';
-import { Meta as FlowMeta } from 'src/components/Meta/MetaFlow';
+import { Meta } from 'src/components/Meta/Meta';
+import { SanctionRegion } from 'src/components/SanctionRegion';
 import { TransactionEventHandler } from 'src/components/TransactionEventHandler';
 import { GasStationProvider } from 'src/components/transactions/GasStation/GasStationProvider';
 import { AppDataProvider } from 'src/hooks/app-data-provider/useAppDataProvider';
@@ -127,7 +129,7 @@ export default function MyApp(props: MyAppProps) {
 
   return (
     <CacheProvider value={emotionCache}>
-      {process.env.NEXT_PUBLIC_UI_THEME === 'flow' ? <FlowMeta /> : <DefaultMeta />}
+      <Meta />
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider>

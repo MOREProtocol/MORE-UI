@@ -1,14 +1,6 @@
-import {
-  Avatar,
-  Box,
-  Button,
-  Chip,
-  Skeleton,
-  Typography,
-} from '@mui/material';
+import { Avatar, Box, Typography } from '@mui/material';
 import React from 'react';
 import { RewardsButton } from 'src/components/incentives/IncentivesButton';
-import { ColumnDefinition } from 'src/components/primitives/DataGrid';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { UsdChip } from 'src/components/primitives/UsdChip';
@@ -30,7 +22,7 @@ export const VaultCell: React.FC<{ name: string }> = ({ name }) => {
       }}
     >
       <Typography
-        variant='secondary14'
+        variant="secondary14"
         sx={{
           overflow: { xs: 'visible', md: 'hidden' },
           textOverflow: { xs: 'clip', md: 'ellipsis' },
@@ -59,7 +51,15 @@ export const CuratorCell: React.FC<{ logo?: string; name: string }> = ({ logo, n
         justifyContent: { xs: 'flex-end', md: 'flex-start' },
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, justifyContent: { xs: 'flex-end', md: 'flex-start' } }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          minWidth: 0,
+          justifyContent: { xs: 'flex-end', md: 'flex-start' },
+        }}
+      >
         <Avatar
           src={logo}
           sx={{
@@ -71,7 +71,7 @@ export const CuratorCell: React.FC<{ logo?: string; name: string }> = ({ logo, n
           {name}
         </Avatar>
         <Typography
-          variant='secondary14'
+          variant="secondary14"
           sx={{
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -110,7 +110,7 @@ export const MyDepositCell: React.FC<{ deposit: string; depositUsd: string; symb
         <FormattedNumber
           value={deposit}
           symbol={symbol}
-          variant='secondary14'
+          variant="secondary14"
           compact
           sx={{
             fontWeight: 500,
@@ -129,7 +129,11 @@ export const MyDepositCell: React.FC<{ deposit: string; depositUsd: string; symb
   );
 };
 
-export const DepositTokenCell: React.FC<{ symbol?: string; address?: string; symbols?: string[] }> = ({ symbol, symbols }) => {
+export const DepositTokenCell: React.FC<{
+  symbol?: string;
+  address?: string;
+  symbols?: string[];
+}> = ({ symbol, symbols }) => {
   return (
     <Box
       sx={{
@@ -144,7 +148,10 @@ export const DepositTokenCell: React.FC<{ symbol?: string; address?: string; sym
       }}
     >
       {(symbols && symbols.length > 0 ? symbols : [symbol]).slice(0, 3).map((sym, idx) => (
-        <Box key={`${sym}-${idx}`} sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 0.75 } }}>
+        <Box
+          key={`${sym}-${idx}`}
+          sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 0.75 } }}
+        >
           <TokenIcon
             symbol={sym || ''}
             sx={{
@@ -153,7 +160,7 @@ export const DepositTokenCell: React.FC<{ symbol?: string; address?: string; sym
             }}
           />
           <Typography
-            variant='secondary14'
+            variant="secondary14"
             sx={{
               fontWeight: 500,
               overflow: { xs: 'visible', md: 'hidden' },
@@ -193,9 +200,16 @@ export const NetworkCell: React.FC<{ network: string; icon: string }> = ({ netwo
           flexShrink: 0,
         }}
       />
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'flex-end', md: 'flex-start' }, minWidth: 0 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: { xs: 'flex-end', md: 'flex-start' },
+          minWidth: 0,
+        }}
+      >
         <Typography
-          variant='secondary14'
+          variant="secondary14"
           sx={{
             fontWeight: 500,
             overflow: 'hidden',
@@ -240,7 +254,7 @@ export const APYCell: React.FC<{
             value={apy}
             percent
             coloredPercent
-            variant='secondary14'
+            variant="secondary14"
             sx={{
               whiteSpace: 'nowrap',
             }}
@@ -292,7 +306,7 @@ export const TVMCell: React.FC<{ tvm: string; tvmUsd: number; symbol: string }> 
       <FormattedNumber
         value={tvm}
         symbol={symbol}
-        variant='secondary14'
+        variant="secondary14"
         compact
         sx={{
           fontWeight: 500,
@@ -307,39 +321,6 @@ export const TVMCell: React.FC<{ tvm: string; tvmUsd: number; symbol: string }> 
         }}
       />
     </Box>
-  );
-};
-
-export const DepositActionCell: React.FC<{ onDeposit: () => void; disabled?: boolean }> = ({ onDeposit, disabled }) => {
-  return (
-    <Button
-      variant="gradient"
-      size="medium"
-      sx={{ width: { xs: '100%', md: 'auto' } }}
-      disabled={disabled}
-      onClick={(e) => {
-        e.stopPropagation();
-        onDeposit();
-      }}
-    >
-      Deposit
-    </Button>
-  );
-};
-
-export const ManageActionCell: React.FC<{ onManage: () => void }> = ({ onManage }) => {
-  return (
-    <Button
-      variant="gradient"
-      size="medium"
-      sx={{ width: { xs: '100%', md: 'auto' } }}
-      onClick={(e) => {
-        e.stopPropagation();
-        onManage();
-      }}
-    >
-      Manage
-    </Button>
   );
 };
 
@@ -364,173 +345,3 @@ export interface VaultGridRow {
   tvmUsd: number;
   isOmniHub?: boolean;
 }
-
-// Column Definitions
-export const getStandardVaultColumns = (isMobile = false): ColumnDefinition<VaultGridRow>[] => [
-  {
-    key: 'vaultName',
-    label: 'Vault Name',
-    sortable: true,
-    render: (row) => <VaultCell name={row.vaultName} />,
-    skeletonRender: () => (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Skeleton variant="text" width={120} height={20} />
-      </Box>
-    ),
-  },
-  {
-    key: 'curatorName',
-    label: 'Curator',
-    sortable: true,
-    render: (row) => <CuratorCell logo={row.curatorLogo} name={row.curatorName} />,
-    skeletonRender: () => (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Skeleton variant="circular" width={24} height={24} />
-        <Skeleton variant="text" width={80} height={20} />
-      </Box>
-    ),
-  },
-  {
-    key: 'depositToken',
-    label: isMobile ? 'Tokens' : 'Deposit Tokens',
-    sortable: true,
-    render: (row) => (
-      <DepositTokenCell symbol={row.depositTokenSymbol} address={row.depositTokenAddress} symbols={row.depositTokenSymbols}
-      />
-    ),
-    skeletonRender: () => (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Skeleton variant="circular" width={20} height={20} />
-        <Skeleton variant="text" width={60} height={20} />
-      </Box>
-    ),
-  },
-  {
-    key: 'network',
-    label: 'Networks',
-    sortable: true,
-    render: (row) => (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <NetworkCell network={row.network} icon={row.networkIcon} />
-        {row.isOmniHub && (
-          <Chip label="Omni-Chain Hub" size="small" color="primary" variant="outlined" sx={{ fontSize: '10px', height: 18 }} />
-        )}
-      </Box>
-    ),
-    skeletonRender: () => (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Skeleton variant="circular" width={20} height={20} />
-        <Skeleton variant="text" width={40} height={20} />
-      </Box>
-    ),
-  },
-  {
-    key: 'apy7Days',
-    label: '7 Days APY',
-    sortable: true,
-    render: (row) => <APYCell apy={row.apy7Days} incentives={row.incentives} />,
-    skeletonRender: () => <Skeleton variant="text" width={50} height={20} />,
-  },
-  {
-    key: 'tvmUsd',
-    label: 'TVM',
-    sortable: true,
-    render: (row) => <TVMCell tvm={row.tvm} tvmUsd={row.tvmUsd} symbol={row.depositTokenSymbol} />,
-    skeletonRender: () => (
-      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1.5 }}>
-        <Skeleton variant="text" width={80} height={20} />
-        <Skeleton variant="text" width={60} height={20} />
-      </Box>
-    ),
-  },
-];
-
-export const getUserVaultColumns = (isMobile = false): ColumnDefinition<VaultGridRow>[] => [
-  {
-    key: 'vaultName',
-    label: 'Vault Name',
-    sortable: true,
-    render: (row) => <VaultCell name={row.vaultName} />,
-    skeletonRender: () => (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Skeleton variant="text" width={120} height={20} />
-      </Box>
-    ),
-  },
-  {
-    key: 'myDeposit',
-    label: 'My Deposit',
-    sortable: true,
-    render: (row) =>
-      row.myDeposit && row.myDepositUsd ? (
-        <MyDepositCell
-          deposit={row.myDeposit}
-          depositUsd={row.myDepositUsd}
-          symbol={row.depositTokenSymbol}
-        />
-      ) : (
-        <Typography variant="secondary14" color="text.secondary">
-          --
-        </Typography>
-      ),
-    skeletonRender: () => (
-      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1.5 }}>
-        <Skeleton variant="text" width={80} height={20} />
-        <Skeleton variant="text" width={60} height={20} />
-      </Box>
-    ),
-  },
-  {
-    key: 'depositToken',
-    label: isMobile ? 'Tokens' : 'Deposit Tokens',
-    sortable: true,
-    render: (row) => (
-      <DepositTokenCell symbol={row.depositTokenSymbol} address={row.depositTokenAddress} symbols={row.depositTokenSymbols}
-      />
-    ),
-    skeletonRender: () => (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Skeleton variant="circular" width={20} height={20} />
-        <Skeleton variant="text" width={60} height={20} />
-      </Box>
-    ),
-  },
-  {
-    key: 'network',
-    label: isMobile ? 'Network' : 'Networks',
-    sortable: true,
-    render: (row) => (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <NetworkCell network={row.network} icon={row.networkIcon} />
-        {row.isOmniHub && (
-          <Chip label="Omni-Chain Hub" size="small" color="primary" variant="outlined" sx={{ fontSize: '10px', height: 18 }} />
-        )}
-      </Box>
-    ),
-    skeletonRender: () => (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Skeleton variant="circular" width={20} height={20} />
-        <Skeleton variant="text" width={40} height={20} />
-      </Box>
-    ),
-  },
-  {
-    key: 'apy7Days',
-    label: '7 Days APY',
-    sortable: true,
-    render: (row) => <APYCell apy={row.apy7Days} incentives={row.incentives} />,
-    skeletonRender: () => <Skeleton variant="text" width={50} height={20} />,
-  },
-  {
-    key: 'tvmUsd',
-    label: 'TVM',
-    sortable: true,
-    render: (row) => <TVMCell tvm={row.tvm} tvmUsd={row.tvmUsd} symbol={row.depositTokenSymbol} />,
-    skeletonRender: () => (
-      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1.5 }}>
-        <Skeleton variant="text" width={80} height={20} />
-        <Skeleton variant="text" width={60} height={20} />
-      </Box>
-    ),
-  },
-];

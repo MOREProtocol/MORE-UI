@@ -1,60 +1,29 @@
-import {
-  Slide,
-  useMediaQuery,
-  useScrollTrigger,
-  useTheme,
-  alpha,
-} from '@mui/material';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import { Button, Typography, useMediaQuery, useTheme } from '@mui/material';
 import Box from '@mui/material/Box';
+import { useRouter } from 'next/router';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import { LogoMenu } from './components/LogoMenu';
-import { VaultManagementBundleButton } from 'src/modules/vault-detail/VaultManagement/VaultManagementBundleButton';
 import NetworkSelector from 'src/components/NetworkSelector';
+import { Link, ROUTES } from 'src/components/primitives/Link';
+import { VaultManagementBundleButton } from 'src/modules/vault-detail/VaultManagement/VaultManagementBundleButton';
 import { useRootStore } from 'src/store/root';
+import { ChainIds } from 'src/utils/const';
+import { FONT_BODY } from 'src/utils/theme';
+import { useChainId, useSwitchChain } from 'wagmi';
 
-import { uiConfig } from '../uiConfig';
+import { LogoMenu } from './components/LogoMenu';
 import { NavItems } from './components/NavItems';
 import WalletWidget from './WalletWidget';
-import { useChainId, useSwitchChain } from 'wagmi';
-import { ChainIds } from 'src/utils/const';
 
-export const HEADER_HEIGHT = 48;
-interface Props {
-  children: React.ReactElement;
-}
-
-const getCurrentUiConfig = () => {
-  const envTheme = process.env.NEXT_PUBLIC_UI_THEME;
-  const key: keyof typeof uiConfig = envTheme === 'flow' ? 'flow' : 'default';
-  return uiConfig[key];
-};
-
-function HideOnScroll({ children }: Props) {
-  const { breakpoints } = useTheme();
-  const md = useMediaQuery(breakpoints.down('md'));
-  const trigger = useScrollTrigger({ threshold: md ? 160 : 80 });
-
-  return (
-    <Slide appear={false} direction="down" in={!trigger}>
-      {children}
-    </Slide>
-  );
-}
+export const HEADER_HEIGHT = 68;
 
 export function AppHeader() {
   const theme = useTheme();
   const md = useMediaQuery(theme.breakpoints.down('md'));
-  const isDark = theme.palette.mode === 'dark';
-  const currentUi = getCurrentUiConfig();
-  const desktopLogo = isDark ? currentUi.appLogoDark : currentUi.appLogo;
-  const mobileLogo = currentUi.appLogoMobile;
-  const logo = md ? { src: mobileLogo, width: 30, height: 30 } : { src: desktopLogo, width: currentUi.width, height: currentUi.height };
   const router = useRouter();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
-  const isFlowTheme = process.env.NEXT_PUBLIC_UI_THEME === 'flow';
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useRootStore((state) => [
     state.mobileDrawerOpen,
@@ -81,8 +50,7 @@ export function AppHeader() {
   // Ensure Flow EVM is selected when required
   useEffect(() => {
     const onMarketsRoute = router.pathname.startsWith('/markets');
-    const shouldForceFlow = isFlowTheme || onMarketsRoute;
-    if (!shouldForceFlow) return;
+    if (!onMarketsRoute) return;
 
     if (chainId !== ChainIds.flowEVMMainnet && chainId !== ChainIds.flowEVMTestnet) {
       if (switchChain) {
@@ -91,38 +59,52 @@ export function AppHeader() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.pathname, chainId, isFlowTheme]);
+  }, [router.pathname, chainId]);
 
   const hideNetworkSelector =
-    isFlowTheme ||
-    router.pathname === '/markets' ||
-    router.pathname === '/markets/[underlyingAsset]';
+    router.pathname === '/markets' || router.pathname === '/markets/[underlyingAsset]';
+
+  const wordmark = (
+    <Typography
+      component="span"
+      sx={{
+        fontFamily: FONT_BODY,
+        fontWeight: 900,
+        fontSize: 24,
+        letterSpacing: '-0.045em',
+        lineHeight: 1,
+        color: 'text.primary',
+      }}
+    >
+      MORE
+    </Typography>
+  );
 
   return (
-    <HideOnScroll>
+    <Box
+      component="header"
+      sx={(theme) => ({
+        position: 'sticky',
+        top: 0,
+        zIndex: theme.zIndex.appBar + 1,
+        bgcolor: 'background.header',
+        borderBottom: `1px solid ${theme.palette.divider}`,
+      })}
+    >
       <Box
-        sx={(theme) => ({
+        sx={{
+          maxWidth: 1600,
+          mx: 'auto',
+          width: '100%',
           height: HEADER_HEIGHT,
-          position: 'sticky',
-          top: 12,
-          mb: 5,
-          transition: theme.transitions.create('top'),
-          zIndex: theme.zIndex.appBar + 1,
-          bgcolor: alpha(theme.palette.background.paper, 0.75),
-          backdropFilter: 'blur(10px)',
-          padding: {
-            xs: '8px 8px 8px 20px',
-            xsm: '8px 20px',
-          },
+          px: 4,
           display: 'flex',
           alignItems: 'center',
-          flexDirection: 'space-between',
-          borderRadius: '30px',
-          mx: 2,
-        })}
+          gap: 3,
+        }}
       >
-        <Box sx={{ mr: 3 }}>
-          <LogoMenu logo={logo} />
+        <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          <LogoMenu logo={{ node: wordmark }} />
         </Box>
 
         <Box sx={{ display: { xs: 'none', md: 'block' } }}>
@@ -131,18 +113,35 @@ export function AppHeader() {
 
         <Box sx={{ flexGrow: 1 }} />
 
-        {!hideNetworkSelector && <NetworkSelector />}
-        <VaultManagementBundleButton />
-        {/* BATCH TRANSACTIONS DISABLED FOR NOW */}
-        {/* <BatchTransactionsButton open={batchTransactionsOpen} setOpen={setBatchTransactionsOpen} /> */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button
+            component={Link}
+            href={ROUTES.bridge}
+            variant="outlined"
+            startIcon={<SwapHorizIcon sx={{ fontSize: 18 }} />}
+            sx={{
+              display: { xs: 'none', xsm: 'inline-flex' },
+              height: 40,
+              px: '14px',
+              fontSize: 13,
+              color: 'text.primary',
+            }}
+          >
+            Bridge
+          </Button>
 
-        <WalletWidget
-          open={walletWidgetOpen}
-          setOpen={toggleWalletWigit}
-          headerHeight={HEADER_HEIGHT}
-        />
+          {!hideNetworkSelector && <NetworkSelector />}
+          <VaultManagementBundleButton />
+          {/* BATCH TRANSACTIONS DISABLED FOR NOW */}
+          {/* <BatchTransactionsButton open={batchTransactionsOpen} setOpen={setBatchTransactionsOpen} /> */}
 
+          <WalletWidget
+            open={walletWidgetOpen}
+            setOpen={toggleWalletWigit}
+            headerHeight={HEADER_HEIGHT}
+          />
+        </Box>
       </Box>
-    </HideOnScroll>
+    </Box>
   );
 }

@@ -47,6 +47,10 @@ export const ListHeaderTitle = ({
         cursor: !!onClick || !!sortKey ? 'pointer' : 'default',
         display: 'inline-flex',
         alignItems: 'center',
+        textTransform: 'uppercase',
+        fontWeight: 600,
+        fontSize: 11,
+        letterSpacing: '0.1em',
       }}
     >
       {children}

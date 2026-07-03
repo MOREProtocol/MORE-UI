@@ -3,7 +3,9 @@ import * as React from 'react';
 import { useRootStore } from 'src/store/root';
 import { MarketDataType } from 'src/ui-config/marketsConfig';
 import { NAV_BAR } from 'src/utils/mixPanelEvents';
+import { FONT_BODY } from 'src/utils/theme';
 
+import { useWeb3Context } from '../../libs/hooks/useWeb3Context';
 import { Link, ROUTES } from '../../components/primitives/Link';
 import { useProtocolDataContext } from '../../hooks/useProtocolDataContext';
 import { MoreMenu } from '../MoreMenu';
@@ -17,11 +19,14 @@ interface Navigation {
   title: string;
   visibleTitle: string;
   isVisible?: (data: MarketDataType) => boolean | undefined;
+  // Wallet-gated items (e.g. Dashboard) only appear once an account is connected.
+  requiresWallet?: boolean;
   dataCy?: string;
 }
 
 export const NavItems = ({ setOpen }: NavItemsProps) => {
   const { currentMarketData } = useProtocolDataContext();
+  const { currentAccount } = useWeb3Context();
 
   const navigation: Navigation[] = [
     {
@@ -35,18 +40,19 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
       title: 'Markets',
       visibleTitle: 'Markets',
       dataCy: 'menuMarkets',
-      isVisible: () =>
-        !process.env.NEXT_PUBLIC_UI_THEME ||
-        process.env.NEXT_PUBLIC_UI_THEME === 'default',
+    },
+    {
+      link: ROUTES.userDashboard,
+      title: 'Dashboard',
+      visibleTitle: 'Dashboard',
+      requiresWallet: true,
+      dataCy: 'menuDashboard',
     },
     {
       link: ROUTES.bridge,
       title: 'Bridge',
       visibleTitle: 'Bridge',
       dataCy: 'menuBridge',
-      isVisible: () =>
-        !process.env.NEXT_PUBLIC_UI_THEME ||
-        process.env.NEXT_PUBLIC_UI_THEME === 'default',
     },
     // {
     //   link: ROUTES.faucet,
@@ -78,6 +84,11 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
     >
       {navigation
         .filter((item) => !item.isVisible || item.isVisible(currentMarketData))
+        .filter((item) => !item.requiresWallet || !!currentAccount)
+        // Bridge already has its own dedicated ghost pill in the header's right cluster on
+        // desktop, so it's excluded here to avoid appearing twice. It stays in this list for
+        // the mobile (Typography) branch below, where it remains reachable.
+        .filter((item) => md || item.link !== ROUTES.bridge)
         .map((item, index) => (
           <ListItem
             sx={{
@@ -104,25 +115,26 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
                 component={Link}
                 onClick={() => handleClick(item.title, false)}
                 href={item.link}
+                disableRipple
                 sx={(theme) => ({
-                  color: theme.palette.primary.main,
-                  p: '6px 8px',
-                  position: 'relative',
-                  '.active&:after, &:hover&:after': {
-                    transform: 'scaleX(1)',
-                    transformOrigin: 'bottom left',
+                  fontFamily: FONT_BODY,
+                  fontWeight: 600,
+                  fontSize: 14,
+                  minHeight: 'unset',
+                  color: 'text.secondary',
+                  px: '14px',
+                  py: '8px',
+                  borderRadius: '9999px',
+                  '&:hover': {
+                    color: 'text.primary',
+                    backgroundColor: 'background.surface',
                   },
-                  '&:after': {
-                    content: "''",
-                    position: 'absolute',
-                    width: '100%',
-                    transform: 'scaleX(0)',
-                    height: '2px',
-                    bottom: '-6px',
-                    left: '0',
-                    background: theme.palette.gradients.newGradient,
-                    transformOrigin: 'bottom right',
-                    transition: 'transform 0.25s ease-out',
+                  '&.active': {
+                    color: theme.palette.mode === 'dark' ? 'var(--brand-400)' : 'var(--brand-700)',
+                    backgroundColor:
+                      theme.palette.mode === 'dark'
+                        ? 'var(--app-bold-orange-soft)'
+                        : 'var(--brand-50)',
                   },
                 })}
               >

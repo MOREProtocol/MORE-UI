@@ -1,12 +1,12 @@
 import { SearchIcon } from '@heroicons/react/outline';
 import { XCircleIcon } from '@heroicons/react/solid';
-import { Box, BoxProps, IconButton, InputBase, useMediaQuery, useTheme } from '@mui/material';
+import { Box, IconButton, InputBase, SxProps, Theme, useMediaQuery, useTheme } from '@mui/material';
 import debounce from 'lodash/debounce';
 import { useMemo, useRef, useState } from 'react';
 
 interface SearchInputProps {
   onSearchTermChange: (value: string) => void;
-  wrapperSx?: BoxProps;
+  wrapperSx?: SxProps<Theme>;
   placeholder: string;
   disableFocus?: boolean;
 }
@@ -34,18 +34,21 @@ export const SearchInput = ({
       onSearchTermChange(value);
     }, 300);
   }, [onSearchTermChange]);
+  const boxSx: SxProps<Theme> = (theme) => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: 2,
+    bgcolor: 'background.paper',
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: '14px',
+    height: '44px',
+    ...(typeof wrapperSx === 'function'
+      ? (wrapperSx(theme) as Record<string, unknown>)
+      : (wrapperSx as Record<string, unknown>)),
+  });
+
   return (
-    <Box
-      sx={(theme) => ({
-        display: 'flex',
-        alignItems: 'center',
-        gap: 2,
-        border: `1px solid ${theme.palette.divider}`,
-        borderRadius: '6px',
-        height: '36px',
-        ...wrapperSx,
-      })}
-    >
+    <Box sx={boxSx}>
       <Box sx={{ ml: 2, mt: 1 }}>
         <SearchIcon height={16} />
       </Box>

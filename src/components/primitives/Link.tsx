@@ -7,7 +7,7 @@ import { ExtendedMarket } from 'src/store/protocolDataSlice';
 
 interface NextLinkComposedProps
   extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>,
-  Omit<NextLinkProps, 'href' | 'as'> {
+    Omit<NextLinkProps, 'href' | 'as'> {
   to: NextLinkProps['href'];
   linkAs?: NextLinkProps['as'];
   href?: NextLinkProps['href'];
@@ -61,8 +61,7 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(function Link
   const router = useRouter();
   const pathname = typeof href === 'string' ? href : href.pathname;
   const isActive =
-    router?.pathname === pathname ||
-    (router?.pathname === '/' && pathname === ROUTES.vaults);
+    router?.pathname === pathname || (router?.pathname === '/' && pathname === ROUTES.vaults);
   const className = clsx(classNameProps, {
     active: isActive,
   });
@@ -115,6 +114,7 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(function Link
 
 export const ROUTES = {
   dashboard: '/',
+  userDashboard: '/dashboard',
   markets: '/markets',
   vaults: '/vaults',
   vaultDetail: (vaultId: string) => `/vaults/${vaultId}`,

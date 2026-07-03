@@ -1,21 +1,56 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { ArrowDownIcon } from '@heroicons/react/outline';
 import {
-  Typography,
   Alert,
-  Box,
-  CircularProgress,
   Avatar,
+  Box,
   Button,
+  CircularProgress,
   Divider,
   Paper,
+  SvgIcon,
+  Typography,
 } from '@mui/material';
-import { useAccount, useChainId, useSwitchChain, useWalletClient, useBalance, useReadContract, usePublicClient } from 'wagmi';
-import { formatUnits, parseUnits } from 'viem';
 import { debounce } from 'lodash';
-import { BridgeService, RelayToken, BridgeQuote } from '../services/BridgeService';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { formatUnits, parseUnits } from 'viem';
+import {
+  useAccount,
+  useBalance,
+  useChainId,
+  usePublicClient,
+  useReadContract,
+  useSwitchChain,
+  useWalletClient,
+} from 'wagmi';
+
+import { BridgeQuote, BridgeService, RelayToken } from '../services/BridgeService';
 import { ChainIds } from '../utils/const';
-import { AssetInput, Asset } from './transactions/AssetInput';
+import { FONT_DISPLAY } from '../utils/theme';
 import { FormattedNumber } from './primitives/FormattedNumber';
+import { Asset, AssetInput } from './transactions/AssetInput';
+
+const NetworkTag = ({ icon, label }: { icon: string; label: string }) => (
+  <Box
+    sx={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 1,
+      bgcolor: 'background.surface',
+      border: '1px solid',
+      borderColor: 'divider',
+      borderRadius: '9999px',
+      pl: '6px',
+      pr: 2,
+      py: '6px',
+      mb: 1.5,
+    }}
+  >
+    <Avatar src={icon} sx={{ width: 20, height: 20 }} />
+    <Typography variant="secondary14" sx={{ fontWeight: 600, color: 'text.primary' }}>
+      {label}
+    </Typography>
+  </Box>
+);
 
 export const BridgeContent: React.FC = () => {
   const { address } = useAccount();
@@ -43,8 +78,20 @@ export const BridgeContent: React.FC = () => {
   const [estimatedFees, setEstimatedFees] = useState<{
     estimatedTime: string;
     totalUsd: string;
-    gasFee: { symbol: string; address: string; decimals: number; amountFormatted: string; amountUsd: string };
-    protocolFeesByCurrency: Array<{ symbol: string; address: string; decimals: number; amountFormatted: string; amountUsd: string }>;
+    gasFee: {
+      symbol: string;
+      address: string;
+      decimals: number;
+      amountFormatted: string;
+      amountUsd: string;
+    };
+    protocolFeesByCurrency: Array<{
+      symbol: string;
+      address: string;
+      decimals: number;
+      amountFormatted: string;
+      amountUsd: string;
+    }>;
     quote?: BridgeQuote;
     fees?: BridgeQuote['fees'];
   } | null>(null);
@@ -63,7 +110,6 @@ export const BridgeContent: React.FC = () => {
   useEffect(() => {
     const loadTokens = async () => {
       try {
-
         // Load source tokens from Ethereum
         const sourceTokensList = await bridgeService.getAvailableSourceTokens();
         setSourceTokens(sourceTokensList);
@@ -74,7 +120,7 @@ export const BridgeContent: React.FC = () => {
 
         // Set default selections
         if (sourceTokensList.length > 0 && !selectedSourceToken) {
-          const ethToken = sourceTokensList.find(t => t.symbol === 'ETH') || sourceTokensList[0];
+          const ethToken = sourceTokensList.find((t) => t.symbol === 'ETH') || sourceTokensList[0];
           setSelectedSourceToken(ethToken);
 
           // Auto-select matching destination token
@@ -85,7 +131,6 @@ export const BridgeContent: React.FC = () => {
             setSelectedDestinationToken(destinationTokensList[0]);
           }
         }
-
       } catch (error) {
         console.error('Error loading tokens:', error);
         setError('Failed to load available tokens');
@@ -110,7 +155,8 @@ export const BridgeContent: React.FC = () => {
     address: address,
     chainId: ChainIds.ethereum,
     query: {
-      enabled: !!address && selectedSourceToken?.address === '0x0000000000000000000000000000000000000000',
+      enabled:
+        !!address && selectedSourceToken?.address === '0x0000000000000000000000000000000000000000',
     },
   });
 
@@ -129,7 +175,10 @@ export const BridgeContent: React.FC = () => {
     args: address ? [address] : undefined,
     chainId: ChainIds.ethereum,
     query: {
-      enabled: !!address && !!selectedSourceToken && selectedSourceToken.address !== '0x0000000000000000000000000000000000000000',
+      enabled:
+        !!address &&
+        !!selectedSourceToken &&
+        selectedSourceToken.address !== '0x0000000000000000000000000000000000000000',
     },
   });
   const publicClient = usePublicClient({ chainId: ChainIds.ethereum });
@@ -138,9 +187,14 @@ export const BridgeContent: React.FC = () => {
     const run = async () => {
       const map = new Map<string, string>();
       // Native ETH
-      const native = sourceTokens.find((t) => t.address === '0x0000000000000000000000000000000000000000');
+      const native = sourceTokens.find(
+        (t) => t.address === '0x0000000000000000000000000000000000000000'
+      );
       if (native) {
-        map.set(native.address.toLowerCase(), ethBalance ? formatUnits(ethBalance.value, native.decimals) : '0');
+        map.set(
+          native.address.toLowerCase(),
+          ethBalance ? formatUnits(ethBalance.value, native.decimals) : '0'
+        );
       }
       // ERC20s
       if (!address || !publicClient) {
@@ -187,7 +241,9 @@ export const BridgeContent: React.FC = () => {
       setSourceTokenBalance(ethBalance ? formatUnits(ethBalance.value, 18) : '0');
     } else {
       // ERC20 token
-      setSourceTokenBalance(tokenBalance ? formatUnits(tokenBalance as bigint, selectedSourceToken.decimals) : '0');
+      setSourceTokenBalance(
+        tokenBalance ? formatUnits(tokenBalance as bigint, selectedSourceToken.decimals) : '0'
+      );
     }
   }, [selectedSourceToken, ethBalance, tokenBalance]);
 
@@ -195,7 +251,15 @@ export const BridgeContent: React.FC = () => {
   useEffect(() => {
     const estimateFees = async () => {
       const numericLike = debouncedAmount && /^\d*(?:\.\d+)?$/.test(debouncedAmount.trim());
-      if (!debouncedAmount || debouncedAmount.trim() === '' || !numericLike || parseFloat(debouncedAmount) <= 0 || !address || !selectedSourceToken || !selectedDestinationToken) {
+      if (
+        !debouncedAmount ||
+        debouncedAmount.trim() === '' ||
+        !numericLike ||
+        parseFloat(debouncedAmount) <= 0 ||
+        !address ||
+        !selectedSourceToken ||
+        !selectedDestinationToken
+      ) {
         // Invalidate any in-flight requests
         requestIdRef.current++;
         setEstimatedFees(null);
@@ -230,7 +294,6 @@ export const BridgeContent: React.FC = () => {
           if (requestIdRef.current !== myId) return; // stale
           setOutputAmount(outputAmountFormatted || '0');
         }
-
       } catch (err) {
         console.error('Fee estimation error:', err);
         // Only show error if this is the latest request
@@ -286,27 +349,38 @@ export const BridgeContent: React.FC = () => {
         throw new Error('Wallet client not available');
       }
 
-      const result = await bridgeService.executeBridge({
-        user: address,
-        recipient: address,
-        originChainId: ChainIds.ethereum,
-        destinationChainId: ChainIds.flowEVMMainnet,
-        originCurrency: selectedSourceToken.address,
-        destinationCurrency: selectedDestinationToken.address,
-        amount: parseUnits(amount, selectedSourceToken.decimals).toString(),
-        tradeType: 'EXACT_INPUT',
+      const result = await bridgeService.executeBridge(
+        {
+          user: address,
+          recipient: address,
+          originChainId: ChainIds.ethereum,
+          destinationChainId: ChainIds.flowEVMMainnet,
+          originCurrency: selectedSourceToken.address,
+          destinationCurrency: selectedDestinationToken.address,
+          amount: parseUnits(amount, selectedSourceToken.decimals).toString(),
+          tradeType: 'EXACT_INPUT',
+        },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }, walletClient as any);
+        walletClient as any
+      );
 
       if (result.success) {
         setSuccess(
           <Box>
             <Typography variant="main14" sx={{ display: 'block' }}>
-              Successfully initiated bridge of {amount} {selectedSourceToken.symbol} to {selectedDestinationToken.symbol} on Flow EVM!
+              Successfully initiated bridge of {amount} {selectedSourceToken.symbol} to{' '}
+              {selectedDestinationToken.symbol} on Flow EVM!
             </Typography>
             {result.txHash && (
               <Typography variant="caption" sx={{ display: 'block' }}>
-                TX: <a href={`https://relay.link/transaction/${result.txHash}`} target="_blank" rel="noreferrer">{result.txHash.substring(0, 10)}...</a>
+                TX:{' '}
+                <a
+                  href={`https://relay.link/transaction/${result.txHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {result.txHash.substring(0, 10)}...
+                </a>
               </Typography>
             )}
             {result.requestId && (
@@ -337,7 +411,6 @@ export const BridgeContent: React.FC = () => {
     setError(null);
   };
 
-
   const handleReset = () => {
     setAmount('');
     setDebouncedAmount('');
@@ -355,7 +428,10 @@ export const BridgeContent: React.FC = () => {
   // Minimum received from quote (fallback to 0.5% if not available)
   const minimumReceived = useMemo(() => {
     const minStr = estimatedFees?.quote?.details?.currencyOut?.minimumAmount;
-    const decimals = estimatedFees?.quote?.details?.currencyOut?.currency?.decimals ?? selectedDestinationToken?.decimals ?? 18;
+    const decimals =
+      estimatedFees?.quote?.details?.currencyOut?.currency?.decimals ??
+      selectedDestinationToken?.decimals ??
+      18;
     if (minStr) {
       try {
         return formatUnits(BigInt(minStr), decimals);
@@ -370,21 +446,33 @@ export const BridgeContent: React.FC = () => {
   }, [estimatedFees, selectedDestinationToken, outputAmount]);
 
   return (
-    <Box sx={{
-      maxWidth: 600,
-      minWidth: 400,
-      mx: 'auto',
-      backgroundColor: 'background.paper',
-      borderRadius: 2,
-      padding: '24px',
-      boxShadow: '0px 2px 1px rgba(0, 0, 0, 0.05),0px 0px 1px rgba(0, 0, 0, 0.25)',
-    }}>
+    <Box
+      sx={{
+        maxWidth: 560,
+        width: '100%',
+        mx: 'auto',
+        backgroundColor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: '24px',
+        p: { xs: 3, sm: '28px' },
+      }}
+    >
       {/* Title */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" sx={{ mb: 1 }}>
+      <Box sx={{ mb: 3 }}>
+        <Typography
+          sx={{
+            fontFamily: FONT_DISPLAY,
+            fontWeight: 600,
+            fontSize: { xs: 22, sm: 26 },
+            lineHeight: 1.2,
+            letterSpacing: '-0.01em',
+            color: 'text.primary',
+          }}
+        >
           Bridge Assets to Flow EVM
         </Typography>
-        <Typography variant="description" color="text.secondary">
+        <Typography variant="description" color="text.secondary" sx={{ mt: 0.75 }}>
           Transfer tokens from Ethereum to Flow EVM network using Relay Bridge
         </Typography>
       </Box>
@@ -407,8 +495,8 @@ export const BridgeContent: React.FC = () => {
               }}
             >
               Please switch to Ethereum
-            </Typography>
-            {' '}to bridge assets
+            </Typography>{' '}
+            to bridge assets
           </Typography>
         </Alert>
       )}
@@ -422,16 +510,8 @@ export const BridgeContent: React.FC = () => {
       )}
 
       {/* Ethereum Source Section */}
-      <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Avatar
-            src="/icons/networks/ethereum.svg"
-            sx={{ width: 24, height: 24 }}
-          />
-          <Typography variant="main16" fontWeight={600}>
-            From Ethereum Mainnet
-          </Typography>
-        </Box>
+      <Box sx={{ mb: 0 }}>
+        <NetworkTag icon="/icons/networks/ethereum.svg" label="From Ethereum Mainnet" />
 
         {sourceTokens.length > 0 && (
           <AssetInput
@@ -448,12 +528,15 @@ export const BridgeContent: React.FC = () => {
             }}
             usdValue={undefined}
             symbol={selectedSourceToken?.symbol || sourceTokens[0]?.symbol || ''}
-            assets={sourceTokens.map((t) => ({
-              address: t.address,
-              symbol: t.symbol,
-              balance: allBalances.get((t.address || '').toLowerCase()) || '0',
-              decimals: t.decimals,
-            }) as Asset)}
+            assets={sourceTokens.map(
+              (t) =>
+                ({
+                  address: t.address,
+                  symbol: t.symbol,
+                  balance: allBalances.get((t.address || '').toLowerCase()) || '0',
+                  decimals: t.decimals,
+                } as Asset)
+            )}
             onSelect={(asset) => {
               const token = sourceTokens.find((t) => t.symbol === asset.symbol);
               if (token) setSelectedSourceToken(token);
@@ -467,19 +550,31 @@ export const BridgeContent: React.FC = () => {
       </Box>
 
       {/* Separator */}
-      <Divider sx={{ my: 3 }} />
+      <Box sx={{ display: 'flex', justifyContent: 'center', my: 1 }}>
+        <Box
+          role="presentation"
+          sx={{
+            width: 36,
+            height: 36,
+            borderRadius: '9999px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: 'background.surface',
+            border: '1px solid',
+            borderColor: 'divider',
+            color: 'text.muted',
+          }}
+        >
+          <SvgIcon sx={{ fontSize: 16 }}>
+            <ArrowDownIcon />
+          </SvgIcon>
+        </Box>
+      </Box>
 
       {/* Flow EVM Destination Section */}
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Avatar
-            src='/icons/networks/flow.svg'
-            sx={{ width: 24, height: 24 }}
-          />
-          <Typography variant="main16" fontWeight={600}>
-            To Flow EVM Mainnet
-          </Typography>
-        </Box>
+        <NetworkTag icon="/icons/networks/flow.svg" label="To Flow EVM Mainnet" />
 
         {destinationTokens.length > 0 && (
           <AssetInput
@@ -488,11 +583,14 @@ export const BridgeContent: React.FC = () => {
             usdValue={undefined}
             disableInput
             symbol={selectedDestinationToken?.symbol || destinationTokens[0]?.symbol || ''}
-            assets={destinationTokens.map((t) => ({
-              address: t.address,
-              symbol: t.symbol,
-              decimals: t.decimals,
-            }) as Asset)}
+            assets={destinationTokens.map(
+              (t) =>
+                ({
+                  address: t.address,
+                  symbol: t.symbol,
+                  decimals: t.decimals,
+                } as Asset)
+            )}
             onSelect={(asset) => {
               const token = destinationTokens.find((t) => t.symbol === asset.symbol);
               if (token) setSelectedDestinationToken(token);
@@ -510,153 +608,264 @@ export const BridgeContent: React.FC = () => {
           </Typography>
 
           {feeLoading ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 5, px: 3, bgcolor: 'background.surface', borderRadius: '6px' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                py: 5,
+                px: 3,
+                bgcolor: 'background.surface',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: '16px',
+              }}
+            >
               <CircularProgress size={16} />
               <Typography variant="secondary12" color="text.secondary">
                 Getting best quote...
               </Typography>
             </Box>
-          ) : estimatedFees && (
-            <Paper sx={{ p: 3, bgcolor: 'background.surface', border: '1px solid', borderColor: 'divider' }}>
-              {/* Exchange Rate */}
-              {selectedSourceToken && selectedDestinationToken && amount && outputAmount && (
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          ) : (
+            estimatedFees && (
+              <Paper
+                sx={{
+                  p: 3,
+                  bgcolor: 'background.surface',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: '16px',
+                }}
+              >
+                {/* Exchange Rate */}
+                {selectedSourceToken && selectedDestinationToken && amount && outputAmount && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      mb: 2,
+                    }}
+                  >
+                    <Typography variant="secondary14" color="text.secondary">
+                      Exchange Rate
+                    </Typography>
+                    <Typography variant="secondary14">
+                      1 {selectedSourceToken.symbol} ={' '}
+                      {(parseFloat(outputAmount) / parseFloat(amount)).toFixed(6)}{' '}
+                      {selectedDestinationToken.symbol}
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Slippage Tolerance */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    mb: 2,
+                  }}
+                >
                   <Typography variant="secondary14" color="text.secondary">
-                    Exchange Rate
+                    Slippage Tolerance
                   </Typography>
-                  <Typography variant="secondary14">
-                    1 {selectedSourceToken.symbol} = {(parseFloat(outputAmount) / parseFloat(amount)).toFixed(6)} {selectedDestinationToken.symbol}
-                  </Typography>
+                  <Typography variant="secondary14">0.5%</Typography>
                 </Box>
-              )}
 
-              {/* Slippage Tolerance */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="secondary14" color="text.secondary">
-                  Slippage Tolerance
-                </Typography>
-                <Typography variant="secondary14">
-                  0.5%
-                </Typography>
-              </Box>
+                {/* Minimum Received */}
+                {outputAmount && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      mb: 2,
+                    }}
+                  >
+                    <Typography variant="secondary14" color="text.secondary">
+                      Minimum Received
+                    </Typography>
+                    <Box sx={{ typography: 'secondary14' }}>
+                      {minimumReceived ? (
+                        <FormattedNumber
+                          value={minimumReceived}
+                          symbol={selectedDestinationToken?.symbol}
+                          variant="secondary14"
+                        />
+                      ) : (
+                        '—'
+                      )}
+                    </Box>
+                  </Box>
+                )}
 
-              {/* Minimum Received */}
-              {outputAmount && (
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                {/* Bridge Route */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    mb: 2,
+                  }}
+                >
                   <Typography variant="secondary14" color="text.secondary">
-                    Minimum Received
+                    Bridge Route
                   </Typography>
-                  <Box sx={{ typography: 'secondary14' }}>
-                    {minimumReceived ? (
-                      <FormattedNumber value={minimumReceived} symbol={selectedDestinationToken?.symbol} variant="secondary14" />
-                    ) : (
-                      '—'
+                  <Typography variant="secondary14">Relay Protocol</Typography>
+                </Box>
+
+                {/* Estimated Time */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    mb: 2,
+                  }}
+                >
+                  <Typography variant="secondary14" color="text.secondary">
+                    Estimated Time
+                  </Typography>
+                  <Typography variant="secondary14">{estimatedTime}</Typography>
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+
+                {/* Fee Breakdown */}
+                <Typography
+                  variant="secondary14"
+                  fontWeight={600}
+                  color="text.secondary"
+                  sx={{ mb: 1.5 }}
+                >
+                  Fee Breakdown
+                </Typography>
+
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    mb: 1,
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    Network Gas Fee
+                  </Typography>
+                  <Box sx={{ textAlign: 'right', gap: 3 }}>
+                    <FormattedNumber
+                      value={estimatedFees.gasFee.amountFormatted}
+                      symbol={gasSymbol}
+                      variant="secondary12"
+                      sx={{ mr: 1 }}
+                    />
+                    {estimatedFees.gasFee.amountUsd && (
+                      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
+                        <Typography variant="secondary12" color="text.secondary">
+                          (
+                        </Typography>
+                        <FormattedNumber
+                          value={estimatedFees.gasFee.amountUsd}
+                          symbol="USD"
+                          variant="secondary12"
+                          color="text.secondary"
+                        />
+                        <Typography variant="secondary12" color="text.secondary">
+                          )
+                        </Typography>
+                      </Box>
                     )}
                   </Box>
                 </Box>
-              )}
 
-              {/* Bridge Route */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="secondary14" color="text.secondary">
-                  Bridge Route
-                </Typography>
-                <Typography variant="secondary14">
-                  Relay Protocol
-                </Typography>
-              </Box>
-
-              {/* Estimated Time */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="secondary14" color="text.secondary">
-                  Estimated Time
-                </Typography>
-                <Typography variant="secondary14">
-                  {estimatedTime}
-                </Typography>
-              </Box>
-
-              <Divider sx={{ my: 2 }} />
-
-              {/* Fee Breakdown */}
-              <Typography variant="secondary14" fontWeight={600} color="text.secondary" sx={{ mb: 1.5 }}>
-                Fee Breakdown
-              </Typography>
-
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Network Gas Fee
-                </Typography>
-                <Box sx={{ textAlign: 'right', gap: 3 }}>
-                  <FormattedNumber value={estimatedFees.gasFee.amountFormatted} symbol={gasSymbol} variant="caption" sx={{ mr: 1 }} />
-                  {estimatedFees.gasFee.amountUsd && (
-                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
-                      <Typography variant="caption">
-                        (
+                {/* Bridge Protocol Fees (one per currency) */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    mb: 1,
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    Bridge Protocol Fees
+                  </Typography>
+                  <Box sx={{ textAlign: 'right', gap: 3 }}>
+                    {protocolFeeList.length === 0 && (
+                      <Typography variant="secondary12" color="text.secondary">
+                        —
                       </Typography>
-                      <FormattedNumber value={estimatedFees.gasFee.amountUsd} symbol="USD" variant="caption" />
-                      <Typography variant="caption">
-                        )
-                      </Typography>
-                    </Box>
-                  )}
+                    )}
+                    {protocolFeeList.map((f, idx) => (
+                      <Box
+                        key={`${f.symbol}-${idx}`}
+                        sx={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}
+                      >
+                        <FormattedNumber
+                          value={f.amountFormatted}
+                          symbol={f.symbol}
+                          variant="secondary12"
+                          sx={{ mr: 1 }}
+                        />
+                        {f.amountUsd && (
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
+                            <Typography variant="secondary12" color="text.secondary">
+                              (
+                            </Typography>
+                            <FormattedNumber
+                              value={f.amountUsd}
+                              symbol="USD"
+                              variant="secondary12"
+                              color="text.secondary"
+                            />
+                            <Typography variant="secondary12" color="text.secondary">
+                              )
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    ))}
+                  </Box>
                 </Box>
-              </Box>
 
-              {/* Bridge Protocol Fees (one per currency) */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Bridge Protocol Fees
-                </Typography>
-                <Box sx={{ textAlign: 'right', gap: 3 }}>
-                  {protocolFeeList.length === 0 && (
-                    <Typography variant="caption">—</Typography>
-                  )}
-                  {protocolFeeList.map((f, idx) => (
-                    <Box key={`${f.symbol}-${idx}`} sx={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
-                      <FormattedNumber value={f.amountFormatted} symbol={f.symbol} variant="caption" sx={{ mr: 1 }} />
-                      {f.amountUsd && (
-                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
-                          <Typography variant="caption">
-                            (
-                          </Typography>
-                          <FormattedNumber value={f.amountUsd} symbol="USD" variant="caption" />
-                          <Typography variant="caption">
-                            )
-                          </Typography>
-                        </Box>
-                      )}
-                    </Box>
-                  ))}
+                <Divider sx={{ my: 1.5 }} />
+
+                <Box
+                  sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
+                  <Typography variant="main14" color="text.secondary">
+                    Total Fees
+                  </Typography>
+                  <FormattedNumber
+                    value={estimatedFees?.totalUsd || '0'}
+                    symbol="USD"
+                    variant="secondary14"
+                  />
                 </Box>
-              </Box>
 
-              <Divider sx={{ my: 1.5 }} />
-
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="main14" color="text.secondary">
-                  Total Fees
-                </Typography>
-                <FormattedNumber value={estimatedFees?.totalUsd || '0'} symbol="USD" variant="secondary14" />
-              </Box>
-
-              {/* Price Impact Warning */}
-              {amount && outputAmount && selectedSourceToken && (
-                (() => {
-                  const priceImpact = ((1 - (parseFloat(outputAmount) / parseFloat(amount))) * 100);
-                  if (priceImpact > 1) {
-                    return (
-                      <Alert severity="warning" sx={{ mt: 2, p: 1 }}>
-                        <Typography variant="caption">
-                          High price impact: {priceImpact.toFixed(2)}%
-                        </Typography>
-                      </Alert>
-                    );
-                  }
-                  return null;
-                })()
-              )}
-            </Paper>
+                {/* Price Impact Warning */}
+                {amount &&
+                  outputAmount &&
+                  selectedSourceToken &&
+                  (() => {
+                    const priceImpact = (1 - parseFloat(outputAmount) / parseFloat(amount)) * 100;
+                    if (priceImpact > 1) {
+                      return (
+                        <Alert severity="warning" sx={{ mt: 2 }}>
+                          <Typography variant="caption">
+                            High price impact:{' '}
+                            <Typography component="span" variant="secondary12">
+                              {priceImpact.toFixed(2)}%
+                            </Typography>
+                          </Typography>
+                        </Alert>
+                      );
+                    }
+                    return null;
+                  })()}
+              </Paper>
+            )
           )}
         </Box>
       )}
@@ -681,7 +890,8 @@ export const BridgeContent: React.FC = () => {
           variant="outlined"
           onClick={handleReset}
           disabled={isLoading}
-          sx={{ py: 1.5 }}
+          size="large"
+          sx={{ minHeight: '52px', borderRadius: '22px' }}
         >
           Reset
         </Button>
@@ -698,7 +908,7 @@ export const BridgeContent: React.FC = () => {
             parseFloat(amount) <= 0 ||
             parseFloat(amount) > parseFloat(sourceTokenBalance)
           }
-          sx={{ py: 1.5 }}
+          sx={{ minHeight: '52px', borderRadius: '22px' }}
         >
           {isLoading ? (
             <CircularProgress size={20} color="inherit" />
@@ -709,11 +919,15 @@ export const BridgeContent: React.FC = () => {
       </Box>
 
       {/* Footer Info */}
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block', textAlign: 'center' }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ mt: 2, display: 'block', textAlign: 'center' }}
+      >
         ⚠️ Powered by Relay Protocol. Always test with small amounts first.
       </Typography>
     </Box>
   );
 };
 
-export default BridgeContent; 
+export default BridgeContent;

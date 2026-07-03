@@ -1,4 +1,5 @@
 import { Chip, ChipProps, useTheme } from '@mui/material';
+
 import { FormattedNumber } from './FormattedNumber';
 
 interface UsdChipProps extends Omit<ChipProps, 'label'> {
@@ -26,20 +27,21 @@ export const UsdChip = ({
           size="small"
           compact={compact}
           sx={{
-            color: theme.palette.mode === 'light' ? '#FFFFFF' : '#000000',
+            color: theme.palette.primary.main,
             '& .MuiTypography-root': {
-              color: theme.palette.mode === 'light' ? '#FFFFFF' : '#000000',
-            }
+              color: theme.palette.primary.main,
+            },
           }}
         />
       }
       size="small"
-      color="primary"
       sx={{
         height: '18px',
-        ...sx
+        borderRadius: '9999px',
+        bgcolor: theme.palette.action.selected,
+        ...sx,
       }}
       {...chipProps}
     />
   );
-}; 
+};

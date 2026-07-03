@@ -19,6 +19,7 @@
     "lint:formatting:fix": "prettier src pages cypress . --write",
     "lint": "yarn lint:code && yarn lint:formatting",
     "lint:fix": "yarn lint:code:fix && yarn lint:formatting:fix",
+    "format:edited": "node .claude/hooks/format-on-edit.js",
     "post-update": "echo \"codesandbox preview only, need an update\" && yarn upgrade --latest",
     "prepare": "husky",
     "test:open": "DOTENV_CONFIG_PATH='.env.local' cypress open",

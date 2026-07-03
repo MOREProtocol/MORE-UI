@@ -1,7 +1,8 @@
-import { Box, BoxProps, Paper, PaperProps, Typography } from '@mui/material';
+import { Box, BoxProps, PaperProps, Typography } from '@mui/material';
 import { ReactNode, useState } from 'react';
 import { useRootStore } from 'src/store/root';
 import { DASHBOARD } from 'src/utils/mixPanelEvents';
+import { FONT_DISPLAY } from 'src/utils/theme';
 
 import { toggleLocalStorageClick } from '../../helpers/toggle-local-storage-click';
 
@@ -90,11 +91,9 @@ export const ListWrapper = ({
   const collapsed = isCollapse && !noData;
 
   return (
-    <Paper
+    <Box
       sx={{
         mt: withTopMargin ? 4 : 0,
-        border: 1,
-        borderColor: 'divider',
         ...paperSx,
       }}
     >
@@ -115,6 +114,8 @@ export const ListWrapper = ({
             alignItems: { xs: 'flex-start', xsm: 'center' },
             py: '3.6px',
             flexDirection: { xs: 'column', xsm: 'row' },
+            fontFamily: FONT_DISPLAY,
+            fontWeight: 600,
           }}
         >
           {titleComponent}
@@ -189,6 +190,6 @@ export const ListWrapper = ({
         <Box sx={{ marginBottom: { xs: 2, xsm: 0 } }}>{subChildrenComponent}</Box>
       )}
       <Box sx={{ display: collapsed ? 'none' : 'block' }}>{children}</Box>
-    </Paper>
+    </Box>
   );
 };

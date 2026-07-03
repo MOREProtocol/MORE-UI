@@ -1,10 +1,11 @@
 import { DuplicateIcon } from '@heroicons/react/outline';
 import { ChevronDownIcon, ChevronUpIcon, ExternalLinkIcon } from '@heroicons/react/solid';
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import {
+  alpha,
   Box,
   Button,
   Divider,
-  alpha,
   ListItem,
   ListItemIcon,
   ListItemText,
@@ -41,11 +42,10 @@ export default function WalletWidget({ open, setOpen }: WalletWidgetProps) {
     useWeb3Context();
   const { openConnectModal } = useConnectModal();
 
-  const { breakpoints, palette } = useTheme();
+  const { breakpoints } = useTheme();
   const xsm = useMediaQuery(breakpoints.down('xsm'));
   const md = useMediaQuery(breakpoints.down('md'));
   const trackEvent = useRootStore((store) => store.trackEvent);
-  const isFlowTheme = process.env.NEXT_PUBLIC_UI_THEME === 'flow';
 
   const [anchorEl, setAnchorEl] = useState<Element | null>(null);
 
@@ -140,17 +140,6 @@ export default function WalletWidget({ open, setOpen }: WalletWidgetProps) {
       </Box>
       {!md && (
         <Box sx={{ display: 'flex', flexDirection: 'row', padding: '0 16px 10px' }}>
-          {/* <Button
-            variant="outlined"
-            sx={{
-              padding: '0 5px',
-              marginRight: '10px',
-            }}
-            size="small"
-            onClick={handleSwitchWallet}
-          >
-            Switch wallet
-          </Button> */}
           <Button
             variant="outlined"
             sx={{
@@ -252,27 +241,18 @@ export default function WalletWidget({ open, setOpen }: WalletWidgetProps) {
       {md && (
         <>
           <Box sx={{ padding: '16px 16px 10px' }}>
-            {/* <Button
-              sx={{
-                marginBottom: '16px',
-                background: '#383D51',
-                color: '#F1F1F3',
-              }}
-              fullWidth
-              size="large"
-              variant={palette.mode === 'dark' ? 'outlined' : 'text'}
-              onClick={handleSwitchWallet}
-            >
-              Switch wallet
-            </Button> */}
             <Button
               sx={{
-                background: '#383D51',
-                color: '#F1F1F3',
+                color: 'error.main',
+                borderColor: 'error.main',
+                '&:hover': {
+                  borderColor: 'error.main',
+                  backgroundColor: (theme) => alpha(theme.palette.error.main, 0.08),
+                },
               }}
               fullWidth
               size="large"
-              variant={palette.mode === 'dark' ? 'outlined' : 'text'}
+              variant="outlined"
               onClick={handleDisconnect}
             >
               Disconnect
@@ -293,23 +273,22 @@ export default function WalletWidget({ open, setOpen }: WalletWidgetProps) {
         />
       ) : (
         <Button
-          variant={connected || isFlowTheme ? 'surface' : 'gradient'}
+          variant={connected ? 'outlined' : 'contained'}
+          color="primary"
           aria-label="wallet"
           id="wallet-button"
           aria-controls={open ? 'wallet-button' : undefined}
           aria-expanded={open ? 'true' : undefined}
           aria-haspopup="true"
           onClick={handleClick}
+          startIcon={
+            !connected ? <AccountBalanceWalletOutlinedIcon sx={{ fontSize: 18 }} /> : undefined
+          }
           sx={{
-            p: connected ? '5px 8px' : undefined,
+            height: 40,
+            p: connected ? '0 12px 0 6px' : '0 18px',
             minWidth: hideWalletAccountText ? 'unset' : undefined,
             overflow: 'hidden', // Ensure button itself doesn't overflow
-            bgcolor: 'background.surface',
-            '&:hover': {
-              bgcolor: 'background.surface3',
-            },
-            borderRadius: isFlowTheme ? '999px' : undefined,
-            color: connected ? 'text.primary' : isFlowTheme ? '#00ef8b' : null,
           }}
           endIcon={
             connected &&

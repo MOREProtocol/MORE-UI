@@ -1,3 +1,4 @@
+import { valueToBigNumber } from '@aave/math-utils';
 import { XCircleIcon } from '@heroicons/react/solid';
 import {
   Box,
@@ -18,6 +19,7 @@ import React, { ReactNode } from 'react';
 import NumberFormat, { NumberFormatProps } from 'react-number-format';
 import { TrackEventProps } from 'src/store/analyticsSlice';
 import { useRootStore } from 'src/store/root';
+import { FONT_MONO } from 'src/utils/theme';
 
 import { CapType } from '../caps/helper';
 import { AvailableTooltip } from '../infoTooltips/AvailableTooltip';
@@ -86,6 +88,7 @@ export interface AssetInputProps<T extends Asset = Asset> {
   selectOption?: (asset: T) => ReactNode;
   sx?: BoxProps;
   exchangeRateComponent?: ReactNode;
+  quickPercent?: boolean;
 }
 
 export const AssetInput = <T extends Asset = Asset>({
@@ -108,6 +111,7 @@ export const AssetInput = <T extends Asset = Asset>({
   selectOption,
   sx = {},
   exchangeRateComponent,
+  quickPercent = false,
 }: AssetInputProps<T>) => {
   const theme = useTheme();
   const trackEvent = useRootStore((store) => store.trackEvent);
@@ -131,12 +135,18 @@ export const AssetInput = <T extends Asset = Asset>({
 
       <Box
         sx={(theme) => ({
+          backgroundColor: theme.palette.background.surface,
           border: `1px solid ${theme.palette.divider}`,
-          borderRadius: '6px',
+          borderRadius: '16px',
           overflow: 'hidden',
+          transition: 'border-color 150ms ease, box-shadow 150ms ease',
+          '&:focus-within': {
+            borderColor: theme.palette.primary.main,
+            boxShadow: `0 0 0 3px ${theme.palette.action.focus}`,
+          },
         })}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5, px: 3, py: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, px: '20px', pt: '18px' }}>
           {loading ? (
             <Box sx={{ flex: 1 }}>
               <CircularProgress color="inherit" size="16px" />
@@ -159,10 +169,13 @@ export const AssetInput = <T extends Asset = Asset>({
               inputProps={{
                 'aria-label': 'amount input',
                 style: {
-                  fontSize: '21px',
-                  lineHeight: '28,01px',
+                  fontFamily: FONT_MONO,
+                  fontSize: '28px',
+                  fontWeight: 600,
+                  letterSpacing: '-0.02em',
+                  lineHeight: '36px',
                   padding: 0,
-                  height: '28px',
+                  height: '36px',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -177,7 +190,6 @@ export const AssetInput = <T extends Asset = Asset>({
               sx={{
                 minWidth: 0,
                 p: 0,
-                left: 8,
                 zIndex: 1,
                 color: 'text.muted',
                 '&:hover': {
@@ -193,15 +205,28 @@ export const AssetInput = <T extends Asset = Asset>({
             </IconButton>
           )}
           {!onSelect || assets.length === 1 ? (
-            <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+            <Box
+              sx={(theme) => ({
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 1,
+                flexShrink: 0,
+                pl: '6px',
+                pr: 1.5,
+                py: '6px',
+                borderRadius: '9999px',
+                backgroundColor: theme.palette.background.paper,
+                border: `1px solid ${theme.palette.divider}`,
+              })}
+            >
               <TokenIcon
                 mToken={asset.mToken}
                 symbol={asset.iconSymbol || asset.symbol}
                 address={asset.address}
                 chainId={asset.chainId}
-                sx={{ mr: 2, ml: 4 }}
+                sx={{ fontSize: '24px' }}
               />
-              <Typography variant="h3" sx={{ lineHeight: '28px' }} data-cy={'inputAsset'}>
+              <Typography variant="subheader1" sx={{ lineHeight: '24px' }} data-cy={'inputAsset'}>
                 {symbol}
               </Typography>
             </Box>
@@ -224,7 +249,16 @@ export const AssetInput = <T extends Asset = Asset>({
                   },
                 }}
                 sx={{
-                  p: 0,
+                  flexShrink: 0,
+                  borderRadius: '9999px',
+                  backgroundColor: 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  pl: '6px',
+                  pr: '10px',
+                  py: '4px',
+                  transition: 'border-color 150ms ease',
+                  '&:hover': { borderColor: 'primary.light' },
                   '&.AssetInput__select .MuiOutlinedInput-input': {
                     p: 0,
                     backgroundColor: 'transparent',
@@ -232,7 +266,7 @@ export const AssetInput = <T extends Asset = Asset>({
                   },
                   '&.AssetInput__select .MuiOutlinedInput-notchedOutline': { display: 'none' },
                   '&.AssetInput__select .MuiSelect-icon': {
-                    color: 'text.primary',
+                    color: 'text.muted',
                     right: '0%',
                   },
                 }}
@@ -243,15 +277,15 @@ export const AssetInput = <T extends Asset = Asset>({
                       : assets && (assets.find((asset) => asset.symbol === symbol) as T);
                   return (
                     <Box
-                      sx={{ display: 'flex', alignItems: 'center' }}
+                      sx={{ display: 'flex', alignItems: 'center', gap: 2 }}
                       data-cy={`assetsSelectedOption_${asset.symbol.toUpperCase()}`}
                     >
                       <TokenIcon
                         symbol={asset.iconSymbol || asset.symbol}
                         mToken={asset.mToken}
-                        sx={{ mr: 2, ml: 4 }}
+                        sx={{ fontSize: '24px' }}
                       />
-                      <Typography variant="main16" color="text.primary">
+                      <Typography variant="subheader1" color="text.primary">
                         {symbol}
                       </Typography>
                     </Box>
@@ -285,7 +319,16 @@ export const AssetInput = <T extends Asset = Asset>({
           )}
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', height: '16px', px: 3, py: 2, mb: 1 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            minHeight: '16px',
+            px: '20px',
+            pt: '10px',
+            pb: '14px',
+          }}
+        >
           {loading || !usdValue ? (
             <Box sx={{ flex: 1 }} />
           ) : (
@@ -294,8 +337,8 @@ export const AssetInput = <T extends Asset = Asset>({
               compact
               symbol="USD"
               variant="secondary12"
-              color="text.muted"
-              symbolsColor="text.muted"
+              color="text.secondary"
+              symbolsColor="text.secondary"
               flexGrow={1}
             />
           )}
@@ -315,7 +358,24 @@ export const AssetInput = <T extends Asset = Asset>({
               {!disableInput && (
                 <Button
                   size="small"
-                  sx={{ minWidth: 0, ml: '7px', p: 0 }}
+                  sx={{
+                    minWidth: 0,
+                    ml: 2,
+                    px: '7px',
+                    py: '3px',
+                    borderRadius: '5px',
+                    backgroundColor: 'primary.main',
+                    color: 'common.white',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    lineHeight: 1,
+                    '&:hover': { backgroundColor: 'primary.dark' },
+                    '&.Mui-disabled': {
+                      backgroundColor: 'action.disabledBackground',
+                      color: 'text.disabled',
+                    },
+                  }}
                   onClick={() => {
                     if (event) {
                       trackEvent(event.eventName, { ...event.eventParams });
@@ -325,7 +385,7 @@ export const AssetInput = <T extends Asset = Asset>({
                   }}
                   disabled={disabled || isMaxSelected}
                 >
-                  Max
+                  MAX
                 </Button>
               )}
             </>
@@ -344,6 +404,69 @@ export const AssetInput = <T extends Asset = Asset>({
           </Box>
         )}
       </Box>
+
+      {quickPercent && onChange && maxValue !== undefined && !disableInput && !loading && (
+        <Box sx={{ display: 'flex', gap: '6px', mt: 3 }}>
+          {[0.25, 0.5, 0.75].map((percent) => {
+            const percentValue = valueToBigNumber(maxValue || '0')
+              .multipliedBy(percent)
+              .toString();
+            const isActive = value !== '' && value === percentValue;
+            return (
+              <Button
+                key={percent}
+                variant="outlined"
+                disabled={disabled}
+                onClick={() => onChange(percentValue)}
+                sx={(theme) => ({
+                  flex: 1,
+                  py: '7px',
+                  borderRadius: '9px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  backgroundColor: isActive ? theme.palette.action.selected : 'background.paper',
+                  borderColor: isActive ? 'transparent' : 'divider',
+                  color: isActive ? 'primary.main' : 'text.secondary',
+                  '&:hover': {
+                    backgroundColor: isActive ? theme.palette.action.selected : 'background.paper',
+                    borderColor: isActive ? 'transparent' : 'text.muted',
+                    color: isActive ? 'primary.main' : 'text.primary',
+                  },
+                })}
+              >
+                {percent * 100}%
+              </Button>
+            );
+          })}
+          <Button
+            variant="outlined"
+            disabled={disabled || isMaxSelected}
+            onClick={() => {
+              if (event) {
+                trackEvent(event.eventName, { ...event.eventParams });
+              }
+              onChange('-1');
+            }}
+            sx={(theme) => ({
+              flex: 1,
+              py: '7px',
+              borderRadius: '9px',
+              fontSize: '12px',
+              fontWeight: 600,
+              backgroundColor: isMaxSelected ? theme.palette.action.selected : 'background.paper',
+              borderColor: isMaxSelected ? 'transparent' : 'divider',
+              color: isMaxSelected ? 'primary.main' : 'text.secondary',
+              '&:hover': {
+                backgroundColor: isMaxSelected ? theme.palette.action.selected : 'background.paper',
+                borderColor: isMaxSelected ? 'transparent' : 'text.muted',
+                color: isMaxSelected ? 'primary.main' : 'text.primary',
+              },
+            })}
+          >
+            MAX
+          </Button>
+        </Box>
+      )}
     </Box>
   );
 };

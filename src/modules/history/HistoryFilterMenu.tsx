@@ -64,6 +64,19 @@ export const HistoryFilterMenu: React.FC<HistoryFilterMenuProps> = ({
 
   const allSelected = currentFilter.length === 0;
 
+  // The primary filter pills (rendered by HistoryWrapper) already surface these four
+  // types, so keep this control looking neutral ("More filters") when it merely mirrors
+  // one of them — it should only light up for combinations/advanced types (rate change,
+  // collateral change, liquidation) that aren't reachable from the primary pills.
+  const PRIMARY_OPTIONS = [
+    FilterOptions.SUPPLY,
+    FilterOptions.BORROW,
+    FilterOptions.WITHDRAW,
+    FilterOptions.REPAY,
+  ];
+  const isPrimaryOnly = currentFilter.length === 1 && PRIMARY_OPTIONS.includes(currentFilter[0]);
+  const showNeutral = allSelected || isPrimaryOnly;
+
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -127,41 +140,41 @@ export const HistoryFilterMenu: React.FC<HistoryFilterMenuProps> = ({
     <Box>
       <Button
         sx={{
-          minWidth: 148,
-          maxWidth: downToMD ? '100%' : 360,
-          display: 'flex',
+          minWidth: 'unset',
+          maxWidth: downToMD ? '100%' : 280,
+          display: 'inline-flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          height: 36,
+          height: 32,
           border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: '4px',
-          mr: downToMD ? 0 : 2,
-          ml: downToMD ? 4 : 0,
-          pl: 2,
-          pr: 1,
+          borderColor: showNeutral ? 'transparent' : 'divider',
+          borderRadius: '9999px',
+          bgcolor: showNeutral ? 'background.surface' : 'background.paper',
+          color: 'text.secondary',
+          textTransform: 'none',
+          '&:hover': { bgcolor: 'background.surface' },
+          px: 1.75,
+          gap: 0.75,
         }}
         onClick={handleClick}
       >
-        <Box display="flex" alignItems="center" overflow="hidden">
-          <SvgIcon height={9} width={9} color="primary">
+        <Box display="flex" alignItems="center" overflow="hidden" gap={0.75}>
+          <SvgIcon sx={{ fontSize: 14 }} color={showNeutral ? 'inherit' : 'primary'}>
             <SortIcon />
           </SvgIcon>
           <Typography
-            variant="subheader1"
-            color="text.primary"
+            variant="secondary14"
+            color={showNeutral ? 'text.secondary' : 'text.primary'}
             sx={{
-              ml: 1,
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
-              mr: 1,
             }}
           >
-            <FilterButtonLabel />
+            {showNeutral ? 'More filters' : <FilterButtonLabel />}
           </Typography>
         </Box>
-        {!allSelected && (
+        {!showNeutral && (
           <DarkTooltip
             title={
               <Typography variant="caption" color="common.white">
@@ -172,15 +185,16 @@ export const HistoryFilterMenu: React.FC<HistoryFilterMenuProps> = ({
             <Box
               sx={{
                 cursor: 'pointer',
-                color: 'primary',
                 height: 'auto',
                 width: 'auto',
                 display: 'flex',
                 alignItems: 'center',
+                color: 'text.secondary',
+                '&:hover': { color: 'text.primary' },
               }}
               onClick={handleClearFilter}
             >
-              <XCircleIcon color="#A5A8B6" width={18} height={18} />
+              <XCircleIcon width={16} height={16} />
             </Box>
           </DarkTooltip>
         )}
@@ -194,8 +208,9 @@ export const HistoryFilterMenu: React.FC<HistoryFilterMenuProps> = ({
             width: 280,
             maxHeight: 300,
             mt: 1,
-            boxShadow: '0px 0px 2px rgba(0, 0, 0, 0.2), 0px 2px 10px rgba(0, 0, 0, 0.1)',
-            borderRadius: '4px',
+            borderRadius: '16px',
+            border: '1px solid',
+            borderColor: 'divider',
           },
         }}
       >

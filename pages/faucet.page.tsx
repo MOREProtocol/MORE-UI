@@ -1,21 +1,45 @@
+import { Box, Typography } from '@mui/material';
 import dynamic from 'next/dynamic';
+import { PageMasthead } from 'src/components/PageMasthead';
+import { Link } from 'src/components/primitives/Link';
+import { useProtocolDataContext } from 'src/hooks/useProtocolDataContext';
 import { MainLayout } from 'src/layouts/MainLayout';
 import FaucetAssetsList from 'src/modules/faucet/FaucetAssetsList';
-import { FaucetTopPanel } from 'src/modules/faucet/FaucetTopPanel';
-
-import { ContentContainer } from '../src/components/ContentContainer';
 
 const FaucetModal = dynamic(() =>
   import('../src/components/transactions/Faucet/FaucetModal').then((module) => module.FaucetModal)
 );
+
 export default function Faucet() {
+  const { currentMarketData } = useProtocolDataContext();
+
   return (
-    <>
-      <FaucetTopPanel />
-      <ContentContainer>
-        <FaucetAssetsList />
-      </ContentContainer>
-    </>
+    <Box
+      sx={{
+        width: '100%',
+        maxWidth: 1600,
+        mx: 'auto',
+        px: { xs: 2, md: 4 },
+        pt: { xs: 3, md: 3 },
+        pb: { xs: 6, md: 12 },
+      }}
+    >
+      <PageMasthead
+        title={`${currentMarketData.marketTitle} Faucet`}
+        subtitle="Get free testnet assets to test the MORE protocol. Switch your wallet to the matching testnet, select an asset, and click “Faucet” to receive tokens — they carry no real value."
+      />
+      <Typography variant="secondary14" sx={{ color: 'text.secondary', mb: 4, display: 'block' }}>
+        <Link
+          color="text.secondary"
+          href="https://docs.aave.com/developers/guides/testing-guide"
+          sx={{ textDecoration: 'underline' }}
+        >
+          Learn more
+        </Link>{' '}
+        about testing with the faucet.
+      </Typography>
+      <FaucetAssetsList />
+    </Box>
   );
 }
 

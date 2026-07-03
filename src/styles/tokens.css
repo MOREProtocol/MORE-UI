@@ -1,0 +1,105 @@
+/* ============================================================
+   Design tokens — CSS custom properties shared with the
+   more-markets-landing / more-markets-mockups design system.
+   Defined on :root (light) and overridden under html.dark.
+   Any component may read these via var(--token) inside sx.
+
+   Source of truth (priority order, see task brief):
+   1. more-markets-landing/src/app/globals.css
+   2. more-markets-mockups/styles/theme.css
+   3. more-markets-mockups/styles/components.css (banner-wave gradients)
+   ============================================================ */
+:root {
+  color-scheme: light;
+
+  /* Brand orange */
+  --brand-50: #fff1e5;
+  --brand-100: #ffe0c7;
+  --brand-300: #ffc18b;
+  --brand-400: #ffb071;
+  --brand-500: #f59042;
+  --brand-600: #e5732a;
+  --brand-700: #b85515;
+
+  /* Pastels — decorative only */
+  --pastel-cyan: #a9ddf2;
+  --pastel-coral: #f8b596;
+  --pastel-pink: #f4a0c5;
+  --pastel-violet: #c5bfeb;
+
+  /* Light mode neutrals */
+  --surface: #fbfaf7;
+  --card: #ffffff;
+  --card-soft: #f6f4ee;
+  --line: #eceae3;
+  --text: #1a1714;
+  --text-muted: #605c55;
+  /* Darkened from the mockup's #95908a to clear WCAG AA (4.5:1) on card-soft. */
+  --text-faint: #716c66;
+
+  /* Effects */
+  --shadow-soft: 0 8px 32px rgba(20, 15, 8, 0.06);
+
+  /* Base radius; only rounded-xl derives from it (via --radius-xl below). */
+  --radius: 0.625rem;
+  --radius-pill: 9999px;
+  --radius-xl: calc(var(--radius) * 1.4);
+
+  /* Bold App surfaces — same in both themes (intentionally dark for app contexts) */
+  --app-bold-bg-1: #14110e;
+  --app-bold-bg-2: #1f1714;
+  --app-bold-text: #f5f1ea;
+  --app-bold-text-muted: rgba(245, 241, 234, 0.65);
+  --app-bold-text-faint: rgba(245, 241, 234, 0.55);
+  --app-bold-line: rgba(255, 255, 255, 0.1);
+  --app-bold-fill: rgba(255, 255, 255, 0.06);
+  --app-bold-orange: #ffa15a;
+  --app-bold-orange-soft: rgba(245, 144, 66, 0.18);
+
+  /* Semantic status colors */
+  --status-success: #22c55e;
+  --status-success-bg: rgba(34, 197, 94, 0.12);
+  --status-success-text: #15803d;
+  --status-warning: #f59e0b;
+  --status-warning-bg: rgba(245, 158, 11, 0.12);
+  --status-warning-text: #b45309;
+  --status-error: #b91c1c;
+}
+
+html.dark {
+  color-scheme: dark;
+
+  --brand-500: #ffa15a; /* warmer in dark for legibility */
+  --brand-600: #ffb47a;
+
+  --surface: #0e0d0b;
+  --card: #181613;
+  --card-soft: #1f1c18;
+  --line: #27231e;
+  --text: #f5f1ea;
+  --text-muted: #a8a29a;
+  /* Lightened from the mockup's #6e6961 to clear WCAG AA on dark card-soft. */
+  --text-faint: #8d8880;
+
+  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================================
+   Banner-wave gradient helpers — transcribed verbatim from
+   more-markets-mockups/styles/components.css.
+   ============================================================ */
+.banner-wave--dawn {
+  background: radial-gradient(110% 90% at 0% 100%, rgba(248, 181, 150, 0.95) 0%, transparent 60%),
+    radial-gradient(100% 110% at 100% 50%, rgba(255, 177, 113, 0.55) 0%, transparent 65%),
+    radial-gradient(80% 80% at 50% 0%, rgba(169, 221, 242, 0.55) 0%, transparent 70%),
+    radial-gradient(40% 60% at 100% 100%, rgba(244, 160, 197, 0.5) 0%, transparent 70%),
+    linear-gradient(135deg, #ffe0c7 0%, #f8b596 50%, #ffc18b 100%);
+}
+
+.banner-wave--aurora {
+  background: radial-gradient(130% 100% at 100% 100%, rgba(197, 191, 235, 0.85) 0%, transparent 60%),
+    radial-gradient(100% 80% at 0% 0%, rgba(169, 221, 242, 0.85) 0%, transparent 65%),
+    radial-gradient(80% 70% at 50% 100%, rgba(244, 160, 197, 0.55) 0%, transparent 70%),
+    radial-gradient(60% 60% at 100% 0%, rgba(248, 181, 150, 0.4) 0%, transparent 70%),
+    linear-gradient(135deg, #c5bfeb 0%, #a9ddf2 45%, #f4a0c5 100%);
+}

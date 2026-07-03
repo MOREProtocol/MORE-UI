@@ -36,8 +36,7 @@ export const DebtCeilingStatus = ({
     my: 2,
     height: 5,
     [`&.${linearProgressClasses.colorPrimary}`]: {
-      backgroundColor: (theme: Theme) =>
-        theme.palette.grey[theme.palette.mode === 'light' ? 200 : 800],
+      backgroundColor: (theme: Theme) => theme.palette.divider,
     },
     [`& .${linearProgressClasses.bar}`]: {
       borderRadius: 5,

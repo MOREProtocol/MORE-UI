@@ -4,35 +4,18 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { deepmerge } from '@mui/utils';
 import React, { ReactNode, useEffect, useMemo, useState } from 'react';
 
-import { getDesignTokens, getThemedComponents, UiThemeName } from '../utils/theme';
+import { getDesignTokens, getThemedComponents } from '../utils/theme';
 
 export const ColorModeContext = React.createContext({
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  toggleColorMode: () => { },
+  toggleColorMode: () => {},
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  setModeLight: () => { },
+  setModeLight: () => {},
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  setModeDark: () => { },
+  setModeDark: () => {},
 });
 
 type Mode = 'light' | 'dark';
-
-const resolveUiThemeFromEnv = (): UiThemeName => {
-  const envValue = process.env.NEXT_PUBLIC_UI_THEME;
-
-  switch (envValue) {
-    case 'flow':
-      return 'flow';
-    case 'default':
-    case undefined:
-    case null:
-    case '':
-    default:
-      return 'default';
-  }
-};
-
-const UI_THEME: UiThemeName = resolveUiThemeFromEnv();
 
 /**
  * Main Layout component which wrapps around the whole app
@@ -72,8 +55,12 @@ export function AppGlobalStyles({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', mode === 'dark');
+  }, [mode]);
+
   const theme = useMemo(() => {
-    const themeCreate = createTheme(getDesignTokens(mode, UI_THEME));
+    const themeCreate = createTheme(getDesignTokens(mode));
     return deepmerge(themeCreate, getThemedComponents(themeCreate));
   }, [mode]);
 

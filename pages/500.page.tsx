@@ -1,14 +1,12 @@
 import { DuplicateIcon, RefreshIcon } from '@heroicons/react/outline';
-import { Box, Button, Link, Paper, SvgIcon, Typography, useTheme } from '@mui/material';
+import { Box, Button, SvgIcon, Typography } from '@mui/material';
 import { useEffect } from 'react';
-import { ContentContainer } from 'src/components/ContentContainer';
-import { TopInfoPanel } from 'src/components/TopInfoPanel/TopInfoPanel';
+import { ErrorPageState } from 'src/components/ErrorPageState';
+import { Link } from 'src/components/primitives/Link';
 import { MainLayout } from 'src/layouts/MainLayout';
 import { useRootStore } from 'src/store/root';
 
 export default function More500Page() {
-  const theme = useTheme();
-
   const handleCopyError = () => {
     console.log('copying error to clipboard');
   };
@@ -20,71 +18,54 @@ export default function More500Page() {
     });
   }, [trackEvent]);
   return (
-    <>
-      <TopInfoPanel />
-      <ContentContainer>
-        <Paper
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            p: 4,
-            flex: 1,
-            backgroundColor: theme.palette.mode === 'dark' ? 'transparent' : '',
-          }}
+    <ErrorPageState
+      code="500"
+      title="Something went wrong"
+      description="Sorry, an unexpected error happened. In the meantime you may try reloading the page, or come back later."
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 2,
+          mt: 4,
+        }}
+      >
+        <Button
+          variant="outlined"
+          color="primary"
+          startIcon={
+            <SvgIcon>
+              <RefreshIcon />
+            </SvgIcon>
+          }
+          onClick={() => window.location.reload()}
         >
-          <Typography variant="display1" sx={{ mt: 8, mb: 3 }}>
-            Something went wrong
-          </Typography>
-          <Typography sx={{ mt: 2, mb: 5, maxWidth: 480 }}>
-            Sorry, an unexpected error happened. In the meantime you may try reloading the page, or
-            come back later.
+          Reload the page
+        </Button>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 6 }}>
+          <Typography variant="secondary14" sx={{ color: 'text.secondary', mb: 2 }}>
+            If the error continues to happen, you may report it to this{' '}
+            <Link href="https://discord.com/invite/VzGm75kN" color="inherit" target="_blank">
+              Discord channel
+            </Link>
+            .
           </Typography>
           <Button
-            variant="outlined"
             color="primary"
             startIcon={
               <SvgIcon>
-                <RefreshIcon />
+                <DuplicateIcon />
               </SvgIcon>
             }
-            onClick={() => window.location.reload()}
-            sx={{ mb: 10 }}
+            onClick={handleCopyError}
           >
-            Reload the page
+            Copy error message
           </Button>
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            flexDirection="column"
-            mt={10}
-          >
-            <Typography sx={{ mb: 4 }}>
-              If the error continues to happen,
-              <br /> you may report it to this{' '}
-              <Link href="https://discord.com/invite/VzGm75kN" color="inherit" target="_blank">
-                Discord channel
-              </Link>
-              .
-            </Typography>
-            <Button
-              color="primary"
-              startIcon={
-                <SvgIcon>
-                  <DuplicateIcon />
-                </SvgIcon>
-              }
-              onClick={handleCopyError}
-            >
-              Copy error message
-            </Button>
-          </Box>
-        </Paper>
-      </ContentContainer>
-    </>
+        </Box>
+      </Box>
+    </ErrorPageState>
   );
 }
 

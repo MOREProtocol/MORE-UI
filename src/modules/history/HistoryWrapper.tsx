@@ -1,37 +1,79 @@
-import { DocumentDownloadIcon } from '@heroicons/react/outline';
+import {
+  ChevronDownIcon,
+  ClockIcon,
+  DocumentDownloadIcon,
+  ExclamationIcon,
+  LockClosedIcon,
+  SearchIcon,
+} from '@heroicons/react/outline';
 import {
   Box,
-  Button,
   CircularProgress,
-  Paper,
+  Menu,
+  MenuItem,
   SvgIcon,
   Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { ConnectWalletPaper } from 'src/components/ConnectWalletPaper';
-import { ListWrapper } from 'src/components/lists/ListWrapper';
+import { alpha } from '@mui/material/styles';
+import React, { ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 import { SearchInput } from 'src/components/SearchInput';
+import { ConnectWalletButton } from 'src/components/WalletConnection/ConnectWalletButton';
 import { applyTxHistoryFilters, useTransactionHistory } from 'src/hooks/useTransactionHistory';
 import { useWeb3Context } from 'src/libs/hooks/useWeb3Context';
 import { useRootStore } from 'src/store/root';
 import { TRANSACTION_HISTORY } from 'src/utils/mixPanelEvents';
 
-import LoveMore from '/public/loveMore.svg';
-
-import { downloadData, formatTransactionData, groupByDate } from './helpers';
+import { downloadData, formatTransactionData } from './helpers';
+import { HistoryEmptyState } from './HistoryEmptyState';
 import { HistoryFilterMenu } from './HistoryFilterMenu';
 import { HistoryItemLoader } from './HistoryItemLoader';
 import { HistoryWrapperMobile } from './HistoryWrapperMobile';
-import TransactionRowItem from './TransactionRowItem';
+import TransactionRowItem, { TRANSACTION_ROW_GRID_TEMPLATE } from './TransactionRowItem';
 import { FilterOptions, TransactionHistoryItemUnion } from './types';
 
+// The four "quick" filters surfaced as pills, matching the design contract exactly
+// (All / Supplies / Withdrawals / Borrows / Repayments). Rate change, collateral change,
+// and liquidation stay reachable via the "More filters" control next to them.
+const PRIMARY_FILTERS: { label: string; value: FilterOptions | null }[] = [
+  { label: 'All', value: null },
+  { label: 'Supplies', value: FilterOptions.SUPPLY },
+  { label: 'Withdrawals', value: FilterOptions.WITHDRAW },
+  { label: 'Borrows', value: FilterOptions.BORROW },
+  { label: 'Repayments', value: FilterOptions.REPAY },
+];
+
+function EyebrowHeader({
+  children,
+  align = 'left',
+}: {
+  children: ReactNode;
+  align?: 'left' | 'right';
+}) {
+  return (
+    <Typography
+      sx={{
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        color: 'text.secondary',
+        textAlign: align,
+      }}
+    >
+      {children}
+    </Typography>
+  );
+}
+
 export const HistoryWrapper = () => {
+  const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingDownload, setLoadingDownload] = useState(false);
   const [filterQuery, setFilterQuery] = useState<FilterOptions[]>([]);
   const [searchResetKey, setSearchResetKey] = useState(0);
+  const [exportAnchor, setExportAnchor] = useState<null | HTMLElement>(null);
 
   const isFilterActive = searchQuery.length > 0 || filterQuery.length > 0;
   const trackEvent = useRootStore((store) => store.trackEvent);
@@ -103,7 +145,6 @@ export const HistoryWrapper = () => {
     },
     [fetchNextPage, isLoading]
   );
-  const theme = useTheme();
   const downToMD = useMediaQuery(theme.breakpoints.down('md'));
   const { currentAccount, loading: web3Loading } = useWeb3Context();
 
@@ -116,33 +157,94 @@ export const HistoryWrapper = () => {
     [searchQuery, filterQuery, flatTxns]
   );
 
+  // Ghost-pill style shared by the filter pills and the export control.
+  const pillSx = (active: boolean) => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 0.75,
+    height: 32,
+    px: 1.75,
+    borderRadius: '9999px',
+    border: '1px solid',
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: 'pointer',
+    userSelect: 'none' as const,
+    whiteSpace: 'nowrap' as const,
+    transition: 'color 150ms ease, background-color 150ms ease, border-color 150ms ease',
+    ...(active
+      ? { bgcolor: 'background.paper', borderColor: 'divider', color: 'text.primary' }
+      : {
+          bgcolor: 'background.surface',
+          borderColor: 'transparent',
+          color: 'text.secondary',
+          '&:hover': { color: 'text.primary' },
+        }),
+  });
+
+  const isPrimaryActive = (value: FilterOptions | null) =>
+    value === null
+      ? filterQuery.length === 0
+      : filterQuery.length === 1 && filterQuery[0] === value;
+
+  const handlePrimaryFilterClick = (value: FilterOptions | null) => {
+    if (value === null) {
+      trackEvent(TRANSACTION_HISTORY.FILTER, { value: 'cleared' });
+      setFilterQuery([]);
+    } else {
+      trackEvent(TRANSACTION_HISTORY.FILTER, { value });
+      setFilterQuery([value]);
+    }
+  };
+
+  const resetFilters = () => {
+    setSearchQuery('');
+    setFilterQuery([]);
+    setSearchResetKey((prevKey) => prevKey + 1); // Remount SearchInput component to clear search query
+  };
+
   if (!subgraphUrl) {
     return (
-      <Paper
+      <Box
         sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          p: 4,
-          flex: 1,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: '20px',
+          bgcolor: 'background.paper',
         }}
       >
-        <LoveMore style={{ marginBottom: '16px' }} />
-        <Typography variant={downToMD ? 'h4' : 'h3'}>
-          Transaction history is not currently available for this market
-        </Typography>
-      </Paper>
+        <HistoryEmptyState
+          icon={ExclamationIcon}
+          title="Transaction history unavailable"
+          description="Transaction history is not currently available for this market."
+        />
+      </Box>
     );
   }
 
   if (!currentAccount) {
     return (
-      <ConnectWalletPaper
-        loading={web3Loading}
-        description={'Please connect your wallet to view transaction history.'}
-      />
+      <Box
+        sx={{
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: '20px',
+          bgcolor: 'background.paper',
+        }}
+      >
+        {web3Loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 14 }}>
+            <CircularProgress size={28} />
+          </Box>
+        ) : (
+          <HistoryEmptyState
+            icon={LockClosedIcon}
+            title="Connect your wallet"
+            description="Please connect your wallet to view transaction history."
+            action={<ConnectWalletButton />}
+          />
+        )}
+      </Box>
     );
   }
 
@@ -154,159 +256,146 @@ export const HistoryWrapper = () => {
   const filterActive = searchQuery !== '' || filterQuery.length > 0;
 
   return (
-    <ListWrapper
-      titleComponent={
-        <Typography component="div" variant="h2" sx={{ mr: 4 }}>
-          Transactions
-        </Typography>
-      }
-    >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mx: 8, mt: 6, mb: 4 }}>
-        <Box sx={{ display: 'inline-flex' }}>
+    <Box>
+      {/* Filter bar */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          flexWrap: 'wrap',
+          mb: { xs: 3, md: 2.5 },
+        }}
+      >
+        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+          {PRIMARY_FILTERS.map((filter) => (
+            <Box
+              key={filter.label}
+              sx={pillSx(isPrimaryActive(filter.value))}
+              onClick={() => handlePrimaryFilterClick(filter.value)}
+            >
+              {filter.label}
+            </Box>
+          ))}
           <HistoryFilterMenu onFilterChange={setFilterQuery} currentFilter={filterQuery} />
+        </Box>
+
+        <Box sx={{ ml: { md: 'auto' }, display: 'inline-flex', alignItems: 'center', gap: 1.25 }}>
           <SearchInput
             onSearchTermChange={setSearchQuery}
-            placeholder="Search assets..."
-            wrapperSx={{ width: '280px' }}
+            placeholder="Search assets…"
+            wrapperSx={{ width: 220, height: 32, borderRadius: '9999px' }}
             key={searchResetKey}
           />
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', height: 36, gap: 0.5 }}>
-          {loadingDownload && <CircularProgress size={16} sx={{ mr: 2 }} color="inherit" />}
           <Box
-            sx={{
-              cursor: 'pointer',
-              color: 'primary',
-              height: 'auto',
-              width: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              mr: 6,
-            }}
-            onClick={handleCsvDownload}
+            sx={pillSx(false)}
+            onClick={(e) => setExportAnchor(e.currentTarget)}
+            aria-haspopup="true"
+            role="button"
           >
-            <SvgIcon>
-              <DocumentDownloadIcon width={22} height={22} />
-            </SvgIcon>
-            <Typography variant="buttonM" color="text.primary">
-              .CSV
-            </Typography>
+            {loadingDownload ? (
+              <CircularProgress size={14} sx={{ color: 'text.secondary' }} />
+            ) : (
+              <SvgIcon sx={{ fontSize: 16 }}>
+                <DocumentDownloadIcon />
+              </SvgIcon>
+            )}
+            Export
+            <ChevronDownIcon style={{ width: 12, height: 12 }} />
           </Box>
-          <Box
-            sx={{
-              cursor: 'pointer',
-              color: 'primary',
-              height: 'auto',
-              width: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-            onClick={handleJsonDownload}
+          <Menu
+            anchorEl={exportAnchor}
+            open={Boolean(exportAnchor)}
+            onClose={() => setExportAnchor(null)}
           >
-            <SvgIcon>
-              <DocumentDownloadIcon width={22} height={22} />
-            </SvgIcon>
-            <Typography variant="buttonM" color="text.primary">
-              .JSON
-            </Typography>
-          </Box>
+            <MenuItem
+              onClick={() => {
+                setExportAnchor(null);
+                handleCsvDownload();
+              }}
+            >
+              Export as .CSV
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setExportAnchor(null);
+                handleJsonDownload();
+              }}
+            >
+              Export as .JSON
+            </MenuItem>
+          </Menu>
         </Box>
       </Box>
 
-      {isLoading ? (
-        <>
-          <HistoryItemLoader />
-          <HistoryItemLoader />
-        </>
-      ) : !isEmpty ? (
-        Object.entries(groupByDate(filteredTxns)).map(([date, txns], groupIndex) => (
-          <React.Fragment key={groupIndex}>
-            <Typography variant="h4" color="text.primary" sx={{ ml: 9, mt: 6, mb: 2 }}>
-              {date}
-            </Typography>
-            {txns.map((transaction: TransactionHistoryItemUnion, index: number) => {
-              const isLastItem = index === txns.length - 1;
-              return (
-                <div ref={isLastItem ? lastElementRef : null} key={index}>
-                  <TransactionRowItem transaction={transaction as TransactionHistoryItemUnion} />
-                </div>
-              );
-            })}
-          </React.Fragment>
-        ))
-      ) : filterActive ? (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            p: 4,
-            flex: 1,
-            maxWidth: '468px',
-            margin: '0 auto',
-            my: 24,
-          }}
-        >
-          <Typography variant="h3" color="text.primary">
-            Nothing found
-          </Typography>
-          <Typography sx={{ mt: 1, mb: 4 }} variant="description" color="text.secondary">
-            <>
-              We couldn&apos;t find any transactions related to your search. Try again with a
-              different asset name, or reset filters.
-            </>
-          </Typography>
-          <Button
-            variant="outlined"
-            onClick={() => {
-              setSearchQuery('');
-              setFilterQuery([]);
-              setSearchResetKey((prevKey) => prevKey + 1); // Remount SearchInput component to clear search query
-            }}
-          >
-            Reset Filters
-          </Button>
-        </Box>
-      ) : !isFetchingNextPage ? (
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            p: 4,
-            flex: 1,
-          }}
-        >
-          <Typography sx={{ my: 24 }} variant="h3" color="text.primary">
-            No transactions yet.
-          </Typography>
-        </Box>
-      ) : (
-        <></>
-      )}
-
+      {/* Activity table */}
       <Box
-        sx={{ display: 'flex', justifyContent: 'center', mb: isFetchingNextPage ? 6 : 0, mt: 10 }}
+        sx={{
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: '20px',
+          bgcolor: 'background.paper',
+          overflow: 'hidden',
+        }}
       >
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: TRANSACTION_ROW_GRID_TEMPLATE,
+            columnGap: 2,
+            alignItems: 'center',
+            px: 4,
+            py: 1.5,
+            bgcolor: 'background.surface',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <EyebrowHeader>Type</EyebrowHeader>
+          <EyebrowHeader>Source</EyebrowHeader>
+          <EyebrowHeader align="right">Amount</EyebrowHeader>
+          <EyebrowHeader align="right">Time</EyebrowHeader>
+          <Box />
+        </Box>
+
+        {isLoading ? (
+          <HistoryItemLoader />
+        ) : !isEmpty ? (
+          filteredTxns.map((transaction: TransactionHistoryItemUnion, index: number) => {
+            const isLastItem = index === filteredTxns.length - 1;
+            return (
+              <div ref={isLastItem ? lastElementRef : null} key={index}>
+                <TransactionRowItem transaction={transaction as TransactionHistoryItemUnion} />
+              </div>
+            );
+          })
+        ) : filterActive ? (
+          <HistoryEmptyState
+            icon={SearchIcon}
+            title="Nothing found"
+            description="We couldn't find any transactions related to your search. Try again with a different asset name, or reset filters."
+            action={
+              <Box
+                sx={pillSx(false)}
+                onClick={resetFilters}
+                role="button"
+                aria-label="Reset filters"
+              >
+                Reset filters
+              </Box>
+            }
+          />
+        ) : !isFetchingNextPage ? (
+          <HistoryEmptyState icon={ClockIcon} title="No transactions yet" />
+        ) : null}
+
         {isFetchingNextPage && (
-          <Box
-            sx={{
-              height: 36,
-              width: 186,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <CircularProgress size={20} style={{ color: '#383D51' }} />
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
+            <CircularProgress size={20} sx={{ color: alpha(theme.palette.text.secondary, 0.6) }} />
           </Box>
         )}
       </Box>
-    </ListWrapper>
+    </Box>
   );
 };
 

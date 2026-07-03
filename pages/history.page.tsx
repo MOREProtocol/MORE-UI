@@ -1,8 +1,8 @@
+import { Box } from '@mui/material';
 import * as React from 'react';
 import { useEffect } from 'react';
-import { ContentContainer } from 'src/components/ContentContainer';
+import { PageMasthead } from 'src/components/PageMasthead';
 import { MainLayout } from 'src/layouts/MainLayout';
-import { HistoryTopPanel } from 'src/modules/history/HistoryTopPanel';
 import { HistoryWrapper } from 'src/modules/history/HistoryWrapper';
 import { useRootStore } from 'src/store/root';
 
@@ -14,13 +14,24 @@ export default function History() {
       'Page Name': 'History',
     });
   }, [trackEvent]);
+
   return (
-    <>
-      <HistoryTopPanel />
-      <ContentContainer>
-        <HistoryWrapper />
-      </ContentContainer>
-    </>
+    <Box
+      sx={{
+        width: '100%',
+        maxWidth: 1600,
+        mx: 'auto',
+        px: { xs: 2, md: 4 },
+        pt: { xs: 3, md: 3 },
+        pb: { xs: 6, md: 12 },
+      }}
+    >
+      <PageMasthead
+        title="Transaction history"
+        subtitle="A record of your supplies, withdrawals, borrows, and repayments on this market."
+      />
+      <HistoryWrapper />
+    </Box>
   );
 }
 
