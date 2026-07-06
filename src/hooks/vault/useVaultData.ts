@@ -934,7 +934,8 @@ export const useVaultsListData = <TResult = VaultData>(
             sharePrice: sharePriceNumber,
             decimals: vaultDecimals,
             apy: latestSnapshot?.apyDailyReturnLast365Days ? parseFloat(latestSnapshot.apyDailyReturnLast365Days) : undefined,
-            apy7Days: latestSnapshot?.apyDailyReturnLast30Days ? parseFloat(latestSnapshot.apyDailyReturnLast7Days) : undefined,
+            apy7Days: latestSnapshot?.apyDailyReturnLast7Days ? parseFloat(latestSnapshot.apyDailyReturnLast7Days) : undefined,
+            apy30Days: latestSnapshot?.apyDailyReturnLast30Days ? parseFloat(latestSnapshot.apyDailyReturnLast30Days) : undefined,
           },
           financials: {
             liquidity: {
