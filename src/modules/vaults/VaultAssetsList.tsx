@@ -106,6 +106,7 @@ const transformVaultsToGridRows = (
       networkIcon: rowNetworkInfo.icon,
       apy: vault.overview?.apy,
       apy7Days: vault.overview?.apy7Days,
+      apy30Days: vault.overview?.apy30Days,
       incentives: vault.incentives,
       tvm: tvmValue,
       tvmUsd: tvmUsd.toNumber(),

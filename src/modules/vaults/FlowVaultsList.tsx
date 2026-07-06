@@ -129,7 +129,7 @@ export const FlowVaultsList: React.FC<FlowVaultsListProps> = ({
           if (onRowClick) onRowClick(row);
         };
 
-        const apyValue = typeof row.apy7Days === 'number' ? row.apy7Days : row.apy;
+        const apyValue = typeof row.apy30Days === 'number' ? row.apy30Days : row.apy;
 
         return (
           <Box
@@ -198,7 +198,7 @@ export const FlowVaultsList: React.FC<FlowVaultsListProps> = ({
                     </Typography>
                   )}
                   <Typography variant="secondary14" color="text.muted">
-                    7 Days APY
+                    30 Days APY
                   </Typography>
                 </Box>
 

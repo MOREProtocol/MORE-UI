@@ -303,10 +303,10 @@ export const VaultKpiGrid: React.FC<VaultKpiGridProps> = ({
           </Box>
         </Box>
 
-        {/* Row 3 - 7 Days APY */}
+        {/* Row 3 - 30 Days APY */}
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="secondary14" color="text.secondary">7 Days APY</Typography>
+            <Typography variant="secondary14" color="text.secondary">30 Days APY</Typography>
             <Tooltip
               title={
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -314,7 +314,7 @@ export const VaultKpiGrid: React.FC<VaultKpiGridProps> = ({
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     {[
                       { label: '1 Day APY:', value: legacyVault?.overview?.apy1Day },
-                      { label: '30 Days APY:', value: legacyVault?.overview?.apy30Days },
+                      { label: '7 Days APY:', value: legacyVault?.overview?.apy7Days },
                       { label: 'APY:', value: legacyVault?.overview?.apy },
                     ].map(({ label, value }) => (
                       <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 3 }}>
@@ -336,7 +336,7 @@ export const VaultKpiGrid: React.FC<VaultKpiGridProps> = ({
               {isLoading ? (
                 <Skeleton width={80} height={24} />
               ) : (
-                <FormattedNumber value={legacyVault?.overview?.apy7Days || ''} percent variant="main16" compact />
+                <FormattedNumber value={legacyVault?.overview?.apy30Days || ''} percent variant="main16" compact />
               )}
             </Box>
             {selectedVault?.incentives && selectedVault.incentives.length > 0 && (
