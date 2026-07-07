@@ -14,6 +14,7 @@ import { providers } from 'ethers';
 import { NextPage } from 'next';
 import { AppProps } from 'next/app';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/router';
 import { ReactNode, useEffect, useState } from 'react';
 import { AddressBlocked } from 'src/components/AddressBlocked';
 import { Meta } from 'src/components/Meta/Meta';
@@ -105,8 +106,24 @@ interface MyAppProps extends AppProps {
   emotionCache?: EmotionCache;
   Component: NextPageWithLayout;
 }
+// Per-route browser-tab title suffix; unmatched routes fall back to the brand
+// tagline. Detail routes reuse their section title (e.g. a single market → "Markets").
+const ROUTE_TITLES: Record<string, string> = {
+  '/': 'Vaults',
+  '/vaults': 'Vaults',
+  '/vaults/[vaultId]': 'Vaults',
+  '/markets': 'Markets',
+  '/markets/[underlyingAsset]': 'Markets',
+  '/dashboard': 'Dashboard',
+  '/bridge': 'Bridge',
+  '/history': 'History',
+  '/faucet': 'Faucet',
+};
+
 export default function MyApp(props: MyAppProps) {
   const { Component, emotionCache = clientSideEmotionCache, pageProps } = props;
+  const { pathname } = useRouter();
+  const pageTitle = ROUTE_TITLES[pathname];
   const getLayout = Component.getLayout ?? ((page: ReactNode) => page);
   const initializeMixpanel = useRootStore((store) => store.initializeMixpanel);
   const [queryClient] = useState(
@@ -129,7 +146,7 @@ export default function MyApp(props: MyAppProps) {
 
   return (
     <CacheProvider value={emotionCache}>
-      <Meta />
+      <Meta pageTitle={pageTitle} />
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider>
