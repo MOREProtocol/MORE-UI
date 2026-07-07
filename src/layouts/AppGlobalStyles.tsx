@@ -24,7 +24,18 @@ type Mode = 'light' | 'dark';
  */
 export function AppGlobalStyles({ children }: { children: ReactNode }) {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
-  const [mode, setMode] = useState<Mode>(prefersDarkMode ? 'dark' : 'light');
+  // Read the persisted choice synchronously on the first client render so the
+  // initial paint matches the user's saved mode. Deferring this to an effect
+  // (below) caused a one-frame flash of the OS scheme before correction — e.g.
+  // a light-mode user on a dark OS briefly saw dark. SSR has no localStorage,
+  // so it renders light (matching the emotion critical CSS).
+  const [mode, setMode] = useState<Mode>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = window.localStorage.getItem('colorMode');
+      if (stored === 'light' || stored === 'dark') return stored;
+    }
+    return prefersDarkMode ? 'dark' : 'light';
+  });
   const colorMode = useMemo(
     () => ({
       toggleColorMode: () => {
@@ -45,15 +56,6 @@ export function AppGlobalStyles({ children }: { children: ReactNode }) {
     }),
     []
   );
-
-  useEffect(() => {
-    const initialMode = localStorage?.getItem('colorMode') as Mode;
-    if (initialMode) {
-      setMode(initialMode);
-    } else if (prefersDarkMode) {
-      setMode('dark');
-    }
-  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', mode === 'dark');
