@@ -84,8 +84,9 @@ Key wiring:
   `src/components/ActionPanel/ActionSidePanel.tsx` + a `ScopedTxContext`, consumed by
   `src/modules/vault-detail/VaultActionsPanel.tsx` and
   `src/modules/reserve-overview/ReserveActionsPanel.tsx`.
-- **Meta / SEO:** single source `src/components/Meta/Meta.tsx` (Flow Earn title/description
-  + Flow favicon). Mounted once in `_app`.
+- **Meta / SEO:** single source `src/components/Meta/Meta.tsx` — MORE-branded titles
+  (`MORE | {pageTitle}`, else `MORE | {tagline}`) + MORE favicon. Mounted once in `_app`,
+  which derives `pageTitle` per route via a `ROUTE_TITLES` map.
 
 ## Design system
 

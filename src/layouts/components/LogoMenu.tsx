@@ -42,26 +42,23 @@ export const LogoMenu: React.FC<LogoMenuProps> = ({ logo }) => {
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <Box
-        component="button"
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open ? 'true' : undefined}
-        onClick={handleToggle}
-        ref={logoRef}
-        sx={{ lineHeight: 0, p: 0, m: 0, border: 0, background: 'transparent', cursor: 'pointer' }}
-      >
+      <Link href="/" aria-label="MORE home" sx={{ lineHeight: 0, display: 'inline-flex' }}>
         {'node' in logo ? (
           logo.node
         ) : (
           <img src={logo.src} alt="MORE" width={logo.width} height={logo.height} />
         )}
-      </Box>
+      </Link>
+      {/* Nav dropdown is mobile-only: on md+ the header shows inline nav links and
+          the footer carries the legal/social/theme links, making it redundant. */}
       <IconButton
+        ref={logoRef}
         onClick={handleToggle}
         size="small"
-        sx={{ color: 'text.primary' }}
+        sx={{ color: 'text.primary', display: { xs: 'inline-flex', md: 'none' } }}
         aria-label={open ? 'Close menu' : 'Open menu'}
+        aria-haspopup="menu"
+        aria-expanded={open ? 'true' : undefined}
       >
         <SvgIcon>{open ? <ExpandLessIcon /> : <ExpandMoreIcon />}</SvgIcon>
       </IconButton>

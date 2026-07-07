@@ -20,10 +20,12 @@ export const VaultManagementBundleButton = () => {
       <Box paddingX={2}>
         <Button
           variant="gradient"
+          size="small"
           onClick={handleToggle}
           sx={{
             p: '8px 12px',
             minWidth: 'unset',
+            minHeight: 'unset',
             ml: 2,
             bgcolor: 'background.surface',
             '&:hover': {

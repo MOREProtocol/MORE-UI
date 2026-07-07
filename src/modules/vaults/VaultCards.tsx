@@ -331,6 +331,7 @@ const GridSkeleton = () => (
   <Box
     sx={{
       ...CARD_SX,
+      borderRadius: '32px',
       cursor: 'default',
       p: { xs: 3, md: '28px 30px' },
       display: 'flex',

@@ -1,5 +1,6 @@
 import { Box, ToggleButton, ToggleButtonGroup, useMediaQuery, useTheme } from '@mui/material';
 import { ReactNode, useEffect, useRef, useState } from 'react';
+import { HEADER_HEIGHT } from 'src/layouts/AppHeader';
 import {
   ModalArgsType,
   ModalContextProvider,
@@ -65,7 +66,7 @@ export const ActionSidePanel = ({
       component="aside"
       sx={{
         position: 'sticky',
-        top: '116px',
+        top: `${HEADER_HEIGHT + 20}px`,
         display: 'flex',
         flexDirection: 'column',
         gap: '18px',
