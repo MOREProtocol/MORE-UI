@@ -28,7 +28,7 @@ export function MainLayout({ children }: { children: ReactNode }) {
           flexDirection: 'column',
           flex: 1,
           bgcolor: 'background.default',
-          pt: '40px',
+          pt: '20px',
         }}
       >
         {children}

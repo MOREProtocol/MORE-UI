@@ -21,7 +21,7 @@ export const PageMasthead = ({ title, subtitle, stats, actions }: PageMastheadPr
       sx={{
         display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },
-        alignItems: { xs: 'flex-start', md: 'stretch' },
+        alignItems: { xs: 'flex-start', md: 'flex-start' },
         justifyContent: 'space-between',
         gap: { xs: 4, md: 6 },
         mb: { xs: 5, md: 6 },
@@ -72,9 +72,10 @@ export const PageMasthead = ({ title, subtitle, stats, actions }: PageMastheadPr
           <Box
             sx={{
               display: 'flex',
-              alignItems: 'stretch',
+              alignItems: 'flex-start',
               flexShrink: 0,
               flexWrap: 'wrap',
+              pt: { md: '4px' },
             }}
           >
             {stats.map((stat, index) => (
@@ -84,7 +85,7 @@ export const PageMasthead = ({ title, subtitle, stats, actions }: PageMastheadPr
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'flex-start',
-                  justifyContent: 'flex-end',
+                  justifyContent: 'flex-start',
                   gap: 1.25,
                   minWidth: 150,
                   pl: index === 0 ? 0 : 8,
