@@ -32,9 +32,9 @@ import { VaultsRewardModal } from './VaultsRewardModal';
 
 const VIEW_STORAGE_KEY = 'more.vaultsView';
 
-type SortKey = 'apy7Days' | 'tvmUsd';
+type SortKey = 'apy30Days' | 'tvmUsd';
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'apy7Days', label: 'APY' },
+  { key: 'apy30Days', label: 'APY' },
   { key: 'tvmUsd', label: 'TVM' },
 ];
 
@@ -140,6 +140,7 @@ const transformVaultsToGridRows = (
       networkIcon: rowNetworkInfo.icon,
       apy: vault.overview?.apy,
       apy7Days: vault.overview?.apy7Days,
+      apy30Days: vault.overview?.apy30Days,
       incentives: vault.incentives,
       tvm: tvmValue,
       tvmUsd: tvmUsd.toNumber(),
@@ -183,7 +184,7 @@ export const VaultAssetsList = () => {
   // Filter / sort state (client-side over already-fetched rows)
   const [searchTerm, setSearchTerm] = useState('');
   const [chainFilter, setChainFilter] = useState<string>('all');
-  const [sortKey, setSortKey] = useState<SortKey>('apy7Days');
+  const [sortKey, setSortKey] = useState<SortKey>('apy30Days');
   const [sortAnchor, setSortAnchor] = useState<null | HTMLElement>(null);
 
   const deployedVaultsQuery = useDeployedVaults();

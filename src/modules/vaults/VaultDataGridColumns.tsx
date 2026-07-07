@@ -340,6 +340,7 @@ export interface VaultGridRow {
   networkIcon: string;
   apy: number | undefined;
   apy7Days?: number | undefined;
+  apy30Days?: number | undefined;
   incentives?: PoolReservesRewardsHumanized[];
   tvm: string;
   tvmUsd: number;

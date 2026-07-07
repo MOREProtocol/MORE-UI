@@ -164,7 +164,7 @@ const GridCard = ({
   row: VaultGridRow;
   onRowClick: (r: VaultGridRow) => void;
 }) => {
-  const apyValue = typeof row.apy7Days === 'number' ? row.apy7Days : row.apy;
+  const apyValue = typeof row.apy30Days === 'number' ? row.apy30Days : row.apy;
   const tokens =
     row.depositTokenSymbols && row.depositTokenSymbols.length > 0
       ? row.depositTokenSymbols
@@ -211,7 +211,7 @@ const GridCard = ({
 
       {/* APY */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-        <StatLabel>7-Day APY</StatLabel>
+        <StatLabel>30-Day APY</StatLabel>
         <ApyValue apy={apyValue} />
       </Box>
 
@@ -243,7 +243,7 @@ const ListRow = ({
   row: VaultGridRow;
   onRowClick: (r: VaultGridRow) => void;
 }) => {
-  const apyValue = typeof row.apy7Days === 'number' ? row.apy7Days : row.apy;
+  const apyValue = typeof row.apy30Days === 'number' ? row.apy30Days : row.apy;
   const tokens =
     row.depositTokenSymbols && row.depositTokenSymbols.length > 0
       ? row.depositTokenSymbols
@@ -283,7 +283,7 @@ const ListRow = ({
 
       {/* APY */}
       <Box sx={{ minWidth: { md: 120 } }}>
-        <StatLabel>7-Day APY</StatLabel>
+        <StatLabel>30-Day APY</StatLabel>
         <Box sx={{ mt: 0.5 }}>
           {typeof apyValue === 'number' ? (
             <FormattedNumber
