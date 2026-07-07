@@ -65,7 +65,7 @@ export const ActionSidePanel = ({
       component="aside"
       sx={{
         position: 'sticky',
-        top: '88px',
+        top: '116px',
         display: 'flex',
         flexDirection: 'column',
         gap: '18px',

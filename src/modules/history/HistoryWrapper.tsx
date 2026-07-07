@@ -161,9 +161,9 @@ export const HistoryWrapper = () => {
   const pillSx = (active: boolean) => ({
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 0.75,
-    height: 32,
-    px: 1.75,
+    gap: '6px',
+    height: 36,
+    px: '14px',
     borderRadius: '9999px',
     border: '1px solid',
     fontSize: 13,

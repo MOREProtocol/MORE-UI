@@ -551,18 +551,18 @@ export function getThemedComponents(theme: Theme) {
           },
           sizeLarge: {
             ...theme.typography.buttonL,
-            minHeight: '48px',
-            padding: '0 24px',
+            minHeight: '56px',
+            padding: '0 28px',
           },
           sizeMedium: {
             ...theme.typography.buttonM,
-            minHeight: '40px',
-            padding: '0 20px',
+            minHeight: '48px',
+            padding: '0 24px',
           },
           sizeSmall: {
             ...theme.typography.buttonS,
-            minHeight: '32px',
-            padding: '0 12px',
+            minHeight: '40px',
+            padding: '0 18px',
           },
         },
         variants: [
@@ -600,18 +600,18 @@ export function getThemedComponents(theme: Theme) {
           root: {
             backgroundColor: theme.palette.background.surface,
             border: `1px solid ${theme.palette.divider}`,
-            borderRadius: '9999px',
+            borderRadius: '14px',
             padding: '4px',
           },
           grouped: {
             border: 0,
-            borderRadius: '9999px',
+            borderRadius: '10px',
             '&:not(:first-of-type)': {
-              borderRadius: '9999px',
+              borderRadius: '10px',
               marginLeft: '4px',
             },
             '&:first-of-type': {
-              borderRadius: '9999px',
+              borderRadius: '10px',
             },
           },
         },
@@ -620,7 +620,7 @@ export function getThemedComponents(theme: Theme) {
         styleOverrides: {
           root: {
             border: 0,
-            borderRadius: '9999px',
+            borderRadius: '10px',
             textTransform: 'none',
             fontFamily: FONT_BODY,
             fontWeight: 500,

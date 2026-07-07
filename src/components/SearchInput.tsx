@@ -41,7 +41,7 @@ export const SearchInput = ({
     bgcolor: 'background.paper',
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: '14px',
-    height: '44px',
+    height: '48px',
     ...(typeof wrapperSx === 'function'
       ? (wrapperSx(theme) as Record<string, unknown>)
       : (wrapperSx as Record<string, unknown>)),

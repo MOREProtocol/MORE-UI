@@ -137,7 +137,7 @@ export const AssetInput = <T extends Asset = Asset>({
         sx={(theme) => ({
           backgroundColor: theme.palette.background.surface,
           border: `1px solid ${theme.palette.divider}`,
-          borderRadius: '16px',
+          borderRadius: '18px',
           overflow: 'hidden',
           transition: 'border-color 150ms ease, box-shadow 150ms ease',
           '&:focus-within': {

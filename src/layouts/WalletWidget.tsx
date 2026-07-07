@@ -275,6 +275,7 @@ export default function WalletWidget({ open, setOpen }: WalletWidgetProps) {
         <Button
           variant={connected ? 'outlined' : 'contained'}
           color="primary"
+          size="small"
           aria-label="wallet"
           id="wallet-button"
           aria-controls={open ? 'wallet-button' : undefined}

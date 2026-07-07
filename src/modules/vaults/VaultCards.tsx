@@ -175,6 +175,7 @@ const GridCard = ({
       onClick={() => onRowClick(row)}
       sx={{
         ...CARD_SX,
+        borderRadius: '32px',
         p: { xs: 3, md: '28px 30px' },
         display: 'flex',
         flexDirection: 'column',

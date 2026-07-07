@@ -129,7 +129,7 @@ export function AppFooter() {
           maxWidth: 1600,
           mx: 'auto',
           width: '100%',
-          px: 4,
+          px: { xs: '16px', sm: '32px' },
           py: '20px',
         }}
       >

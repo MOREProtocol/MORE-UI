@@ -33,7 +33,7 @@ export const ListItem = ({
         ...(card
           ? {
               bgcolor: 'background.paper',
-              borderRadius: '20px',
+              borderRadius: '24px',
               border: '1px solid',
               borderColor: 'divider',
               mb: 3,

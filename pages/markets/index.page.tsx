@@ -143,7 +143,7 @@ export default function Markets() {
         width: '100%',
         maxWidth: 1600,
         mx: 'auto',
-        px: { xs: 2, md: 4 },
+        px: { xs: '16px', sm: '32px' },
         pt: { xs: 3, md: 3 },
         pb: { xs: 6, md: 12 },
       }}

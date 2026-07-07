@@ -378,9 +378,9 @@ export const VaultAssetsList = () => {
   const pillSx = (active: boolean) => ({
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 0.75,
+    gap: '6px',
     height: 36,
-    px: 1.75,
+    px: '14px',
     borderRadius: '9999px',
     border: '1px solid',
     fontSize: 13,

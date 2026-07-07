@@ -16,7 +16,7 @@ import { LogoMenu } from './components/LogoMenu';
 import { NavItems } from './components/NavItems';
 import WalletWidget from './WalletWidget';
 
-export const HEADER_HEIGHT = 68;
+export const HEADER_HEIGHT = 96;
 
 export function AppHeader() {
   const theme = useTheme();
@@ -97,7 +97,7 @@ export function AppHeader() {
           mx: 'auto',
           width: '100%',
           height: HEADER_HEIGHT,
-          px: 4,
+          px: { xs: '16px', sm: '32px' },
           display: 'flex',
           alignItems: 'center',
           gap: 3,
@@ -118,6 +118,7 @@ export function AppHeader() {
             component={Link}
             href={ROUTES.bridge}
             variant="outlined"
+            size="small"
             startIcon={<SwapHorizIcon sx={{ fontSize: 18 }} />}
             sx={{
               display: { xs: 'none', xsm: 'inline-flex' },

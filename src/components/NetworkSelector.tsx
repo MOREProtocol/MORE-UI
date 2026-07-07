@@ -136,9 +136,11 @@ export default function NetworkSelector() {
       <Button
         onClick={handleClick}
         variant="outlined"
+        size="small"
         sx={{
           p: 0,
           minWidth: 'unset',
+          minHeight: 40,
           width: 40,
           height: 40,
           borderRadius: '50%',

@@ -139,13 +139,15 @@ export const HistoryFilterMenu: React.FC<HistoryFilterMenuProps> = ({
   return (
     <Box>
       <Button
+        size="small"
         sx={{
           minWidth: 'unset',
           maxWidth: downToMD ? '100%' : 280,
           display: 'inline-flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          height: 32,
+          height: 36,
+          minHeight: 36,
           border: '1px solid',
           borderColor: showNeutral ? 'transparent' : 'divider',
           borderRadius: '9999px',
@@ -153,8 +155,8 @@ export const HistoryFilterMenu: React.FC<HistoryFilterMenuProps> = ({
           color: 'text.secondary',
           textTransform: 'none',
           '&:hover': { bgcolor: 'background.surface' },
-          px: 1.75,
-          gap: 0.75,
+          px: '14px',
+          gap: '6px',
         }}
         onClick={handleClick}
       >
