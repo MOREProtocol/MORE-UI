@@ -255,11 +255,11 @@ const ListRow = ({
       onClick={() => onRowClick(row)}
       sx={{
         ...CARD_SX,
-        p: { xs: 2.5, md: 3 },
+        p: { xs: '20px', md: '22px 26px' },
         display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },
         alignItems: { xs: 'flex-start', md: 'center' },
-        gap: { xs: 2.5, md: 3 },
+        gap: { xs: '20px', md: '28px' },
       }}
     >
       {/* Asset */}
@@ -364,11 +364,11 @@ const ListSkeleton = () => (
     sx={{
       ...CARD_SX,
       cursor: 'default',
-      p: { xs: 2.5, md: 3 },
+      p: { xs: '20px', md: '22px 26px' },
       display: 'flex',
       flexDirection: { xs: 'column', md: 'row' },
       alignItems: { xs: 'flex-start', md: 'center' },
-      gap: 3,
+      gap: { xs: '20px', md: '28px' },
       '&:hover': { borderColor: 'divider' },
     }}
   >
@@ -392,7 +392,7 @@ export const VaultCards: React.FC<VaultCardsProps> = ({ data, view, loading, onR
         sx={{
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' },
-          gap: 2,
+          gap: '16px',
         }}
       >
         {loading
@@ -403,7 +403,7 @@ export const VaultCards: React.FC<VaultCardsProps> = ({ data, view, loading, onR
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       {loading
         ? [0, 1].map((i) => <ListSkeleton key={`list-skel-${i}`} />)
         : data.map((row) => <ListRow key={row.id} row={row} onRowClick={onRowClick} />)}

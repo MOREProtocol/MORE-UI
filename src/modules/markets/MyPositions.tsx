@@ -412,7 +412,7 @@ export function MyPositions() {
         border: '1px solid',
         borderColor: headerHovered ? 'primary.main' : 'divider',
         transition: 'border-color 150ms ease',
-        p: 3,
+        p: { xs: '20px', md: '22px 28px' },
         borderRadius: '20px',
         mb: { xs: 4, md: 5 },
       }}

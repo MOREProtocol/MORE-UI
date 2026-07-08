@@ -125,6 +125,14 @@ typography variants in the theme).
   (`--radius` 0.625rem, `--radius-xl`).
 - **Banner-wave hero cards are theme-invariant** (intentionally dark in both modes — the
   `--app-bold-*` token family).
+- **Spacing must breathe — match the mockups, not MUI defaults.** MUI `spacing` base here is
+  **4px** (not 8), so a bare `p: 3` is only 12px and reads as cramped. Content cards/rows use
+  **generous internal padding** (`p: '22px 26px'` for list rows, `'28px 30px'` for grid cards —
+  the mockup `.market-row-card` / `.vault-list-card` values); **column gaps ~28px**; card
+  **stacks gap 10px**, card **grids gap 16px**; alerts use `p: '14px 16px'`. Prefer explicit
+  `px` strings for these so the 4px base can't silently halve them. Page gutters are the shared
+  `maxWidth: 1600` + `px: { xs: '16px', sm: '32px' }` (same as the header/footer) — keep every
+  page on that so content aligns with the chrome.
 
 ### Stable API — preserve these names, change values only
 

@@ -437,15 +437,15 @@ export function MarketsTable() {
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: '24px',
-          p: { xs: 2.5, md: 3 },
+          p: { xs: '20px', md: '22px 26px' },
           cursor: 'pointer',
           transition: 'border-color 150ms ease',
           '&:hover': { borderColor: 'primary.main' },
           display: 'grid',
           gridTemplateColumns: GRID_COLUMNS,
           alignItems: 'center',
-          columnGap: 3,
-          rowGap: 2.5,
+          columnGap: '28px',
+          rowGap: '20px',
         }}
       >
         {/* Asset */}
@@ -627,12 +627,12 @@ export function MarketsTable() {
         border: '1px solid',
         borderColor: 'divider',
         borderRadius: '24px',
-        p: { xs: 2.5, md: 3 },
+        p: { xs: '20px', md: '22px 26px' },
         display: 'grid',
         gridTemplateColumns: GRID_COLUMNS,
         alignItems: 'center',
-        columnGap: 3,
-        rowGap: 2.5,
+        columnGap: '28px',
+        rowGap: '20px',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -658,7 +658,7 @@ export function MarketsTable() {
           alignItems: 'center',
           gap: 1.5,
           flexWrap: 'wrap',
-          mb: { xs: 3, md: 2.5 },
+          mb: '20px',
         }}
       >
         <SearchInput
@@ -719,7 +719,7 @@ export function MarketsTable() {
       </Box>
 
       {/* Market list */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {loading ? (
           [0, 1, 2, 3].map((i) => <CardSkeleton key={`market-skel-${i}`} />)
         ) : filteredSortedRows.length === 0 ? (
