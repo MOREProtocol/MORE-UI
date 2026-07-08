@@ -129,7 +129,9 @@ export const AssetInput = <T extends Asset = Asset>({
   return (
     <Box {...sx}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-        <Typography color="text.secondary">{inputTitle ? inputTitle : 'Amount'}</Typography>
+        <Typography variant="description" color="text.secondary">
+          {inputTitle ? inputTitle : 'Amount'}
+        </Typography>
         {capType && <AvailableTooltip capType={capType} />}
       </Box>
 
@@ -209,10 +211,10 @@ export const AssetInput = <T extends Asset = Asset>({
               sx={(theme) => ({
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 1,
+                gap: '8px',
                 flexShrink: 0,
                 pl: '6px',
-                pr: 1.5,
+                pr: '12px',
                 py: '6px',
                 borderRadius: '9999px',
                 backgroundColor: theme.palette.background.paper,
@@ -255,19 +257,21 @@ export const AssetInput = <T extends Asset = Asset>({
                   border: '1px solid',
                   borderColor: 'divider',
                   pl: '6px',
-                  pr: '10px',
-                  py: '4px',
+                  pr: 0,
+                  py: '6px',
                   transition: 'border-color 150ms ease',
                   '&:hover': { borderColor: 'primary.light' },
                   '&.AssetInput__select .MuiOutlinedInput-input': {
                     p: 0,
                     backgroundColor: 'transparent',
-                    pr: '24px !important',
+                    pr: '32px !important',
                   },
                   '&.AssetInput__select .MuiOutlinedInput-notchedOutline': { display: 'none' },
                   '&.AssetInput__select .MuiSelect-icon': {
                     color: 'text.muted',
-                    right: '0%',
+                    fontSize: '20px',
+                    right: '10px',
+                    top: 'calc(50% - 10px)',
                   },
                 }}
                 renderValue={(symbol) => {
@@ -345,7 +349,7 @@ export const AssetInput = <T extends Asset = Asset>({
 
           {asset.balance && onChange && (
             <>
-              <Typography component="div" variant="secondary12" color="text.secondary">
+              <Typography component="div" variant="caption" color="text.secondary">
                 {balanceText && balanceText !== '' ? balanceText : 'Balance'}{' '}
                 <FormattedNumber
                   value={asset.balance}
@@ -360,6 +364,7 @@ export const AssetInput = <T extends Asset = Asset>({
                   size="small"
                   sx={{
                     minWidth: 0,
+                    minHeight: 'unset',
                     ml: 2,
                     px: '7px',
                     py: '3px',

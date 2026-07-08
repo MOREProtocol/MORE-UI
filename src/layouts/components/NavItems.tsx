@@ -5,7 +5,6 @@ import { MarketDataType } from 'src/ui-config/marketsConfig';
 import { NAV_BAR } from 'src/utils/mixPanelEvents';
 import { FONT_BODY } from 'src/utils/theme';
 
-import { useWeb3Context } from '../../libs/hooks/useWeb3Context';
 import { Link, ROUTES } from '../../components/primitives/Link';
 import { useProtocolDataContext } from '../../hooks/useProtocolDataContext';
 import { MoreMenu } from '../MoreMenu';
@@ -19,14 +18,11 @@ interface Navigation {
   title: string;
   visibleTitle: string;
   isVisible?: (data: MarketDataType) => boolean | undefined;
-  // Wallet-gated items (e.g. Dashboard) only appear once an account is connected.
-  requiresWallet?: boolean;
   dataCy?: string;
 }
 
 export const NavItems = ({ setOpen }: NavItemsProps) => {
   const { currentMarketData } = useProtocolDataContext();
-  const { currentAccount } = useWeb3Context();
 
   const navigation: Navigation[] = [
     {
@@ -41,13 +37,7 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
       visibleTitle: 'Markets',
       dataCy: 'menuMarkets',
     },
-    {
-      link: ROUTES.userDashboard,
-      title: 'Dashboard',
-      visibleTitle: 'Dashboard',
-      requiresWallet: true,
-      dataCy: 'menuDashboard',
-    },
+    // Dashboard lives in the wallet/account dropdown (WalletWidget), not the main nav.
     {
       link: ROUTES.bridge,
       title: 'Bridge',
@@ -84,16 +74,11 @@ export const NavItems = ({ setOpen }: NavItemsProps) => {
     >
       {navigation
         .filter((item) => !item.isVisible || item.isVisible(currentMarketData))
-        .filter((item) => !item.requiresWallet || !!currentAccount)
-        // Bridge already has its own dedicated ghost pill in the header's right cluster on
-        // desktop, so it's excluded here to avoid appearing twice. It stays in this list for
-        // the mobile (Typography) branch below, where it remains reachable.
-        .filter((item) => md || item.link !== ROUTES.bridge)
         .map((item, index) => (
           <ListItem
             sx={{
               width: { xs: '100%', md: 'unset' },
-              mr: { xs: 0, md: 2 },
+              mr: { xs: 0, md: '4px' },
             }}
             data-cy={item.dataCy}
             disablePadding

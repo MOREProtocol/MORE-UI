@@ -1,4 +1,4 @@
-import { ArrowDownIcon } from '@heroicons/react/outline';
+import { ArrowDownIcon, ExclamationIcon } from '@heroicons/react/outline';
 import {
   Alert,
   Avatar,
@@ -30,23 +30,9 @@ import { FormattedNumber } from './primitives/FormattedNumber';
 import { Asset, AssetInput } from './transactions/AssetInput';
 
 const NetworkTag = ({ icon, label }: { icon: string; label: string }) => (
-  <Box
-    sx={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 1,
-      bgcolor: 'background.surface',
-      border: '1px solid',
-      borderColor: 'divider',
-      borderRadius: '9999px',
-      pl: '6px',
-      pr: 2,
-      py: '6px',
-      mb: 1.5,
-    }}
-  >
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', mb: '10px' }}>
     <Avatar src={icon} sx={{ width: 20, height: 20 }} />
-    <Typography variant="secondary14" sx={{ fontWeight: 600, color: 'text.primary' }}>
+    <Typography variant="subheader2" color="text.primary">
       {label}
     </Typography>
   </Box>
@@ -367,7 +353,7 @@ export const BridgeContent: React.FC = () => {
       if (result.success) {
         setSuccess(
           <Box>
-            <Typography variant="main14" sx={{ display: 'block' }}>
+            <Typography variant="subheader2" sx={{ display: 'block' }}>
               Successfully initiated bridge of {amount} {selectedSourceToken.symbol} to{' '}
               {selectedDestinationToken.symbol} on Flow EVM!
             </Typography>
@@ -448,43 +434,55 @@ export const BridgeContent: React.FC = () => {
   return (
     <Box
       sx={{
-        maxWidth: 560,
+        maxWidth: 520,
         width: '100%',
         mx: 'auto',
         backgroundColor: 'background.paper',
         border: '1px solid',
         borderColor: 'divider',
         borderRadius: '24px',
-        p: { xs: 3, sm: '28px' },
+        p: { xs: '24px', sm: '28px 32px' },
+        boxShadow: (t) =>
+          t.palette.mode === 'dark'
+            ? '0 8px 32px rgba(0, 0, 0, 0.4)'
+            : '0 8px 32px rgba(20, 15, 8, 0.06)',
       }}
     >
       {/* Title */}
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: '18px' }}>
         <Typography
           sx={{
             fontFamily: FONT_DISPLAY,
             fontWeight: 600,
-            fontSize: { xs: 22, sm: 26 },
+            fontSize: 22,
             lineHeight: 1.2,
-            letterSpacing: '-0.01em',
+            letterSpacing: '-0.02em',
             color: 'text.primary',
           }}
         >
           Bridge Assets to Flow EVM
         </Typography>
-        <Typography variant="description" color="text.secondary" sx={{ mt: 0.75 }}>
-          Transfer tokens from Ethereum to Flow EVM network using Relay Bridge
+        <Typography variant="description" color="text.secondary" sx={{ mt: '6px' }}>
+          Transfer tokens from Ethereum to Flow EVM via{' '}
+          <Typography
+            component="span"
+            variant="description"
+            sx={{ fontWeight: 600 }}
+            color="text.primary"
+          >
+            Relay Protocol
+          </Typography>
         </Typography>
       </Box>
 
       {/* Network Status Check */}
       {address && chainId !== ChainIds.ethereum && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          <Typography variant="main14">
+        <Alert severity="warning" sx={{ mb: '20px' }}>
+          <Typography variant="subheader2">
             Wrong Network:{' '}
             <Typography
               component="span"
-              variant="main14"
+              variant="subheader2"
               onClick={() => switchChain?.({ chainId: ChainIds.ethereum })}
               sx={{
                 textDecoration: 'underline',
@@ -502,10 +500,8 @@ export const BridgeContent: React.FC = () => {
       )}
 
       {!address && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <Typography variant="main14">
-            Please connect your wallet to start bridging assets
-          </Typography>
+        <Alert severity="info" sx={{ mb: '20px' }}>
+          <Typography variant="subheader2">Connect your wallet to start bridging</Typography>
         </Alert>
       )}
 
@@ -550,17 +546,16 @@ export const BridgeContent: React.FC = () => {
       </Box>
 
       {/* Separator */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', my: 1 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', my: '12px' }}>
         <Box
           role="presentation"
           sx={{
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             borderRadius: '9999px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            bgcolor: 'background.surface',
             border: '1px solid',
             borderColor: 'divider',
             color: 'text.muted',
@@ -573,7 +568,7 @@ export const BridgeContent: React.FC = () => {
       </Box>
 
       {/* Flow EVM Destination Section */}
-      <Box sx={{ mb: 3 }}>
+      <Box>
         <NetworkTag icon="/icons/networks/flow.svg" label="To Flow EVM Mainnet" />
 
         {destinationTokens.length > 0 && (
@@ -602,8 +597,8 @@ export const BridgeContent: React.FC = () => {
 
       {/* Quote and Fees Section */}
       {(feeLoading || estimatedFees) && (
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="main14" fontWeight={600} sx={{ mb: 2 }}>
+        <Box sx={{ mt: '20px' }}>
+          <Typography variant="subheader2" sx={{ mb: '10px' }}>
             Quote & Fees
           </Typography>
 
@@ -618,23 +613,24 @@ export const BridgeContent: React.FC = () => {
                 bgcolor: 'background.surface',
                 border: '1px solid',
                 borderColor: 'divider',
-                borderRadius: '16px',
+                borderRadius: '18px',
               }}
             >
               <CircularProgress size={16} />
-              <Typography variant="secondary12" color="text.secondary">
+              <Typography variant="caption" color="text.secondary">
                 Getting best quote...
               </Typography>
             </Box>
           ) : (
             estimatedFees && (
               <Paper
+                elevation={0}
                 sx={{
-                  p: 3,
+                  p: '16px 20px',
                   bgcolor: 'background.surface',
                   border: '1px solid',
                   borderColor: 'divider',
-                  borderRadius: '16px',
+                  borderRadius: '18px',
                 }}
               >
                 {/* Exchange Rate */}
@@ -647,7 +643,7 @@ export const BridgeContent: React.FC = () => {
                       mb: 2,
                     }}
                   >
-                    <Typography variant="secondary14" color="text.secondary">
+                    <Typography variant="description" color="text.secondary">
                       Exchange Rate
                     </Typography>
                     <Typography variant="secondary14">
@@ -683,7 +679,7 @@ export const BridgeContent: React.FC = () => {
                       mb: 2,
                     }}
                   >
-                    <Typography variant="secondary14" color="text.secondary">
+                    <Typography variant="description" color="text.secondary">
                       Minimum Received
                     </Typography>
                     <Box sx={{ typography: 'secondary14' }}>
@@ -712,7 +708,7 @@ export const BridgeContent: React.FC = () => {
                   <Typography variant="secondary14" color="text.secondary">
                     Bridge Route
                   </Typography>
-                  <Typography variant="secondary14">Relay Protocol</Typography>
+                  <Typography variant="subheader2">Relay Protocol</Typography>
                 </Box>
 
                 {/* Estimated Time */}
@@ -733,12 +729,7 @@ export const BridgeContent: React.FC = () => {
                 <Divider sx={{ my: 2 }} />
 
                 {/* Fee Breakdown */}
-                <Typography
-                  variant="secondary14"
-                  fontWeight={600}
-                  color="text.secondary"
-                  sx={{ mb: 1.5 }}
-                >
+                <Typography variant="subheader2" color="text.secondary" sx={{ mb: 1.5 }}>
                   Fee Breakdown
                 </Typography>
 
@@ -834,7 +825,7 @@ export const BridgeContent: React.FC = () => {
                 <Box
                   sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
-                  <Typography variant="main14" color="text.secondary">
+                  <Typography variant="description" color="text.secondary">
                     Total Fees
                   </Typography>
                   <FormattedNumber
@@ -872,33 +863,27 @@ export const BridgeContent: React.FC = () => {
 
       {/* Error Display */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mt: '20px' }}>
           {error}
         </Alert>
       )}
 
       {/* Success Display */}
       {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
+        <Alert severity="success" sx={{ mt: '20px' }}>
           {success}
         </Alert>
       )}
 
       {/* Action Buttons */}
-      <Box sx={{ display: 'flex', gap: 2 }}>
-        <Button
-          variant="outlined"
-          onClick={handleReset}
-          disabled={isLoading}
-          size="large"
-          sx={{ minHeight: '52px', borderRadius: '22px' }}
-        >
+      <Box sx={{ display: 'flex', gap: '8px', mt: '20px' }}>
+        <Button variant="outlined" onClick={handleReset} disabled={isLoading} size="medium">
           Reset
         </Button>
         <Button
           variant="gradient"
           fullWidth
-          size="large"
+          size="medium"
           onClick={executeBridge}
           disabled={
             isLoading ||
@@ -908,7 +893,6 @@ export const BridgeContent: React.FC = () => {
             parseFloat(amount) <= 0 ||
             parseFloat(amount) > parseFloat(sourceTokenBalance)
           }
-          sx={{ minHeight: '52px', borderRadius: '22px' }}
         >
           {isLoading ? (
             <CircularProgress size={20} color="inherit" />
@@ -921,10 +905,19 @@ export const BridgeContent: React.FC = () => {
       {/* Footer Info */}
       <Typography
         variant="caption"
-        color="text.secondary"
-        sx={{ mt: 2, display: 'block', textAlign: 'center' }}
+        color="text.muted"
+        sx={{
+          mt: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px',
+        }}
       >
-        ⚠️ Powered by Relay Protocol. Always test with small amounts first.
+        <SvgIcon sx={{ fontSize: 12 }}>
+          <ExclamationIcon />
+        </SvgIcon>
+        Powered by Relay Protocol. Always test small amounts first.
       </Typography>
     </Box>
   );

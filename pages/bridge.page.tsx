@@ -20,8 +20,8 @@ export default function Bridge() {
         flexDirection: 'column',
         alignItems: 'center',
         flex: 1,
-        px: 2,
-        py: { xs: 5, md: 8 },
+        px: '16px',
+        py: { xs: '24px', md: '40px' },
       }}
     >
       <BridgeContent />

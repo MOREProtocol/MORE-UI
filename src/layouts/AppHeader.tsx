@@ -1,11 +1,9 @@
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import { Button, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Typography, useMediaQuery, useTheme } from '@mui/material';
 import Box from '@mui/material/Box';
 import { useRouter } from 'next/router';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import NetworkSelector from 'src/components/NetworkSelector';
-import { Link, ROUTES } from 'src/components/primitives/Link';
 import { VaultManagementBundleButton } from 'src/modules/vault-detail/VaultManagement/VaultManagementBundleButton';
 import { useRootStore } from 'src/store/root';
 import { ChainIds } from 'src/utils/const';
@@ -100,7 +98,7 @@ export function AppHeader() {
           px: { xs: '16px', sm: '32px' },
           display: 'flex',
           alignItems: 'center',
-          gap: 3,
+          gap: '24px',
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
@@ -113,24 +111,7 @@ export function AppHeader() {
 
         <Box sx={{ flexGrow: 1 }} />
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Button
-            component={Link}
-            href={ROUTES.bridge}
-            variant="outlined"
-            size="small"
-            startIcon={<SwapHorizIcon sx={{ fontSize: 18 }} />}
-            sx={{
-              display: { xs: 'none', xsm: 'inline-flex' },
-              height: 40,
-              px: '14px',
-              fontSize: 13,
-              color: 'text.primary',
-            }}
-          >
-            Bridge
-          </Button>
-
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {!hideNetworkSelector && <NetworkSelector />}
           <VaultManagementBundleButton />
           {/* BATCH TRANSACTIONS DISABLED FOR NOW */}
