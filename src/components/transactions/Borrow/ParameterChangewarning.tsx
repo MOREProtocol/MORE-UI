@@ -6,23 +6,21 @@ export const ParameterChangewarning = ({ underlyingAsset }: { underlyingAsset: s
   const trackEvent = useRootStore((store) => store.trackEvent);
 
   return (
-    <Warning severity="info" sx={{ my: 6 }}>
-      
-        <b>Attention:</b> Parameter changes via governance can alter your account health factor and
-        risk of liquidation. Follow the{' '}
-        <a
-          onClick={() => {
-            trackEvent(GENERAL.EXTERNAL_LINK, {
-              asset: underlyingAsset,
-              Link: 'Governance Link',
-            });
-          }}
-          href="https://governance.more.markets/"
-        >
-          More governance forum
-        </a>{' '}
-        for updates.
-      
+    <Warning severity="info" sx={{ my: 0 }}>
+      <b>Attention:</b> Parameter changes via governance can alter your account health factor and
+      risk of liquidation. Follow the{' '}
+      <a
+        onClick={() => {
+          trackEvent(GENERAL.EXTERNAL_LINK, {
+            asset: underlyingAsset,
+            Link: 'Governance Link',
+          });
+        }}
+        href="https://governance.more.markets/"
+      >
+        More governance forum
+      </a>{' '}
+      for updates.
     </Warning>
   );
 };
