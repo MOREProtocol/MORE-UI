@@ -134,61 +134,67 @@ export const TxActionsWrapper = ({
 
   const { content, disabled, loading, handleClick } = getMainParams();
   const approvalParams = getApprovalParams();
+  // Progressive single-CTA: a two-step approve→action flow is collapsed into one
+  // button that advances. We're on the approval step while an approval is pending
+  // (approvalParams present and not yet confirmed); otherwise we show the action.
+  const onApprovalStep = !!approvalParams && !readOnlyModeAddress && !approvalTxState?.success;
+  const needsTwoSteps = requiresApproval && !readOnlyModeAddress;
+  const stepHint = needsTwoSteps
+    ? approvalTxState?.success
+      ? 'Step 2 of 2'
+      : 'Step 1 of 2'
+    : null;
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', mt: 12, ...sx }} {...rest}>
-      {approvalParams && !readOnlyModeAddress && (
-        <Box sx={{ display: 'flex', justifyContent: 'end', alignItems: 'center' }}>
-          <RightHelperText approvalHash={approvalTxState?.txHash} tryPermit={tryPermit} />
+      {stepHint && (
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 1,
+            minHeight: 20,
+          }}
+        >
+          <Typography variant="caption" color="text.secondary">
+            {stepHint}
+          </Typography>
+          {onApprovalStep && (
+            <RightHelperText approvalHash={approvalTxState?.txHash} tryPermit={tryPermit} />
+          )}
         </Box>
       )}
 
-      {approvalParams && !readOnlyModeAddress && (
+      {onApprovalStep ? (
         <Button
           variant="contained"
-          disabled={approvalParams.disabled || blocked}
-          onClick={() => approvalParams.handleClick && approvalParams.handleClick()}
+          fullWidth
+          disabled={approvalParams?.disabled || blocked}
+          onClick={() => approvalParams?.handleClick && approvalParams.handleClick()}
           size="large"
-          sx={{ minHeight: '44px' }}
+          sx={{ minHeight: '52px', borderRadius: '22px' }}
           data-cy="approvalButton"
         >
-          {approvalParams.loading && (
+          {approvalParams?.loading && (
             <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />
           )}
-          {approvalParams.content}
+          {approvalParams?.content}
         </Button>
-      )}
-
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      ) : (
         <Button
           variant="contained"
           fullWidth
           disabled={disabled || blocked || readOnlyModeAddress !== undefined}
           onClick={handleClick}
           size="large"
-          sx={{ minHeight: '52px', borderRadius: '22px', ...(approvalParams ? { mt: 2 } : {}) }}
+          sx={{ minHeight: '52px', borderRadius: '22px' }}
           data-cy="actionButton"
         >
           {loading && <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />}
           {content}
         </Button>
-        {/* BATCH TRANSACTIONS DISABLED FOR NOW */}
-        {/* <Button
-          variant="contained"
-          disabled={
-            blocked || readOnlyModeAddress !== undefined || !handleAddToBatch || isAmountMissing
-          }
-          onClick={handleAddToBatchClick}
-          size="large"
-          sx={{ minHeight: '44px', ...(approvalParams ? { mt: 2 } : {}) }}
-          data-cy="batchButton"
-        >
-          {isBatchLoading ? (
-            <CircularProgress color="inherit" size="16px" sx={{ mr: 2 }} />
-          ) : (
-            'Add to batch'
-          )}
-        </Button> */}
-      </Box>
+      )}
       {readOnlyModeAddress && (
         <Typography variant="helperText" color="warning.main" sx={{ textAlign: 'center', mt: 2 }}>
           Read-only mode. Connect to a wallet to perform transactions.
