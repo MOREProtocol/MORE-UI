@@ -15,8 +15,10 @@ export interface EstimateRow {
 
 const safe = (n: number) => (Number.isFinite(n) ? n : 0);
 
-// Health factor: <= 0 (no borrows) renders as infinity, matching Aave semantics.
-const formatHf = (n: number) => (n <= 0 ? '∞' : n.toFixed(2));
+// Health factor: the protocol uses -1 as the "no debt" sentinel (HF is
+// effectively infinite). We render that as "-" (not applicable) rather than a
+// number. A genuine 0 would still show as "0.00".
+const formatHf = (n: number) => (n < 0 ? '-' : n.toFixed(2));
 
 const ValueNode = ({
   value,
