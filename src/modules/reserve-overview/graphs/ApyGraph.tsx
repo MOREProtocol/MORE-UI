@@ -6,7 +6,7 @@ import { localPoint } from '@visx/event';
 import { GridRows } from '@visx/grid';
 import { Group } from '@visx/group';
 import { scaleLinear, scaleTime } from '@visx/scale';
-import { Bar, Line, LinePath } from '@visx/shape';
+import { AreaClosed, Bar, Line, LinePath } from '@visx/shape';
 import { defaultStyles, TooltipWithBounds, withTooltip } from '@visx/tooltip';
 import { WithTooltipProvidedProps } from '@visx/tooltip/lib/enhancers/withTooltip';
 import { bisector, extent, max } from 'd3-array';
@@ -197,6 +197,12 @@ export const ApyGraph = withTooltip<AreaProps, TooltipData>(
     return (
       <>
         <svg width={width} height={height}>
+          <defs>
+            <linearGradient id="apyAreaGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={fields[0]?.color} stopOpacity={0.18} />
+              <stop offset="100%" stopColor={fields[0]?.color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
           <Group left={margin.left} top={margin.top}>
             {/* Horizontal Background Lines */}
             <GridRows
@@ -207,6 +213,18 @@ export const ApyGraph = withTooltip<AreaProps, TooltipData>(
               pointerEvents="none"
               numTicks={3}
             />
+
+            {/* Soft gradient area under the first (primary) series */}
+            {fields[0] && (
+              <AreaClosed
+                data={data}
+                x={(d) => dateScale(getDate(d)) ?? 0}
+                y={(d) => yValueScale(getData(d, fields[0].name)) ?? 0}
+                yScale={yValueScale}
+                fill="url(#apyAreaGradient)"
+                curve={curveMonotoneX}
+              />
+            )}
 
             {/* Data Value Lines */}
             {fields.map((field) => (

@@ -9,11 +9,12 @@ import { ESupportedTimeRanges } from 'src/modules/reserve-overview/TimeRangeSele
 import { makeCancelable } from 'src/utils/utils';
 
 export const reserveRateTimeRangeOptions = [
+  ESupportedTimeRanges.SevenDays,
   ESupportedTimeRanges.OneMonth,
-  ESupportedTimeRanges.SixMonths,
+  ESupportedTimeRanges.ThreeMonths,
   ESupportedTimeRanges.OneYear,
 ];
-export type ReserveRateTimeRange = typeof reserveRateTimeRangeOptions[number];
+export type ReserveRateTimeRange = (typeof reserveRateTimeRangeOptions)[number];
 
 type RatesHistoryParams = {
   from: number;
@@ -50,11 +51,23 @@ const resolutionForTimeRange = (timeRange: ReserveRateTimeRange): RatesHistoryPa
   // Return today as a fallback
   let calculatedDate = dayjs().unix();
   switch (timeRange) {
+    case ESupportedTimeRanges.SevenDays:
+      calculatedDate = dayjs().subtract(7, 'day').unix();
+      return {
+        from: calculatedDate,
+        resolutionInHours: 2,
+      };
     case ESupportedTimeRanges.OneMonth:
       calculatedDate = dayjs().subtract(30, 'day').unix();
       return {
         from: calculatedDate,
         resolutionInHours: 6,
+      };
+    case ESupportedTimeRanges.ThreeMonths:
+      calculatedDate = dayjs().subtract(3, 'month').unix();
+      return {
+        from: calculatedDate,
+        resolutionInHours: 12,
       };
     case ESupportedTimeRanges.SixMonths:
       calculatedDate = dayjs().subtract(6, 'month').unix();

@@ -75,7 +75,7 @@ const StatTile = ({
 }) => (
   <Box
     sx={{
-      backgroundColor: 'background.surface',
+      backgroundColor: 'transparent',
       border: '1px solid',
       borderColor: 'divider',
       borderRadius: '14px',
@@ -289,18 +289,11 @@ export default function ReserveOverview() {
                 </ToggleButtonGroup>
 
                 {chartMode === 'history' ? (
-                  <Box>
-                    <ApyGraphContainer
-                      graphKey="supply"
-                      reserve={reserve}
-                      currentMarketData={currentMarketData}
-                    />
-                    <ApyGraphContainer
-                      graphKey="borrow"
-                      reserve={reserve}
-                      currentMarketData={currentMarketData}
-                    />
-                  </Box>
+                  <ApyGraphContainer
+                    graphKey="combined"
+                    reserve={reserve}
+                    currentMarketData={currentMarketData}
+                  />
                 ) : (
                   <InterestRateModelGraphContainer reserve={reserve} />
                 )}

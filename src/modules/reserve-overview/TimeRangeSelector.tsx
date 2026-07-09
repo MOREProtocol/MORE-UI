@@ -1,8 +1,9 @@
 import { SxProps, Theme, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 
-export const supportedTimeRangeOptions = ['1m', '3m', '6m', '1y'] as const;
+export const supportedTimeRangeOptions = ['7d', '1m', '3m', '6m', '1y'] as const;
 
 export enum ESupportedTimeRanges {
+  SevenDays = '7d',
   OneMonth = '1m',
   ThreeMonths = '3m',
   SixMonths = '6m',
