@@ -1,11 +1,8 @@
-import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import {
   Alert,
   Box,
   Button,
-  IconButton,
   Skeleton,
   SvgIcon,
   Tab,
@@ -21,7 +18,6 @@ import {
   useVaultTopology,
 } from '@oydual31/more-vaults-sdk/react';
 import { asSdkClient, canDeposit } from '@oydual31/more-vaults-sdk/viem';
-import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
 import { Address } from 'src/components/Address';
 import { CompactMode } from 'src/components/CompactableTypography';
@@ -102,7 +98,6 @@ const ParamLabel = ({ children }: { children: React.ReactNode }) => (
 type VaultDetailTab = 'overview' | 'performance' | 'activity' | 'manage';
 
 export const VaultDetail = () => {
-  const router = useRouter();
   const { selectedVaultId, accountAddress, chainId, isOmniHub, isChainDetected } = useVault();
   const isOmniSpoke = isOmniSpokeVault(chainId, selectedVaultId ?? '');
   const { address } = useAccount();
@@ -561,44 +556,12 @@ export const VaultDetail = () => {
         </Alert>
       )}
 
-      {/* Slim top bar: back navigation + explorer link */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          mb: 2,
-        }}
-      >
-        <SvgIcon
-          sx={{
-            fontSize: '20px',
-            cursor: 'pointer',
-            color: 'text.secondary',
-            '&:hover': { color: 'text.primary' },
-          }}
-          onClick={() => router.push('/vaults')}
-        >
-          <ArrowBackRoundedIcon />
-        </SvgIcon>
-        {vaultExplorerLink && (
-          <IconButton
-            size="small"
-            onClick={() => window.open(vaultExplorerLink, '_blank')}
-            aria-label="open in explorer"
-          >
-            <OpenInNewIcon sx={{ fontSize: '0.875rem' }} />
-          </IconButton>
-        )}
-      </Box>
-
       {/* Two-column layout: hero + tabs/panels (left), action panel (right). */}
       <Box
         sx={{
           display: 'grid',
-          gap: 3,
-          gridTemplateColumns: { xs: '1fr', lg: '1fr 400px' },
+          gap: '24px',
+          gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 3fr) minmax(0, 2fr)' },
           gridTemplateAreas: {
             xs: `"hero" "panel" "main"`,
             lg: `"hero panel" "main panel"`,

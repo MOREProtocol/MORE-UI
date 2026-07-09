@@ -46,36 +46,20 @@ export const TimeRangeSelector = ({
       exclusive
       onChange={handleChange}
       aria-label="Date range"
-      sx={{
-        height: '24px',
-        '&.MuiToggleButtonGroup-grouped': {
-          borderRadius: 'unset',
-        },
-        ...props.sx?.buttonGroup,
-      }}
+      sx={props.sx?.buttonGroup}
     >
       {timeRanges.map((interval) => {
         return (
           <ToggleButton
             key={interval}
             value={interval}
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            sx={(theme): SxProps<Theme> | undefined => ({
-              '&.MuiToggleButtonGroup-grouped:not(.Mui-selected), &.MuiToggleButtonGroup-grouped&.Mui-disabled':
-                {
-                  border: '0.5px solid transparent',
-                  backgroundColor: 'background.surface',
-                  color: 'action.disabled',
-                },
-              '&.MuiToggleButtonGroup-grouped&.Mui-selected': {
-                borderRadius: '4px',
-                border: `0.5px solid ${theme.palette.divider}`,
-                boxShadow: '0px 2px 1px rgba(0, 0, 0, 0.05), 0px 0px 1px rgba(0, 0, 0, 0.25)',
-                backgroundColor: 'background.paper',
-              },
+            sx={{
+              px: '14px',
+              py: '4px',
+              minHeight: 'unset',
+              lineHeight: 1,
               ...props.sx?.button,
-            })}
+            }}
           >
             <Typography variant="buttonM">{interval}</Typography>
           </ToggleButton>

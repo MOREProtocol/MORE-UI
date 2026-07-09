@@ -36,10 +36,14 @@ export const ModalWrapper: React.FC<{
   // if true wFLOW will stay wFLOW otherwise wFLOW will be returned as FLOW
   keepWrappedSymbol?: boolean;
   hideTitleSymbol?: boolean;
+  // Suppress the modal title block entirely — used by the inline action panels,
+  // which have their own tab header and don't want the tall h2 spacer.
+  hideTitle?: boolean;
   children: (props: ModalWrapperProps) => React.ReactNode;
   action?: string;
 }> = ({
   hideTitleSymbol,
+  hideTitle,
   underlyingAsset,
   children,
   requiredChainId: _requiredChainId,
@@ -78,7 +82,7 @@ export const ModalWrapper: React.FC<{
 
   return (
     <AssetCapsProvider asset={poolReserve}>
-      {!mainTxState.success && (
+      {!mainTxState.success && !hideTitle && (
         <TxModalTitle title={title} symbol={hideTitleSymbol ? undefined : symbol} />
       )}
       {isWrongNetwork && !readOnlyModeAddress && (

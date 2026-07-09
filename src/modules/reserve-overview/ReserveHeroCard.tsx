@@ -1,3 +1,4 @@
+import GppGoodOutlinedIcon from '@mui/icons-material/GppGoodOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { Box, LinearProgress, Typography } from '@mui/material';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
@@ -139,7 +140,9 @@ export const ReserveHeroCard = ({ reserve, chainName, explorerLink }: ReserveHer
       >
         <Box sx={{ flex: 1, minWidth: 0 }}>
           {/* Chip row */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: '14px' }}>
+          <Box
+            sx={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', mb: '14px' }}
+          >
             <Box
               component="span"
               sx={{
@@ -155,10 +158,17 @@ export const ReserveHeroCard = ({ reserve, chainName, explorerLink }: ReserveHer
               Market
             </Box>
             <Box component="span" sx={glassChipSx}>
+              <Box
+                component="img"
+                src="/icons/networks/flow.svg"
+                alt=""
+                sx={{ width: 12, height: 12, borderRadius: '50%' }}
+              />
               {chainName}
             </Box>
             {canBeCollateral && (
               <Box component="span" sx={glassChipSx}>
+                <GppGoodOutlinedIcon sx={{ fontSize: 13 }} />
                 Can be collateral
               </Box>
             )}
@@ -208,7 +218,7 @@ export const ReserveHeroCard = ({ reserve, chainName, explorerLink }: ReserveHer
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: 1.5,
+              gap: '12px',
               flexWrap: 'wrap',
               mt: '14px',
               fontSize: 13,
@@ -238,8 +248,8 @@ export const ReserveHeroCard = ({ reserve, chainName, explorerLink }: ReserveHer
         sx={{
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', xsm: 'repeat(3, 1fr)' },
-          gap: 1.5,
-          mt: 4,
+          gap: '12px',
+          mt: '32px',
         }}
       >
         <StatTile
@@ -283,6 +293,20 @@ export const ReserveHeroCard = ({ reserve, chainName, explorerLink }: ReserveHer
             />
           }
           bar={Number(reserve.borrowUsageRatio || 0) * 100}
+          meta={
+            <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+              <FormattedNumber
+                value={Number(reserve.availableLiquidityUSD || 0)}
+                symbol="USD"
+                compact
+                visibleDecimals={2}
+                variant="inherit"
+                sx={{ color: HERO_TEXT_FAINT, fontFamily: FONT_MONO }}
+                symbolsColor={HERO_TEXT_FAINT}
+              />
+              <Box component="span">available</Box>
+            </Box>
+          }
         />
       </Box>
     </Box>

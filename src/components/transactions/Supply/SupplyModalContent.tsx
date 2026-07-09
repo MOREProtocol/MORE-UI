@@ -1,6 +1,6 @@
 import { API_ETH_MOCK_ADDRESS } from '@aave/contract-helpers';
 import { USD_DECIMALS, valueToBigNumber } from '@aave/math-utils';
-import { Skeleton, Stack, Typography } from '@mui/material';
+import { Box, Skeleton, Stack, Switch, Typography } from '@mui/material';
 import BigNumber from 'bignumber.js';
 import React, { useEffect, useState } from 'react';
 import { WrappedTokenTooltipContent } from 'src/components/infoTooltips/WrappedTokenToolTipContent';
@@ -39,6 +39,9 @@ import { Asset, AssetInput } from '../AssetInput';
 import { GasEstimationError } from '../FlowCommons/GasEstimationError';
 import { ModalWrapperProps } from '../FlowCommons/ModalWrapper';
 import { TxSuccessView } from '../FlowCommons/Success';
+import { parseUnits } from 'ethers/lib/utils';
+import { GasStation } from '../GasStation/GasStation';
+import { EstimatedOutcome } from '../FlowCommons/EstimatedOutcome';
 import {
   DetailsCollateralLine,
   DetailsHFLine,
@@ -189,6 +192,23 @@ export const SupplyModalContent = React.memo(
 
     const healfthFactorAfterSupply = calculateHFAfterSupply(user, poolReserve, amountInEth);
 
+    // "Use as collateral" toggle — drives the estimated-outcome preview (mockup parity).
+    const collateralToggleVisible =
+      collateralType !== CollateralType.UNAVAILABLE &&
+      collateralType !== CollateralType.UNAVAILABLE_DUE_TO_ISOLATION;
+    const [useAsCollateral, setUseAsCollateral] = useState(
+      collateralType === CollateralType.ENABLED ||
+        collateralType === CollateralType.ISOLATED_ENABLED
+    );
+
+    const yearlyEarnings = Number(amountInUsd.toString()) * Number(supplyApy || 0);
+    const borrowPowerBefore = Number(user?.availableBorrowsUSD || 0);
+    const borrowPowerAfter =
+      borrowPowerBefore +
+      (useAsCollateral
+        ? Number(amountInUsd.toString()) * Number(poolReserve.formattedBaseLTVasCollateral || 0)
+        : 0);
+
     const supplyActionsProps = {
       amountToSupply: amount,
       isWrongNetwork,
@@ -210,7 +230,7 @@ export const SupplyModalContent = React.memo(
       );
 
     return (
-      <>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {isolationModeWarning}
         {supplyCapWarning}
         {debtCeilingWarning}
@@ -243,6 +263,8 @@ export const SupplyModalContent = React.memo(
           disabled={supplyTxState.loading}
           maxValue={maxAmountToSupply}
           balanceText={'Wallet balance'}
+          inputTitle={null}
+          quickPercent
           event={{
             eventName: GENERAL.MAX_INPUT_SELECTION,
             eventParams: {
@@ -252,24 +274,76 @@ export const SupplyModalContent = React.memo(
           }}
         />
 
-        <TxModalDetails gasLimit={gasLimit} skipLoad={true} disabled={Number(amount) === 0}>
-          <DetailsNumberLine description={'Supply APY'} value={supplyApy} percent />
-          <DetailsIncentivesLine
-            incentives={poolReserve.aIncentivesData}
-            symbol={poolReserve.symbol}
+        {collateralToggleVisible && (
+          <Box
+            component="label"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              p: '12px 14px',
+              borderRadius: '12px',
+              bgcolor: 'background.surface',
+              border: '1px solid',
+              borderColor: 'divider',
+              cursor: 'pointer',
+            }}
+          >
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="subheader2" color="text.primary">
+                Use as collateral
+              </Typography>
+              <Typography variant="caption" color="text.muted" sx={{ display: 'block' }}>
+                Lets you borrow against this supply, increases your health factor.
+              </Typography>
+            </Box>
+            <Switch
+              size="small"
+              checked={useAsCollateral}
+              onChange={(e) => setUseAsCollateral(e.target.checked)}
+            />
+          </Box>
+        )}
+
+        <EstimatedOutcome
+          rows={[
+            {
+              label: 'Yearly earnings',
+              before: 0,
+              after: yearlyEarnings,
+              format: 'usd',
+            },
+            {
+              label: 'Health factor',
+              before: user ? Number(user.healthFactor) : -1,
+              after: useAsCollateral
+                ? Number(healfthFactorAfterSupply.toString())
+                : user
+                ? Number(user.healthFactor)
+                : -1,
+              format: 'hf',
+            },
+            {
+              label: 'Borrow power',
+              before: borrowPowerBefore,
+              after: borrowPowerAfter,
+              format: 'usd',
+            },
+          ]}
+        />
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          <GasStation
+            gasLimit={parseUnits(gasLimit || '0', 'wei')}
+            skipLoad={true}
+            disabled={Number(amount) === 0}
           />
-          <DetailsCollateralLine collateralType={collateralType} />
-          <DetailsHFLine
-            visibleHfChange={!!amount}
-            healthFactor={user ? user.healthFactor : '-1'}
-            futureHealthFactor={healfthFactorAfterSupply.toString()}
-          />
-        </TxModalDetails>
+        </Box>
 
         {txError && <GasEstimationError txError={txError} />}
 
-        <SupplyActions {...supplyActionsProps} />
-      </>
+        <SupplyActions {...supplyActionsProps} sx={{ mt: 0 }} />
+      </Box>
     );
   }
 );
@@ -393,8 +467,8 @@ export const SupplyWrappedTokenModalContent = ({
   if (supplyTxState.success) {
     const successModalAmount = supplyingWrappedToken
       ? BigNumber(amount)
-        .dividedBy(exchangeRate || '1')
-        .toString()
+          .dividedBy(exchangeRate || '1')
+          .toString()
       : amount;
 
     return (

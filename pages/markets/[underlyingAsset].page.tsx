@@ -1,8 +1,6 @@
-import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackOutlined';
 import {
   Box,
   LinearProgress,
-  SvgIcon,
   Switch,
   Tab,
   Tabs,
@@ -32,7 +30,6 @@ import { InterestRateModelGraphContainer } from 'src/modules/reserve-overview/gr
 import { ReserveActionsPanel } from 'src/modules/reserve-overview/ReserveActionsPanel';
 import { ReserveHeroCard } from 'src/modules/reserve-overview/ReserveHeroCard';
 import { SupplyInfo } from 'src/modules/reserve-overview/SupplyInfo';
-import { TokenIconAddDropdown } from 'src/modules/reserve-overview/TokenIconAddDropdown';
 import { useRootStore } from 'src/store/root';
 import { FONT_BODY, FONT_DISPLAY, FONT_MONO } from 'src/utils/theme';
 
@@ -184,14 +181,8 @@ const CapBar = ({
 export default function ReserveOverview() {
   const router = useRouter();
   const { reserves, user } = useAppDataContext();
-  const { currentMarketData, currentNetworkConfig, currentMarket, currentChainId } =
-    useProtocolDataContext();
-  const {
-    currentAccount,
-    addERC20Token,
-    switchNetwork,
-    chainId: connectedChainId,
-  } = useWeb3Context();
+  const { currentMarketData, currentNetworkConfig, currentMarket } = useProtocolDataContext();
+  const { currentAccount } = useWeb3Context();
   const { openCollateralChange } = useModalContext();
   const trackEvent = useRootStore((store) => store.trackEvent);
 
@@ -236,42 +227,12 @@ export default function ReserveOverview() {
           pb: { xs: 6, md: 12 },
         }}
       >
-        {/* Slim top bar: back navigation + add-token / network-switch dropdown */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 2,
-            mb: 2,
-          }}
-        >
-          <SvgIcon
-            sx={{
-              fontSize: '20px',
-              cursor: 'pointer',
-              color: 'text.secondary',
-              '&:hover': { color: 'text.primary' },
-            }}
-            onClick={() => router.push('/markets')}
-          >
-            <ArrowBackRoundedIcon />
-          </SvgIcon>
-          <TokenIconAddDropdown
-            reserve={reserve}
-            switchNetwork={switchNetwork}
-            addERC20Token={addERC20Token}
-            currentChainId={currentChainId}
-            connectedChainId={connectedChainId}
-          />
-        </Box>
-
         {/* Two-column layout: hero + tabs/panels (left), action panel (right). */}
         <Box
           sx={{
             display: 'grid',
-            gap: 3,
-            gridTemplateColumns: { xs: '1fr', lg: '1fr 400px' },
+            gap: '24px',
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 3fr) minmax(0, 2fr)' },
             gridTemplateAreas: {
               xs: `"hero" "panel" "main"`,
               lg: `"hero panel" "main panel"`,

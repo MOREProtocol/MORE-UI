@@ -92,6 +92,7 @@ export const VaultActionsPanel = ({
           }}
           whitelistAmount={whitelistAmount}
           inboundRoutes={inboundRoutes}
+          hideTitle
         />
       ) : (
         <LoadingContent />

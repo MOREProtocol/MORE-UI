@@ -279,6 +279,12 @@ export const VaultHeroCard = ({
               Vault
             </Box>
             <Box component="span" sx={glassChipSx}>
+              <Box
+                component="img"
+                src="/icons/networks/flow.svg"
+                alt=""
+                sx={{ width: 12, height: 12, borderRadius: '50%' }}
+              />
               {chainName}
             </Box>
             {isOmniHub && (

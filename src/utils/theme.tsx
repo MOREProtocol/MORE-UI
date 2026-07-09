@@ -217,7 +217,7 @@ export const getDesignTokens = (mode: 'light' | 'dark') => {
         surface3: getColor('#EFECE4', '#26221D'),
         bg: getColor('#FBFAF7', '#0E0D0B'), // surface
         paper: getColor('#FFFFFF', '#181613'), // card
-        header: getColor('#FBFAF7', '#0E0D0B'), // surface
+        header: getColor('#FFFFFF', '#181613'), // white (light) / card (dark) — mockup header
         disabled: line,
       },
       divider: line,

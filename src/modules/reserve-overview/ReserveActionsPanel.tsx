@@ -93,6 +93,7 @@ const InlineSupply = ({
         <ModalWrapper
           action="supply"
           title={<></>}
+          hideTitle
           hideTitleSymbol
           underlyingAsset={underlyingAsset}
         >
@@ -139,6 +140,7 @@ const InlineBorrow = ({
       <ModalWrapper
         action="borrow"
         title={<></>}
+        hideTitle
         hideTitleSymbol
         underlyingAsset={underlyingAsset}
         keepWrappedSymbol={!borrowUnWrapped}

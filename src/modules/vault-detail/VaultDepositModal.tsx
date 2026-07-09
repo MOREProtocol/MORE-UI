@@ -43,6 +43,7 @@ import { parseUnits } from 'ethers/lib/utils';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MarketLogo } from 'src/components/MarketSwitcher';
 import { BasicModal } from 'src/components/primitives/BasicModal';
+import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { Asset, AssetInput } from 'src/components/transactions/AssetInput';
 import { useOrphanedComposes } from 'src/hooks/vault/useOrphanedComposes';
@@ -70,6 +71,9 @@ interface VaultDepositModalProps {
   setIsOpen: (isOpen: boolean) => void;
   whitelistAmount?: string;
   inboundRoutes?: InboundRouteWithBalance[];
+  // Suppress the "Deposit into the vault" h2 header — the inline action panel
+  // has its own tab header, so the tall title only adds dead space.
+  hideTitle?: boolean;
 }
 
 export const VaultDepositContent: React.FC<VaultDepositModalProps> = ({
@@ -77,6 +81,7 @@ export const VaultDepositContent: React.FC<VaultDepositModalProps> = ({
   setIsOpen,
   whitelistAmount,
   inboundRoutes,
+  hideTitle,
 }) => {
   const {
     signer,
@@ -1351,16 +1356,18 @@ export const VaultDepositContent: React.FC<VaultDepositModalProps> = ({
           onLoadMore={scanMoreOrphans}
         />
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Typography variant="h2">
-              {isOftCompose
-                ? `Deposit from ${
-                    networkConfigs[selectedRoute!.spokeChainId]?.name || 'spoke chain'
-                  }`
-                : 'Deposit into the vault'}
-            </Typography>
-          </Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: hideTitle ? '18px' : 5 }}>
+          {!hideTitle && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Typography variant="h2">
+                {isOftCompose
+                  ? `Deposit from ${
+                      networkConfigs[selectedRoute!.spokeChainId]?.name || 'spoke chain'
+                    }`
+                  : 'Deposit into the vault'}
+              </Typography>
+            </Box>
+          )}
           {/* Risk Disclosure Section */}
           <Collapse in={!riskAccepted}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -1777,7 +1784,71 @@ export const VaultDepositContent: React.FC<VaultDepositModalProps> = ({
                           balanceText={
                             isOftCompose ? 'Balance on spoke' : assetInputConfig.balanceText
                           }
+                          inputTitle={null}
+                          quickPercent
                         />
+                        {selectedVault?.overview?.apy30Days != null && (
+                          <Box
+                            sx={{
+                              mt: '16px',
+                              p: '14px 16px',
+                              borderRadius: '14px',
+                              border: '1px solid rgba(245, 144, 66, 0.35)',
+                              background:
+                                'linear-gradient(135deg, rgba(245, 144, 66, 0.12), rgba(245, 144, 66, 0.04))',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '10px',
+                            }}
+                          >
+                            <Typography
+                              sx={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                letterSpacing: '0.06em',
+                                textTransform: 'uppercase',
+                                color: 'primary.main',
+                              }}
+                            >
+                              Estimated returns at{' '}
+                              {(selectedVault.overview.apy30Days * 100).toFixed(2)}% APY
+                            </Typography>
+                            {[
+                              { label: 'Per month', frac: 1 / 12 },
+                              { label: 'Per year', frac: 1 },
+                            ].map(({ label, frac }) => (
+                              <Box
+                                key={label}
+                                sx={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'baseline',
+                                }}
+                              >
+                                <Typography variant="description" color="text.secondary">
+                                  {label}
+                                </Typography>
+                                {Number(amount) > 0 ? (
+                                  <FormattedNumber
+                                    value={
+                                      Number(amountInUsd.toString()) *
+                                      (selectedVault.overview.apy30Days || 0) *
+                                      frac
+                                    }
+                                    symbol="USD"
+                                    visibleDecimals={2}
+                                    variant="secondary14"
+                                    sx={{ fontWeight: 600 }}
+                                  />
+                                ) : (
+                                  <Typography variant="secondary14" color="text.disabled">
+                                    --
+                                  </Typography>
+                                )}
+                              </Box>
+                            ))}
+                          </Box>
+                        )}
                         {txError && (
                           <Box
                             sx={{

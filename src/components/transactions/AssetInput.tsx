@@ -128,12 +128,14 @@ export const AssetInput = <T extends Asset = Asset>({
 
   return (
     <Box {...sx}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-        <Typography variant="description" color="text.secondary">
-          {inputTitle ? inputTitle : 'Amount'}
-        </Typography>
-        {capType && <AvailableTooltip capType={capType} />}
-      </Box>
+      {inputTitle !== null && (
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <Typography variant="description" color="text.secondary">
+            {inputTitle ? inputTitle : 'Amount'}
+          </Typography>
+          {capType && <AvailableTooltip capType={capType} />}
+        </Box>
+      )}
 
       <Box
         sx={(theme) => ({
@@ -338,8 +340,8 @@ export const AssetInput = <T extends Asset = Asset>({
           ) : (
             <FormattedNumber
               value={isNaN(Number(usdValue)) ? 0 : Number(usdValue)}
-              compact
               symbol="USD"
+              visibleDecimals={2}
               variant="secondary12"
               color="text.secondary"
               symbolsColor="text.secondary"
@@ -350,16 +352,17 @@ export const AssetInput = <T extends Asset = Asset>({
           {asset.balance && onChange && (
             <>
               <Typography component="div" variant="caption" color="text.secondary">
-                {balanceText && balanceText !== '' ? balanceText : 'Balance'}{' '}
+                {balanceText && balanceText !== '' ? balanceText : 'Balance'}:{' '}
                 <FormattedNumber
                   value={asset.balance}
                   compact
                   variant="secondary12"
                   color="text.secondary"
                   symbolsColor="text.disabled"
-                />
+                />{' '}
+                {symbol}
               </Typography>
-              {!disableInput && (
+              {!disableInput && !quickPercent && (
                 <Button
                   size="small"
                   sx={{

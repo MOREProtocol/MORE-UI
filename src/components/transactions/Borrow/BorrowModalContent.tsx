@@ -4,7 +4,7 @@ import {
   USD_DECIMALS,
   valueToBigNumber,
 } from '@aave/math-utils';
-import { Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { useMemo, useState } from 'react';
 import { APYTypeTooltip } from 'src/components/infoTooltips/APYTypeTooltip';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
@@ -28,12 +28,10 @@ import { AssetInput } from '../AssetInput';
 import { GasEstimationError } from '../FlowCommons/GasEstimationError';
 import { ModalWrapperProps } from '../FlowCommons/ModalWrapper';
 import { TxSuccessView } from '../FlowCommons/Success';
-import {
-  DetailsHFLine,
-  DetailsIncentivesLine,
-  DetailsUnwrapSwitch,
-  TxModalDetails,
-} from '../FlowCommons/TxModalDetails';
+import { parseUnits } from 'ethers/lib/utils';
+import { GasStation } from '../GasStation/GasStation';
+import { EstimatedOutcome } from '../FlowCommons/EstimatedOutcome';
+import { DetailsUnwrapSwitch } from '../FlowCommons/TxModalDetails';
 import { BorrowActions } from './BorrowActions';
 import { BorrowAmountWarning } from './BorrowAmountWarning';
 import { ParameterChangewarning } from './ParameterChangewarning';
@@ -158,6 +156,11 @@ export const BorrowModalContent = ({
   // calculating input usd value
   const usdValue = valueToBigNumber(amount).multipliedBy(poolReserve.priceInUSD);
 
+  // Estimated-outcome preview values (mockup parity)
+  const yearlyCost = Number(usdValue.toString()) * Number(poolReserve.variableBorrowAPY || 0);
+  const borrowPowerBefore = Number(user?.availableBorrowsUSD || 0);
+  const borrowPowerAfter = Math.max(0, borrowPowerBefore - Number(usdValue.toString()));
+
   const isReserveAlreadySupplied = useMemo(
     () =>
       user?.userReservesData.some(
@@ -226,12 +229,8 @@ export const BorrowModalContent = ({
       />
     );
 
-  const incentive =
-    interestRateMode === InterestRate.Stable
-      ? poolReserve.sIncentivesData
-      : poolReserve.vIncentivesData;
   return (
-    <>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {borrowCap.determineWarningDisplay({ borrowCap })}
 
       {poolReserve.stableBorrowRateEnabled && (
@@ -259,6 +258,8 @@ export const BorrowModalContent = ({
         isMaxSelected={isMaxSelected}
         maxValue={maxAmountToBorrow}
         balanceText={'Available'}
+        inputTitle={null}
+        quickPercent
         event={{
           eventName: GENERAL.MAX_INPUT_SELECTION,
           eventParams: {
@@ -284,14 +285,32 @@ export const BorrowModalContent = ({
         />
       )}
 
-      <TxModalDetails gasLimit={gasLimit}>
-        <DetailsIncentivesLine incentives={incentive} symbol={poolReserve.symbol} />
-        <DetailsHFLine
-          visibleHfChange={!!amount}
-          healthFactor={user.healthFactor}
-          futureHealthFactor={newHealthFactor.toString(10)}
-        />
-      </TxModalDetails>
+      <EstimatedOutcome
+        rows={[
+          {
+            label: 'Health factor',
+            before: Number(user.healthFactor),
+            after: Number(newHealthFactor.toString(10)),
+            format: 'hf',
+          },
+          {
+            label: 'Borrow power remaining',
+            before: borrowPowerBefore,
+            after: borrowPowerAfter,
+            format: 'usd',
+          },
+          {
+            label: 'Estimated yearly cost',
+            before: 0,
+            after: yearlyCost,
+            format: 'usd',
+          },
+        ]}
+      />
+
+      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <GasStation gasLimit={parseUnits(gasLimit || '0', 'wei')} />
+      </Box>
 
       {txError && <GasEstimationError txError={txError} />}
 
@@ -318,8 +337,8 @@ export const BorrowModalContent = ({
         isWrongNetwork={isWrongNetwork}
         symbol={symbol}
         blocked={blockingError !== undefined || (displayRiskCheckbox && !riskCheckboxAccepted)}
-        sx={displayRiskCheckbox ? { mt: 0 } : {}}
+        sx={{ mt: 0 }}
       />
-    </>
+    </Box>
   );
 };
