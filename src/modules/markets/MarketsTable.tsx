@@ -1,4 +1,6 @@
-import { Box, Button, ButtonGroup, Typography, Tooltip, Alert, Menu, MenuItem } from '@mui/material';
+import { Box, Button, ButtonGroup, Typography, Tooltip, Alert, Menu, MenuItem, Collapse, IconButton } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { valueToBigNumber } from '@aave/math-utils';
 import { API_ETH_MOCK_ADDRESS, InterestRate } from '@aave/contract-helpers';
 import { useMemo, useState } from 'react';
@@ -9,7 +11,8 @@ import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { IncentivesCard } from 'src/components/incentives/IncentivesCard';
 import { FormattedNumber } from 'src/components/primitives/FormattedNumber';
 import { UsdChip } from 'src/components/primitives/UsdChip';
-import { useRewardsMaps, sumIncentivesApr, sumRewardsApr } from './hooks';
+import { PausedTooltip } from 'src/components/infoTooltips/PausedTooltip';
+import { useRewardsMaps, sumIncentivesApr, sumRewardsApr, isReserveRestricted, useIsMarketFrozen } from './hooks';
 import { MarketRow, TabKey } from './types';
 import { useModalContext } from 'src/hooks/useModal';
 import { useRootStore } from 'src/store/root';
@@ -31,6 +34,10 @@ export function MarketsTable() {
   const currentNetworkConfig = useRootStore((s) => s.currentNetworkConfig);
   const minRemainingBaseTokenBalance = useRootStore((s) => s.poolComputed.minRemainingBaseTokenBalance);
   const { walletBalances } = useWalletBalances(currentMarketData);
+  const isMarketFrozen = useIsMarketFrozen();
+  // Like Aave's "Restricted assets": collapsed by default, unless nothing else is listed.
+  const [restrictedOpen, setRestrictedOpen] = useState<boolean | undefined>(undefined);
+  const isRestrictedOpen = restrictedOpen ?? isMarketFrozen;
 
   // Anchors for per-row action dropdowns when dealing with wrapped base assets
   const [supplyMenuAnchor, setSupplyMenuAnchor] = useState<null | HTMLElement>(null);
@@ -218,9 +225,15 @@ export function MarketsTable() {
     );
   };
 
+  // Deprecated reserves (marketsConfig.hiddenReserves) are left out of the lists and of the totals.
+  const visibleReserves = useMemo(() => {
+    const hidden = new Set((currentMarketData.hiddenReserves || []).map((a) => a.toLowerCase()));
+    return (reserves || []).filter((r) => !hidden.has(r.underlyingAsset.toLowerCase()));
+  }, [reserves, currentMarketData]);
+
   const buildRowsForMode = (mode: 'supply' | 'borrow'): MarketRow[] => {
     const rows: MarketRow[] = [];
-    (reserves || []).forEach((r) => {
+    visibleReserves.forEach((r) => {
       const key = r.underlyingAsset.toLowerCase();
       const rewards = rewardsByAddress.get(key);
       const baseApy =
@@ -306,9 +319,9 @@ export function MarketsTable() {
     return map;
   }, [reserves, walletBalances, user, account, minRemainingBaseTokenBalance]);
 
-  const supplyRows: MarketRow[] = useMemo(() => buildRowsForMode('supply'), [reserves, rewardsByAddress, currentNetworkConfig.baseAssetSymbol, account]);
+  const supplyRows: MarketRow[] = useMemo(() => buildRowsForMode('supply'), [visibleReserves, rewardsByAddress, currentNetworkConfig.baseAssetSymbol, account]);
 
-  const borrowRows: MarketRow[] = useMemo(() => buildRowsForMode('borrow'), [reserves, rewardsByAddress, currentNetworkConfig.baseAssetSymbol, account]);
+  const borrowRows: MarketRow[] = useMemo(() => buildRowsForMode('borrow'), [visibleReserves, rewardsByAddress, currentNetworkConfig.baseAssetSymbol, account]);
 
   const columns: ColumnDefinition<MarketRow>[] = useMemo(() => {
     const baseColumns: ColumnDefinition<MarketRow>[] = [
@@ -545,23 +558,129 @@ export function MarketsTable() {
   ];
 
   // Row sets per mode for large screens
-  const supplyNonFrozenRows = useMemo(() => (supplyRows || []).filter((r) => !r.reserve || (!r.reserve.isPaused && !r.reserve.isFrozen)), [supplyRows]);
-  const borrowNonFrozenRows = useMemo(() => (borrowRows || []).filter((r) => !r.reserve || (!r.reserve.isPaused && !r.reserve.isFrozen)), [borrowRows]);
+  const supplyNonFrozenRows = useMemo(() => (supplyRows || []).filter((r) => !isReserveRestricted(r.reserve)), [supplyRows]);
+  const borrowNonFrozenRows = useMemo(() => (borrowRows || []).filter((r) => !isReserveRestricted(r.reserve)), [borrowRows]);
 
   const activeRows = activeTab === 'supply' ? supplyRows : borrowRows;
-  const nonFrozenRows = useMemo(() => (activeRows || []).filter((r) => !r.reserve || (!r.reserve.isPaused && !r.reserve.isFrozen)), [activeRows]);
-  const frozenRows = useMemo(() => (activeRows || []).filter((r) => r.reserve && (r.reserve.isPaused || r.reserve.isFrozen)), [activeRows]);
+  const nonFrozenRows = useMemo(() => (activeRows || []).filter((r) => !isReserveRestricted(r.reserve)), [activeRows]);
 
-  const userHasFrozenOrPaused = useMemo(() => {
-    const positions = (user?.userReservesData || []).filter(
-      (ur) => ur.underlyingBalance !== '0' || ur.variableBorrows !== '0' || ur.stableBorrows !== '0'
-    );
-    const set = new Set(positions.map((ur) => ur.reserve.underlyingAsset.toLowerCase()));
-    return frozenRows.some((r) => set.has(r.id.toLowerCase()));
-  }, [user, frozenRows]);
+  // Frozen / paused reserves: one combined supply + borrow row each (Aave "Restricted assets").
+  const restrictedRows: MarketRow[] = useMemo(() => {
+    const borrowById = new Map((borrowRows || []).map((r) => [r.id, r]));
+    return (supplyRows || [])
+      .filter((r) => isReserveRestricted(r.reserve))
+      .map((r) => {
+        const borrowRow = borrowById.get(r.id);
+        return {
+          ...r,
+          variableApy: borrowRow?.apy,
+          rewardsBorrow: borrowRow?.rewardsBorrow,
+          totalDebt: Number(r.reserve?.totalDebtUSD || 0),
+        };
+      });
+  }, [supplyRows, borrowRows]);
+  const hasPausedReserve = restrictedRows.some((r) => r.reserve?.isPaused);
+  const allRestrictedPaused = restrictedRows.length > 0 && restrictedRows.every((r) => r.reserve?.isPaused);
+  const restrictedTitle = allRestrictedPaused ? 'Paused assets' : hasPausedReserve ? 'Frozen or paused assets' : 'Frozen assets';
+  const restrictedNotice = allRestrictedPaused
+    ? 'Supplying, borrowing, withdrawing and repaying are unavailable for these assets until further notice.'
+    : hasPausedReserve
+      ? 'Supplying and borrowing are unavailable for these assets. Frozen assets can still be withdrawn and repaid from My Positions; paused assets cannot be used until further notice.'
+      : 'Supplying and borrowing are unavailable for these assets, but you can still withdraw and repay them from My Positions.';
+
+  const hasBorrowSide = (row: MarketRow) =>
+    !!row.reserve && (row.reserve.borrowingEnabled || Number(row.reserve.totalDebt) > 0);
+
+  const restrictedColumns: ColumnDefinition<MarketRow>[] = [
+    {
+      key: 'assetName',
+      label: 'Asset',
+      sortable: true,
+      render: (row) => (
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          justifyContent: { xs: 'flex-end', md: 'flex-start' },
+          flexDirection: { xs: 'row-reverse', md: 'row' }
+        }}>
+          {row.reserve && <TokenIcon symbol={row.reserve.iconSymbol} fontSize="large" />}
+          <Box sx={{ my: 1 }}>
+            <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
+          </Box>
+          {row.reserve?.isPaused && <PausedTooltip />}
+        </Box>
+      ),
+    },
+    {
+      key: 'totalLiquidity',
+      label: 'Total Supplied',
+      sortable: true,
+      render: (row) => (
+        row.reserve ? (
+          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
+            <FormattedNumber compact value={row.reserve.totalLiquidity} variant="secondary14" />
+            <UsdChip value={row.reserve.totalLiquidityUSD} textVariant="secondary12" />
+          </Box>
+        ) : null
+      ),
+    },
+    {
+      key: 'effectiveApy',
+      label: 'Supply APY',
+      sortable: true,
+      render: (row) => (
+        <IncentivesCard
+          value={row.apy}
+          incentives={row.reserve?.aIncentivesData || []}
+          rewards={row.rewardsSupply || []}
+          symbol={row.assetSymbol}
+          variant="secondary14"
+          symbolsVariant="secondary14"
+          align="center"
+        />
+      ),
+    },
+    {
+      key: 'totalDebt',
+      label: 'Total Borrowed',
+      sortable: true,
+      render: (row) => (
+        row.reserve && hasBorrowSide(row) ? (
+          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5 }}>
+            <FormattedNumber compact value={row.reserve.totalDebt} variant="secondary14" />
+            <UsdChip value={row.reserve.totalDebtUSD} textVariant="secondary12" />
+          </Box>
+        ) : (
+          <Typography variant="secondary14">—</Typography>
+        )
+      ),
+    },
+    {
+      key: 'variableApy',
+      label: 'Borrow Rate',
+      sortable: true,
+      render: (row) => (
+        hasBorrowSide(row) ? (
+          <IncentivesCard
+            value={row.variableApy ?? 0}
+            incentives={row.reserve?.vIncentivesData || []}
+            rewards={row.rewardsBorrow || []}
+            symbol={row.assetSymbol}
+            variant="secondary14"
+            symbolsVariant="secondary14"
+            align="center"
+          />
+        ) : (
+          <Typography variant="secondary14">—</Typography>
+        )
+      ),
+    },
+  ];
 
   const aggregatedStats = useMemo(() => {
-    const totals = (reserves || []).reduce(
+    const totals = visibleReserves.reduce(
       (acc, reserve) => ({
         totalLiquidity: acc.totalLiquidity.plus(reserve.totalLiquidityUSD || 0),
         totalDebt: acc.totalDebt.plus(reserve.totalDebtUSD || 0),
@@ -570,7 +689,7 @@ export function MarketsTable() {
     );
     const totalAvailable = totals.totalLiquidity.minus(totals.totalDebt);
     return { totalLiquidity: totals.totalLiquidity, totalAvailable, totalDebt: totals.totalDebt };
-  }, [reserves]);
+  }, [visibleReserves]);
 
 
 
@@ -602,7 +721,7 @@ export function MarketsTable() {
             >
               Markets
             </Typography>
-            <Box sx={{ display: { xs: 'flex', lg: 'none' }, width: { xs: '100%', md: 'unset' } }}>
+            <Box sx={{ display: isMarketFrozen ? 'none' : { xs: 'flex', lg: 'none' }, width: { xs: '100%', md: 'unset' } }}>
               <ButtonGroup fullWidth>
                 <Button
                   onClick={() => setActiveTab('supply')}
@@ -636,7 +755,7 @@ export function MarketsTable() {
               justifyContent: { xs: 'space-between', md: 'flex-start' },
               gap: { xs: 2, md: 10 }
             }}>
-              <Box display='flex' flexDirection='column' alignItems='flex-start' sx={{ display: { xs: 'flex', lg: 'none' } }}>
+              <Box display='flex' flexDirection='column' alignItems='flex-start' sx={{ display: isMarketFrozen ? 'flex' : { xs: 'flex', lg: 'none' } }}>
                 <Typography variant="secondary14" color="text.secondary">
                   Total Market Size
                 </Typography>
@@ -666,7 +785,7 @@ export function MarketsTable() {
                   sx={{ fontWeight: 800 }}
                 />
               </Box>
-              <Box display="flex" flexDirection='column' alignItems='flex-start' sx={{ display: { xs: 'flex', lg: 'none' } }}>
+              <Box display="flex" flexDirection='column' alignItems='flex-start' sx={{ display: isMarketFrozen ? 'flex' : { xs: 'flex', lg: 'none' } }}>
                 <Typography variant="secondary14" color="text.secondary">
                   Total Borrowed
                 </Typography>
@@ -685,8 +804,8 @@ export function MarketsTable() {
           </Box>
         </Box>
 
-        {/* Large: dual-pane supply/borrow tables within Markets container */}
-        <Box sx={{ display: { xs: 'none', lg: 'block' }, mt: 2 }}>
+        {/* Large: dual-pane supply/borrow tables within Markets container (empty, so hidden, when the whole market is frozen) */}
+        <Box sx={{ display: isMarketFrozen ? 'none' : { xs: 'none', lg: 'block' }, mt: 2 }}>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 5 }}>
             {/* Supply column */}
             <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -793,7 +912,7 @@ export function MarketsTable() {
       </Box>
 
       {/* Small/Medium: single table with toggle */}
-      <Box sx={{ display: { xs: 'block', lg: 'none' } }}>
+      <Box sx={{ display: isMarketFrozen ? 'none' : { xs: 'block', lg: 'none' } }}>
         <BaseDataGrid<MarketRow>
           data={nonFrozenRows}
           columns={columns}
@@ -820,40 +939,57 @@ export function MarketsTable() {
 
       {/* Large content is now inside the Markets container above */}
 
-      <Box sx={{ display: { xs: (userHasFrozenOrPaused && frozenRows.length > 0) ? 'block' : 'none', lg: 'none' } }}>
-        {(userHasFrozenOrPaused && frozenRows.length > 0) && (
-          <Box sx={{ mt: 4 }}>
-            <Box sx={{
+      {/* Frozen / paused assets: read-only list, supply & borrow are disabled on-chain */}
+      {!loading && restrictedRows.length > 0 && (
+        <Box sx={{ mt: { xs: 4, md: 6 } }}>
+          <Box
+            onClick={() => setRestrictedOpen(!isRestrictedOpen)}
+            sx={{
               display: 'flex',
-              flexDirection: { xs: 'column', md: 'row' },
               alignItems: 'center',
-              justifyContent: 'space-between',
+              gap: 1,
+              cursor: 'pointer',
               backgroundColor: 'background.surface',
-              gap: { xs: 3, md: 0 },
               p: 3,
               borderRadius: 2,
-              mb: { xs: 4, md: 6 }
-            }}>
-              <Typography
-                sx={{
-                  typography: { xs: 'main16', md: 'main21' },
-                  textAlign: { xs: 'center', md: 'left' },
-                  color: 'primary.main'
-                }}
-              >
-                Paused assets
-              </Typography>
-
-            </Box>
+              mb: isRestrictedOpen ? { xs: 4, md: 6 } : 0,
+            }}
+          >
+            <Typography sx={{ typography: { xs: 'main16', md: 'main21' }, color: 'primary.main' }}>
+              {restrictedTitle}
+            </Typography>
+            <IconButton aria-label="Toggle frozen assets" size="small">
+              {isRestrictedOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
+          </Box>
+          <Collapse in={isRestrictedOpen} timeout="auto" unmountOnExit>
+            {/* When the whole market is frozen, the page banner already says this */}
+            {!isMarketFrozen && (
+              <Alert severity="info" sx={{ borderRadius: 2, mb: { xs: 4, md: 6 } }}>
+                {restrictedNotice}
+              </Alert>
+            )}
             <BaseDataGrid<MarketRow>
-              data={frozenRows}
-              columns={columns}
-              loading={loading}
+              data={restrictedRows}
+              columns={restrictedColumns}
               minWidth={900}
-              defaultSortColumn={activeTab === 'borrow' ? 'availableLiquidity' : 'effectiveApy'}
+              defaultSortColumn={'totalLiquidity'}
               defaultSortOrder={'desc'}
               actionColumn={{
-                render: (row) => (activeTab === 'supply' ? renderSupplyAction(row) : renderBorrowAction(row)),
+                render: (row) => (
+                  <Button
+                    size="medium"
+                    variant="outlined"
+                    sx={{ width: { xs: '100%', md: 'auto' } }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!row.reserve) return;
+                      window.location.href = `/markets/${row.reserve.underlyingAsset}`;
+                    }}
+                  >
+                    Details
+                  </Button>
+                ),
               }}
               rowIdGetter={(row) => row.id}
               onRowClick={(row) => {
@@ -861,9 +997,9 @@ export function MarketsTable() {
                 window.location.href = `/markets/${row.reserve.underlyingAsset}`;
               }}
             />
-          </Box>
-        )}
-      </Box>
+          </Collapse>
+        </Box>
+      )}
     </Box>
   );
 }

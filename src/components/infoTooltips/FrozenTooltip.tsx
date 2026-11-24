@@ -2,26 +2,24 @@ import { ExclamationIcon } from '@heroicons/react/outline';
 import { Box, SvgIcon } from '@mui/material';
 
 import { ContentWithTooltip } from '../ContentWithTooltip';
-import { Link } from '../primitives/Link';
 
 export const getFrozenProposalLink = (): string => {
   return 'https://app.more.markets/governance';
 };
+
+export const FrozenTooltipText = () => (
+  <>
+    This asset is frozen. Supplying and borrowing are disabled, but you can still withdraw and
+    repay.
+  </>
+);
 
 export const FrozenTooltip = () => {
   return (
     <ContentWithTooltip
       tooltipContent={
         <Box>
-          <>
-            {'This asset is frozen due to an Aave Protocol Governance decision. '}
-            <Link
-              href={getFrozenProposalLink()}
-              sx={{ textDecoration: 'underline' }}
-            >
-              More details
-            </Link>
-          </>
+          <FrozenTooltipText />
         </Box>
       }
     >

@@ -11,7 +11,7 @@ import { IncentivesCard } from 'src/components/incentives/IncentivesCard';
 import { TokenIcon } from 'src/components/primitives/TokenIcon';
 import { useAppDataContext } from 'src/hooks/app-data-provider/useAppDataProvider';
 import { PositionRow } from './types';
-import { useReserveMap, useRewardsMaps, sumIncentivesApr, sumRewardsApr } from './hooks';
+import { useReserveMap, useRewardsMaps, sumIncentivesApr, sumRewardsApr, isReserveRestricted } from './hooks';
 import { useModalContext } from 'src/hooks/useModal';
 import { ChainId, InterestRate } from '@aave/contract-helpers';
 import { useWalletBalances } from 'src/hooks/app-data-provider/useWalletBalances';
@@ -22,6 +22,10 @@ import { GENERAL } from 'src/utils/mixPanelEvents';
 import { TextWithTooltip } from 'src/components/TextWithTooltip';
 import { EmodeModalType } from 'src/components/transactions/Emode/EmodeModalContent';
 import { Link } from 'src/components/primitives/Link';
+import { ReserveStatusTooltip } from 'src/components/infoTooltips/ReserveStatusTooltip';
+
+const restrictedTitle = (row: PositionRow, action: 'Supplying' | 'Borrowing') =>
+  `${action} ${row.assetSymbol} is disabled because this asset is ${row.reserve?.isPaused ? 'paused' : 'frozen'}.`;
 
 export function MyPositions() {
   const { user, loading, reserves } = useAppDataContext();
@@ -221,6 +225,7 @@ export function MyPositions() {
             <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
             <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
           </Box>
+          <ReserveStatusTooltip reserve={row.reserve} />
         </Box>
       ),
     },
@@ -276,6 +281,7 @@ export function MyPositions() {
             <Typography variant="subheader1" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetName}</Typography>
             <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'right', md: 'left' } }}>{row.assetSymbol}</Typography>
           </Box>
+          <ReserveStatusTooltip reserve={row.reserve} />
         </Box>
       ),
     },
@@ -585,26 +591,32 @@ export function MyPositions() {
                 actionColumn={{
                   render: (row) => (
                     <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'stretch', md: 'flex-end' }, width: '100%' }}>
-                      <Button
-                        size="medium"
-                        variant="gradient"
-                        disabled={
-                          !row.reserve ||
-                          (row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableSupply) ||
-                          false
-                        }
-                        sx={{ width: { xs: '100%', md: 'auto' } }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (row.reserve) openSupply(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
-                          trackEvent(GENERAL.OPEN_MODAL, { modal: 'Supply', assetName: row.assetName });
-                        }}
-                      >
-                        Supply
-                      </Button>
+                      <Tooltip title={restrictedTitle(row, 'Supplying')} disableHoverListener={!isReserveRestricted(row.reserve)} placement="top">
+                        <span>
+                          <Button
+                            size="medium"
+                            variant="gradient"
+                            disabled={
+                              !row.reserve ||
+                              isReserveRestricted(row.reserve) ||
+                              (row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableSupply) ||
+                              false
+                            }
+                            sx={{ width: { xs: '100%', md: 'auto' } }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (row.reserve) openSupply(row.reserve.underlyingAsset, currentMarket, row.assetName, 'dashboard');
+                              trackEvent(GENERAL.OPEN_MODAL, { modal: 'Supply', assetName: row.assetName });
+                            }}
+                          >
+                            Supply
+                          </Button>
+                        </span>
+                      </Tooltip>
                       <Button
                         size="medium"
                         variant="outlined"
+                        disabled={!!row.reserve?.isPaused}
                         sx={{ width: { xs: '100%', md: 'auto' } }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -732,14 +744,17 @@ export function MyPositions() {
                 defaultSortOrder={'desc'}
                 actionColumn={{
                   render: (row) => {
+                    const restricted = isReserveRestricted(row.reserve);
                     const eModeDisabled = !!(row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.eModeBorrowDisabled);
-                    const isDisabled = !row.reserve || (row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableBorrow) || false;
-                    const title = eModeDisabled
-                      ? 'In E-Mode some assets are not borrowable. Exit MOST Mode to get access to all assets'
-                      : '';
+                    const isDisabled = !row.reserve || restricted || (row.reserve && eligibilityByAsset.get(row.reserve.underlyingAsset)?.disableBorrow) || false;
+                    const title = restricted
+                      ? restrictedTitle(row, 'Borrowing')
+                      : eModeDisabled
+                        ? 'In E-Mode some assets are not borrowable. Exit MOST Mode to get access to all assets'
+                        : '';
                     return (
                       <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'stretch', md: 'flex-end' }, width: '100%' }}>
-                        <Tooltip title={title} disableHoverListener={!eModeDisabled} placement="top">
+                        <Tooltip title={title} disableHoverListener={!restricted && !eModeDisabled} placement="top">
                           <span>
                             <Button
                               size="medium"
@@ -759,6 +774,7 @@ export function MyPositions() {
                         <Button
                           size="medium"
                           variant="outlined"
+                          disabled={!!row.reserve?.isPaused}
                           sx={{ width: { xs: '100%', md: 'auto' } }}
                           onClick={(e) => {
                             e.stopPropagation();

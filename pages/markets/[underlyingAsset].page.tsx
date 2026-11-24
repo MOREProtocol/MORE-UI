@@ -18,6 +18,8 @@ import { InterestRateModelGraphContainer } from 'src/modules/reserve-overview/gr
 import { UsdChip } from 'src/components/primitives/UsdChip';
 import { CollateralUsage } from 'src/modules/reserve-overview/CollateralUsage';
 import { CollateralUsageHeader } from 'src/modules/reserve-overview/CollateralUsageHeader';
+import { ReserveStatusWarning } from 'src/modules/reserve-overview/ReserveStatusWarning';
+import { isReserveRestricted } from 'src/modules/markets/hooks';
 
 export default function ReserveOverview() {
   const router = useRouter();
@@ -31,6 +33,10 @@ export default function ReserveOverview() {
   const underlyingAsset = (router.query.underlyingAsset as string) || (router.query.vaultId as string) || (router.query.asset as string);
 
   const reserve = reserves.find((r) => r.underlyingAsset === underlyingAsset) as ComputedReserveData | undefined;
+
+  const restricted = isReserveRestricted(reserve);
+  const restrictedTitle = (action: 'Supplying' | 'Borrowing') =>
+    `${action} ${reserve?.symbol ?? ''} is disabled because this asset is ${reserve?.isPaused ? 'paused' : 'frozen'}.`;
 
   const [pageEventCalled, setPageEventCalled] = useState(false);
 
@@ -102,13 +108,18 @@ export default function ReserveOverview() {
           <>
             {reserve.isWrappedBaseAsset ? (
               <>
-                <Button
-                  variant="gradient"
-                  color="primary"
-                  onClick={(e) => setSupplyMenuAnchor(e.currentTarget)}
-                >
-                  Supply
-                </Button>
+                <Tooltip title={restrictedTitle('Supplying')} disableHoverListener={!restricted} placement="top">
+                  <span>
+                    <Button
+                      variant="gradient"
+                      color="primary"
+                      disabled={restricted}
+                      onClick={(e) => setSupplyMenuAnchor(e.currentTarget)}
+                    >
+                      Supply
+                    </Button>
+                  </span>
+                </Tooltip>
                 <Menu
                   anchorEl={supplyMenuAnchor}
                   open={Boolean(supplyMenuAnchor)}
@@ -136,26 +147,33 @@ export default function ReserveOverview() {
                 </Menu>
               </>
             ) : (
-              <Button
-                variant="gradient"
-                color="primary"
-                onClick={() => openSupply(reserve.underlyingAsset, currentMarket, reserve.name, 'reserve-page', true)}
-              >
-                Supply
-              </Button>
+              <Tooltip title={restrictedTitle('Supplying')} disableHoverListener={!restricted} placement="top">
+                <span>
+                  <Button
+                    variant="gradient"
+                    color="primary"
+                    disabled={restricted}
+                    onClick={() => openSupply(reserve.underlyingAsset, currentMarket, reserve.name, 'reserve-page', true)}
+                  >
+                    Supply
+                  </Button>
+                </span>
+              </Tooltip>
             )}
             {reserve.borrowingEnabled && (() => {
               const eModeBorrowDisabled = !!(user?.isInEmode && reserve.eModeCategoryId !== (user?.userEmodeCategoryId || 0));
-              const title = eModeBorrowDisabled
-                ? 'In MOST Mode some assets are not borrowable. Exit MOST Mode to get access to all assets'
-                : '';
+              const title = restricted
+                ? restrictedTitle('Borrowing')
+                : eModeBorrowDisabled
+                  ? 'In MOST Mode some assets are not borrowable. Exit MOST Mode to get access to all assets'
+                  : '';
               return (
-                <Tooltip title={title} disableHoverListener={!eModeBorrowDisabled} placement="top">
+                <Tooltip title={title} disableHoverListener={!restricted && !eModeBorrowDisabled} placement="top">
                   <span>
                     <Button
                       variant="gradient"
                       color="primary"
-                      disabled={eModeBorrowDisabled}
+                      disabled={restricted || eModeBorrowDisabled}
                       onClick={() => openBorrow(reserve.underlyingAsset, currentMarket, reserve.name, 'reserve-page', true)}
                     >
                       Borrow
@@ -168,7 +186,7 @@ export default function ReserveOverview() {
         )}
       </Box>
     </Box>
-  ), [reserve, currentAccount, openSupply, openBorrow, currentMarket, connectedChainId, currentChainId, currentNetworkConfig, supplyMenuAnchor]);
+  ), [reserve, restricted, currentAccount, openSupply, openBorrow, currentMarket, connectedChainId, currentChainId, currentNetworkConfig, supplyMenuAnchor]);
 
   if (!reserve) return null;
 
@@ -183,6 +201,8 @@ export default function ReserveOverview() {
         gap: 4
       }}>
         {TopBar}
+
+        <ReserveStatusWarning reserve={reserve} />
 
         <Box sx={{
           display: 'grid',

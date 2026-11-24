@@ -37,6 +37,35 @@ export function useReserveMap() {
   }, [reserves]);
 }
 
+/** Frozen or paused reserves no longer accept supplies or borrows. */
+export function isReserveRestricted(reserve?: { isFrozen: boolean; isPaused: boolean }) {
+  return !!reserve && (reserve.isFrozen || reserve.isPaused);
+}
+
+/**
+ * Market-wide restriction, once data is loaded:
+ * - isRestricted: every active reserve is frozen or paused (nothing can be supplied or borrowed)
+ * - allPaused: every active reserve is paused (withdraw and repay are blocked too)
+ * - anyPaused: at least one active reserve is paused
+ */
+export function useMarketRestriction() {
+  const { reserves, loading } = useAppDataContext();
+  return useMemo(() => {
+    const activeReserves = (reserves || []).filter((r) => r.isActive);
+    const isRestricted = !loading && activeReserves.length > 0 && activeReserves.every(isReserveRestricted);
+    return {
+      isRestricted,
+      allPaused: isRestricted && activeReserves.every((r) => r.isPaused),
+      anyPaused: isRestricted && activeReserves.some((r) => r.isPaused),
+    };
+  }, [reserves, loading]);
+}
+
+/** True once data is loaded and every active reserve of the current market is frozen or paused. */
+export function useIsMarketFrozen() {
+  return useMarketRestriction().isRestricted;
+}
+
 export function sumIncentivesApr(incentives?: { incentiveAPR: string }[]) {
   if (!incentives || incentives.length === 0) return 0;
   if (incentives.some((i) => i.incentiveAPR === 'Infinity')) return 0;

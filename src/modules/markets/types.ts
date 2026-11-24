@@ -11,6 +11,7 @@ export interface MarketRow {
   variableApy?: number;
   totalLiquidity: number;
   availableLiquidity: number;
+  totalDebt?: number;
   effectiveApy?: number;
   balance?: number;
   available?: number;

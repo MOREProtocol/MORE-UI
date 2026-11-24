@@ -23,6 +23,11 @@ export type MarketDataType = {
     switch?: boolean;
   };
   permitDisabled?: boolean; // intended to be used for testnets
+  /**
+   * Underlying asset addresses (lowercase) of deprecated reserves that are never listed on the Markets page.
+   * Users holding a position in them still see it in My Positions, so they can withdraw / repay.
+   */
+  hiddenReserves?: string[];
   isFork?: boolean;
   permissionComponent?: ReactNode;
   disableCharts?: boolean;
@@ -114,6 +119,12 @@ export const marketsData: {
       switch: false,
     },
     permitDisabled: true,
+    // Frozen on-chain long before the market-wide freeze of 2026-11-20.
+    hiddenReserves: [
+      '0x7f27352d5f83db87a5a3e00f4b07cc2138d8ee52', // USDC.e (Celer), frozen 2025-02
+      '0xa0197b2044d28b08be34d98b23c9312158ea9a18', // cbBTC, frozen 2025-02
+      '0x717dae2baf7656be9a9b01dee31d571a9d4c9579', // WBTC, frozen 2025-11
+    ],
     subgraphUrl: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3',
     addresses: {
       LENDING_POOL_ADDRESS_PROVIDER: '0x1830a96466d1d108935865c75B0a9548681Cfd9A',

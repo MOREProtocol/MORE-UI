@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "license": "BSD-3-Clause",
+  "engines": {
+    "node": "26.x"
+  },
   "scripts": {
     "dev": "next dev",
     "dev:special": "NODE_OPTIONS='--inspect --max_old_space_size=8000' next dev",
